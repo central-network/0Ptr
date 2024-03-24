@@ -72,26 +72,15 @@
 
     </head>
     <body>
-        <script src="0ptr.js" type="module"></script>
-        
+
+        <script src="pointer.js" type="module"></script>
         <script type="module">
-            import "./prototype.js";
+            import { GL } from "./gl.js"
 
-            import {
-                Pointer
-            } from "./0ptr.js"
+            let gl = new GL().init()
 
-            import {
-                ChildTest
-            } from "./window.js"
 
-        console.warn( "from window:", new ChildTest())
-        console.warn( "from offset:", new Pointer(36))
-        console.warn( "from window:", new Pointer(0))
-
-        Pointer.store( HTMLCanvasElement )
-        Pointer.fork()
-
+            console.log( gl, gl.buffer )
         </script>
     </body>
 </html>
