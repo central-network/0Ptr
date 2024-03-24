@@ -15,7 +15,9 @@ EOL = '\n'
 export OFFSET_BYTELENGTH = 4 * 0
 export OFFSET_BYTEOFFSET = 4 * 1
 export OFFSET_PROTOCLASS = 4 * 2
+
 export HEADER_BYTELENGTH = 4 * 9
+export MEMORY_BYTEOFFSET = 4 * 1e5
 
 addUint32 = null
 setUint32 = null
@@ -39,8 +41,8 @@ export class Pointer    extends Number
                 . setProtoClass @constructor.protoClass
 
             if  byte = @constructor.byteLength
-                this . setByteLength byte
                 this . setByteOffset malloc byte
+                this . setByteLength byte
 
 export class Scope      extends Pointer
 
@@ -148,19 +150,18 @@ do  handleScope         = ->
 #?  WindowScope         
     if !WorkerGlobalScope?
         bindAtomics new SharedArrayBuffer 1e4
-        return palloc HEADER_BYTELENGTH
+        palloc HEADER_BYTELENGTH
+        malloc MEMORY_BYTEOFFSET
 
 #?  WorkerGlobalScope   
-    addEventListener "message", ( e ) ->
+    else self .addEventListener "message", ( e ) ->
 
         bindAtomics e.data.buffer
-
-        object = OBJECT.slice()
 
         for name, i in e.data.object
             continue unless name
             found = no
-            for o, j in object
+            for o, j in OBJECT.slice()
                 continue if o?.name isnt name
                 OBJECT[i] = o
                 found = yes
@@ -266,34 +267,13 @@ Object.defineProperty Pointer::, "setInstanceOf",
         i = Pointer.store @constructor 
         setUint32 this + OFFSET_PROTOCLASS, i
 
-
-unless !debug? 
-    Object.defineProperty Pointer::, "protoClass",
-        get     : -> getUint32 this + OFFSET_PROTOCLASS
-        set     : -> setUint32 this + OFFSET_PROTOCLASS, arguments[0]
-
-    Object.defineProperty Pointer::, "byteOffset",
-        get     : -> getUint32 this + OFFSET_BYTEOFFSET
-        set     : -> setUint32 this + OFFSET_BYTEOFFSET, arguments[0]
-
-    Object.defineProperty Pointer::, "byteLength",
-        get     : -> getUint32 this + OFFSET_BYTELENGTH
-        set     : -> setUint32 this + OFFSET_BYTELENGTH, arguments[0]
-
-    Object.defineProperty Pointer::, "instanceOf",
-        get     : -> OBJECT[ getUint32 this + OFFSET_PROTOCLASS ]
-        set     : ->
-            OBJECT[ arguments[0] ] = @constructor
-            setUint32 this + OFFSET_PROTOCLASS, arguments[0]
-
-else
-    Object.defineProperty Pointer::, "{{Pointer}}",
-        get     : ->
-            Object.assign new class Dump extends Object,
-                protoClass  : @getProtoClass()
-                byteOffset  : @getByteOffset()
-                byteLength  : @getByteLength()
-                instanceOf  : @getInstanceOf()
+Object.defineProperty Pointer::, "{{Pointer}}",
+    get     : ->
+        Object.assign new class Dump extends Object,
+            protoClass  : @getProtoClass()
+            byteOffset  : @getByteOffset()
+            byteLength  : @getByteLength()
+            instanceOf  : @getInstanceOf()
 
 export default Pointer
 

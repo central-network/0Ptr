@@ -28,6 +28,8 @@ export var OFFSET_PROTOCLASS = 4 * 2;
 
 export var HEADER_BYTELENGTH = 4 * 9;
 
+export var MEMORY_BYTEOFFSET = 4 * 1e5;
+
 addUint32 = null;
 
 setUint32 = null;
@@ -47,8 +49,8 @@ export var Pointer = class Pointer extends Number {
       //?  allocation - init
       super(palloc(HEADER_BYTELENGTH)).setProtoClass(this.constructor.protoClass);
       if (byte = this.constructor.byteLength) {
-        this.setByteLength(byte);
         this.setByteOffset(malloc(byte));
+        this.setByteLength(byte);
       }
     }
   }
@@ -178,44 +180,46 @@ packScope = function() {
   OBJECT[0] = Scope;
   if (typeof WorkerGlobalScope === "undefined" || WorkerGlobalScope === null) {
     bindAtomics(new SharedArrayBuffer(1e4));
-    return palloc(HEADER_BYTELENGTH);
-  }
-  //?  WorkerGlobalScope   
-  return addEventListener("message", function(e) {
-    var found, i, j, k, l, len, len1, name, o, object, ref1;
-    bindAtomics(e.data.buffer);
-    object = OBJECT.slice();
-    ref1 = e.data.object;
-    for (i = k = 0, len = ref1.length; k < len; i = ++k) {
-      name = ref1[i];
-      if (!name) {
-        continue;
-      }
-      found = false;
-      for (j = l = 0, len1 = object.length; l < len1; j = ++l) {
-        o = object[j];
-        if ((o != null ? o.name : void 0) !== name) {
+    palloc(HEADER_BYTELENGTH);
+    return malloc(MEMORY_BYTEOFFSET);
+  } else {
+    //?  WorkerGlobalScope   
+    return self.addEventListener("message", function(e) {
+      var found, i, j, k, l, len, len1, name, o, ref1, ref2;
+      bindAtomics(e.data.buffer);
+      ref1 = e.data.object;
+      for (i = k = 0, len = ref1.length; k < len; i = ++k) {
+        name = ref1[i];
+        if (!name) {
           continue;
         }
-        OBJECT[i] = o;
-        found = true;
-        break;
-      }
-      if (found) {
-        continue;
-      }
-      OBJECT[i] = new Proxy({name}, {
-        get: function(ref, key, proxy) {
-          return console.log("getter", {ref, key, proxy});
+        found = false;
+        ref2 = OBJECT.slice();
+        for (j = l = 0, len1 = ref2.length; l < len1; j = ++l) {
+          o = ref2[j];
+          if ((o != null ? o.name : void 0) !== name) {
+            continue;
+          }
+          OBJECT[i] = o;
+          found = true;
+          break;
         }
-      });
-    }
-    return dispatchEvent(new CustomEvent("ready", {
-      detail: self.window = new Scope(0)
-    }));
-  }, {
-    once: true
-  });
+        if (found) {
+          continue;
+        }
+        OBJECT[i] = new Proxy({name}, {
+          get: function(ref, key, proxy) {
+            return console.log("getter", {ref, key, proxy});
+          }
+        });
+      }
+      return dispatchEvent(new CustomEvent("ready", {
+        detail: self.window = new Scope(0)
+      }));
+    }, {
+      once: true
+    });
+  }
 })();
 
 Object.defineProperty(Pointer, "store", {
@@ -351,52 +355,16 @@ Object.defineProperty(Pointer.prototype, "setInstanceOf", {
   }
 });
 
-if (!(typeof debug === "undefined" || debug === null)) {
-  Object.defineProperty(Pointer.prototype, "protoClass", {
-    get: function() {
-      return getUint32(this + OFFSET_PROTOCLASS);
-    },
-    set: function() {
-      return setUint32(this + OFFSET_PROTOCLASS, arguments[0]);
-    }
-  });
-  Object.defineProperty(Pointer.prototype, "byteOffset", {
-    get: function() {
-      return getUint32(this + OFFSET_BYTEOFFSET);
-    },
-    set: function() {
-      return setUint32(this + OFFSET_BYTEOFFSET, arguments[0]);
-    }
-  });
-  Object.defineProperty(Pointer.prototype, "byteLength", {
-    get: function() {
-      return getUint32(this + OFFSET_BYTELENGTH);
-    },
-    set: function() {
-      return setUint32(this + OFFSET_BYTELENGTH, arguments[0]);
-    }
-  });
-  Object.defineProperty(Pointer.prototype, "instanceOf", {
-    get: function() {
-      return OBJECT[getUint32(this + OFFSET_PROTOCLASS)];
-    },
-    set: function() {
-      OBJECT[arguments[0]] = this.constructor;
-      return setUint32(this + OFFSET_PROTOCLASS, arguments[0]);
-    }
-  });
-} else {
-  Object.defineProperty(Pointer.prototype, "{{Pointer}}", {
-    get: function() {
-      var Dump;
-      return Object.assign(new (Dump = class Dump extends Object {}), {
-        protoClass: this.getProtoClass(),
-        byteOffset: this.getByteOffset(),
-        byteLength: this.getByteLength(),
-        instanceOf: this.getInstanceOf()
-      });
-    }
-  });
-}
+Object.defineProperty(Pointer.prototype, "{{Pointer}}", {
+  get: function() {
+    var Dump;
+    return Object.assign(new (Dump = class Dump extends Object {}), {
+      protoClass: this.getProtoClass(),
+      byteOffset: this.getByteOffset(),
+      byteLength: this.getByteLength(),
+      instanceOf: this.getInstanceOf()
+    });
+  }
+});
 
 export default Pointer;
