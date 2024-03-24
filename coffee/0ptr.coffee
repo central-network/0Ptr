@@ -69,8 +69,9 @@ bindAtomics             = ->
     setUint32 = -> Atomics.store UINT32, arguments[0]/4, arguments[1]
 
     do ->
-        console.groupCollapsed "Scope is ready", [ self.constructor.name ]
-        console.log DedicatedWorkerGlobalScope ? window
+        console.group "Scope is ready"
+        console.log "          💖", [ self.constructor.name ]
+        console.log "          🧬", { ...self }
         console.groupEnd()
 
 packFunction            = ->

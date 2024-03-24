@@ -91,8 +91,9 @@ bindAtomics = function() {
     return Atomics.store(UINT32, arguments[0] / 4, arguments[1]);
   };
   return (function() {
-    console.groupCollapsed("Scope is ready", [self.constructor.name]);
-    console.log(typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null ? DedicatedWorkerGlobalScope : window);
+    console.group("Scope is ready");
+    console.log("          💖", [self.constructor.name]);
+    console.log("          🧬", {...self});
     return console.groupEnd();
   })();
 };
