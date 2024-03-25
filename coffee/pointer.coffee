@@ -1,30 +1,165 @@
+[
+    [
+        sab = null , f32 = null
+        ui8 = null , u16 = null
+        u32 = null
+    ]
+
+    BUFFER_BYTELENGTH =  1e7
+
+    LENGTH_OF_POINTER =  12
+        
+    BYTES_PER_POINTER =   4 * LENGTH_OF_POINTER
+
+    BUFFER_BYTEOFFSET = 1e5 * BYTES_PER_POINTER
+]
+
+setBufferAtomics = ->
+    
+    [ sab = new SharedArrayBuffer BUFFER_BYTELENGTH ] = arguments
+
+    Object.defineProperty Pointer::,
+        "buffer" , value : sab
+        
+    ui8 = new Uint8Array   sab
+    u32 = new Uint32Array  sab
+    u16 = new Uint16Array  sab
+    f32 = new Float32Array sab
+
+    unless arguments.length
+        Atomics.add u32, 0, BYTES_PER_POINTER
+        Atomics.add u32, 1, BUFFER_BYTEOFFSET
+
+    Pointer
+
 addEventListener "message", fn = ( e ) ->
 
     removeEventListener "message", fn
+    setBufferAtomics e.data
+
+    ai32 = new Int32Array new SharedArrayBuffer 1e4
 
     Object.defineProperties Pointer::,
-        buffer : value : e.data
-        
-class Pointer               extends Number
+
+        loadScope : value : (i) ->
+
+            #write request opcode
+            Thread.operation ai32, Thread.OP_LOADSCOPE
+
+            #write request arg length
+            Thread.argLength ai32, 1
+
+            #write args
+            Thread.arguments ai32, i
+
+            #lock until notify
+            Thread.waitReply ai32
+
+            #read response and store
+            scope[ i ] = self.GL[ Thread.readAsText ai32 ]
+
+    console.warn new Pointer 12
+    console.warn new Pointer 24
+
+class Pointer           extends Number
+
+    constructor  : ->
+
+        unless arguments.length is 0
+            return super arguments[0]
+                .usePrototype @class.prototype
+
+        super Pointer.palloc() / 4
+            . setPrototype  scope.index @constructor
+
+        if  byteLength      = @constructor.byteLength
+            @setByteOffset  Pointer.malloc byteLength
+            @setByteLength  byteLength
+            @setLength      byteLength / @BYTES_PER_ELEMENT
+
+        this
+            .init()
+
+class Thread            extends Worker
+
+    @OP_LOADSCOPE : 23
+
+    @INDEX_PREPARATE = 0
+    @INDEX_OPERATION = 1
+    @INDEX_ARGLENGTH = 2
+    @INDEX_ARGUMENTS = 3
+    
+    @waitReply    : ->
+        ai32 = arguments[0]
+        Atomics.store ai32, @INDEX_PREPARATE, 0
+
+        #send switch buffer
+        postMessage   ai32
+
+        #lock until notify
+        Atomics.wait  ai32, @INDEX_PREPARATE
+
+    @sendReply  : ->
+        ai32 = arguments[0]
+        Atomics.notify ai32, @INDEX_PREPARATE, 1
+    
+    @readAsText  : ->        
+        ai32 = arguments[0]
+        offset = Thread.INDEX_ARGUMENTS * 4
+        strlen = Thread.argLength ai32
+        string = new Uint8Array ai32.buffer, offset, strlen
+
+        new TextDecoder().decode string.slice()
+    
+    @operation  : ->
+        ai32 = arguments[0]
+        unless value = arguments[1]
+            return Atomics.load ai32, @INDEX_OPERATION
+        Atomics.store ai32, @INDEX_OPERATION, value 
+
+    @argLength  : ->
+        ai32 = arguments[0]
+        unless value = arguments[1]
+            return Atomics.load ai32, @INDEX_ARGLENGTH
+        Atomics.store ai32, @INDEX_ARGLENGTH, value 
+
+    @arguments  : ->
+        ai32 = arguments[0] ; i = arguments[2] or 0
+        unless value = arguments[1]
+            return Atomics.load ai32, @INDEX_ARGUMENTS + i
+        Atomics.store ai32, @INDEX_ARGUMENTS + i, value 
+
+    pool        : []
+
+    @options    : ->
+        { type: "module", name: arguments[0] }
 
     constructor : ->
+        super Thread.scriptURL , Thread.options id = arguments[0]
 
-        unless arguments.length
-            super Pointer.byteOffset / 4
+        @onmessage = ({ data: ai32 }) =>
 
-            if  byteLength = @constructor.byteLength
+            #read opcode
+            console.log "atomic request (#{id}) op:", Thread.operation ai32
+            console.log "atomic request (#{id}) arglen:", Thread.argLength ai32
+            console.log "atomic request (#{id}) arguments:", Thread.arguments ai32
 
-                @setByteOffset  i = Pointer.malloc byteLength
-                @setByteLength  byteLength
-                @setLength      byteLength / @BYTES_PER_ELEMENT
+            switch Thread.operation ai32
+                when Thread.OP_LOADSCOPE
+                    i = Thread.arguments ai32
 
-    init : -> this
+                    r = new TextEncoder().encode scope[i].name
+                    m = r.byteLength % ai32.BYTES_PER_ELEMENT
+                    l = r.byteLength + ai32.BYTES_PER_ELEMENT - m   
+                    
+                    Thread.argLength ai32, r.byteLength
+                    for v, j in new ai32.constructor r.buffer.transfer l
+                        Thread.arguments ai32, v, j
+                    Thread.sendReply ai32
+                    
+        @postMessage Pointer::buffer
 
-class Pointer.Number        extends Pointer
-
-class Pointer.Worker        extends Pointer
-
-class Scope                 extends Array
+class Scope             extends Array
 
     index       : ->
         if -1 is i = @indexOf arguments[0]
@@ -35,120 +170,147 @@ class Scope                 extends Array
         @index arguments[0] ; this
 
     constructor : ->
-        
-        super().push self
+        super().push null
 
-        return this unless document?
+do     extendTypedArray = ->
+    ( TypedArray ) ->
 
-        buffer = new SharedArrayBuffer 1e7
-        uint8  = new  Uint8Array buffer
-        uint32 = new Uint32Array buffer
-        uint16 = new Uint16Array buffer
-        ptrlen = 4 * 12
-        ptrend = ptrlen * 1e5
+        this[ TypedArray.name ] = class extends this
 
-        Atomics.add uint32, 0, ptrlen
-        Atomics.add uint32, 1, ptrend
+            name                : TypedArray.name
+
+            TypedArray          : TypedArray
+
+            BYTES_PER_ELEMENT   : TypedArray.BYTES_PER_ELEMENT
+
+        Object.defineProperties this[ TypedArray.name ]::,
+
+            array       : get   : -> new TypedArray @buffer, @getByteOffset(), @getLength()
+
+            subarray    : value : -> @array.subarray arguments...       
+
+    .call( Pointer, TypedArray ) for TypedArray in [
+        Float32Array, Uint8Array,
+        Float64Array, Uint16Array, Uint32Array
+    ]
+
+Object.defineProperties Pointer,
+
+    headOffset      : { value : 0, writable: on }
+
+    palloc          : value : -> Atomics.add u32, 0, BYTES_PER_POINTER
+
+    malloc          : value : -> Atomics.add u32, 1, arguments[ 0 ]
     
-        Object.defineProperties Pointer,
-
-            malloc          : value : -> Atomics.add   uint32, 1, arguments[0]
-
-            byteOffset      : get   : -> Atomics.add   uint32, 0, ptrlen
-
-            byteLength      : get   : -> Atomics.load  uint32, 0
-
-        Object.defineProperties Pointer::,
-
-            setByteOffset   : value : -> Atomics.store uint32, this * 1, arguments[0] ; this
-
-            setByteLength   : value : -> Atomics.store uint32, this + 1, arguments[0] ; this
-            
-            setLength       : value : -> Atomics.store uint32, this + 2, arguments[0] ; this
-
-            getByteOffset   : value : -> Atomics.load  uint32, this * 1
-
-            getByteLength   : value : -> Atomics.load  uint32, this + 1
-            
-            getLength       : value : -> Atomics.load  uint32, this + 2
-
-            loadUint32      : value : -> Atomics.load  uint32, this + arguments[0]
-            
-            storeUint32     : value : -> Atomics.store uint32, this + arguments[0], arguments[1] ; this
-
-            loadUint16      : value : -> Atomics.load  uint16, 2 * this + arguments[0]
-            
-            storeUint16     : value : -> Atomics.store uint16, 2 * this + arguments[0], arguments[1] ; this
-
-        Object.defineProperties Pointer::,
+    ialloc          : value : ->
         
-            buffer          : value : buffer
+        PERELEMENT = arguments[0].BYTES_PER_ELEMENT
+        headOffset = @headOffset
 
-            store           : value : -> scope.index arguments[0]
+        if  mod = headOffset % PERELEMENT
+            headOffset += PERELEMENT - mod
+        
+        @headOffset = headOffset + PERELEMENT
+        return headOffset / PERELEMENT
 
-            proxy           : value : -> scope[ arguments[0] ]
+INDEX_PROTOTYPE         = Pointer.ialloc Uint16Array
 
-            ["{{Pointer}}"] : get   : ->
-                
-                pointerByteOffset = this * 4
-                headersByteOffset = pointerByteOffset + Pointer.INDEX * 4
+INDEX_PARENT            = Pointer.ialloc Uint32Array
 
-                byteOffset  : @getByteOffset()
-                byteLength  : @getByteLength()
-                length      : @getLength()
-                headers     :
-                    uint8   : new Uint8Array  buffer, headersByteOffset, 80
-                    uint16  : new Uint16Array buffer, headersByteOffset, 40
-                    uint32  : new Uint32Array buffer, headersByteOffset, 20
+INDEX_BYTEOFFSET        = Pointer.ialloc Uint32Array
 
-        do ->
-            scriptURL = URL.createObjectURL new Blob [
-                await ( await fetch( `import.meta.url` ) ).text()
-            ], { type: "application/javascript" }
+INDEX_BYTELENGTH        = Pointer.ialloc Uint32Array
 
-            for i in [ 0 .. 4 ]
-                new Worker scriptURL, { type: "module", name : i }
-                    .postMessage buffer
+INDEX_LENGTH            = Pointer.ialloc Uint32Array
 
-        null
+Object.defineProperties Pointer::,
+
+    class           : get   : ->
+        @proxy @getPrototype()
+
+    parent          :
+
+        get         : -> new Pointer @getParent()
+        
+        set         : -> @setParent arguments[0]
+
+    add             : value : -> arguments[0].setParent this
+
+    init            : value : -> this
+
+    store           : value : -> scope.index arguments[0]
+
+    proxy           :
+        value       : ->
+            return unless i = arguments[0]
+            unless object = scope[ i ]
+                return @loadScope i
+            return object
+
+Object.defineProperties Pointer::,
+
+    usePrototype    : value : -> Object.setPrototypeOf this , arguments[0]
+    
+    getPrototype    : value : -> Atomics.load  u16, this / 2 + INDEX_PROTOTYPE
+
+    setPrototype    : value : -> Atomics.store u16, this / 2 + INDEX_PROTOTYPE, arguments[0]        
+    
+    getParent       : value : -> Atomics.load  u32, 1 * this + INDEX_PARENT
+
+    setParent       : value : -> Atomics.store u32, 1 * this + INDEX_PARENT, arguments[0] ; this     
+    
+    setByteLength   : value : -> Atomics.store u32, 1 * this + INDEX_BYTELENGTH, arguments[0] ; this
+    
+    setByteOffset   : value : -> Atomics.store u32, 1 * this + INDEX_BYTEOFFSET, arguments[0] ; this
+
+    setByteLength   : value : -> Atomics.store u32, 1 * this + INDEX_BYTELENGTH, arguments[0] ; this
+    
+    setLength       : value : -> Atomics.store u32, 1 * this + INDEX_LENGTH, arguments[0] ; this
+
+    getByteOffset   : value : -> Atomics.load  u32, 1 * this + INDEX_BYTEOFFSET
+
+    getByteLength   : value : -> Atomics.load  u32, 1 * this + INDEX_BYTELENGTH
+    
+    getLength       : value : -> Atomics.load  u32, 1 * this + INDEX_LENGTH
+
+    loadUint32      : value : -> Atomics.load  u32, 1 * this + arguments[0]
+    
+    storeUint32     : value : -> Atomics.store u32, 1 * this + arguments[0], arguments[1] ; this
+
+    loadUint16      : value : -> Atomics.load  u16, 2 * this + arguments[0]
+    
+    storeUint16     : value : -> Atomics.store u16, 2 * this + arguments[0], arguments[1] ; this
+
+    loadUint8       : value : -> Atomics.load   ui8, 4 * this + arguments[0]
+    
+    storeUint8      : value : -> Atomics.store  ui8, 4 * this + arguments[0], arguments[1] ; this
+
+Object.defineProperties Pointer::, ["{{Pointer}}"] :
+    get : ->
+        headOffset  = this * 4
+
+        byteOffset  : @getByteOffset()
+        byteLength  : @getByteLength()
+        length      : @getLength()
+        headers     :
+            ui8   : new Uint8Array @buffer, headOffset, BYTES_PER_POINTER / 1
+            u16  : new Uint16Array @buffer, headOffset, BYTES_PER_POINTER / 2
+            u32  : new Uint32Array @buffer, headOffset, BYTES_PER_POINTER / 4
 
 scope = new Scope()
 
-Object.defineProperties     Pointer,
+if !WorkerGlobalScope?
+    
+    setBufferAtomics()
 
-    class   : get   : -> scope.store this
+    Thread.scriptURL = URL.createObjectURL new Blob [
+        "import * as GL from \"#{`import.meta.resolve('./gl.js')`}\"; self.GL = GL;"
+    ], { type: "application/javascript" }
 
-    INDEX   : { writable: on, value : 4 }
+    scope.index new Thread i for i in [ 0 .. 1 ]
 
-    LENGTH  : value : 12
+    document.onclick = -> console.log scope
 
-    palloc  : value : ->
+else
 
-        typedArray = arguments[0]
-        byteLength = @INDEX * 4
-        typedIndex = byteLength / typedArray.BYTES_PER_ELEMENT
-        byteOffset = byteLength + typedArray.BYTES_PER_ELEMENT
-        this.INDEX = byteOffset / 4 ; typedIndex
-
-( TypedArray ) ->
-
-    this[ TypedArray.name ] = class extends this
-
-        name                : TypedArray.name
-
-        TypedArray          : TypedArray
-
-        BYTES_PER_ELEMENT   : TypedArray.BYTES_PER_ELEMENT
-
-    Object.defineProperties this[ TypedArray.name ]::,
-
-        array       : get   : -> new TypedArray @buffer, @getByteOffset(), @getLength()
-
-        subarray    : value : -> @array.subarray arguments...       
-
-.call( Pointer, TypedArray ) for TypedArray in [
-    Float32Array, Uint8Array,
-    Float64Array, Uint16Array, Uint32Array
-]
-
-self.Pointer = Pointer
+export { Pointer as default, Pointer }

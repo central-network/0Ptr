@@ -73,14 +73,17 @@
     </head>
     <body>
 
-        <script src="pointer.js" type="module"></script>
         <script type="module">
-            import { GL } from "./gl.js"
+            import { Context, Program } from "./gl.js"
 
-            let gl = new GL().init()
+            let ctx = new Context()
+            let prg = new Program()
 
+            console.log( ctx )
 
-            console.log( gl, gl.buffer )
+            ctx.add(prg)
+
+            console.log( prg )
         </script>
     </body>
 </html>

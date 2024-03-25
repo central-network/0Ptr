@@ -1,49 +1,98 @@
-class GL extends Pointer.Float32Array
+import { Pointer } from "./pointer.js"
 
-INDEX_CANVAS        = GL.palloc( Uint16Array )
+#? --------------------------------------------- ?#
+#?                 Context Context                    ?#
+#? --------------------------------------------- ?#
 
-INDEX_CONTEXT       = GL.palloc( Uint16Array )
+class Context extends Pointer.Float32Array
 
-Object.defineProperties GL.class,
+INDEX_CONTEXT_GL     = Context.ialloc Uint32Array
+INDEX_CONTEXT_CANVAS = Context.ialloc Uint32Array
+
+Object.defineProperties Context,
 
     byteLength      :
-        value       : 4 * 48
 
-Object.defineProperties GL.prototype,
+        value       : 4 * 2
+
+Object.defineProperties Context::,
 
     init            :
         value       : ->
             @createCanvas()
-            .createContext()
+            @createContext()
 
-Object.defineProperties GL.prototype,
-
-    getCanvas       :
-        value       : -> @proxy @loadUint16 INDEX_CANVAS
-
-    setCanvas       :
-        value       : -> @storeUint16 INDEX_CANVAS, @store arguments[0]
-
-    getContext      :
-        value       : -> @proxy @loadUint16 INDEX_CONTEXT
-
-    setContext      :
-        value       : -> @storeUint16 INDEX_CONTEXT, @store arguments[0]
+    add             :
+        value       : ( ptr ) ->
+            ptr.setParent( this ).gl = @getContext() ; this
 
     createCanvas    :
-        value       : -> @setCanvas document.createElement "canvas"
-
+        value       : -> @canvas = document.createElement "canvas"
+    
     createContext   :
-        value       : -> @setContext @canvas.getContext "webgl2"
+        value       : -> this.gl = @canvas.getContext "webgl2"
 
-Object.defineProperties GL.prototype,
+
+Object.defineProperties Context::,
+
+    getCanvas       :
+        value       : -> @loadUint32  INDEX_CONTEXT_CANVAS
+
+    setCanvas       :
+        value       : -> @storeUint32 INDEX_CONTEXT_CANVAS, arguments[0]
+
+    getContext      :
+        value       : -> @loadUint32  INDEX_CONTEXT_GL
+
+    setContext      :
+        value       : -> @storeUint32 INDEX_CONTEXT_GL, arguments[0]
+
+Object.defineProperties Context::,
+
+    gl              :
+        get         : -> @proxy @getContext()
+        set         : -> @setContext @store arguments[0]
 
     canvas          :
-        get         : GL::getCanvas
-        set         : GL::setCanvas
+        get         : -> @proxy @getCanvas()
+        set         : -> @setCanvas @store arguments[0]
 
-    context         :
-        get         : GL::getContext
-        set         : GL::setContext
+#? --------------------------------------------- ?#
+#?                 Context Program                    ?#
+#? --------------------------------------------- ?#
 
-export { GL as default, GL }
+class Program extends Pointer
+
+INDEX_PROGRAM_GL    = Program.ialloc Uint32Array
+INDEX_PROGRAM_LINK  = Program.ialloc Uint32Array
+
+Object.defineProperties Program::,
+
+    createProgram   :
+        value       : -> @program = @gl.createProgram()
+
+Object.defineProperties Program::,
+
+    getProgram      :
+        value       : -> @loadUint32  INDEX_PROGRAM_LINK
+
+    setProgram      :
+        value       : -> @storeUint32 INDEX_PROGRAM_LINK, arguments[0]
+
+    getContext      :
+        value       : -> @loadUint32  INDEX_PROGRAM_GL
+
+    setContext      :
+        value       : -> @storeUint32 INDEX_PROGRAM_GL, arguments[0]
+
+Object.defineProperties Program::,
+
+    program         :
+        get         : -> @proxy @getProgram()
+        set         : -> @setProgram @store arguments[0]
+
+    gl              :
+        get         : -> @proxy @getContext()
+        set         : -> @createProgram @setContext arguments[0]
+
+export { Context as default, Context, Program }
