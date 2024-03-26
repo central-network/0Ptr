@@ -1,3 +1,5 @@
+import { WebGLProgram } from "./window.coffee"
+
 [
     [
         sab = null , f32 = null
@@ -13,6 +15,36 @@
 
     BUFFER_BYTEOFFSET = 1e5 * BYTES_PER_POINTER
 ]
+
+handleProxyTarget = ->
+    ai32 = arguments[0]
+    scopei = arguments[1]
+
+    call = ->
+        [ fn, ...args ] = arguments
+
+        #write request opcode
+        Thread.operation ai32, Thread.OP_CALLFUNTION
+
+        #write scope index
+        Thread.setUint32 ai32, scopei
+        
+        #write function name
+        Thread.writeText ai32, fn
+
+        #lock until notify
+        Thread.waitReply ai32
+
+        if  0 > Thread.getUint32 ai32
+            throw Thread.readAsText ai32
+        
+        console.log Thread.readAsText ai32
+
+    get : ( proto, key, proxy ) ->
+        console.log key, proto
+        return switch typeof proto[ key ]
+            when "function" then -> call key, ...arguments
+            else proto[key]
 
 #? await getURLBlobExports fileURL
 getURLBlobExports = ->
@@ -82,6 +114,10 @@ addEventListener "message", fn = ( e ) ->
     #removeEventListener "message", fn
     setPointerAtomics e.data
 
+    class HTMLElement
+        constructor : ( @name ) ->
+            @tagName = @name.replace(/HTML|Element/g, "").toUpperCase()
+
     ai32 = new Int32Array new SharedArrayBuffer 1e4
 
     Object.defineProperties Pointer::,
@@ -101,12 +137,25 @@ addEventListener "message", fn = ( e ) ->
             Thread.waitReply ai32
 
             #read response and store
-            # todo not necessary now 
-            #! scope[ i ] = self.GL[ Thread.readAsText ai32 ]
+            scope[i] = switch key = Thread.readAsText ai32
+
+                when "WebGL2RenderingContext"
+                    new Proxy ( WebGL2RenderingContext:: ), handleProxyTarget ai32, i 
+
+                when "WebGLProgram"
+                    new Proxy ( WebGLProgram:: ), handleProxyTarget ai32, i
+
+                else 
+                    if  key.startsWith("HTML") and key.endsWith "Element"
+                        new Proxy ( new HTMLElement key ), handleProxyTarget ai32, i
+
+                    else
+                        new Proxy { key }, handleProxyTarget ai32, i
 
     console.warn new Pointer 12 if name is "0"
-    console.warn new Pointer 24 if name is "1"
-    console.warn scope
+    console.warn p = new Pointer 24 if name is "1"
+    
+    console.log scope if name is "1"
 
 class Pointer           extends Number
 
@@ -129,12 +178,14 @@ class Pointer           extends Number
 
 class Thread            extends Worker
 
-    @OP_LOADSCOPE : 23
+    @OP_LOADSCOPE    : 9
+    @OP_CALLFUNTION  : 8
 
     @INDEX_PREPARATE = 0
     @INDEX_OPERATION = 1
-    @INDEX_ARGLENGTH = 2
-    @INDEX_ARGUMENTS = 3
+    @INDEX_ARGUINT32 = 2
+    @INDEX_ARGLENGTH = 3
+    @INDEX_ARGUMENTS = 10
     
     @waitReply    : ->
         ai32 = arguments[0]
@@ -157,6 +208,29 @@ class Thread            extends Worker
         string = new Uint8Array ai32.buffer, offset, strlen
 
         new TextDecoder().decode string.slice()
+    
+    @writeText   : -> 
+        ai32 = arguments[0]
+        text = arguments[1]
+
+        r = new TextEncoder().encode text
+        m = r.byteLength % ai32.BYTES_PER_ELEMENT
+        l = r.byteLength + ai32.BYTES_PER_ELEMENT - m
+
+        Thread.argLength ai32, r.byteLength
+        for v, j in new ai32.constructor r.buffer.transfer l
+            Thread.arguments ai32, v, j
+        
+        this
+
+    @setUint32 : -> 
+        ai32 = arguments[0]
+        Atomics.store ai32, arguments[2] or @INDEX_ARGUINT32, arguments[1]
+        this
+
+    @getUint32 : -> 
+        ai32 = arguments[0]
+        Atomics.load ai32, arguments[1] or @INDEX_ARGUINT32
     
     @operation  : ->
         ai32 = arguments[0]
@@ -189,15 +263,30 @@ class Thread            extends Worker
         @onmessage      = ({ data: ai32 }) =>
 
             #read opcode
-            console.log "atomic request (#{id}) op:", Thread.operation ai32
-            console.log "atomic request (#{id}) arglen:", Thread.argLength ai32
-            console.log "atomic request (#{id}) arguments:", Thread.arguments ai32
+            #console.log "atomic request (#{id}) op:", Thread.operation ai32
+            #console.log "atomic request (#{id}) arglen:", Thread.argLength ai32
+            #console.log "atomic request (#{id}) arguments:", Thread.arguments ai32
 
             switch Thread.operation ai32
+
+                when Thread.OP_CALLFUNTION
+                    #console.log "atomic request (#{id}) scopei:", Thread.getUint32 ai32
+                    #console.log "atomic request (#{id}) fnname:", Thread.readAsText ai32
+
+                    i = Thread.getUint32 ai32
+                    fn = Thread.readAsText ai32
+
+                    try r = scope[i][fn]()
+                    catch e then Thread.setUint32 ai32, -1 * Boolean r = e
+                    finally Thread.writeText ai32, r.toString()
+                    
+                    Thread.sendReply ai32
+
                 when Thread.OP_LOADSCOPE
+
                     i = Thread.arguments ai32
 
-                    r = new TextEncoder().encode scope[i].name
+                    r = new TextEncoder().encode scope[i].name or scope[i].constructor.name
                     m = r.byteLength % ai32.BYTES_PER_ELEMENT
                     l = r.byteLength + ai32.BYTES_PER_ELEMENT - m   
                     
@@ -247,8 +336,8 @@ class Scope             extends Array
                 mods = mods.join ", "
 
                 @imports[j] = "import {#{mods}} from '#{file}'"
-                @indexes[j] = new Array unless @indexes[ j ]
-                @indexes[j].push "#{name}.scopei(#{i});"
+                @indexes[j] = new Array() unless @indexes[j]
+                @indexes[j] . push "#{name}.scopei(#{i});"
 
         i
 
@@ -336,6 +425,7 @@ Object.defineProperties Pointer::,
             unless object = scope[ i ]
                 return @loadScope i
             return object
+        
 
 Object.defineProperties Pointer::,
 

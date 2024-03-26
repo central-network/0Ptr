@@ -1,7 +1,47 @@
-var BUFFER_BYTELENGTH, BUFFER_BYTEOFFSET, BYTES_PER_POINTER, INDEX_BYTELENGTH, INDEX_BYTEOFFSET, INDEX_LENGTH, INDEX_PARENT, INDEX_PROTOTYPE, LENGTH_OF_POINTER, Pointer, Scope, Thread, extendTypedArray, f32, fn, getCallerFilePath, getURLBlobExports, getURLTextContent, sab, scope, setPointerAtomics, u16, u32, ui8,
+var BUFFER_BYTELENGTH, BUFFER_BYTEOFFSET, BYTES_PER_POINTER, INDEX_BYTELENGTH, INDEX_BYTEOFFSET, INDEX_LENGTH, INDEX_PARENT, INDEX_PROTOTYPE, LENGTH_OF_POINTER, Pointer, Scope, Thread, extendTypedArray, f32, fn, getCallerFilePath, getURLBlobExports, getURLTextContent, handleProxyTarget, sab, scope, setPointerAtomics, u16, u32, ui8,
   splice = [].splice;
 
+import {
+  WebGLProgram
+} from "./window.js";
+
 [[sab = null, f32 = null, ui8 = null, u16 = null, u32 = null], BUFFER_BYTELENGTH = 1e7, LENGTH_OF_POINTER = 12, BYTES_PER_POINTER = 4 * LENGTH_OF_POINTER, BUFFER_BYTEOFFSET = 1e5 * BYTES_PER_POINTER];
+
+handleProxyTarget = function() {
+  var ai32, call, scopei;
+  ai32 = arguments[0];
+  scopei = arguments[1];
+  call = function() {
+    var args, fn;
+    [fn, ...args] = arguments;
+    //write request opcode
+    Thread.operation(ai32, Thread.OP_CALLFUNTION);
+    //write scope index
+    Thread.setUint32(ai32, scopei);
+    
+    //write function name
+    Thread.writeText(ai32, fn);
+    //lock until notify
+    Thread.waitReply(ai32);
+    if (0 > Thread.getUint32(ai32)) {
+      throw Thread.readAsText(ai32);
+    }
+    return console.log(Thread.readAsText(ai32));
+  };
+  return {
+    get: function(proto, key, proxy) {
+      console.log(key, proto);
+      switch (typeof proto[key]) {
+        case "function":
+          return function() {
+            return call(key, ...arguments);
+          };
+        default:
+          return proto[key];
+      }
+    }
+  };
+};
 
 //? await getURLBlobExports fileURL
 getURLBlobExports = function() {
@@ -76,16 +116,24 @@ setPointerAtomics = function() {
 };
 
 addEventListener("message", fn = function(e) {
-  var ai32;
+  var HTMLElement, ai32, p;
   if (Pointer.prototype.buffer) {
     return;
   }
   //removeEventListener "message", fn
   setPointerAtomics(e.data);
+  HTMLElement = class HTMLElement {
+    constructor(name1) {
+      this.name = name1;
+      this.tagName = this.name.replace(/HTML|Element/g, "").toUpperCase();
+    }
+
+  };
   ai32 = new Int32Array(new SharedArrayBuffer(1e4));
   Object.defineProperties(Pointer.prototype, {
     loadScope: {
       value: function(i) {
+        var key;
         //write request opcode
         Thread.operation(ai32, Thread.OP_LOADSCOPE);
         //write request arg length
@@ -93,20 +141,34 @@ addEventListener("message", fn = function(e) {
         //write args
         Thread.arguments(ai32, i);
         //lock until notify
-        return Thread.waitReply(ai32);
+        Thread.waitReply(ai32);
+        //read response and store
+        return scope[i] = (function() {
+          switch (key = Thread.readAsText(ai32)) {
+            case "WebGL2RenderingContext":
+              return new Proxy(WebGL2RenderingContext.prototype, handleProxyTarget(ai32, i));
+            case "WebGLProgram":
+              return new Proxy(WebGLProgram.prototype, handleProxyTarget(ai32, i));
+            default:
+              if (key.startsWith("HTML") && key.endsWith("Element")) {
+                return new Proxy(new HTMLElement(key), handleProxyTarget(ai32, i));
+              } else {
+                return new Proxy({key}, handleProxyTarget(ai32, i));
+              }
+          }
+        })();
       }
     }
   });
   if (name === "0") {
-    //read response and store
-    // todo not necessary now 
-    //! scope[ i ] = self.GL[ Thread.readAsText ai32 ]
     console.warn(new Pointer(12));
   }
   if (name === "1") {
-    console.warn(new Pointer(24));
+    console.warn(p = new Pointer(24));
   }
-  return console.warn(scope);
+  if (name === "1") {
+    return console.log(scope);
+  }
 });
 
 Pointer = class Pointer extends Number {
@@ -151,6 +213,35 @@ Thread = (function() {
       strlen = Thread.argLength(ai32);
       string = new Uint8Array(ai32.buffer, offset, strlen);
       return new TextDecoder().decode(string.slice());
+    }
+
+    static writeText() {
+      var ai32, j, k, l, len, m, r, ref, text, v;
+      ai32 = arguments[0];
+      text = arguments[1];
+      r = new TextEncoder().encode(text);
+      m = r.byteLength % ai32.BYTES_PER_ELEMENT;
+      l = r.byteLength + ai32.BYTES_PER_ELEMENT - m;
+      Thread.argLength(ai32, r.byteLength);
+      ref = new ai32.constructor(r.buffer.transfer(l));
+      for (j = k = 0, len = ref.length; k < len; j = ++k) {
+        v = ref[j];
+        Thread.arguments(ai32, v, j);
+      }
+      return this;
+    }
+
+    static setUint32() {
+      var ai32;
+      ai32 = arguments[0];
+      Atomics.store(ai32, arguments[2] || this.INDEX_ARGUINT32, arguments[1]);
+      return this;
+    }
+
+    static getUint32() {
+      var ai32;
+      ai32 = arguments[0];
+      return Atomics.load(ai32, arguments[1] || this.INDEX_ARGUINT32);
     }
 
     static operation() {
@@ -202,13 +293,27 @@ Thread = (function() {
         }) => {
         var i, j, k, l, len, m, r, ref, v;
         //read opcode
-        console.log(`atomic request (${id}) op:`, Thread.operation(ai32));
-        console.log(`atomic request (${id}) arglen:`, Thread.argLength(ai32));
-        console.log(`atomic request (${id}) arguments:`, Thread.arguments(ai32));
+        //console.log "atomic request (#{id}) op:", Thread.operation ai32
+        //console.log "atomic request (#{id}) arglen:", Thread.argLength ai32
+        //console.log "atomic request (#{id}) arguments:", Thread.arguments ai32
         switch (Thread.operation(ai32)) {
+          case Thread.OP_CALLFUNTION:
+            //console.log "atomic request (#{id}) scopei:", Thread.getUint32 ai32
+            //console.log "atomic request (#{id}) fnname:", Thread.readAsText ai32
+            i = Thread.getUint32(ai32);
+            fn = Thread.readAsText(ai32);
+            try {
+              r = scope[i][fn]();
+            } catch (error) {
+              e = error;
+              Thread.setUint32(ai32, -1 * Boolean(r = e));
+            } finally {
+              Thread.writeText(ai32, r.toString());
+            }
+            return Thread.sendReply(ai32);
           case Thread.OP_LOADSCOPE:
             i = Thread.arguments(ai32);
-            r = new TextEncoder().encode(scope[i].name);
+            r = new TextEncoder().encode(scope[i].name || scope[i].constructor.name);
             m = r.byteLength % ai32.BYTES_PER_ELEMENT;
             l = r.byteLength + ai32.BYTES_PER_ELEMENT - m;
             Thread.argLength(ai32, r.byteLength);
@@ -225,15 +330,19 @@ Thread = (function() {
 
   };
 
-  Thread.OP_LOADSCOPE = 23;
+  Thread.OP_LOADSCOPE = 9;
+
+  Thread.OP_CALLFUNTION = 8;
 
   Thread.INDEX_PREPARATE = 0;
 
   Thread.INDEX_OPERATION = 1;
 
-  Thread.INDEX_ARGLENGTH = 2;
+  Thread.INDEX_ARGUINT32 = 2;
 
-  Thread.INDEX_ARGUMENTS = 3;
+  Thread.INDEX_ARGLENGTH = 3;
+
+  Thread.INDEX_ARGUMENTS = 10;
 
   Thread.prototype.pool = [];
 
@@ -272,7 +381,7 @@ Scope = (function() {
           mods = mods.join(", ");
           this.imports[j] = `import {${mods}} from '${file}'`;
           if (!this.indexes[j]) {
-            this.indexes[j] = new Array;
+            this.indexes[j] = new Array();
           }
           this.indexes[j].push(`${name}.scopei(${i});`);
         }
