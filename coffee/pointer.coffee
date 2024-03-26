@@ -4,8 +4,10 @@ import Proxy from "./proxy.coffee"
     [
         sab = null , f32 = null
         ui8 = null , u16 = null
-        u32 = null
+        u32 = null , dvw = null
     ]
+
+    LE = ! new Uint8Array( Float32Array.of( 1 ).buffer )[ 0 ]
 
     BUFFER_BYTELENGTH =  1e7
 
@@ -20,8 +22,24 @@ handleProxyTarget = ->
     ai32 = arguments[0]
     scopei = arguments[1]
 
-    call = ->
-        [ fn, ...args ] = arguments
+    set = ->
+        console.warn "setting thingg", ...arguments
+
+        [ proto, key, value ] = arguments
+
+        #write request opcode
+        Thread.operation ai32, Thread.OP_CALLSETTER
+
+        #write scope index
+        Thread.setUint32 ai32, scopei
+
+        #write setter name
+        Thread.writeText ai32, key
+
+        value
+
+    get = ->
+        [ proto, key ] = arguments
 
         #write request opcode
         Thread.operation ai32, Thread.OP_CALLFUNTION
@@ -30,21 +48,25 @@ handleProxyTarget = ->
         Thread.setUint32 ai32, scopei
         
         #write function name
-        Thread.writeText ai32, fn
+        Thread.writeText ai32, key
 
         #lock until notify
         Thread.waitReply ai32
 
-        if  0 > Thread.getUint32 ai32
+        if 0 > Thread.getUint32 ai32
             throw Thread.readAsText ai32
-        
-        console.log Thread.readAsText ai32
 
-    get : ( proto, key, proxy ) ->
-        console.log key, proto
-        return switch typeof proto[ key ]
-            when "function" then -> call key, ...arguments
-            else proto[key]
+        Thread.readAsText ai32
+
+    get : ( proto, key ) ->
+        switch typeof proto[ key ]
+            when "undefined" then undefined
+            when "function" then get
+            when "number" then Number get proto, key
+            else get proto, key
+
+    set : ( proto, key, value ) ->
+        return set if proto[ key ] ; value
 
 #? await getURLBlobExports fileURL
 getURLBlobExports = ->
@@ -96,6 +118,7 @@ setPointerAtomics = ->
     Object.defineProperty Pointer::,
         "buffer" , value : sab
         
+    dvw = new DataView     sab
     ui8 = new Uint8Array   sab
     u32 = new Uint32Array  sab
     u16 = new Uint16Array  sab
@@ -136,19 +159,22 @@ addEventListener "message", fn = ( e ) ->
             key = Thread.readAsText ai32
 
             #find proxy object
-            ref = if key.startsWith( "HTML" ) then new Proxy.HTMLElement key
+            ref = if key.startsWith "HTML" then Proxy.HTMLElement key
             else  if self[ key ] then self[ key ]:: ? self[ key ]
             else  if key then new Object key else new Object()
 
             scope[ i ] = new Proxy ref, handleProxyTarget ai32, i
 
-    console.warn new Pointer 12 if name is "0"
-    console.warn new Pointer 24 if name is "1"
+    #todo locked
+    #! Atomics.wait ai32, 0
 
-class Pointer           extends Number
+    console.warn new Pointer 24
+
+class Pointer             extends Number
+
+    innerOffset  : 0
 
     constructor  : ->
-
         unless arguments.length is 0
             return super arguments[0]
                 .usePrototype @class.prototype
@@ -164,10 +190,11 @@ class Pointer           extends Number
         this
             .init()
 
-class Thread            extends Worker
+class Thread              extends Worker
 
     @OP_LOADSCOPE    : 9
     @OP_CALLFUNTION  : 8
+    @OP_CALLSETTER   : 7
 
     @INDEX_PREPARATE = 0
     @INDEX_OPERATION = 1
@@ -257,6 +284,13 @@ class Thread            extends Worker
 
             switch Thread.operation ai32
 
+                when Thread.OP_CALLSETTER
+                    i = Thread.getUint32 ai32
+                    prop = Thread.readAsText ai32
+
+                    Thread.writeText ai32, prop
+                    Thread.sendReply ai32
+
                 when Thread.OP_CALLFUNTION
                     #console.log "atomic request (#{id}) scopei:", Thread.getUint32 ai32
                     #console.log "atomic request (#{id}) fnname:", Thread.readAsText ai32
@@ -264,10 +298,13 @@ class Thread            extends Worker
                     i = Thread.getUint32 ai32
                     fn = Thread.readAsText ai32
 
-                    try r = scope[i][fn]()
-                    catch e then Thread.setUint32 ai32, -1 * Boolean r = e
-                    finally Thread.writeText ai32, r.toString()
+                    unless scope[i][fn]?.call
+                        r = scope[i][fn]
+                    else
+                        try r = scope[i][fn]()
+                        catch e then Thread.setUint32 ai32, -1 * Boolean r = e
                     
+                    Thread.writeText ai32, r.toString()
                     Thread.sendReply ai32
 
                 when Thread.OP_LOADSCOPE
@@ -285,7 +322,7 @@ class Thread            extends Worker
                     
         @postMessage Pointer::buffer
 
-class Scope             extends Array
+class Scope               extends Array
 
     imports     : []
 
@@ -297,7 +334,7 @@ class Scope             extends Array
             i += @push arguments[0]
 
             #?  preparing threads' header
-            if  Pointer.isPrototypeOf arguments[0]
+            if (Pointer.isPrototypeOf( arguments[0] ) or OffsetPointer.isPrototypeOf( arguments[0] ))
 
                 file = getCallerFilePath off
                 name = arguments[0].name
@@ -356,10 +393,10 @@ do     extendTypedArray = ->
         Float64Array, Uint16Array, Uint32Array
     ]
 
-Object.defineProperties Pointer,
+Object.defineProperties   Pointer,
 
     scopei          : value : ->
-        scope[ arguments[0] ] = this
+        scope[ arguments[0] or scope.length ] = this
 
     headOffset      : { value : 0, writable: on }
 
@@ -388,7 +425,7 @@ INDEX_BYTELENGTH        = Pointer.ialloc Uint32Array
 
 INDEX_LENGTH            = Pointer.ialloc Uint32Array
 
-Object.defineProperties Pointer::,
+Object.defineProperties   Pointer::,
 
     class           : get   : ->
         @proxy @getPrototype()
@@ -413,7 +450,7 @@ Object.defineProperties Pointer::,
                 return @loadScope i
             return object
         
-Object.defineProperties Pointer::,
+Object.defineProperties   Pointer::,
 
     usePrototype    : value : -> Object.setPrototypeOf this , arguments[0]
     
@@ -421,23 +458,30 @@ Object.defineProperties Pointer::,
 
     setPrototype    : value : -> Atomics.store u16, this / 2 + INDEX_PROTOTYPE, arguments[0]        
     
+
     getParent       : value : -> Atomics.load  u32, 1 * this + INDEX_PARENT
 
     setParent       : value : -> Atomics.store u32, 1 * this + INDEX_PARENT, arguments[0] ; this     
     
+
     setByteLength   : value : -> Atomics.store u32, 1 * this + INDEX_BYTELENGTH, arguments[0] ; this
     
     setByteOffset   : value : -> Atomics.store u32, 1 * this + INDEX_BYTEOFFSET, arguments[0] ; this
 
     setByteLength   : value : -> Atomics.store u32, 1 * this + INDEX_BYTELENGTH, arguments[0] ; this
     
+
     setLength       : value : -> Atomics.store u32, 1 * this + INDEX_LENGTH, arguments[0] ; this
+
+    getLength       : value : -> Atomics.load  u32, 1 * this + INDEX_LENGTH
+
+        
+    setOutOffset    : value : -> @innerOffset = arguments[0] ; this
 
     getByteOffset   : value : -> Atomics.load  u32, 1 * this + INDEX_BYTEOFFSET
 
     getByteLength   : value : -> Atomics.load  u32, 1 * this + INDEX_BYTELENGTH
     
-    getLength       : value : -> Atomics.load  u32, 1 * this + INDEX_LENGTH
 
     loadUint32      : value : -> Atomics.load  u32, 1 * this + arguments[0]
     
@@ -447,11 +491,29 @@ Object.defineProperties Pointer::,
     
     storeUint16     : value : -> Atomics.store u16, 2 * this + arguments[0], arguments[1] ; this
 
-    loadUint8       : value : -> Atomics.load   ui8, 4 * this + arguments[0]
+    loadUint8       : value : -> Atomics.load  ui8, 4 * this + arguments[0]
     
-    storeUint8      : value : -> Atomics.store  ui8, 4 * this + arguments[0], arguments[1] ; this
+    storeUint8      : value : -> Atomics.store ui8, 4 * this + arguments[0], arguments[1] ; this
 
-Object.defineProperties Pointer::, ["{{Pointer}}"] :
+
+
+    offset          : value : -> arguments[0] + @getByteOffset() + @innerOffset
+
+    getFloat32      : value : ( o ) -> dvw.getFloat32 @offset(o), LE
+
+    setFloat32      : value : ( o, v ) -> dvw.setFloat32 @offset(o), v, LE ; v
+
+class OffsetPointer extends Number
+
+    @scopei         : -> scope.store this ; this
+
+    offset          : -> arguments[0] + @
+
+    getFloat32      : Pointer::getFloat32
+
+    setFloat32      : Pointer::setFloat32 
+
+Object.defineProperties   Pointer::, ["{{Pointer}}"] :
     get : ->
         headOffset  = this * 4
 
@@ -486,7 +548,8 @@ if !WorkerGlobalScope?
         for i in [ 0 .. 1 ]
             try t = new Thread i
             catch e then console.error e
+            break
 
     document.onclick = -> console.log scope
 
-export { Pointer as default, Pointer, Thread }
+export { Pointer as default, Pointer, OffsetPointer }

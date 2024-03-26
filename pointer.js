@@ -1,42 +1,61 @@
-var BUFFER_BYTELENGTH, BUFFER_BYTEOFFSET, BYTES_PER_POINTER, INDEX_BYTELENGTH, INDEX_BYTEOFFSET, INDEX_LENGTH, INDEX_PARENT, INDEX_PROTOTYPE, LENGTH_OF_POINTER, Pointer, Scope, Thread, extendTypedArray, f32, fn, getCallerFilePath, getURLBlobExports, getURLTextContent, handleProxyTarget, sab, scope, setPointerAtomics, u16, u32, ui8,
+var BUFFER_BYTELENGTH, BUFFER_BYTEOFFSET, BYTES_PER_POINTER, INDEX_BYTELENGTH, INDEX_BYTEOFFSET, INDEX_LENGTH, INDEX_PARENT, INDEX_PROTOTYPE, LE, LENGTH_OF_POINTER, OffsetPointer, Pointer, Scope, Thread, dvw, extendTypedArray, f32, fn, getCallerFilePath, getURLBlobExports, getURLTextContent, handleProxyTarget, sab, scope, setPointerAtomics, u16, u32, ui8,
   splice = [].splice;
 
 import Proxy from "./proxy.js";
 
-[[sab = null, f32 = null, ui8 = null, u16 = null, u32 = null], BUFFER_BYTELENGTH = 1e7, LENGTH_OF_POINTER = 12, BYTES_PER_POINTER = 4 * LENGTH_OF_POINTER, BUFFER_BYTEOFFSET = 1e5 * BYTES_PER_POINTER];
+[[sab = null, f32 = null, ui8 = null, u16 = null, u32 = null, dvw = null], LE = !new Uint8Array(Float32Array.of(1).buffer)[0], BUFFER_BYTELENGTH = 1e7, LENGTH_OF_POINTER = 12, BYTES_PER_POINTER = 4 * LENGTH_OF_POINTER, BUFFER_BYTEOFFSET = 1e5 * BYTES_PER_POINTER];
 
 handleProxyTarget = function() {
-  var ai32, call, scopei;
+  var ai32, get, scopei, set;
   ai32 = arguments[0];
   scopei = arguments[1];
-  call = function() {
-    var args, fn;
-    [fn, ...args] = arguments;
+  set = function() {
+    var key, proto, value;
+    console.warn("setting thingg", ...arguments);
+    [proto, key, value] = arguments;
+    //write request opcode
+    Thread.operation(ai32, Thread.OP_CALLSETTER);
+    //write scope index
+    Thread.setUint32(ai32, scopei);
+    //write setter name
+    Thread.writeText(ai32, key);
+    return value;
+  };
+  get = function() {
+    var key, proto;
+    [proto, key] = arguments;
     //write request opcode
     Thread.operation(ai32, Thread.OP_CALLFUNTION);
     //write scope index
     Thread.setUint32(ai32, scopei);
     
     //write function name
-    Thread.writeText(ai32, fn);
+    Thread.writeText(ai32, key);
     //lock until notify
     Thread.waitReply(ai32);
     if (0 > Thread.getUint32(ai32)) {
       throw Thread.readAsText(ai32);
     }
-    return console.log(Thread.readAsText(ai32));
+    return Thread.readAsText(ai32);
   };
   return {
-    get: function(proto, key, proxy) {
-      console.log(key, proto);
+    get: function(proto, key) {
       switch (typeof proto[key]) {
+        case "undefined":
+          return void 0;
         case "function":
-          return function() {
-            return call(key, ...arguments);
-          };
+          return get;
+        case "number":
+          return Number(get(proto, key));
         default:
-          return proto[key];
+          return get(proto, key);
       }
+    },
+    set: function(proto, key, value) {
+      if (proto[key]) {
+        return set;
+      }
+      return value;
     }
   };
 };
@@ -102,6 +121,7 @@ setPointerAtomics = function() {
   Object.defineProperty(Pointer.prototype, "buffer", {
     value: sab
   });
+  dvw = new DataView(sab);
   ui8 = new Uint8Array(sab);
   u32 = new Uint32Array(sab);
   u16 = new Uint16Array(sab);
@@ -136,35 +156,39 @@ addEventListener("message", fn = function(e) {
         //read response and store
         key = Thread.readAsText(ai32);
         //find proxy object
-        ref = key.startsWith("HTML") ? new Proxy.HTMLElement(key) : self[key] ? (ref1 = self[key].prototype) != null ? ref1 : self[key] : key ? new Object(key) : new Object();
+        ref = key.startsWith("HTML") ? Proxy.HTMLElement(key) : self[key] ? (ref1 = self[key].prototype) != null ? ref1 : self[key] : key ? new Object(key) : new Object();
         return scope[i] = new Proxy(ref, handleProxyTarget(ai32, i));
       }
     }
   });
-  if (name === "0") {
-    console.warn(new Pointer(12));
-  }
-  if (name === "1") {
-    return console.warn(new Pointer(24));
-  }
+  //todo locked
+  //! Atomics.wait ai32, 0
+  return console.warn(new Pointer(24));
 });
 
-Pointer = class Pointer extends Number {
-  constructor() {
-    var byteLength;
-    if (arguments.length !== 0) {
-      return super(arguments[0]).usePrototype(this.class.prototype);
+Pointer = (function() {
+  class Pointer extends Number {
+    constructor() {
+      var byteLength;
+      if (arguments.length !== 0) {
+        return super(arguments[0]).usePrototype(this.class.prototype);
+      }
+      super(Pointer.palloc() / 4).setPrototype(scope.index(this.constructor));
+      if (byteLength = this.constructor.byteLength) {
+        this.setByteOffset(Pointer.malloc(byteLength));
+        this.setByteLength(byteLength);
+        this.setLength(byteLength / this.BYTES_PER_ELEMENT);
+      }
+      this.init();
     }
-    super(Pointer.palloc() / 4).setPrototype(scope.index(this.constructor));
-    if (byteLength = this.constructor.byteLength) {
-      this.setByteOffset(Pointer.malloc(byteLength));
-      this.setByteLength(byteLength);
-      this.setLength(byteLength / this.BYTES_PER_ELEMENT);
-    }
-    this.init();
-  }
 
-};
+  };
+
+  Pointer.prototype.innerOffset = 0;
+
+  return Pointer;
+
+}).call(this);
 
 Thread = (function() {
   class Thread extends Worker {
@@ -269,25 +293,33 @@ Thread = (function() {
       this.onmessage = ({
           data: ai32
         }) => {
-        var i, j, k, l, len, m, r, ref1, v;
+        var i, j, k, l, len, m, prop, r, ref1, ref2, v;
         //read opcode
         //console.log "atomic request (#{id}) op:", Thread.operation ai32
         //console.log "atomic request (#{id}) arglen:", Thread.argLength ai32
         //console.log "atomic request (#{id}) arguments:", Thread.arguments ai32
         switch (Thread.operation(ai32)) {
+          case Thread.OP_CALLSETTER:
+            i = Thread.getUint32(ai32);
+            prop = Thread.readAsText(ai32);
+            Thread.writeText(ai32, prop);
+            return Thread.sendReply(ai32);
           case Thread.OP_CALLFUNTION:
             //console.log "atomic request (#{id}) scopei:", Thread.getUint32 ai32
             //console.log "atomic request (#{id}) fnname:", Thread.readAsText ai32
             i = Thread.getUint32(ai32);
             fn = Thread.readAsText(ai32);
-            try {
-              r = scope[i][fn]();
-            } catch (error) {
-              e = error;
-              Thread.setUint32(ai32, -1 * Boolean(r = e));
-            } finally {
-              Thread.writeText(ai32, r.toString());
+            if (!((ref1 = scope[i][fn]) != null ? ref1.call : void 0)) {
+              r = scope[i][fn];
+            } else {
+              try {
+                r = scope[i][fn]();
+              } catch (error) {
+                e = error;
+                Thread.setUint32(ai32, -1 * Boolean(r = e));
+              }
             }
+            Thread.writeText(ai32, r.toString());
             return Thread.sendReply(ai32);
           case Thread.OP_LOADSCOPE:
             i = Thread.arguments(ai32);
@@ -295,9 +327,9 @@ Thread = (function() {
             m = r.byteLength % ai32.BYTES_PER_ELEMENT;
             l = r.byteLength + ai32.BYTES_PER_ELEMENT - m;
             Thread.argLength(ai32, r.byteLength);
-            ref1 = new ai32.constructor(r.buffer.transfer(l));
-            for (j = k = 0, len = ref1.length; k < len; j = ++k) {
-              v = ref1[j];
+            ref2 = new ai32.constructor(r.buffer.transfer(l));
+            for (j = k = 0, len = ref2.length; k < len; j = ++k) {
+              v = ref2[j];
               Thread.arguments(ai32, v, j);
             }
             return Thread.sendReply(ai32);
@@ -311,6 +343,8 @@ Thread = (function() {
   Thread.OP_LOADSCOPE = 9;
 
   Thread.OP_CALLFUNTION = 8;
+
+  Thread.OP_CALLSETTER = 7;
 
   Thread.INDEX_PREPARATE = 0;
 
@@ -335,7 +369,7 @@ Scope = (function() {
       if (-1 === (i = this.indexOf(arguments[0]))) {
         i += this.push(arguments[0]);
         //?  preparing threads' header
-        if (Pointer.isPrototypeOf(arguments[0])) {
+        if (Pointer.isPrototypeOf(arguments[0]) || OffsetPointer.isPrototypeOf(arguments[0])) {
           file = getCallerFilePath(false);
           name = arguments[0].name;
           mode = null;
@@ -427,7 +461,7 @@ Scope = (function() {
 Object.defineProperties(Pointer, {
   scopei: {
     value: function() {
-      return scope[arguments[0]] = this;
+      return scope[arguments[0] || scope.length] = this;
     }
   },
   headOffset: {
@@ -562,6 +596,17 @@ Object.defineProperties(Pointer.prototype, {
       return this;
     }
   },
+  getLength: {
+    value: function() {
+      return Atomics.load(u32, 1 * this + INDEX_LENGTH);
+    }
+  },
+  setOutOffset: {
+    value: function() {
+      this.innerOffset = arguments[0];
+      return this;
+    }
+  },
   getByteOffset: {
     value: function() {
       return Atomics.load(u32, 1 * this + INDEX_BYTEOFFSET);
@@ -570,11 +615,6 @@ Object.defineProperties(Pointer.prototype, {
   getByteLength: {
     value: function() {
       return Atomics.load(u32, 1 * this + INDEX_BYTELENGTH);
-    }
-  },
-  getLength: {
-    value: function() {
-      return Atomics.load(u32, 1 * this + INDEX_LENGTH);
     }
   },
   loadUint32: {
@@ -609,8 +649,45 @@ Object.defineProperties(Pointer.prototype, {
       Atomics.store(ui8, 4 * this + arguments[0], arguments[1]);
       return this;
     }
+  },
+  offset: {
+    value: function() {
+      return arguments[0] + this.getByteOffset() + this.innerOffset;
+    }
+  },
+  getFloat32: {
+    value: function(o) {
+      return dvw.getFloat32(this.offset(o), LE);
+    }
+  },
+  setFloat32: {
+    value: function(o, v) {
+      dvw.setFloat32(this.offset(o), v, LE);
+      return v;
+    }
   }
 });
+
+OffsetPointer = (function() {
+  class OffsetPointer extends Number {
+    static scopei() {
+      scope.store(this);
+      return this;
+    }
+
+    offset() {
+      return arguments[0] + this;
+    }
+
+  };
+
+  OffsetPointer.prototype.getFloat32 = Pointer.prototype.getFloat32;
+
+  OffsetPointer.prototype.setFloat32 = Pointer.prototype.setFloat32;
+
+  return OffsetPointer;
+
+}).call(this);
 
 Object.defineProperties(Pointer.prototype, {
   ["{{Pointer}}"]: {
@@ -660,11 +737,12 @@ if (typeof WorkerGlobalScope === "undefined" || WorkerGlobalScope === null) {
     results = [];
     for (i = k = 0; k <= 1; i = ++k) {
       try {
-        results.push(t = new Thread(i));
+        t = new Thread(i);
       } catch (error) {
         e = error;
-        results.push(console.error(e));
+        console.error(e);
       }
+      break;
     }
     return results;
   });
@@ -676,5 +754,5 @@ if (typeof WorkerGlobalScope === "undefined" || WorkerGlobalScope === null) {
 export {
   Pointer as default,
   Pointer,
-  Thread
+  OffsetPointer
 };
