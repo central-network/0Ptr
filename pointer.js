@@ -1,8 +1,65 @@
-var BUFFER_BYTELENGTH, BUFFER_BYTEOFFSET, BYTES_PER_POINTER, INDEX_BYTELENGTH, INDEX_BYTEOFFSET, INDEX_LENGTH, INDEX_PARENT, INDEX_PROTOTYPE, LENGTH_OF_POINTER, Pointer, Scope, Thread, extendTypedArray, f32, fn, i, k, sab, scope, setBufferAtomics, u16, u32, ui8;
+var BUFFER_BYTELENGTH, BUFFER_BYTEOFFSET, BYTES_PER_POINTER, INDEX_BYTELENGTH, INDEX_BYTEOFFSET, INDEX_LENGTH, INDEX_PARENT, INDEX_PROTOTYPE, LENGTH_OF_POINTER, Pointer, Scope, Thread, extendTypedArray, f32, fn, getCallerFilePath, getURLBlobExports, getURLTextContent, sab, scope, setPointerAtomics, u16, u32, ui8,
+  splice = [].splice;
 
 [[sab = null, f32 = null, ui8 = null, u16 = null, u32 = null], BUFFER_BYTELENGTH = 1e7, LENGTH_OF_POINTER = 12, BYTES_PER_POINTER = 4 * LENGTH_OF_POINTER, BUFFER_BYTEOFFSET = 1e5 * BYTES_PER_POINTER];
 
-setBufferAtomics = function() {
+//? await getURLBlobExports fileURL
+getURLBlobExports = function() {
+  return new Promise((done) => {
+    var pid, url;
+    pid = new Worker(URL.createObjectURL(url = new Blob([`import * as f from '${arguments[0]}';` + "postMessage(Object.keys(f));"], {
+      type: "application/javascript"
+    })), {
+      type: "module"
+    });
+    return pid.onmessage = function({data}) {
+      URL.revokeObjectURL(url);
+      return pid.terminate(done(data));
+    };
+  });
+};
+
+//? await getURLTextContent fileURL
+getURLTextContent = function() {
+  return new Promise((done) => {
+    return fetch(arguments[0]).then(function(v) {
+      return v.text();
+    }).then(done);
+  });
+};
+
+//? getCallerFilePath()
+getCallerFilePath = function() {
+  var currentFile, currentPath, err, file, name, originalFunc, ref, ref1, stackedFile, stackedPath, trimResolved;
+  trimResolved = arguments[0] != null ? arguments[0] : arguments[0] = true;
+  originalFunc = Error.prepareStackTrace;
+  try {
+    err = new Error();
+    Error.prepareStackTrace = function() {
+      return arguments[1];
+    };
+    currentFile = err.stack.shift().getFileName();
+    while (err.stack.length) {
+      stackedFile = err.stack.shift().getFileName();
+      if (stackedFile !== currentFile) {
+        break;
+      }
+    }
+  } finally {
+    Error.prepareStackTrace = originalFunc;
+  }
+  ref = stackedFile.split("/"), [...stackedPath] = ref, [name] = splice.call(stackedPath, -1);
+  ref1 = currentFile.split("/"), [...currentPath] = ref1, [file] = splice.call(currentPath, -1);
+  if (stackedPath.join("/") === currentPath.join("/")) {
+    if (trimResolved) {
+      return `./${name}`;
+    }
+  }
+  return stackedFile;
+};
+
+//? setPointerAtomics( sab )
+setPointerAtomics = function() {
   [sab = new SharedArrayBuffer(BUFFER_BYTELENGTH)] = arguments;
   Object.defineProperty(Pointer.prototype, "buffer", {
     value: sab
@@ -20,8 +77,11 @@ setBufferAtomics = function() {
 
 addEventListener("message", fn = function(e) {
   var ai32;
-  removeEventListener("message", fn);
-  setBufferAtomics(e.data);
+  if (Pointer.prototype.buffer) {
+    return;
+  }
+  //removeEventListener "message", fn
+  setPointerAtomics(e.data);
   ai32 = new Int32Array(new SharedArrayBuffer(1e4));
   Object.defineProperties(Pointer.prototype, {
     loadScope: {
@@ -33,14 +93,20 @@ addEventListener("message", fn = function(e) {
         //write args
         Thread.arguments(ai32, i);
         //lock until notify
-        Thread.waitReply(ai32);
-        //read response and store
-        return scope[i] = self.GL[Thread.readAsText(ai32)];
+        return Thread.waitReply(ai32);
       }
     }
   });
-  console.warn(new Pointer(12));
-  return console.warn(new Pointer(24));
+  if (name === "0") {
+    //read response and store
+    // todo not necessary now 
+    //! scope[ i ] = self.GL[ Thread.readAsText ai32 ]
+    console.warn(new Pointer(12));
+  }
+  if (name === "1") {
+    console.warn(new Pointer(24));
+  }
+  return console.warn(scope);
 });
 
 Pointer = class Pointer extends Number {
@@ -123,8 +189,14 @@ Thread = (function() {
     }
 
     constructor() {
-      var id;
-      super(Thread.scriptURL, Thread.options(id = arguments[0]));
+      var e, id;
+      try {
+        super(Thread.scriptURL, Thread.options(id = arguments[0]));
+      } catch (error) {
+        e = error;
+        console.error(e);
+      }
+      this.onmessageerror = console.error;
       this.onmessage = ({
           data: ai32
         }) => {
@@ -169,25 +241,63 @@ Thread = (function() {
 
 }).call(this);
 
-Scope = class Scope extends Array {
-  index() {
-    var i;
-    if (-1 === (i = this.indexOf(arguments[0]))) {
-      i += this.push(arguments[0]);
+Scope = (function() {
+  class Scope extends Array {
+    index() {
+      var cmd, file, i, j, k, len, mode, mods, name, path, ref, ref1;
+      if (-1 === (i = this.indexOf(arguments[0]))) {
+        i += this.push(arguments[0]);
+        //?  preparing threads' header
+        if (Pointer.isPrototypeOf(arguments[0])) {
+          file = getCallerFilePath(false);
+          name = arguments[0].name;
+          mode = null;
+          ref = this.imports;
+          for (j = k = 0, len = ref.length; k < len; j = ++k) {
+            cmd = ref[j];
+            ref1 = cmd.replace(/import|from/g, "").split(/\s+|\{|\,|\}|\'/g).filter(Boolean), [...mods] = ref1, [path] = splice.call(mods, -1);
+            if (path !== file) {
+              continue;
+            }
+            mode = [j, mods];
+            break;
+          }
+          if (!mode) {
+            mode = this.imports[this.imports.length] = [this.imports.length, []];
+          }
+          [j, mods] = mode;
+          if (!mods.includes(name)) {
+            mods.push(name);
+          }
+          mods = mods.join(", ");
+          this.imports[j] = `import {${mods}} from '${file}'`;
+          if (!this.indexes[j]) {
+            this.indexes[j] = new Array;
+          }
+          this.indexes[j].push(`${name}.scopei(${i});`);
+        }
+      }
+      return i;
     }
-    return i;
-  }
 
-  store() {
-    this.index(arguments[0]);
-    return this;
-  }
+    store() {
+      this.index(arguments[0]);
+      return this;
+    }
 
-  constructor() {
-    super().push(null);
-  }
+    constructor() {
+      super().push(null);
+    }
 
-};
+  };
+
+  Scope.prototype.imports = [];
+
+  Scope.prototype.indexes = [];
+
+  return Scope;
+
+}).call(this);
 
 (extendTypedArray = function() {
   var TypedArray, k, len, ref, results;
@@ -228,6 +338,11 @@ Scope = class Scope extends Array {
 })();
 
 Object.defineProperties(Pointer, {
+  scopei: {
+    value: function() {
+      return scope[arguments[0]] = this;
+    }
+  },
   headOffset: {
     value: 0,
     writable: true
@@ -432,21 +547,47 @@ Object.defineProperties(Pointer.prototype, {
 scope = new Scope();
 
 if (typeof WorkerGlobalScope === "undefined" || WorkerGlobalScope === null) {
-  setBufferAtomics();
-  Thread.scriptURL = URL.createObjectURL(new Blob([`import * as GL from "${import.meta.resolve('./gl.js')}"; self.GL = GL;`], {
-    type: "application/javascript"
-  }));
-  for (i = k = 0; k <= 1; i = ++k) {
-    scope.index(new Thread(i));
-  }
+  setPointerAtomics();
+  requestIdleCallback(function() {
+    var code, e, i, k, results, t, type;
+    code = [
+      ...scope.imports,
+      "",
+      ...scope.indexes.flatMap(function(i) {
+        return i.join("\n");
+      })
+    ].join("\n");
+    type = "application/javascript";
+    try {
+      Thread.blob = new Blob([code], {type});
+    } catch (error) {
+      e = error;
+      console.error(e);
+    }
+    try {
+      Thread.scriptURL = URL.createObjectURL(Thread.blob);
+    } catch (error) {
+      e = error;
+      console.error(e);
+    }
+    results = [];
+    for (i = k = 0; k <= 1; i = ++k) {
+      try {
+        results.push(t = new Thread(i));
+      } catch (error) {
+        e = error;
+        results.push(console.error(e));
+      }
+    }
+    return results;
+  });
   document.onclick = function() {
     return console.log(scope);
   };
-} else {
-
 }
 
 export {
   Pointer as default,
-  Pointer
+  Pointer,
+  Thread
 };

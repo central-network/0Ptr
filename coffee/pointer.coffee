@@ -14,7 +14,50 @@
     BUFFER_BYTEOFFSET = 1e5 * BYTES_PER_POINTER
 ]
 
-setBufferAtomics = ->
+#? await getURLBlobExports fileURL
+getURLBlobExports = ->
+    new Promise ( done ) =>
+        pid = new Worker( URL.createObjectURL( url = new Blob([
+            "import * as f from '#{arguments[0]}';"+
+            "postMessage(Object.keys(f));"
+        ], { type: "application/javascript" }),
+        ), { type: "module" })
+        
+        pid.onmessage = ({ data }) ->
+            URL.revokeObjectURL url
+            pid.terminate done data
+
+#? await getURLTextContent fileURL
+getURLTextContent = ->
+    new Promise ( done ) =>
+        fetch( arguments[0] )
+            .then( (v) -> v.text() )
+            .then( done )
+
+#? getCallerFilePath()
+getCallerFilePath = ->
+    trimResolved = arguments[0]?= on
+    originalFunc = Error.prepareStackTrace
+
+    try
+        err = new Error()
+        Error.prepareStackTrace = -> arguments[1]
+        currentFile = err.stack.shift().getFileName()
+        while err.stack.length
+            stackedFile = err.stack.shift().getFileName()
+            break unless stackedFile is currentFile
+    finally
+        Error.prepareStackTrace = originalFunc
+
+    [ ...stackedPath, name ] = stackedFile.split "/"
+    [ ...currentPath, file ] = currentFile.split "/"
+
+    if  stackedPath.join("/") is currentPath.join("/")
+        return "./#{name}" if trimResolved
+    stackedFile
+
+#? setPointerAtomics( sab )
+setPointerAtomics = ->
     
     [ sab = new SharedArrayBuffer BUFFER_BYTELENGTH ] = arguments
 
@@ -34,8 +77,10 @@ setBufferAtomics = ->
 
 addEventListener "message", fn = ( e ) ->
 
-    removeEventListener "message", fn
-    setBufferAtomics e.data
+    return if Pointer::buffer
+
+    #removeEventListener "message", fn
+    setPointerAtomics e.data
 
     ai32 = new Int32Array new SharedArrayBuffer 1e4
 
@@ -56,10 +101,12 @@ addEventListener "message", fn = ( e ) ->
             Thread.waitReply ai32
 
             #read response and store
-            scope[ i ] = self.GL[ Thread.readAsText ai32 ]
+            # todo not necessary now 
+            #! scope[ i ] = self.GL[ Thread.readAsText ai32 ]
 
-    console.warn new Pointer 12
-    console.warn new Pointer 24
+    console.warn new Pointer 12 if name is "0"
+    console.warn new Pointer 24 if name is "1"
+    console.warn scope
 
 class Pointer           extends Number
 
@@ -135,9 +182,11 @@ class Thread            extends Worker
         { type: "module", name: arguments[0] }
 
     constructor : ->
-        super Thread.scriptURL , Thread.options id = arguments[0]
+        try super Thread.scriptURL , Thread.options id = arguments[0]
+        catch e then console.error e
 
-        @onmessage = ({ data: ai32 }) =>
+        @onmessageerror = console.error
+        @onmessage      = ({ data: ai32 }) =>
 
             #read opcode
             console.log "atomic request (#{id}) op:", Thread.operation ai32
@@ -159,11 +208,48 @@ class Thread            extends Worker
                     
         @postMessage Pointer::buffer
 
+
 class Scope             extends Array
 
+    imports     : []
+
+    indexes     : []
+
     index       : ->
+        
         if -1 is i = @indexOf arguments[0]
             i += @push arguments[0]
+
+            #?  preparing threads' header
+            if  Pointer.isPrototypeOf arguments[0]
+
+                file = getCallerFilePath off
+                name = arguments[0].name
+                mode = null
+
+                for cmd , j in @imports
+                    [ ...mods, path ] = cmd
+                        .replace /import|from/g, ""
+                        .split(/\s+|\{|\,|\}|\'/g)
+                        .filter( Boolean )
+
+                    continue unless path is file
+                    mode = [ j , mods ] ; break
+                        
+                if !mode
+                    mode = @imports[ @imports.length ] =
+                        [ @imports.length, [] ]
+
+                [ j, mods ] = mode
+
+                unless mods.includes name
+                    mods.push name
+                mods = mods.join ", "
+
+                @imports[j] = "import {#{mods}} from '#{file}'"
+                @indexes[j] = new Array unless @indexes[ j ]
+                @indexes[j].push "#{name}.scopei(#{i});"
+
         i
 
     store       : ->
@@ -195,6 +281,9 @@ do     extendTypedArray = ->
     ]
 
 Object.defineProperties Pointer,
+
+    scopei          : value : ->
+        scope[ arguments[0] ] = this
 
     headOffset      : { value : 0, writable: on }
 
@@ -238,7 +327,8 @@ Object.defineProperties Pointer::,
 
     init            : value : -> this
 
-    store           : value : -> scope.index arguments[0]
+    store           : value : ->
+        scope.index arguments[0]
 
     proxy           :
         value       : ->
@@ -301,16 +391,26 @@ scope = new Scope()
 
 if !WorkerGlobalScope?
     
-    setBufferAtomics()
+    setPointerAtomics()
+    requestIdleCallback ->
 
-    Thread.scriptURL = URL.createObjectURL new Blob [
-        "import * as GL from \"#{`import.meta.resolve('./gl.js')`}\"; self.GL = GL;"
-    ], { type: "application/javascript" }
+        code = [
+            ...scope.imports, ""
+            ...scope.indexes.flatMap (i) -> i.join "\n"
+        ].join "\n"
 
-    scope.index new Thread i for i in [ 0 .. 1 ]
+        type = "application/javascript"
+
+        try Thread.blob = new Blob [ code ], { type }
+        catch e then console.error e
+
+        try Thread.scriptURL = URL.createObjectURL Thread.blob
+        catch e then console.error e
+
+        for i in [ 0 .. 1 ]
+            try t = new Thread i
+            catch e then console.error e
 
     document.onclick = -> console.log scope
 
-else
-
-export { Pointer as default, Pointer }
+export { Pointer as default, Pointer, Thread }
