@@ -1,4 +1,4 @@
-import { WebGLProgram } from "./window.coffee"
+import Proxy from "./proxy.coffee"
 
 [
     [
@@ -114,10 +114,6 @@ addEventListener "message", fn = ( e ) ->
     #removeEventListener "message", fn
     setPointerAtomics e.data
 
-    class HTMLElement
-        constructor : ( @name ) ->
-            @tagName = @name.replace(/HTML|Element/g, "").toUpperCase()
-
     ai32 = new Int32Array new SharedArrayBuffer 1e4
 
     Object.defineProperties Pointer::,
@@ -137,25 +133,17 @@ addEventListener "message", fn = ( e ) ->
             Thread.waitReply ai32
 
             #read response and store
-            scope[i] = switch key = Thread.readAsText ai32
+            key = Thread.readAsText ai32
 
-                when "WebGL2RenderingContext"
-                    new Proxy ( WebGL2RenderingContext:: ), handleProxyTarget ai32, i 
+            #find proxy object
+            ref = if key.startsWith( "HTML" ) then new Proxy.HTMLElement key
+            else  if self[ key ] then self[ key ]:: ? self[ key ]
+            else  if key then new Object key else new Object()
 
-                when "WebGLProgram"
-                    new Proxy ( WebGLProgram:: ), handleProxyTarget ai32, i
-
-                else 
-                    if  key.startsWith("HTML") and key.endsWith "Element"
-                        new Proxy ( new HTMLElement key ), handleProxyTarget ai32, i
-
-                    else
-                        new Proxy { key }, handleProxyTarget ai32, i
+            scope[ i ] = new Proxy ref, handleProxyTarget ai32, i
 
     console.warn new Pointer 12 if name is "0"
-    console.warn p = new Pointer 24 if name is "1"
-    
-    console.log scope if name is "1"
+    console.warn new Pointer 24 if name is "1"
 
 class Pointer           extends Number
 
@@ -297,7 +285,6 @@ class Thread            extends Worker
                     
         @postMessage Pointer::buffer
 
-
 class Scope             extends Array
 
     imports     : []
@@ -426,7 +413,6 @@ Object.defineProperties Pointer::,
                 return @loadScope i
             return object
         
-
 Object.defineProperties Pointer::,
 
     usePrototype    : value : -> Object.setPrototypeOf this , arguments[0]

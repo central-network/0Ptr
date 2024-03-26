@@ -1,9 +1,7 @@
 var BUFFER_BYTELENGTH, BUFFER_BYTEOFFSET, BYTES_PER_POINTER, INDEX_BYTELENGTH, INDEX_BYTEOFFSET, INDEX_LENGTH, INDEX_PARENT, INDEX_PROTOTYPE, LENGTH_OF_POINTER, Pointer, Scope, Thread, extendTypedArray, f32, fn, getCallerFilePath, getURLBlobExports, getURLTextContent, handleProxyTarget, sab, scope, setPointerAtomics, u16, u32, ui8,
   splice = [].splice;
 
-import {
-  WebGLProgram
-} from "./window.js";
+import Proxy from "./proxy.js";
 
 [[sab = null, f32 = null, ui8 = null, u16 = null, u32 = null], BUFFER_BYTELENGTH = 1e7, LENGTH_OF_POINTER = 12, BYTES_PER_POINTER = 4 * LENGTH_OF_POINTER, BUFFER_BYTEOFFSET = 1e5 * BYTES_PER_POINTER];
 
@@ -70,7 +68,7 @@ getURLTextContent = function() {
 
 //? getCallerFilePath()
 getCallerFilePath = function() {
-  var currentFile, currentPath, err, file, name, originalFunc, ref, ref1, stackedFile, stackedPath, trimResolved;
+  var currentFile, currentPath, err, file, name, originalFunc, ref1, ref2, stackedFile, stackedPath, trimResolved;
   trimResolved = arguments[0] != null ? arguments[0] : arguments[0] = true;
   originalFunc = Error.prepareStackTrace;
   try {
@@ -88,8 +86,8 @@ getCallerFilePath = function() {
   } finally {
     Error.prepareStackTrace = originalFunc;
   }
-  ref = stackedFile.split("/"), [...stackedPath] = ref, [name] = splice.call(stackedPath, -1);
-  ref1 = currentFile.split("/"), [...currentPath] = ref1, [file] = splice.call(currentPath, -1);
+  ref1 = stackedFile.split("/"), [...stackedPath] = ref1, [name] = splice.call(stackedPath, -1);
+  ref2 = currentFile.split("/"), [...currentPath] = ref2, [file] = splice.call(currentPath, -1);
   if (stackedPath.join("/") === currentPath.join("/")) {
     if (trimResolved) {
       return `./${name}`;
@@ -116,24 +114,17 @@ setPointerAtomics = function() {
 };
 
 addEventListener("message", fn = function(e) {
-  var HTMLElement, ai32, p;
+  var ai32;
   if (Pointer.prototype.buffer) {
     return;
   }
   //removeEventListener "message", fn
   setPointerAtomics(e.data);
-  HTMLElement = class HTMLElement {
-    constructor(name1) {
-      this.name = name1;
-      this.tagName = this.name.replace(/HTML|Element/g, "").toUpperCase();
-    }
-
-  };
   ai32 = new Int32Array(new SharedArrayBuffer(1e4));
   Object.defineProperties(Pointer.prototype, {
     loadScope: {
       value: function(i) {
-        var key;
+        var key, ref, ref1;
         //write request opcode
         Thread.operation(ai32, Thread.OP_LOADSCOPE);
         //write request arg length
@@ -143,20 +134,10 @@ addEventListener("message", fn = function(e) {
         //lock until notify
         Thread.waitReply(ai32);
         //read response and store
-        return scope[i] = (function() {
-          switch (key = Thread.readAsText(ai32)) {
-            case "WebGL2RenderingContext":
-              return new Proxy(WebGL2RenderingContext.prototype, handleProxyTarget(ai32, i));
-            case "WebGLProgram":
-              return new Proxy(WebGLProgram.prototype, handleProxyTarget(ai32, i));
-            default:
-              if (key.startsWith("HTML") && key.endsWith("Element")) {
-                return new Proxy(new HTMLElement(key), handleProxyTarget(ai32, i));
-              } else {
-                return new Proxy({key}, handleProxyTarget(ai32, i));
-              }
-          }
-        })();
+        key = Thread.readAsText(ai32);
+        //find proxy object
+        ref = key.startsWith("HTML") ? new Proxy.HTMLElement(key) : self[key] ? (ref1 = self[key].prototype) != null ? ref1 : self[key] : key ? new Object(key) : new Object();
+        return scope[i] = new Proxy(ref, handleProxyTarget(ai32, i));
       }
     }
   });
@@ -164,10 +145,7 @@ addEventListener("message", fn = function(e) {
     console.warn(new Pointer(12));
   }
   if (name === "1") {
-    console.warn(p = new Pointer(24));
-  }
-  if (name === "1") {
-    return console.log(scope);
+    return console.warn(new Pointer(24));
   }
 });
 
@@ -216,16 +194,16 @@ Thread = (function() {
     }
 
     static writeText() {
-      var ai32, j, k, l, len, m, r, ref, text, v;
+      var ai32, j, k, l, len, m, r, ref1, text, v;
       ai32 = arguments[0];
       text = arguments[1];
       r = new TextEncoder().encode(text);
       m = r.byteLength % ai32.BYTES_PER_ELEMENT;
       l = r.byteLength + ai32.BYTES_PER_ELEMENT - m;
       Thread.argLength(ai32, r.byteLength);
-      ref = new ai32.constructor(r.buffer.transfer(l));
-      for (j = k = 0, len = ref.length; k < len; j = ++k) {
-        v = ref[j];
+      ref1 = new ai32.constructor(r.buffer.transfer(l));
+      for (j = k = 0, len = ref1.length; k < len; j = ++k) {
+        v = ref1[j];
         Thread.arguments(ai32, v, j);
       }
       return this;
@@ -291,7 +269,7 @@ Thread = (function() {
       this.onmessage = ({
           data: ai32
         }) => {
-        var i, j, k, l, len, m, r, ref, v;
+        var i, j, k, l, len, m, r, ref1, v;
         //read opcode
         //console.log "atomic request (#{id}) op:", Thread.operation ai32
         //console.log "atomic request (#{id}) arglen:", Thread.argLength ai32
@@ -317,9 +295,9 @@ Thread = (function() {
             m = r.byteLength % ai32.BYTES_PER_ELEMENT;
             l = r.byteLength + ai32.BYTES_PER_ELEMENT - m;
             Thread.argLength(ai32, r.byteLength);
-            ref = new ai32.constructor(r.buffer.transfer(l));
-            for (j = k = 0, len = ref.length; k < len; j = ++k) {
-              v = ref[j];
+            ref1 = new ai32.constructor(r.buffer.transfer(l));
+            for (j = k = 0, len = ref1.length; k < len; j = ++k) {
+              v = ref1[j];
               Thread.arguments(ai32, v, j);
             }
             return Thread.sendReply(ai32);
@@ -353,7 +331,7 @@ Thread = (function() {
 Scope = (function() {
   class Scope extends Array {
     index() {
-      var cmd, file, i, j, k, len, mode, mods, name, path, ref, ref1;
+      var cmd, file, i, j, k, len, mode, mods, name, path, ref1, ref2;
       if (-1 === (i = this.indexOf(arguments[0]))) {
         i += this.push(arguments[0]);
         //?  preparing threads' header
@@ -361,10 +339,10 @@ Scope = (function() {
           file = getCallerFilePath(false);
           name = arguments[0].name;
           mode = null;
-          ref = this.imports;
-          for (j = k = 0, len = ref.length; k < len; j = ++k) {
-            cmd = ref[j];
-            ref1 = cmd.replace(/import|from/g, "").split(/\s+|\{|\,|\}|\'/g).filter(Boolean), [...mods] = ref1, [path] = splice.call(mods, -1);
+          ref1 = this.imports;
+          for (j = k = 0, len = ref1.length; k < len; j = ++k) {
+            cmd = ref1[j];
+            ref2 = cmd.replace(/import|from/g, "").split(/\s+|\{|\,|\}|\'/g).filter(Boolean), [...mods] = ref2, [path] = splice.call(mods, -1);
             if (path !== file) {
               continue;
             }
@@ -409,11 +387,11 @@ Scope = (function() {
 }).call(this);
 
 (extendTypedArray = function() {
-  var TypedArray, k, len, ref, results;
-  ref = [Float32Array, Uint8Array, Float64Array, Uint16Array, Uint32Array];
+  var TypedArray, k, len, ref1, results;
+  ref1 = [Float32Array, Uint8Array, Float64Array, Uint16Array, Uint32Array];
   results = [];
-  for (k = 0, len = ref.length; k < len; k++) {
-    TypedArray = ref[k];
+  for (k = 0, len = ref1.length; k < len; k++) {
+    TypedArray = ref1[k];
     results.push((function(TypedArray) {
       this[TypedArray.name] = (function() {
         var _Class;
