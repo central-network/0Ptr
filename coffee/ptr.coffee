@@ -1,0 +1,149 @@
+OBJECTS = []
+LENDIAN = !new Uint8Array( Float32Array.of( 1 ).buffer )[ 0 ]
+
+ui8 = i32 = u32 = 
+u16 = dvw = f32 = null
+
+export class ByteOffset extends Number
+
+    @headLength : 0
+    
+    @byteLength : 0
+
+    index1      : ( offset = 0 )    -> ( this + offset )
+
+    index2      : ( offset = 0 )    -> ( this + offset ) / 2
+
+    index4      : ( offset = 0 )    -> ( this + offset ) / 4
+
+    offset      : ( offset = 0 )    -> ( this + offset )
+
+
+    loadInt32   : ( offset )        -> Atomics.load i32, @index4( offset )
+
+    storeInt32  : ( offset, value ) -> Atomics.store i32, @index4( offset ), value ; value 
+
+    addInt32    : ( offset, value ) -> Atomics.add i32, @index4( offset ), value 
+
+    atInt32     : ( offset )        -> i32[ @index4( offset ) ]
+
+    getInt32    : ( offset )        -> dvw.getInt32 @offset( offset ), LENDIAN 
+
+    setInt32    : ( offset, value ) -> dvw.setInt32 @offset( offset ), value, LENDIAN ; value
+
+
+    loadUint32  : ( offset )        -> Atomics.load u32, @index4( offset )
+
+    storeUint32 : ( offset, value ) -> Atomics.store u32, @index4( offset ), value ; value
+
+    addUint32   : ( offset, value ) -> Atomics.add u32, @index4( offset ), value 
+
+    atUint32    : ( offset )        -> u32[ @index4( offset ) ]
+    
+    getUint32   : ( offset )        -> dvw.getUint32 @offset( offset ), LENDIAN  
+
+    setUint32   : ( offset, value ) -> dvw.setUint32 @offset( offset ), value, LENDIAN ; value
+
+
+    loadUint16  : ( offset )        -> Atomics.load u16, @index2( offset )
+
+    storeUint16 : ( offset, value ) -> Atomics.store u16, @index2( offset ), value ; value 
+
+    addUint16   : ( offset, value ) -> Atomics.add u16, @index2( offset ), value 
+
+    atUint16    : ( offset )        -> u16[ @index2( offset ) ]
+
+    getUint16   : ( offset )        -> dvw.getUint16 @offset( offset ), LENDIAN 
+
+    setUint16   : ( offset, value ) -> dvw.setUint16 @offset( offset ), value, LENDIAN ; value
+
+
+    loadUint8   : ( offset )        -> Atomics.load ui8, @index1( offset )
+
+    storeUint8  : ( offset, value ) -> Atomics.store ui8, @index1( offset ), value ; value 
+
+    addUint8    : ( offset, value ) -> Atomics.add ui8, @index1( offset ), value 
+
+    getUint8    : ( offset )        -> dvw.getUint8 @offset( offset ) 
+
+    setUint8    : ( offset, value ) -> dvw.setUint8 @offset( offset ), value ; value
+
+
+    atFloat32   : ( offset )        -> f32[ @index4( offset ) ]
+
+    getFloat32  : ( offset )        -> dvw.getFloat32 @offset( offset ), LENDIAN 
+
+    setFloat32  : ( offset, value ) -> dvw.setFloat32 @offset( offset ), value, LENDIAN ; value  
+
+export class Pointer extends ByteOffset
+
+    @headLength   : 4 * 10
+
+    @byteLength   : 4* 120
+
+    @createBuffer : ->
+        
+        initial = arguments[0] or 100000
+        maximum = initial * 10
+        options = { initial, maximum, shared: on }
+
+        try memory= new WebAssembly.Memory options
+        catch then return @createBuffer Math.floor initial / 10
+        return @setBuffer ( OBJECTS[0] = memory ).buffer
+
+    @setBuffer    : ->
+        
+        sab = arguments[0]
+        
+        dvw = new DataView sab
+        ui8 = new Uint8Array sab
+        i32 = new Int32Array sab
+        u32 = new Uint32Array sab
+        u16 = new Uint16Array sab
+        f32 = new Float32Array sab
+
+        Object.defineProperty ByteOffset::, "buffer", { value : sab }
+        Object.defineProperty ByteOffset::, "scope", { get : -> OBJECTS }
+
+        Atomics.or u32, 0, Pointer.headLength
+
+    constructor : ->
+        unless arguments.length
+            return super Atomics.add u32, 0, Pointer.headLength
+                .writeAllocation()
+
+        Object.setPrototypeOf super( arguments[0] ), @prototype
+
+    writeAllocation : ->
+
+        Atomics.add u32, 0, @byteLength =
+            @constructor.byteLength
+
+        @prototype =
+            @getPrototypeId()
+        
+        this
+
+    getPrototypeId : ->
+        @constructor.prototypeId ?=
+            -1 + OBJECTS.push Object.getPrototypeOf this
+            
+Object.defineProperties Pointer::,
+
+    byteLength :
+        get : -> @loadUint32 -4
+        set : -> @storeUint32 -4, arguments[0]
+
+    prototype  :
+        get : -> OBJECTS[ @loadUint32 -8 ]
+        set : -> @storeUint32 -8, arguments[0]
+
+export class ExtendedPointer extends Pointer
+
+    @byteLength : 4 * 12
+    
+export class ExtendedPointer2 extends Pointer
+
+    @byteLength : 4 * 22
+    
+export default Pointer

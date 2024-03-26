@@ -7,6 +7,7 @@ import { Pointer, OffsetPointer } from "./pointer.js"
 class Context extends Pointer.Float32Array
 
 INDEX_CONTEXT_GL     = Context.ialloc Uint32Array
+
 INDEX_CONTEXT_CANVAS = Context.ialloc Uint32Array
 
 OFFSET_VIEWPORT      = 0
@@ -64,7 +65,6 @@ Object.defineProperties Context::,
     createContext   :
         value       : -> this.gl = @canvas.getContext "webgl2"
 
-
 Object.defineProperties Context::,
 
     getCanvas       :
@@ -91,6 +91,13 @@ Object.defineProperties Context::,
 
     viewport        :
         get         : -> new Viewport @offset OFFSET_VIEWPORT
+
+
+
+
+
+
+
 
 class Viewport extends OffsetPointer
 
@@ -119,6 +126,14 @@ Object.defineProperties Viewport.scopei()::,
     left            :
         get         : -> @getFloat32 OFFSET_LEFT
         set         : -> @setFloat32 OFFSET_LEFT    , arguments[0]
+
+
+
+
+
+
+
+
 
 
 class Program extends Pointer
