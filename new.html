@@ -73,14 +73,16 @@
     </head>
     <body>
         <script type="module">
-            import {Pointer} from "./ptr.js"
+            import {Pointer, ExtendedPointer} from "./ptr.js"
 
             Pointer.createBuffer()
             
             console.log(new Pointer())
             console.log(new Pointer())
-            console.log(new Pointer(560))
+            console.log(new ExtendedPointer())
             console.log(new Pointer())
+            console.log(new Pointer())
+            console.log(new Pointer(1056))
 
         </script>
     </body>

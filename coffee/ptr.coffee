@@ -1,5 +1,6 @@
 OBJECTS = []
 LENDIAN = !new Uint8Array( Float32Array.of( 1 ).buffer )[ 0 ]
+INITIAL = 4 * 4
 
 ui8 = i32 = u32 = 
 u16 = dvw = f32 = null
@@ -105,28 +106,35 @@ export class Pointer extends ByteOffset
         Object.defineProperty ByteOffset::, "buffer", { value : sab }
         Object.defineProperty ByteOffset::, "scope", { get : -> OBJECTS }
 
-        Atomics.or u32, 0, Pointer.headLength
+        Atomics.or u32, 0, INITIAL
 
     constructor : ->
+
+        #? new allocation
         unless arguments.length
             return super Atomics.add u32, 0, Pointer.headLength
-                .writeAllocation()
-
-        Object.setPrototypeOf super( arguments[0] ), @prototype
-
-    writeAllocation : ->
-
-        Atomics.add u32, 0, @byteLength =
-            @constructor.byteLength
-
-        @prototype =
-            @getPrototypeId()
+                .setAllocation Atomics.add u32, 0, @byteLength =
+                    this.constructor.byteLength
         
-        this
+        #? re-allocation
+        unless arguments[1]?
+            return super arguments[0]
+                .usePrototype @prototype
 
-    getPrototypeId : ->
-        @constructor.prototypeId ?=
-            -1 + OBJECTS.push Object.getPrototypeOf this
+        #? inner offset pointer
+        return super arguments[0] + arguments[1]
+
+    setAllocation : ->
+        @prototype = @getProtoIndex() ; this
+
+    usePrototype  : ->
+        Object.setPrototypeOf this, arguments[0]
+
+    getProtoIndex : ->
+        unless Object.hasOwn @constructor, "protoIndex"
+            Object.defineProperty @constructor, "protoIndex",
+                value : -1 + OBJECTS.push Object.getPrototypeOf this
+        return @constructor[ "protoIndex" ]
             
 Object.defineProperties Pointer::,
 
@@ -141,9 +149,6 @@ Object.defineProperties Pointer::,
 export class ExtendedPointer extends Pointer
 
     @byteLength : 4 * 12
-    
-export class ExtendedPointer2 extends Pointer
 
-    @byteLength : 4 * 22
     
 export default Pointer

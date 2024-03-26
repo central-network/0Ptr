@@ -1,8 +1,10 @@
-var LENDIAN, OBJECTS, dvw, f32, i32, u16, u32, ui8;
+var INITIAL, LENDIAN, OBJECTS, dvw, f32, i32, u16, u32, ui8;
 
 OBJECTS = [];
 
 LENDIAN = !new Uint8Array(Float32Array.of(1).buffer)[0];
+
+INITIAL = 4 * 4;
 
 ui8 = i32 = u32 = u16 = dvw = f32 = null;
 
@@ -183,25 +185,39 @@ export var Pointer = (function() {
           return OBJECTS;
         }
       });
-      return Atomics.or(u32, 0, Pointer.headLength);
+      return Atomics.or(u32, 0, INITIAL);
     }
 
     constructor() {
+      //? new allocation
       if (!arguments.length) {
-        return super(Atomics.add(u32, 0, Pointer.headLength)).writeAllocation();
+        return super(Atomics.add(u32, 0, Pointer.headLength)).setAllocation(Atomics.add(u32, 0, this.byteLength = this.constructor.byteLength));
       }
-      Object.setPrototypeOf(super(arguments[0]), this.prototype);
+      
+      //? re-allocation
+      if (arguments[1] == null) {
+        return super(arguments[0]).usePrototype(this.prototype);
+      }
+      //? inner offset pointer
+      return super(arguments[0] + arguments[1]);
     }
 
-    writeAllocation() {
-      Atomics.add(u32, 0, this.byteLength = this.constructor.byteLength);
-      this.prototype = this.getPrototypeId();
+    setAllocation() {
+      this.prototype = this.getProtoIndex();
       return this;
     }
 
-    getPrototypeId() {
-      var base;
-      return (base = this.constructor).prototypeId != null ? base.prototypeId : base.prototypeId = -1 + OBJECTS.push(Object.getPrototypeOf(this));
+    usePrototype() {
+      return Object.setPrototypeOf(this, arguments[0]);
+    }
+
+    getProtoIndex() {
+      if (!Object.hasOwn(this.constructor, "protoIndex")) {
+        Object.defineProperty(this.constructor, "protoIndex", {
+          value: -1 + OBJECTS.push(Object.getPrototypeOf(this))
+        });
+      }
+      return this.constructor["protoIndex"];
     }
 
   };
@@ -239,15 +255,6 @@ export var ExtendedPointer = (function() {
   ExtendedPointer.byteLength = 4 * 12;
 
   return ExtendedPointer;
-
-}).call(this);
-
-export var ExtendedPointer2 = (function() {
-  class ExtendedPointer2 extends Pointer {};
-
-  ExtendedPointer2.byteLength = 4 * 22;
-
-  return ExtendedPointer2;
 
 }).call(this);
 
