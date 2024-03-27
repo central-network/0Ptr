@@ -17,7 +17,7 @@ export class Color4 extends ByteOffset
             else @setFloat32 i * 4 , val
         return @
 
-    parseCSSColor       : ( rgba = "" ) ->
+    @parseCSSColor      : ( rgba = "" ) ->
         [ r, g, b, a = 1] = rgba
             .replace( /^rgba?\(|\s+|\)$/g,'' )
             .split( ',' ).map( Number )
@@ -40,7 +40,7 @@ export class Color4 extends ByteOffset
 
         css             :
                 get     : -> [ r, g, b, a ] = @ui8 ; "rgba( #{r}, #{g}, #{b}, #{a/0xff} )"
-                set     : -> @set @parseCSSColor arguments[0]
+                set     : -> @set Color4.parseCSSColor arguments[0]
 
         ui8             :
                 get     : -> Uint8Array.of(
@@ -83,7 +83,6 @@ export class Viewport extends ByteOffset
         @height         = rect.height if  rect.height?
         @maxWidth       = innerWidth  if !rect.maxWidth?  and innerWidth?
         @maxHeight      = innerHeight if !rect.maxHeight? and innerHeight?
-
         @fullscreen     = ! Boolean @width - @maxWidth + @height - @maxHeight
 
         this

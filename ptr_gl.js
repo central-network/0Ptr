@@ -23,7 +23,7 @@ export var Color4 = (function() {
       return this;
     }
 
-    parseCSSColor(rgba = "") {
+    static parseCSSColor(rgba = "") {
       var a, b, g, r;
       [r, g, b, a = 1] = rgba.replace(/^rgba?\(|\s+|\)$/g, '').split(',').map(Number);
       return Float32Array.of(r / 0xff, g / 0xff, b / 0xff, a);
@@ -73,7 +73,7 @@ export var Color4 = (function() {
         return `rgba( ${r}, ${g}, ${b}, ${a / 0xff} )`;
       },
       set: function() {
-        return this.set(this.parseCSSColor(arguments[0]));
+        return this.set(Color4.parseCSSColor(arguments[0]));
       }
     },
     ui8: {
