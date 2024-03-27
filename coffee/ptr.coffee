@@ -5,11 +5,40 @@ INITIAL = 4 * 4
 ui8 = i32 = u32 = 
 u16 = dvw = f32 = null
 
+Object.defineProperties Object.getPrototypeOf(Uint8Array),
+    isTypedArray : value : on
+
 export class ByteOffset extends Number
+
+    @isPointer  : yes
 
     @headLength : 0
     
     @byteLength : 0
+
+    @byteOffset : 0
+
+    @alignBytes : 4
+
+    @malloc     : ( byteLength, alignBytes = 1 ) ->
+
+        if  byteLength . isPointer
+            alignBytes = byteLength.alignBytes
+            byteLength = byteLength.byteOffset
+
+        if  byteLength . isTypedArray
+            perElement = byteLength.BYTES_PER_ELEMENT
+            byteLength = alignBytes * byteLength.BYTES_PER_ELEMENT
+            alignBytes = perElement
+
+        if  mod = @byteOffset % alignBytes
+            mod = alignBytes - mod
+
+        byteOffset = @byteOffset + mod
+        @byteOffset += mod + byteLength
+
+        return byteOffset
+
 
     index1      : ( offset = 0 )    -> ( this + offset )
 
@@ -18,6 +47,12 @@ export class ByteOffset extends Number
     index4      : ( offset = 0 )    -> ( this + offset ) / 4
 
     offset      : ( offset = 0 )    -> ( this + offset )
+
+    
+    storeObject : ( object )        -> i += OBJECTS.push object if -1 is i = OBJECTS.indexOf object ; i
+
+    loadObject  : ( i )             -> OBJECTS[i]
+
 
 
     loadInt32   : ( offset )        -> Atomics.load i32, @index4( offset )
@@ -76,13 +111,16 @@ export class ByteOffset extends Number
 
     setFloat32  : ( offset, value ) -> dvw.setFloat32 @offset( offset ), value, LENDIAN ; value  
 
+
 export class Pointer extends ByteOffset
 
     @headLength   : 4 * 10
 
-    @byteLength   : 4* 120
+    @byteLength   : 4 * 120    
 
     @createBuffer : ->
+
+        return this if this::buffer
         
         initial = arguments[0] or 100000
         maximum = initial * 10
@@ -104,17 +142,23 @@ export class Pointer extends ByteOffset
         f32 = new Float32Array sab
 
         Object.defineProperty ByteOffset::, "buffer", { value : sab }
-        Object.defineProperty ByteOffset::, "scope", { get : -> OBJECTS }
+
+        document.onclick = -> console.log OBJECTS
 
         Atomics.or u32, 0, INITIAL
+
+        this
+
+    init : -> this
 
     constructor : ->
 
         #? new allocation
         unless arguments.length
             return super Atomics.add u32, 0, Pointer.headLength
-                .setAllocation Atomics.add u32, 0, @byteLength =
+                .init this.setAllocation Atomics.add u32, 0, @byteLength =
                     this.constructor.byteLength
+                    
         
         #? re-allocation
         unless arguments[1]?
@@ -146,9 +190,5 @@ Object.defineProperties Pointer::,
         get : -> OBJECTS[ @loadUint32 -8 ]
         set : -> @storeUint32 -8, arguments[0]
 
-export class ExtendedPointer extends Pointer
 
-    @byteLength : 4 * 12
-
-    
-export default Pointer
+export default Pointer.createBuffer()

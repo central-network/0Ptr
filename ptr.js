@@ -8,8 +8,33 @@ INITIAL = 4 * 4;
 
 ui8 = i32 = u32 = u16 = dvw = f32 = null;
 
+Object.defineProperties(Object.getPrototypeOf(Uint8Array), {
+  isTypedArray: {
+    value: true
+  }
+});
+
 export var ByteOffset = (function() {
   class ByteOffset extends Number {
+    static malloc(byteLength, alignBytes = 1) {
+      var byteOffset, mod, perElement;
+      if (byteLength.isPointer) {
+        alignBytes = byteLength.alignBytes;
+        byteLength = byteLength.byteOffset;
+      }
+      if (byteLength.isTypedArray) {
+        perElement = byteLength.BYTES_PER_ELEMENT;
+        byteLength = alignBytes * byteLength.BYTES_PER_ELEMENT;
+        alignBytes = perElement;
+      }
+      if (mod = this.byteOffset % alignBytes) {
+        mod = alignBytes - mod;
+      }
+      byteOffset = this.byteOffset + mod;
+      this.byteOffset += mod + byteLength;
+      return byteOffset;
+    }
+
     index1(offset = 0) {
       return this + offset;
     }
@@ -24,6 +49,18 @@ export var ByteOffset = (function() {
 
     offset(offset = 0) {
       return this + offset;
+    }
+
+    storeObject(object) {
+      var i;
+      if (-1 === (i = OBJECTS.indexOf(object))) {
+        i += OBJECTS.push(object);
+      }
+      return i;
+    }
+
+    loadObject(i) {
+      return OBJECTS[i];
     }
 
     loadInt32(offset) {
@@ -141,9 +178,15 @@ export var ByteOffset = (function() {
 
   };
 
+  ByteOffset.isPointer = true;
+
   ByteOffset.headLength = 0;
 
   ByteOffset.byteLength = 0;
+
+  ByteOffset.byteOffset = 0;
+
+  ByteOffset.alignBytes = 4;
 
   return ByteOffset;
 
@@ -153,6 +196,9 @@ export var Pointer = (function() {
   class Pointer extends ByteOffset {
     static createBuffer() {
       var initial, maximum, memory, options;
+      if (this.prototype.buffer) {
+        return this;
+      }
       initial = arguments[0] || 100000;
       maximum = initial * 10;
       options = {
@@ -180,18 +226,21 @@ export var Pointer = (function() {
       Object.defineProperty(ByteOffset.prototype, "buffer", {
         value: sab
       });
-      Object.defineProperty(ByteOffset.prototype, "scope", {
-        get: function() {
-          return OBJECTS;
-        }
-      });
-      return Atomics.or(u32, 0, INITIAL);
+      document.onclick = function() {
+        return console.log(OBJECTS);
+      };
+      Atomics.or(u32, 0, INITIAL);
+      return this;
+    }
+
+    init() {
+      return this;
     }
 
     constructor() {
       //? new allocation
       if (!arguments.length) {
-        return super(Atomics.add(u32, 0, Pointer.headLength)).setAllocation(Atomics.add(u32, 0, this.byteLength = this.constructor.byteLength));
+        return super(Atomics.add(u32, 0, Pointer.headLength)).init(this.setAllocation(Atomics.add(u32, 0, this.byteLength = this.constructor.byteLength)));
       }
       
       //? re-allocation
@@ -249,13 +298,4 @@ Object.defineProperties(Pointer.prototype, {
   }
 });
 
-export var ExtendedPointer = (function() {
-  class ExtendedPointer extends Pointer {};
-
-  ExtendedPointer.byteLength = 4 * 12;
-
-  return ExtendedPointer;
-
-}).call(this);
-
-export default Pointer;
+export default Pointer.createBuffer();
