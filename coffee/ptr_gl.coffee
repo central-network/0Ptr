@@ -1,7 +1,16 @@
-import { length } from "./window.coffee"
-import { Pointer, ByteOffset } from "./ptr.js"
+import { Pointer, ByteOffset, KeyBase } from "./ptr.js"
+
+export GLKEYS = new KeyBase WebGL2RenderingContext
+
+GLKEYS.add COLOR_DEPTH_BUFFER_BIT :
+    GLKEYS.COLOR_BUFFER_BIT |
+    GLKEYS.DEPTH_BUFFER_BIT
 
 export class Color4 extends ByteOffset
+
+    #? matters 
+        #? order        : gl.clearColor r, g, b, a
+        #? because of   : gl.clearColor.apply.bind gl.clearColor, gl, new Float32Array buffer, this + clearColor, 4
 
     OFFSET_RED          : @malloc Float32Array
 
@@ -11,11 +20,22 @@ export class Color4 extends ByteOffset
 
     OFFSET_ALPHA        : @malloc Float32Array
 
+    OFFSET_UPDATED      : @malloc Uint8Array
+
     set                 : ( vec4 = [] ) ->
-        for val , i in [ ...vec4, 1, 1, 1, 1 ]
-            unless i < 4 then break
-            else @setFloat32 i * 4 , val
+        [ r = 0, g = 0, b = 0, a = 1 ] = vec4
+        
+        @setFloat32 @OFFSET_RED     , r
+        @setFloat32 @OFFSET_GREEN   , g
+        @setFloat32 @OFFSET_BLUE    , b
+        @setFloat32 @OFFSET_ALPHA   , a
+        @storeUint8 @OFFSET_UPDATED , 0
+
         return @
+
+    update              : ( fn ) ->
+        return this if @updated
+        fn @updated = on ; this
 
     @parseCSSColor      : ( rgba = "" ) ->
         [ r, g, b, a = 1] = rgba
@@ -25,6 +45,10 @@ export class Color4 extends ByteOffset
         Float32Array.of r/ 0xff, g/0xff, b/0xff, a
 
     Object.defineProperties this::,
+
+        updated         :
+                get     : -> @loadUint8 @OFFSET_UPDATED
+                set     : -> @storeUint8 @OFFSET_UPDATED, arguments[0]
 
         rgb             :
                 get     : -> [ ...@ui8 ]
@@ -61,6 +85,10 @@ export class Color4 extends ByteOffset
 
 export class Viewport extends ByteOffset
 
+    #? matters 
+        #? order        : gl.viewport left, top, width, height
+        #? because of   : gl.viewport.apply.bind gl.viewport, gl, new Float32Array buffer, this + viewport.byteOffset, 4
+
     OFFSET_LEFT         : @malloc Float32Array
 
     OFFSET_TOP          : @malloc Float32Array
@@ -75,6 +103,8 @@ export class Viewport extends ByteOffset
 
     OFFSET_FULLSCREEN   : @malloc Uint8Array
 
+    OFFSET_UPDATED      : @malloc Uint8Array
+
     set                 : ( rect = {} ) ->
 
         @left           = rect.left   if  rect.left?
@@ -85,9 +115,17 @@ export class Viewport extends ByteOffset
         @maxHeight      = innerHeight if !rect.maxHeight? and innerHeight?
         @fullscreen     = ! Boolean @width - @maxWidth + @height - @maxHeight
 
-        this
+        @updated = false ; this
+
+    update              : ( fn ) ->
+        return this if @updated
+        fn @updated = on ; this
 
     Object.defineProperties this::,
+
+        updated         :
+                get     : -> @loadUint8 @OFFSET_UPDATED
+                set     : -> @storeUint8 @OFFSET_UPDATED, arguments[0]
 
         left            :
                 get     : -> @getFloat32 @OFFSET_LEFT
@@ -117,63 +155,178 @@ export class Viewport extends ByteOffset
                 get     : -> @getUint8 @OFFSET_FULLSCREEN
                 set     : -> @setUint8 @OFFSET_FULLSCREEN, arguments[0]
 
+
+export class Program extends Pointer
+
+export class Shader extends Pointer
+
+export class Buffer extends Pointer
+
 export class WebGL2 extends Pointer
 
     @byteLength         : 4 * 24
+
+    OFFSET_RENDERING    : @malloc Uint8Array
+
+    OFFSET_FRAME        : @malloc Uint32Array
+    
+    OFFSET_EPOCH        : @malloc Uint32Array
 
     OFFSET_DOCUMENT     : @malloc Uint32Array
 
     OFFSET_CANVAS       : @malloc Uint32Array
 
     OFFSET_CONTEXT      : @malloc Uint32Array
-    
+        
     OFFSET_VIEWPORT     : @malloc Viewport
 
     OFFSET_CLEARCOLOR   : @malloc Color4
 
+    OFFSET_CLEARMASK    : @malloc Uint16Array
+
+    OFFSET_FN_VIEWPORT  : @malloc Uint32Array
+    
+    OFFSET_FN_CLEARCOLOR: @malloc Uint32Array
+
+    OFFSET_FN_CLEAR     : @malloc Uint32Array
+
+    OFFSET_PROGRAM      : @malloc Uint32Array
+
+    defaults            :
+
+        clearColor      : [ 1, 1, 1, 1 ]
+
+        clearMask       : GLKEYS.COLOR_DEPTH_BUFFER_BIT
+
+        contextType     : "webgl2"
+
+        tagName         : "canvas"
+
+    preProcesses        : []
+
+    postProcesses       : []
+
+    render              : ( @epoch ) ->
+        @frame++
+
+        unless @rendering
+            return requestAnimationFrame (e) => @render e
+
+        f.call @ for f in @preProcesses
+
+        @viewport.update @operators.viewport
+        @clearColor.update @operators.clearColor
+
+        @operators.clear()
+
+        #console.log { @frame, @epoch, @rendering }, @clearColor
+
+        f.call @ for f in @postProcesses
+
+        requestAnimationFrame (e) => @render e
+
+    init                : -> Pointer.store GLKEYS ; this
+
     create              : ->
-        @canvas = @document.createElement "canvas"
-        @viewport = @document.body.getBoundingClientRect()
-        @clearColor = [ 1, 0, 1, .5 ]
-        @gl = @canvas.getContext "webgl2"
 
-    getDocumentIndex    : -> @loadUint32  @OFFSET_DOCUMENT
+        @viewport   = @document.body.getBoundingClientRect()
+        @canvas     = @document.createElement @defaults.tagName
+        @gl         = @canvas.getContext @defaults.contextType
 
-    setDocumentIndex    : -> @storeUint32 @OFFSET_DOCUMENT , arguments[0]
+        @clearColor = @defaults.clearColor
+        @clearMask  = @defaults.clearMask
 
+        @resizeCanvas()
+        @setOperators()
+        @createProgram()
+        
+        @rendering = on
 
-    getCanvasIndex      : -> @loadUint32  @OFFSET_CANVAS
-    
-    setCanvasIndex      : -> @storeUint32 @OFFSET_CANVAS , arguments[0]
+        @canvas.onclick = =>
+            @rendering = !@rendering
 
+    createProgram       : ->
+        console.log @program = @gl.createProgram()
 
-    getContextIndex     : -> @loadUint32  @OFFSET_CONTEXT
-    
-    setContextIndex     : -> @storeUint32 @OFFSET_CONTEXT , arguments[0]
+    resizeCanvas        : ->
+        @canvas.width           = @viewport.width * devicePixelRatio
+        @canvas.height          = @viewport.height * devicePixelRatio
+
+        @canvas.style.position  = "fixed"
+        @canvas.style.left      = CSS.px @viewport.left
+        @canvas.style.top       = CSS.px @viewport.top
+        @canvas.style.width     = CSS.px @viewport.width
+        @canvas.style.height    = CSS.px @viewport.height
+
+        @document.body.appendChild @canvas unless @canvas.isConnected
+
+        this
+
+    setOperators        : ->
+        clear           = @gl.clear.bind @gl, @gl.COLOR_BUFFER_BIT | @gl.DEPTH_BUFFER_BIT
+        viewport        = @gl.viewport.apply.bind @gl.viewport, @gl, new Float32Array @buffer, this + @OFFSET_VIEWPORT, 4
+        clearColor      = @gl.clearColor.apply.bind @gl.clearColor, @gl, new Float32Array @buffer, this + @OFFSET_CLEARCOLOR, 4
+
+        @storeObject @OFFSET_FN_CLEAR, clear
+        @storeObject @OFFSET_FN_VIEWPORT, viewport
+        @storeObject @OFFSET_FN_CLEARCOLOR, clearColor
+        
+        this
 
     
     Object.defineProperties WebGL2::,
         
         document        :
-            get         : -> @loadObject @getDocumentIndex()
-            set         : -> @create @setDocumentIndex @storeObject arguments[0]
+            get         : -> @loadObject @OFFSET_DOCUMENT
+            set         : -> @create @storeObject @OFFSET_DOCUMENT, arguments[0]
+
+        rendering       :
+            get         : -> @loadUint8 @OFFSET_RENDERING
+            set         : -> @render @storeUint8 @OFFSET_RENDERING, arguments[0]
+
+        epoch           :
+            get         : -> @loadUint32 @OFFSET_EPOCH
+            set         : -> @storeUint32 @OFFSET_EPOCH, arguments[0]
+
+        frame           :
+            get         : -> @loadUint32 @OFFSET_FRAME
+            set         : -> @storeUint32 @OFFSET_FRAME, arguments[0]
 
         canvas          :
-            get         : -> @loadObject @getCanvasIndex()
-            set         : -> @setCanvasIndex @storeObject arguments[0]
+            get         : -> @loadObject @OFFSET_CANVAS
+            set         : -> @storeObject @OFFSET_CANVAS, arguments[0]
+
+        program         :
+            get         : -> @loadObject @OFFSET_PROGRAM
+            set         : -> @storeObject @OFFSET_PROGRAM, arguments[0]
 
         viewport        :
             get         : -> new Viewport this + @OFFSET_VIEWPORT
-            set         : -> @viewport.set arguments...
+            set         : -> @viewport.set arguments[0]
 
         clearColor      :
             get         : -> new Color4 this + @OFFSET_CLEARCOLOR
-            set         : -> @clearColor.set arguments...
+            set         : -> @clearColor.set arguments[0]
+        
+        clearMask       :
+            get         : -> @keyUint16 @OFFSET_CLEARMASK, GLKEYS
+            set         : -> @storeUint16 @OFFSET_CLEARMASK, arguments[0]
 
         gl              :
-            get         : -> @loadObject @getContextIndex()
-            set         : -> @setContextIndex @storeObject arguments[0]
+            get         : -> @loadObject @OFFSET_CONTEXT
+            set         : -> @storeObject @OFFSET_CONTEXT, arguments[0]
 
+        operators       :
+            get         : ->
+                clear           : @loadObject @OFFSET_FN_CLEAR
+                viewport        : @loadObject @OFFSET_FN_VIEWPORT
+                clearColor      : @loadObject @OFFSET_FN_CLEARCOLOR
+
+
+ByteOffset.register(
+    WebGL2, Program, Viewport,
+    Color4, Shader, Buffer
+)
 
 export { Pointer as default }
 

@@ -73,13 +73,50 @@
     </head>
     <body>
         <script type="module">
-            import { WebGL2 } from "./ptr_gl.js"
+            import { WebGL2, Program, Shader, Buffer } from "./ptr_gl.js"
             
             let webgl = new WebGL2()
+            let program = new Program()
+            let program2 = new Program()
+            let shader = new Shader()
+            let buffer = new Buffer()
 
-            webgl.document = document;
+            program.attach( webgl )
+            program2.attach( webgl )
+            buffer.attach( program2 )
+            shader.attach( webgl )
 
             console.log(webgl)
+            console.log(program)
+            console.log(webgl.children)
+
+            
+            let r, g, b, a;
+            webgl.preProcesses.push(function (){
+                [ r, g, b, a ] = this.clearColor.f32;
+
+                b = (b + Math.random() / 100) % 1
+
+                this.clearColor.set([ r, g, b ])
+            })
+
+            for (let ptr of webgl) {
+                console.warn(ptr);
+            }
+
+            webgl.forEach(function (child){
+                console.log(2, child)
+            })
+
+            console.error( "filter:", webgl.filter( Program, function ( ptr ) {
+                console.log(ptr)
+                return !Boolean( ptr - 672 )
+            }) )
+            console.error( webgl.find( Shader, function (ptr){ return false } ) )
+            console.error( "children:", webgl.children )
+
+            webgl.document = document;
+            webgl.clearColor = [ 1,1,1 ]
 
         </script>
     </body>

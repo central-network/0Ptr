@@ -8,11 +8,108 @@ INITIAL = 4 * 4;
 
 ui8 = i32 = u32 = u16 = dvw = f32 = null;
 
+Object.getPrototypeOf(Uint8Array).prototype.isTypedArray = Object.getPrototypeOf(Uint8Array).isTypedArray = true;
+
 Object.defineProperties(Object.getPrototypeOf(Uint8Array), {
-  isTypedArray: {
-    value: true
+  ofInt8: {
+    value: function() {
+      return new this(Int8Array.of(...arguments).buffer);
+    }
+  },
+  ofUint8: {
+    value: function() {
+      return new this(Uint8Array.of(...arguments).buffer);
+    }
+  },
+  ofInt16: {
+    value: function() {
+      return new this(Int16Array.of(...arguments).buffer);
+    }
+  },
+  ofUint16: {
+    value: function() {
+      return new this(Uint16Array.of(...arguments).buffer);
+    }
+  },
+  ofUint32: {
+    value: function() {
+      return new this(Uint32Array.of(...arguments).buffer);
+    }
+  },
+  ofInt32: {
+    value: function() {
+      return new this(Int32Array.of(...arguments).buffer);
+    }
+  },
+  ofFloat32: {
+    value: function() {
+      return new this(Float32Array.of(...arguments).buffer);
+    }
+  },
+  ofFloat64: {
+    value: function() {
+      return new this(Float64Array.of(...arguments).buffer);
+    }
   }
 });
+
+export var KeyBase = (function() {
+  class KeyBase extends Object {
+    constructor(source = {}, options = {}) {
+      super();
+      options = {...this.defaults, options};
+      Object.defineProperties(this, {
+        filter: {
+          value: options.filter
+        },
+        extend: {
+          value: options.extend
+        },
+        source: {
+          value: source
+        }
+      });
+      this.add(source);
+    }
+
+    set(label, value, proto = this.extend) {
+      var key;
+      if (!this.filter(value)) {
+        return;
+      }
+      if (this.hasOwnProperty(value)) {
+        return;
+      }
+      key = new (eval(`(class ${label} extends ${proto.name} {})`))(value);
+      Object.defineProperty(this, label, {
+        value: key
+      });
+      return Object.defineProperty(this, value, {
+        value: key
+      });
+    }
+
+    add(source = {}, proto = this.extend) {
+      var label, value;
+      for (label in source) {
+        value = source[label];
+        this.set(label, value);
+      }
+      return this;
+    }
+
+  };
+
+  KeyBase.prototype.defaults = {
+    filter: function() {
+      return arguments[0];
+    },
+    extend: Number
+  };
+
+  return KeyBase;
+
+}).call(this);
 
 export var ByteOffset = (function() {
   class ByteOffset extends Number {
@@ -35,8 +132,30 @@ export var ByteOffset = (function() {
       return byteOffset;
     }
 
-    index1(offset = 0) {
-      return this + offset;
+    static register() {
+      var Ptr, j, len, ref;
+      ref = [...arguments];
+      for (j = 0, len = ref.length; j < len; j++) {
+        Ptr = ref[j];
+        if (Object.hasOwn(Ptr, "protoIndex")) {
+          continue;
+        }
+        Object.defineProperty(Ptr, "protoIndex", {
+          value: this.store(Ptr.prototype)
+        });
+        Object.defineProperty(Ptr.prototype, "instanced", {
+          value: true
+        });
+      }
+      return this;
+    }
+
+    static store(object) {
+      var i;
+      if (-1 === (i = OBJECTS.indexOf(object))) {
+        i += OBJECTS.push(object);
+      }
+      return i;
     }
 
     index2(offset = 0) {
@@ -51,33 +170,17 @@ export var ByteOffset = (function() {
       return this + offset;
     }
 
-    storeObject(object) {
-      var i;
-      if (-1 === (i = OBJECTS.indexOf(object))) {
-        i += OBJECTS.push(object);
-      }
-      return i;
-    }
-
-    loadObject(i) {
-      return OBJECTS[i];
-    }
-
     loadInt32(offset) {
       return Atomics.load(i32, this.index4(offset));
-    }
-
-    storeInt32(offset, value) {
-      Atomics.store(i32, this.index4(offset), value);
-      return value;
     }
 
     addInt32(offset, value) {
       return Atomics.add(i32, this.index4(offset), value);
     }
 
-    atInt32(offset) {
-      return i32[this.index4(offset)];
+    storeInt32(offset, value) {
+      Atomics.store(i32, this.index4(offset), value);
+      return value;
     }
 
     getInt32(offset) {
@@ -87,6 +190,10 @@ export var ByteOffset = (function() {
     setInt32(offset, value) {
       dvw.setInt32(this.offset(offset), value, LENDIAN);
       return value;
+    }
+
+    atInt32(offset) {
+      return i32[this.index4(offset)];
     }
 
     loadUint32(offset) {
@@ -102,10 +209,6 @@ export var ByteOffset = (function() {
       return Atomics.add(u32, this.index4(offset), value);
     }
 
-    atUint32(offset) {
-      return u32[this.index4(offset)];
-    }
-
     getUint32(offset) {
       return dvw.getUint32(this.offset(offset), LENDIAN);
     }
@@ -115,21 +218,26 @@ export var ByteOffset = (function() {
       return value;
     }
 
-    loadUint16(offset) {
-      return Atomics.load(u16, this.index2(offset));
+    keyUint32(offset, keyof) {
+      var ref, v;
+      return (ref = keyof[v = this.getUint32(offset)]) != null ? ref : v;
     }
 
-    storeUint16(offset, value) {
-      Atomics.store(u16, this.index2(offset), value);
-      return value;
+    atUint32(offset) {
+      return u32[this.index4(offset)];
+    }
+
+    loadUint16(offset) {
+      return Atomics.load(u16, this.index2(offset));
     }
 
     addUint16(offset, value) {
       return Atomics.add(u16, this.index2(offset), value);
     }
 
-    atUint16(offset) {
-      return u16[this.index2(offset)];
+    storeUint16(offset, value) {
+      Atomics.store(u16, this.index2(offset), value);
+      return value;
     }
 
     getUint16(offset) {
@@ -141,17 +249,26 @@ export var ByteOffset = (function() {
       return value;
     }
 
-    loadUint8(offset) {
-      return Atomics.load(ui8, this.index1(offset));
+    keyUint16(offset, keyof) {
+      var ref, v;
+      return (ref = keyof[v = this.getUint16(offset)]) != null ? ref : v;
     }
 
-    storeUint8(offset, value) {
-      Atomics.store(ui8, this.index1(offset), value);
-      return value;
+    atUint16(offset) {
+      return u16[this.index2(offset)];
+    }
+
+    loadUint8(offset) {
+      return Atomics.load(ui8, this.offset(offset));
     }
 
     addUint8(offset, value) {
-      return Atomics.add(ui8, this.index1(offset), value);
+      return Atomics.add(ui8, this.offset(offset), value);
+    }
+
+    storeUint8(offset, value) {
+      Atomics.store(ui8, this.offset(offset), value);
+      return value;
     }
 
     getUint8(offset) {
@@ -163,17 +280,56 @@ export var ByteOffset = (function() {
       return value;
     }
 
-    atFloat32(offset) {
-      return f32[this.index4(offset)];
+    atUint8(offset) {
+      return ui8[this.offset(offset)];
+    }
+
+    loadFloat32(offset) {
+      return Float32Array.ofUint32(this.loadUint32(offset))[0];
+    }
+
+    addUFloat32(offset, value) {
+      return this.addUint32(offset, Uint32Array.ofFloat32(value)[0]);
+    }
+
+    storeFloat32(offset, value) {
+      return this.storeUint32(offset, Uint32Array.ofFloat32(value)[0]);
+    }
+
+    setFloat32(offset, value) {
+      dvw.setFloat32(this.offset(offset), value, LENDIAN);
+      return value;
     }
 
     getFloat32(offset) {
       return dvw.getFloat32(this.offset(offset), LENDIAN);
     }
 
-    setFloat32(offset, value) {
-      dvw.setFloat32(this.offset(offset), value, LENDIAN);
-      return value;
+    atFloat32(offset) {
+      return f32[this.index4(offset)];
+    }
+
+    loadObject(offset) {
+      var i;
+      if (i = this.loadUint32(offset)) {
+        return OBJECTS[i];
+      }
+    }
+
+    storeObject(offset, object) {
+      this.storeUint32(offset, ByteOffset.store(object));
+      return this;
+    }
+
+    loadPointer(offset) {
+      var ptr;
+      if (ptr = this.loadUint32(offset)) {
+        return new Pointer(ptr);
+      }
+    }
+
+    storePointer(offset, ptr) {
+      return this.storeUint32(offset, ptr);
     }
 
   };
@@ -238,35 +394,63 @@ export var Pointer = (function() {
     }
 
     constructor() {
+      var byteLength;
       //? new allocation
       if (!arguments.length) {
-        return super(Atomics.add(u32, 0, Pointer.headLength)).init(this.setAllocation(Atomics.add(u32, 0, this.byteLength = this.constructor.byteLength)));
+        super(Atomics.add(u32, 0, Pointer.headLength));
+        Atomics.add(u32, 0, byteLength = this.constructor.byteLength);
+        Atomics.store(u32, this.index4(this.OFFSET_BYTELENGTH), byteLength);
+        Atomics.store(u32, this.index4(this.OFFSET_PROTOINDEX), this.constructor.protoIndex);
+        return this.init();
       }
       
       //? re-allocation
-      if (arguments[1] == null) {
-        return super(arguments[0]).usePrototype(this.prototype);
+      if (!super(arguments[0]).instanced) {
+        Object.setPrototypeOf(this, this.loadObject(this.OFFSET_PROTOINDEX));
       }
-      //? inner offset pointer
-      return super(arguments[0] + arguments[1]);
     }
 
-    setAllocation() {
-      this.prototype = this.getProtoIndex();
+    add() {
+      return arguments[0].parent = this;
+    }
+
+    attach() {
+      this.parent = arguments[0];
       return this;
     }
 
-    usePrototype() {
-      return Object.setPrototypeOf(this, arguments[0]);
+    forEach(handle) {
+      var iterator, ptri;
+      iterator = this[Symbol.iterator]();
+      while (ptri = iterator.next().value) {
+        handle.call(this, new Pointer(ptri));
+      }
+      return this;
     }
 
-    getProtoIndex() {
-      if (!Object.hasOwn(this.constructor, "protoIndex")) {
-        Object.defineProperty(this.constructor, "protoIndex", {
-          value: -1 + OBJECTS.push(Object.getPrototypeOf(this))
-        });
+    filter(prototype, testFn) {
+      var children, iterator, ptr, ptri;
+      children = [];
+      iterator = this[Symbol.iterator](prototype != null ? prototype.protoIndex : void 0);
+      while (ptri = iterator.next().value) {
+        ptr = new Pointer(ptri);
+        if (!testFn || testFn(ptr)) {
+          children.push(ptr);
+        }
       }
-      return this.constructor["protoIndex"];
+      return children;
+    }
+
+    find(prototype, testFn) {
+      var iterator, ptr, ptri;
+      iterator = this[Symbol.iterator](prototype.protoIndex);
+      while (ptri = iterator.next().value) {
+        ptr = new Pointer(ptri);
+        if (!testFn || testFn(ptr)) {
+          return ptr;
+        }
+      }
+      return null;
     }
 
   };
@@ -275,6 +459,12 @@ export var Pointer = (function() {
 
   Pointer.byteLength = 4 * 120;
 
+  Pointer.prototype.OFFSET_BYTELENGTH = -4 * 1;
+
+  Pointer.prototype.OFFSET_PROTOINDEX = -4 * 2;
+
+  Pointer.prototype.OFFSET_PARENT = -4 * 3;
+
   return Pointer;
 
 }).call(this);
@@ -282,18 +472,57 @@ export var Pointer = (function() {
 Object.defineProperties(Pointer.prototype, {
   byteLength: {
     get: function() {
-      return this.loadUint32(-4);
+      return this.loadUint32(this.OFFSET_BYTELENGTH);
     },
     set: function() {
-      return this.storeUint32(-4, arguments[0]);
+      return this.storeUint32(this.OFFSET_BYTELENGTH, arguments[0]);
     }
   },
-  prototype: {
+  parent: {
     get: function() {
-      return OBJECTS[this.loadUint32(-8)];
+      return this.loadPointer(this.OFFSET_PARENT);
     },
     set: function() {
-      return this.storeUint32(-8, arguments[0]);
+      return this.storePointer(this.OFFSET_PARENT, arguments[0]);
+    }
+  },
+  children: {
+    get: Pointer.prototype.filter
+  },
+  [Symbol.iterator]: {
+    value: function(protoIndex = null, headOffset = this.OFFSET_PARENT) {
+      var hLength, iLength, iOffset, iProtoI, iStride, mOffset, pointer, ptri;
+      iOffset = INITIAL / 4;
+      mOffset = Atomics.load(u32, 0) / 4;
+      iStride = headOffset / 4;
+      iLength = this.OFFSET_BYTELENGTH / 4;
+      iProtoI = this.OFFSET_PROTOINDEX / 4;
+      hLength = Pointer.headLength / 4;
+      ptri = parseInt(pointer = this);
+      return {
+        next: function() {
+          var byteLength, ptr;
+          while (iOffset < mOffset) {
+            byteLength = Atomics.load(u32, iOffset + iLength);
+            if (!(ptri - Atomics.load(u32, iOffset + iStride))) {
+              if (!protoIndex || protoIndex === Atomics.load(u32, iOffset + iProtoI)) {
+                ptr = iOffset * 4;
+              }
+            }
+            iOffset = iOffset + hLength + byteLength / 4;
+            if (ptr) {
+              return {
+                done: false,
+                value: ptr
+              };
+            }
+          }
+          return {
+            done: true,
+            value: false
+          };
+        }
+      };
     }
   }
 });
