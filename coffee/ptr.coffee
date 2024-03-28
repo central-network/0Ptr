@@ -1,9 +1,27 @@
-OBJECTS = []
-LENDIAN = !new Uint8Array( Float32Array.of( 1 ).buffer )[ 0 ]
-INITIAL = 4 * 4
+try [
+    #? These are global for Window and proxy container for Threads
+    OBJECTS = new Array()
 
-ui8 = i32 = u32 = 
-u16 = dvw = f32 = null
+    #? endianness is important because of DataView operations are 
+    #? using Big-Endian always if we don't supply as last argument
+    #? but TypedArray and Atomics operations are using navigator's
+    #? endianness and there is no possibility to change   
+    #? On the other hand we are using all of these three operators 
+    #? and we need to supply client's "endianness" for DataView to   
+    #? be sure all of write/read operations will same results even   
+    #? client's endianness is not Big-Endian So keep far away.. GO    
+    LENDIAN = 0x3f is new Uint8Array(Float32Array.of(1).buffer)[ 0x3 ]
+
+    ui8 = i32 =     #? make visible 
+    u32 = u16 =     #? this arrays
+    dvw = f32 = 0x0 #? over scope
+
+    #? first 16 bytes reserved for malloc
+    OFFSET_OF_MEMORY = 0x04 *  4
+    
+    #? every malloc has at least 40 bytes
+    BYTES_PER_HEADER = 0x04 * 10
+]
 
 Object.getPrototypeOf( Uint8Array )::isTypedArray =
     Object.getPrototypeOf( Uint8Array ).isTypedArray = yes
@@ -18,7 +36,7 @@ Object.defineProperties Object.getPrototypeOf( Uint8Array ),
     ofFloat32   : value : -> new this Float32Array.of( arguments... ).buffer
     ofFloat64   : value : -> new this Float64Array.of( arguments... ).buffer
 
-export class KeyBase extends Object
+export class KeyBase    extends Object
 
     defaults    :
         
@@ -54,8 +72,6 @@ export class ByteOffset extends Number
 
     @isPointer  : yes
 
-    @headLength : 0
-    
     @byteLength : 0
 
     @byteOffset : 0
@@ -81,7 +97,6 @@ export class ByteOffset extends Number
 
         return byteOffset
 
-
     @register       : ->
         for Ptr in [ arguments... ]
             continue if Object.hasOwn Ptr, "protoIndex"
@@ -93,6 +108,7 @@ export class ByteOffset extends Number
         if -1 is i = OBJECTS.indexOf object
             i += OBJECTS.push object
         ; i
+
 
     index2          : ( offset = 0 )    -> ( this + offset ) / 2
 
@@ -183,19 +199,13 @@ export class ByteOffset extends Number
     
     storePointer    : ( offset, ptr )       -> @storeUint32 offset , ptr
 
-
-export class Pointer extends ByteOffset
-
-    @headLength         : 4 * 10
-
-    @byteLength         : 4 * 120  
+export class Pointer    extends ByteOffset
 
     OFFSET_BYTELENGTH   : -4 * 1
 
     OFFSET_PROTOINDEX   : -4 * 2
 
     OFFSET_PARENT       : -4 * 3
-
 
     @createBuffer       : ->
 
@@ -224,7 +234,7 @@ export class Pointer extends ByteOffset
 
         document.onclick = -> console.log OBJECTS
 
-        Atomics.or u32, 0, INITIAL
+        Atomics.or u32, 0, OFFSET_OF_MEMORY
 
         this
 
@@ -235,7 +245,7 @@ export class Pointer extends ByteOffset
 
         #? new allocation
         unless arguments.length
-            super Atomics.add u32, 0, Pointer.headLength
+            super Atomics.add u32, 0, BYTES_PER_HEADER
             Atomics.add   u32, 0, byteLength = @constructor.byteLength
             Atomics.store u32, @index4( @OFFSET_BYTELENGTH ), byteLength
             Atomics.store u32, @index4( @OFFSET_PROTOINDEX ), @constructor.protoIndex
@@ -276,15 +286,15 @@ export class Pointer extends ByteOffset
 
 Object.defineProperties Pointer::,
 
-    byteLength      :
+    byteLength          :
         get         : -> @loadUint32 @OFFSET_BYTELENGTH
         set         : -> @storeUint32 @OFFSET_BYTELENGTH, arguments[0]
 
-    parent          :
+    parent              :
         get         : -> @loadPointer @OFFSET_PARENT
         set         : -> @storePointer @OFFSET_PARENT, arguments[0]
 
-    children        :
+    children            :
         get         : Pointer::filter
 
     [ Symbol.iterator ] :
@@ -293,12 +303,12 @@ Object.defineProperties Pointer::,
                 ptri = parseInt pointer = this
                 done = done: yes, value: false
 
-                iOffset = INITIAL / 4 
+                iOffset = OFFSET_OF_MEMORY / 4 
                 mOffset = Atomics.load( u32, 0 ) / 4
                 iStride = stride / 4
                 iLength = @OFFSET_BYTELENGTH / 4
                 iProtoI = @OFFSET_PROTOINDEX / 4
-                hLength = Pointer.headLength / 4
+                hLength = BYTES_PER_HEADER / 4
 
                 return next : ->
                     while  iOffset < mOffset

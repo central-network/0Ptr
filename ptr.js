@@ -1,12 +1,27 @@
-var INITIAL, LENDIAN, OBJECTS, dvw, f32, i32, u16, u32, ui8;
+var BYTES_PER_HEADER, LENDIAN, OBJECTS, OFFSET_OF_MEMORY, dvw, f32, i32, u16, u32, ui8;
 
-OBJECTS = [];
-
-LENDIAN = !new Uint8Array(Float32Array.of(1).buffer)[0];
-
-INITIAL = 4 * 4;
-
-ui8 = i32 = u32 = u16 = dvw = f32 = null;
+try {
+  [
+    //? These are global for Window and proxy container for Threads
+    OBJECTS = new Array(),
+    //? endianness is important because of DataView operations are 
+    //? using Big-Endian always if we don't supply as last argument
+    //? but TypedArray and Atomics operations are using navigator's
+    //? endianness and there is no possibility to change   
+    //? On the other hand we are using all of these three operators 
+    //? and we need to supply client's "endianness" for DataView to   
+    //? be sure all of write/read operations will same results even   
+    //? client's endianness is not Big-Endian So keep far away.. GO    
+    LENDIAN = 0x3f === new Uint8Array(Float32Array.of(1).buffer)[0x3],
+    ui8 = i32 = u32 = u16 = dvw = f32 = 0x0, //? make visible  //? this arrays //? over scope
+    
+    //? first 16 bytes reserved for malloc
+    OFFSET_OF_MEMORY = 0x04 * 4,
+    
+    //? every malloc has at least 40 bytes
+    BYTES_PER_HEADER = 0x04 * 10
+  ];
+} catch (error) {}
 
 Object.getPrototypeOf(Uint8Array).prototype.isTypedArray = Object.getPrototypeOf(Uint8Array).isTypedArray = true;
 
@@ -336,8 +351,6 @@ export var ByteOffset = (function() {
 
   ByteOffset.isPointer = true;
 
-  ByteOffset.headLength = 0;
-
   ByteOffset.byteLength = 0;
 
   ByteOffset.byteOffset = 0;
@@ -385,7 +398,7 @@ export var Pointer = (function() {
       document.onclick = function() {
         return console.log(OBJECTS);
       };
-      Atomics.or(u32, 0, INITIAL);
+      Atomics.or(u32, 0, OFFSET_OF_MEMORY);
       return this;
     }
 
@@ -397,7 +410,7 @@ export var Pointer = (function() {
       var byteLength;
       //? new allocation
       if (!arguments.length) {
-        super(Atomics.add(u32, 0, Pointer.headLength));
+        super(Atomics.add(u32, 0, BYTES_PER_HEADER));
         Atomics.add(u32, 0, byteLength = this.constructor.byteLength);
         Atomics.store(u32, this.index4(this.OFFSET_BYTELENGTH), byteLength);
         Atomics.store(u32, this.index4(this.OFFSET_PROTOINDEX), this.constructor.protoIndex);
@@ -455,10 +468,6 @@ export var Pointer = (function() {
 
   };
 
-  Pointer.headLength = 4 * 10;
-
-  Pointer.byteLength = 4 * 120;
-
   Pointer.prototype.OFFSET_BYTELENGTH = -4 * 1;
 
   Pointer.prototype.OFFSET_PROTOINDEX = -4 * 2;
@@ -497,12 +506,12 @@ Object.defineProperties(Pointer.prototype, {
         done: true,
         value: false
       };
-      iOffset = INITIAL / 4;
+      iOffset = OFFSET_OF_MEMORY / 4;
       mOffset = Atomics.load(u32, 0) / 4;
       iStride = stride / 4;
       iLength = this.OFFSET_BYTELENGTH / 4;
       iProtoI = this.OFFSET_PROTOINDEX / 4;
-      hLength = Pointer.headLength / 4;
+      hLength = BYTES_PER_HEADER / 4;
       return {
         next: function() {
           var byteLength, ptr;
