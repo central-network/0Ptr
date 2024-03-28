@@ -258,22 +258,20 @@ export class Pointer extends ByteOffset
             handle.call this, new Pointer ptri
         this
 
-    filter              : ( prototype, testFn ) ->
+    filter              : ( proto, test ) ->
         children = []
-        iterator = @[ Symbol.iterator ]( prototype?.protoIndex )
+        iterator = @[ Symbol.iterator ]( proto )
 
         while ptri = iterator.next().value
             ptr = new Pointer ptri
-            if !testFn or testFn ptr
-                children.push ptr 
+            children.push ptr if !test or test ptr
         children
 
-    find                : ( prototype, testFn ) ->
-        iterator = @[ Symbol.iterator ]( prototype.protoIndex )
+    find                : ( proto, test ) ->
+        iterator = @[ Symbol.iterator ]( proto )
         while ptri = iterator.next().value
             ptr = new Pointer ptri
-            if !testFn or testFn ptr
-                return ptr
+            return ptr if !test or test ptr
         null
 
 Object.defineProperties Pointer::,
@@ -290,25 +288,26 @@ Object.defineProperties Pointer::,
         get         : Pointer::filter
 
     [ Symbol.iterator ] :
-            value       : ( protoIndex = null, headOffset = @OFFSET_PARENT ) ->
+            value       : ( proto = null, stride = @OFFSET_PARENT ) ->
+                
+                ptri = parseInt pointer = this
+                done = done: yes, value: false
+
                 iOffset = INITIAL / 4 
                 mOffset = Atomics.load( u32, 0 ) / 4
-
-                iStride = headOffset / 4
+                iStride = stride / 4
                 iLength = @OFFSET_BYTELENGTH / 4
                 iProtoI = @OFFSET_PROTOINDEX / 4
                 hLength = Pointer.headLength / 4
-
-                ptri = parseInt pointer = this
 
                 return next : ->
                     while  iOffset < mOffset
                         byteLength = Atomics.load u32, iOffset + iLength
                         unless ptri- Atomics.load u32, iOffset + iStride
-                            if !protoIndex or protoIndex is Atomics.load u32, iOffset + iProtoI
+                            if !proto or proto.protoIndex is Atomics.load u32, iOffset + iProtoI
                                 ptr = iOffset * 4
                         iOffset = iOffset + hLength + byteLength / 4
                         return done : no, value : ptr if ptr
-                    return done: on, value : false
+                    return done
 
 export default Pointer.createBuffer()

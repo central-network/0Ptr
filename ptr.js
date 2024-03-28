@@ -428,25 +428,25 @@ export var Pointer = (function() {
       return this;
     }
 
-    filter(prototype, testFn) {
+    filter(proto, test) {
       var children, iterator, ptr, ptri;
       children = [];
-      iterator = this[Symbol.iterator](prototype != null ? prototype.protoIndex : void 0);
+      iterator = this[Symbol.iterator](proto);
       while (ptri = iterator.next().value) {
         ptr = new Pointer(ptri);
-        if (!testFn || testFn(ptr)) {
+        if (!test || test(ptr)) {
           children.push(ptr);
         }
       }
       return children;
     }
 
-    find(prototype, testFn) {
+    find(proto, test) {
       var iterator, ptr, ptri;
-      iterator = this[Symbol.iterator](prototype.protoIndex);
+      iterator = this[Symbol.iterator](proto);
       while (ptri = iterator.next().value) {
         ptr = new Pointer(ptri);
-        if (!testFn || testFn(ptr)) {
+        if (!test || test(ptr)) {
           return ptr;
         }
       }
@@ -490,22 +490,26 @@ Object.defineProperties(Pointer.prototype, {
     get: Pointer.prototype.filter
   },
   [Symbol.iterator]: {
-    value: function(protoIndex = null, headOffset = this.OFFSET_PARENT) {
-      var hLength, iLength, iOffset, iProtoI, iStride, mOffset, pointer, ptri;
+    value: function(proto = null, stride = this.OFFSET_PARENT) {
+      var done, hLength, iLength, iOffset, iProtoI, iStride, mOffset, pointer, ptri;
+      ptri = parseInt(pointer = this);
+      done = {
+        done: true,
+        value: false
+      };
       iOffset = INITIAL / 4;
       mOffset = Atomics.load(u32, 0) / 4;
-      iStride = headOffset / 4;
+      iStride = stride / 4;
       iLength = this.OFFSET_BYTELENGTH / 4;
       iProtoI = this.OFFSET_PROTOINDEX / 4;
       hLength = Pointer.headLength / 4;
-      ptri = parseInt(pointer = this);
       return {
         next: function() {
           var byteLength, ptr;
           while (iOffset < mOffset) {
             byteLength = Atomics.load(u32, iOffset + iLength);
             if (!(ptri - Atomics.load(u32, iOffset + iStride))) {
-              if (!protoIndex || protoIndex === Atomics.load(u32, iOffset + iProtoI)) {
+              if (!proto || proto.protoIndex === Atomics.load(u32, iOffset + iProtoI)) {
                 ptr = iOffset * 4;
               }
             }
@@ -517,10 +521,7 @@ Object.defineProperties(Pointer.prototype, {
               };
             }
           }
-          return {
-            done: true,
-            value: false
-          };
+          return done;
         }
       };
     }
