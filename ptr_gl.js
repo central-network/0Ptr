@@ -4,6 +4,10 @@ import {
   KeyBase
 } from "./ptr.js";
 
+import {
+  Controller
+} from "./ptr_ctrl.js";
+
 export var GLKEYS = new KeyBase(WebGL2RenderingContext);
 
 GLKEYS.add({
@@ -291,17 +295,13 @@ export var WebGL2 = (function() {
       });
     }
 
-    init() {
-      Pointer.store(GLKEYS);
-      return this;
-    }
-
     create() {
       this.viewport = this.document.body.getBoundingClientRect();
       this.canvas = this.document.createElement(this.defaults.tagName);
       this.gl = this.canvas.getContext(this.defaults.contextType);
       this.clearColor = this.defaults.clearColor;
       this.clearMask = this.defaults.clearMask;
+      this.listenEvents();
       this.resizeCanvas();
       this.setOperators();
       this.createProgram();
@@ -340,6 +340,17 @@ export var WebGL2 = (function() {
       return this;
     }
 
+    listenEvents() {
+      return this.addListener("gamepadconnected", (event) => {
+        return this.controller.gamepad.handle(event);
+      });
+    }
+
+    addListener(event, handler, options = {}) {
+      addEventListener(event, handler, options);
+      return this;
+    }
+
   };
 
   WebGL2.byteLength = 4 * 24;
@@ -369,6 +380,8 @@ export var WebGL2 = (function() {
   WebGL2.prototype.OFFSET_FN_CLEAR = WebGL2.malloc(Uint32Array);
 
   WebGL2.prototype.OFFSET_PROGRAM = WebGL2.malloc(Uint32Array);
+
+  WebGL2.prototype.OFFSET_CONTROLLER = WebGL2.malloc(Controller);
 
   WebGL2.prototype.defaults = {
     clearColor: [1, 1, 1, 1],
@@ -430,6 +443,11 @@ export var WebGL2 = (function() {
         return this.storeObject(this.OFFSET_PROGRAM, arguments[0]);
       }
     },
+    controller: {
+      get: function() {
+        return new Controller(this, this.OFFSET_CONTROLLER);
+      }
+    },
     viewport: {
       get: function() {
         return new Viewport(this + this.OFFSET_VIEWPORT);
@@ -477,7 +495,7 @@ export var WebGL2 = (function() {
 
 }).call(this);
 
-ByteOffset.register(WebGL2, Program, Viewport, Color4, Shader, Buffer);
+Pointer.register(WebGL2, Program, Viewport, Color4, Shader, Buffer).store(GLKEYS);
 
 export {
   Pointer as default

@@ -87,37 +87,31 @@
             shader.attach( webgl )
 
             console.log(webgl)
-            console.log(program)
-            console.log(webgl.children)
 
             
-            let r, g, b, a;
+            let r, g, b, a ;
+            let rs = 1 / 90; 
+            let gs = 1 / 50; 
+            let bs = 1 / 90;
+
             webgl.preProcesses.push(function (){
                 [ r, g, b, a ] = this.clearColor.f32;
 
-                b = (b + Math.random() / 100) % 1
+                r = (r + Math.random() * rs);
+                g = (g + Math.random() * gs);
+                b = (b + Math.random() * bs);
 
-                this.clearColor.set([ r, g, b ])
-            })
-
-            for (let ptr of webgl) {
-                console.warn(ptr);
-            }
-
-            webgl.forEach(function (child){
-                console.log(2, child)
-            })
-
-            console.error( "filter:", webgl.filter( Program, function ( ptr ) {
-                console.log(ptr)
-                return !Boolean( ptr - 672 )
-            }) )
-            console.error( webgl.find( Shader, function (ptr){ return false } ) )
-            console.error( "children:", webgl.children )
+                if (r <= 0 || r >= 1)( rs = -1 * rs ); 
+                if (g <= 0 || g >= 1)( gs = -1 * gs ); 
+                if (b <= 0 || b >= 1)( bs = -1 * bs ); 
+                
+                this.clearColor.set([ r, g, b ]);
+            });
 
             webgl.document = document;
             webgl.clearColor = [ 1,1,1 ]
 
         </script>
+        <script type="module" src="Optr.js"></script>
     </body>
 </html>

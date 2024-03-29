@@ -1,4 +1,5 @@
 import { Pointer, ByteOffset, KeyBase } from "./ptr.js"
+import { Controller } from "./ptr_ctrl.js"
 
 export GLKEYS = new KeyBase WebGL2RenderingContext
 
@@ -192,6 +193,8 @@ export class WebGL2 extends Pointer
 
     OFFSET_PROGRAM      : @malloc Uint32Array
 
+    OFFSET_CONTROLLER   : @malloc Controller
+
     defaults            :
 
         clearColor      : [ 1, 1, 1, 1 ]
@@ -225,8 +228,6 @@ export class WebGL2 extends Pointer
 
         requestAnimationFrame (e) => @render e
 
-    init                : -> Pointer.store GLKEYS ; this
-
     create              : ->
 
         @viewport   = @document.body.getBoundingClientRect()
@@ -236,6 +237,7 @@ export class WebGL2 extends Pointer
         @clearColor = @defaults.clearColor
         @clearMask  = @defaults.clearMask
 
+        @listenEvents()
         @resizeCanvas()
         @setOperators()
         @createProgram()
@@ -270,8 +272,15 @@ export class WebGL2 extends Pointer
         @storeObject @OFFSET_FN_CLEAR, clear
         @storeObject @OFFSET_FN_VIEWPORT, viewport
         @storeObject @OFFSET_FN_CLEARCOLOR, clearColor
-        
+
         this
+
+    listenEvents      : ->
+        @addListener "gamepadconnected", ( event ) =>
+            @controller.gamepad.handle event
+
+    addListener         : ( event, handler, options = {} ) ->
+        addEventListener event, handler, options ; this
 
     
     Object.defineProperties WebGL2::,
@@ -300,6 +309,9 @@ export class WebGL2 extends Pointer
             get         : -> @loadObject @OFFSET_PROGRAM
             set         : -> @storeObject @OFFSET_PROGRAM, arguments[0]
 
+        controller      :
+            get         : -> new Controller this , @OFFSET_CONTROLLER
+
         viewport        :
             get         : -> new Viewport this + @OFFSET_VIEWPORT
             set         : -> @viewport.set arguments[0]
@@ -323,10 +335,11 @@ export class WebGL2 extends Pointer
                 clearColor      : @loadObject @OFFSET_FN_CLEARCOLOR
 
 
-ByteOffset.register(
+Pointer.register(
     WebGL2, Program, Viewport,
     Color4, Shader, Buffer
 )
+.store GLKEYS
 
 export { Pointer as default }
 

@@ -38,26 +38,40 @@ Object.defineProperties Object.getPrototypeOf( Uint8Array ),
 
 export class KeyBase    extends Object
 
+    @filter     : Symbol.for "filter"
+
+    @extend     : Symbol.for "extend"
+
+    @encode     : Symbol.for "encode"
+
     defaults    :
         
         filter  : -> arguments[0]
 
         extend  : Number
+        
+        encode  : -> [ 0, ...arguments[0] ].reduce (a, b) -> a + b.charCodeAt()
 
     constructor : ( source = {}, options = {} ) ->
-        super()
+        super().configure( options ).add( source )
 
-        options = { ...@defaults, options }
+    configure   : ( options ) ->
+        for option , value of @defaults
 
-        Object.defineProperties this,
-            filter : value : options.filter
-            extend : value : options.extend
-            source : value : source
-        
-        @add source
+            symbol = @constructor[ option ]
+            value ?= @constructor.defaults[ option ]
+            
+            Object.defineProperty @, symbol, { value }
+        this
 
-    set         : ( label, value, proto = @extend ) ->
-        return unless @filter value
+    generate    : ( source = {} ) ->
+        Object.defineProperty(
+            @set( label , @[ KeyBase.encode ] key ),
+            key , value : @[ label ]
+        ) for label , key of source ; return this
+
+    set         : ( label, value, proto = @[ KeyBase.extend ] ) ->
+        return unless @[ KeyBase.filter ] value
         return if @hasOwnProperty value
 
         key = new (eval("(class #{label} extends #{proto.name} {})"))( value )
@@ -65,7 +79,9 @@ export class KeyBase    extends Object
         Object.defineProperty this, label, value : key
         Object.defineProperty this, value, value : key
 
-    add         : ( source = {}, proto = @extend ) ->
+        this
+
+    add         : ( source, proto = @[ KeyBase.Extend ] ) ->
         @set label, value for label , value of source ; this
 
 export class ByteOffset extends Number
@@ -77,6 +93,8 @@ export class ByteOffset extends Number
     @byteOffset : 0
 
     @alignBytes : 4
+
+    init            : -> this
 
     @malloc         : ( byteLength , alignBytes = 1 ) ->
 
@@ -96,6 +114,25 @@ export class ByteOffset extends Number
         @byteOffset += mod + byteLength
 
         return byteOffset
+
+    constructor         : ->
+
+        #? new allocation
+        unless arguments.length
+            super Atomics.add u32, 0, BYTES_PER_HEADER
+            
+            Atomics.add   u32, 0, byteLength = @constructor.byteLength
+            Atomics.store u32, @index4( @OFFSET_BYTELENGTH ), byteLength
+            Atomics.store u32, @index4( @OFFSET_PROTOINDEX ), @constructor.protoIndex
+
+        #? re-alocation
+        else
+            ptri = 0 ; for i in arguments then ptri += i
+
+            if !super( ptri ).instanced
+                Object.setPrototypeOf this, @loadObject @OFFSET_PROTOINDEX
+        
+        this.init arguments...
 
     @register       : ->
         for Ptr in [ arguments... ]
@@ -141,7 +178,7 @@ export class ByteOffset extends Number
 
     setUint32       : ( offset, value ) -> dvw.setUint32 @offset( offset ), value, LENDIAN ; value
 
-    keyUint32       : ( offset, keyof ) -> keyof[ v = @getUint32( offset ) ] ? v
+    keyUint32       : ( offset, keyof ) -> keyof[ @loadUint32 offset ] ? @loadUint32 offset
 
     atUint32        : ( offset )        -> u32[ @index4( offset ) ]
 
@@ -157,7 +194,7 @@ export class ByteOffset extends Number
 
     setUint16       : ( offset, value ) -> dvw.setUint16 @offset( offset ), value, LENDIAN ; value
 
-    keyUint16       : ( offset, keyof ) -> keyof[ v = @getUint16( offset ) ] ? v
+    keyUint16       : ( offset, keyof ) -> keyof[ v = @loadUint16( offset ) ] ? v
     
     atUint16        : ( offset )        -> u16[ @index2 offset ]
 
@@ -195,9 +232,13 @@ export class ByteOffset extends Number
     storeObject     : ( offset, object )    -> @storeUint32 offset , ByteOffset.store object ; this
 
     
-    loadPointer     : ( offset )            -> new Pointer ptr if ptr = @loadUint32 offset
+    loadPointer     : ( offset )            ->
+        return unless ptri = Atomics.load u32, @index4( offset )
+        return unless obji = Atomics.load u32, ( ptri + @OFFSET_PROTOINDEX ) / 4
+        new OBJECTS[  obji  ].constructor ptri
     
-    storePointer    : ( offset, ptr )       -> @storeUint32 offset , ptr
+    storePointer    : ( offset, ptr )       ->
+        @storeUint32 offset , ptr
 
 export class Pointer    extends ByteOffset
 
@@ -237,24 +278,6 @@ export class Pointer    extends ByteOffset
         Atomics.or u32, 0, OFFSET_OF_MEMORY
 
         this
-
-    init                : ->
-        this
-
-    constructor         : ->
-
-        #? new allocation
-        unless arguments.length
-            super Atomics.add u32, 0, BYTES_PER_HEADER
-            Atomics.add   u32, 0, byteLength = @constructor.byteLength
-            Atomics.store u32, @index4( @OFFSET_BYTELENGTH ), byteLength
-            Atomics.store u32, @index4( @OFFSET_PROTOINDEX ), @constructor.protoIndex
-
-            return @init()
-                
-        #? re-allocation
-        unless super( arguments[0] ).instanced
-            Object.setPrototypeOf this, @loadObject @OFFSET_PROTOINDEX
 
     add                 : ->
         arguments[0].parent = this
@@ -321,3 +344,7 @@ Object.defineProperties Pointer::,
                     return done
 
 export default Pointer.createBuffer()
+
+
+
+

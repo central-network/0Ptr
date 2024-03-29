@@ -71,25 +71,37 @@ Object.defineProperties(Object.getPrototypeOf(Uint8Array), {
 export var KeyBase = (function() {
   class KeyBase extends Object {
     constructor(source = {}, options = {}) {
-      super();
-      options = {...this.defaults, options};
-      Object.defineProperties(this, {
-        filter: {
-          value: options.filter
-        },
-        extend: {
-          value: options.extend
-        },
-        source: {
-          value: source
-        }
-      });
-      this.add(source);
+      super().configure(options).add(source);
     }
 
-    set(label, value, proto = this.extend) {
+    configure(options) {
+      var option, ref, symbol, value;
+      ref = this.defaults;
+      for (option in ref) {
+        value = ref[option];
+        symbol = this.constructor[option];
+        if (value == null) {
+          value = this.constructor.defaults[option];
+        }
+        Object.defineProperty(this, symbol, {value});
+      }
+      return this;
+    }
+
+    generate(source = {}) {
+      var key, label;
+      for (label in source) {
+        key = source[label];
+        Object.defineProperty(this.set(label, this[KeyBase.encode](key)), key, {
+          value: this[label]
+        });
+      }
+      return this;
+    }
+
+    set(label, value, proto = this[KeyBase.extend]) {
       var key;
-      if (!this.filter(value)) {
+      if (!this[KeyBase.filter](value)) {
         return;
       }
       if (this.hasOwnProperty(value)) {
@@ -99,12 +111,13 @@ export var KeyBase = (function() {
       Object.defineProperty(this, label, {
         value: key
       });
-      return Object.defineProperty(this, value, {
+      Object.defineProperty(this, value, {
         value: key
       });
+      return this;
     }
 
-    add(source = {}, proto = this.extend) {
+    add(source, proto = this[KeyBase.Extend]) {
       var label, value;
       for (label in source) {
         value = source[label];
@@ -115,11 +128,22 @@ export var KeyBase = (function() {
 
   };
 
+  KeyBase.filter = Symbol.for("filter");
+
+  KeyBase.extend = Symbol.for("extend");
+
+  KeyBase.encode = Symbol.for("encode");
+
   KeyBase.prototype.defaults = {
     filter: function() {
       return arguments[0];
     },
-    extend: Number
+    extend: Number,
+    encode: function() {
+      return [0, ...arguments[0]].reduce(function(a, b) {
+        return a + b.charCodeAt();
+      });
+    }
   };
 
   return KeyBase;
@@ -128,6 +152,10 @@ export var KeyBase = (function() {
 
 export var ByteOffset = (function() {
   class ByteOffset extends Number {
+    init() {
+      return this;
+    }
+
     static malloc(byteLength, alignBytes = 1) {
       var byteOffset, mod, perElement;
       if (byteLength.isPointer) {
@@ -145,6 +173,28 @@ export var ByteOffset = (function() {
       byteOffset = this.byteOffset + mod;
       this.byteOffset += mod + byteLength;
       return byteOffset;
+    }
+
+    constructor() {
+      var byteLength, i, j, len, ptri;
+      //? new allocation
+      if (!arguments.length) {
+        super(Atomics.add(u32, 0, BYTES_PER_HEADER));
+        Atomics.add(u32, 0, byteLength = this.constructor.byteLength);
+        Atomics.store(u32, this.index4(this.OFFSET_BYTELENGTH), byteLength);
+        Atomics.store(u32, this.index4(this.OFFSET_PROTOINDEX), this.constructor.protoIndex);
+      } else {
+        //? re-alocation
+        ptri = 0;
+        for (j = 0, len = arguments.length; j < len; j++) {
+          i = arguments[j];
+          ptri += i;
+        }
+        if (!super(ptri).instanced) {
+          Object.setPrototypeOf(this, this.loadObject(this.OFFSET_PROTOINDEX));
+        }
+      }
+      this.init(...arguments);
     }
 
     static register() {
@@ -234,8 +284,8 @@ export var ByteOffset = (function() {
     }
 
     keyUint32(offset, keyof) {
-      var ref, v;
-      return (ref = keyof[v = this.getUint32(offset)]) != null ? ref : v;
+      var ref;
+      return (ref = keyof[this.loadUint32(offset)]) != null ? ref : this.loadUint32(offset);
     }
 
     atUint32(offset) {
@@ -266,7 +316,7 @@ export var ByteOffset = (function() {
 
     keyUint16(offset, keyof) {
       var ref, v;
-      return (ref = keyof[v = this.getUint16(offset)]) != null ? ref : v;
+      return (ref = keyof[v = this.loadUint16(offset)]) != null ? ref : v;
     }
 
     atUint16(offset) {
@@ -337,10 +387,14 @@ export var ByteOffset = (function() {
     }
 
     loadPointer(offset) {
-      var ptr;
-      if (ptr = this.loadUint32(offset)) {
-        return new Pointer(ptr);
+      var obji, ptri;
+      if (!(ptri = Atomics.load(u32, this.index4(offset)))) {
+        return;
       }
+      if (!(obji = Atomics.load(u32, (ptri + this.OFFSET_PROTOINDEX) / 4))) {
+        return;
+      }
+      return new OBJECTS[obji].constructor(ptri);
     }
 
     storePointer(offset, ptr) {
@@ -400,27 +454,6 @@ export var Pointer = (function() {
       };
       Atomics.or(u32, 0, OFFSET_OF_MEMORY);
       return this;
-    }
-
-    init() {
-      return this;
-    }
-
-    constructor() {
-      var byteLength;
-      //? new allocation
-      if (!arguments.length) {
-        super(Atomics.add(u32, 0, BYTES_PER_HEADER));
-        Atomics.add(u32, 0, byteLength = this.constructor.byteLength);
-        Atomics.store(u32, this.index4(this.OFFSET_BYTELENGTH), byteLength);
-        Atomics.store(u32, this.index4(this.OFFSET_PROTOINDEX), this.constructor.protoIndex);
-        return this.init();
-      }
-      
-      //? re-allocation
-      if (!super(arguments[0]).instanced) {
-        Object.setPrototypeOf(this, this.loadObject(this.OFFSET_PROTOINDEX));
-      }
     }
 
     add() {
