@@ -1,85 +1,144 @@
 #? this is zero pointer - fastest
-u32 = new Uint32Array new SharedArrayBuffer 256
+export u32 = new Uint32Array new SharedArrayBuffer 256
+export obj = [u32]
+export class Error
+    constructor : -> console.error [ arguments... ].flat()
 
-export class Optr extends Number
+INDEX_BYTE_LENGTH   = -1
+INDEX_PROTO_CLASS   = -2
+INDEX_PARENT_PTRI   = -3
+INDEX_ATOMIC_NEXT   = -4
 
-    constructor : ->
-        unless arguments.length - 1
-            return super arguments[0]
+BYTES_PER_ELEMENT   = 4
+ITEMLENGTH_HEADER   = 4
+BYTELENGTH_HEADER   = ITEMLENGTH_HEADER * BYTES_PER_ELEMENT
+BYTEOFFSET_PARENT   = BYTES_PER_ELEMENT * INDEX_PARENT_PTRI
 
-        throw [ "OFFSET_POINTER_REQUIRES_BYTEOFFSET" ]
+Atomics.add u32 , 0 , BYTES_PER_ELEMENT * INITIAL = 6
+Atomics.add u32 , 1 , INITIAL = 6
 
-export class Color4 extends Optr
+palloc   = Atomics.add.bind Atomics, u32, 0, BYTELENGTH_HEADER
+malloc   = ->
+    ptri = ( ptr = arguments[ 0 ] ) / 4
 
+    if  byteLength = ptr.constructor.byteLength
+        
+        Atomics.add u32, 0, byteLength
+        Atomics.add u32, 1, byteLength/4
 
+        next = ptri + ITEMLENGTH_HEADER + byteLength/4
 
-POINTER_LENGTH = 4
-BYTES_PER_HEADER = Uint32Array.BYTES_PER_ELEMENT
-MALLOC_BYTELENGTH = POINTER_LENGTH * BYTES_PER_HEADER
+        Atomics.store u32, ptri + INDEX_ATOMIC_NEXT, next #write byteLength
+        Atomics.store u32, ptri + INDEX_BYTE_LENGTH, byteLength #write byteLength
+        Atomics.store u32, ptri + INDEX_PROTO_CLASS, scopei ptr.constructor #write byteLength
 
-HINDEX_MALLOCLENGTH = -4
-HINDEX_BUFFERLENGTH = -3
-HINDEX_PROTOTYPE_ID = -2
-HINDEX_PARENT_PTRID = -1
+try do scopei   = ->
+    if -1 is i = obj.indexOf arguments[0]
+        i += obj.push arguments[0]
+    ; i
 
-export class Ptri extends Number
+export default class Optr ### Õ𝓟ṭṙ ### extends Number
 
-### 
-          . . . . . . . . > [ -4 ] : @allocated bytes used by inset     
-          .
-          .   . . . . . . > [ -3 ] : @ui8Length writed on construct
-          .   .
-          .   .   . . . . > [ -2 ] : @prototype id for re-construct
-          .   .   . 
-          .   .   .   . . > [ -1 ] : @ptrParent pointer byte offset    
-          .   .   .   .
-          .   .   .   .    for you
-          .   .   .   . 3 empty slot 
-        +---+---+---+---+---+---+---+         +---+---+---+---+---+---+---+---+
-?       |   |   |   |   |   |   |   |    o    | 0   1   2     . . . . .     N | 
-        +---+---+---+---+---+---+---+    .    +---+---+---+---+---+---+---+---+
-          H   E   A   D   E   R   S      .    |                               |
-                                         .    |                               |
-                                         .    '--------- @byteLength ---------'                        
-                                         .
-                                         . . . . . . . .     
-                                                       .
-                                    .--- @byteOffset <-'
-                                    |    |                
-                    .--: negative <--'    '-------------> positive index <------.  
-                    |                                                           |
-                    |                 REAL BUFFER ALLOCATION MARK               |
-                    |                                                           |
-                    '-----------------------------------------------------------' 
+    buffer      : u32.buffer
 
-###
+    scopei      : scopei
+
+    @reserv     : ( proto, length = 1 ) ->
+
+        BYTELENGTH = length * (
+             proto . byteLength or
+             proto . BYTES_PER_ELEMENT
+        )
+
+        ALGINBYTES =
+             proto . BYTES_PER_ELEMENT or
+             Math.max proto.byteLength % 4 , 4
+        
+        if mod = @byteLength % ALGINBYTES
+            mod = ALGINBYTES - mod
+        else mod = 0
+        
+        byteOffset = @byteLength + mod
+        
+        Object.defineProperties this,
+        
+            length       :
+                value    : @length + length
+                writable : on
+            
+            byteLength   :
+                writable : on
+                value    : byteOffset + BYTELENGTH
+
+        byteOffset
 
     @byteLength : 0
 
     constructor : ->
-        unless arguments.length
 
-            super headOffset = Atomics.add u32, 0, MALLOC_BYTELENGTH
+        # new Optr()
+        if !arguments[0]
+            malloc super ptri = palloc()
 
-            # calculate for save green
-            ptr = headOffset / BYTES_PER_HEADER
+        # new Optr( offset1, offset2, ... )
+        else if argc = arguments.length
+        
+            ptri = 0
+            ptri += O while O = arguments[ --argc ]
+            super ptri
 
-            # if pointer has content
-            if  byteLength = @constructor.byteLength
-
-                # allocate data bytes for content
-                Atomics.add u32, 0, byteLength
-
-                # pointer has size --> set for re-construction
-                Atomics.store u32, HINDEX_BUFFERLENGTH + ptr, byteLength
-
-                # set prototype_id for re-construction
-                Atomics.store u32, HINDEX_PROTOTYPE_ID + ptr, @constructor.prototypeId
-
-            # pointer just is a header
-            else
+        # slient error notify
+        try new Error [
+            "OFFSET_POINTER_IS_ZERO",
+            "new #{@constructor.name}(#{[arguments...]})", ptri
+        ] unless ptri
 
 
+    index4      : ->
+        ( this + arguments[0] or 0 ) / 4
 
-console.log test0ptr = new Color4( 4 ) 
+    index2      : ->
+        ( this + arguments[0] or 0 ) / 2
 
+    offset      : ->
+        ( this + arguments[0] or 0 )
+
+    attach      : ( ptr ) -> @storeUint32 BYTEOFFSET_PARENT, ptr
+        
+    ptrParent   : ( Ptr ) -> @ptrUint32 BYTEOFFSET_PARENT, Ptr
+
+    ptrUint32   : -> new( arguments[1] or Pointer ) ( @loadUint32 arguments[0] )
+        
+    objUint32   : -> obj[ @loadUint32 arguments[0] ]
+
+
+    loadUint32  : -> Atomics.load u32, @index4( arguments[0] )
+    
+    storeUint32 : -> Atomics.store u32, @index4( arguments[0] ), arguments[1]
+
+
+definePreparedDesc = ( proto, props ) ->
+    for prop in props then Object.defineProperty(
+        proto , prop , switch prop
+            when "children" then get : ->
+
+                i           = INITIAL
+                max         = 2 + Atomics.load u32, 1
+                ptri        = this * 1
+                pclass      = no
+                children    = []
+
+                loop
+                    unless ptri - Atomics.load u32, i + INDEX_PARENT_PTRI
+                        Ptri = Atomics.load u32, i + INDEX_PROTO_CLASS
+                        if !pclass or pclass is Ptri
+                            children.push new obj[ Ptri ] i * 4
+                    break if max < i = Atomics.load u32, i + INDEX_ATOMIC_NEXT
+
+                children
+    )
+
+Object.defineProperty Optr, "definePreparedDesc", value : ->
+    definePreparedDesc @prototype, [ arguments... ].flat()
+
+self.onclick = -> console.warn obj

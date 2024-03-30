@@ -1,92 +1,197 @@
 //? this is zero pointer - fastest
-var BYTES_PER_HEADER, HINDEX_BUFFERLENGTH, HINDEX_MALLOCLENGTH, HINDEX_PARENT_PTRID, HINDEX_PROTOTYPE_ID, MALLOC_BYTELENGTH, POINTER_LENGTH, test0ptr, u32;
+var BYTELENGTH_HEADER, BYTEOFFSET_PARENT, BYTES_PER_ELEMENT, INDEX_ATOMIC_NEXT, INDEX_BYTE_LENGTH, INDEX_PARENT_PTRI, INDEX_PROTO_CLASS, INITIAL, ITEMLENGTH_HEADER, Optr/* Õ𝓟ṭṙ */, definePreparedDesc, malloc, palloc, scopei;
 
-u32 = new Uint32Array(new SharedArrayBuffer(256));
+export var u32 = new Uint32Array(new SharedArrayBuffer(256));
 
-export var Optr = class Optr extends Number {
+export var obj = [u32];
+
+export var Error = class Error {
   constructor() {
-    if (!(arguments.length - 1)) {
-      return super(arguments[0]);
-    }
-    throw ["OFFSET_POINTER_REQUIRES_BYTEOFFSET"];
+    console.error([...arguments].flat());
   }
 
 };
 
-export var Color4 = class Color4 extends Optr {};
+INDEX_BYTE_LENGTH = -1;
 
-POINTER_LENGTH = 4;
+INDEX_PROTO_CLASS = -2;
 
-BYTES_PER_HEADER = Uint32Array.BYTES_PER_ELEMENT;
+INDEX_PARENT_PTRI = -3;
 
-MALLOC_BYTELENGTH = POINTER_LENGTH * BYTES_PER_HEADER;
+INDEX_ATOMIC_NEXT = -4;
 
-HINDEX_MALLOCLENGTH = -4;
+BYTES_PER_ELEMENT = 4;
 
-HINDEX_BUFFERLENGTH = -3;
+ITEMLENGTH_HEADER = 4;
 
-HINDEX_PROTOTYPE_ID = -2;
+BYTELENGTH_HEADER = ITEMLENGTH_HEADER * BYTES_PER_ELEMENT;
 
-HINDEX_PARENT_PTRID = -1;
+BYTEOFFSET_PARENT = BYTES_PER_ELEMENT * INDEX_PARENT_PTRI;
 
-export var Ptri = (function() {
-  class Ptri extends Number {
-    constructor() {
-      var byteLength, headOffset, ptr;
-      if (!arguments.length) {
-        super(headOffset = Atomics.add(u32, 0, MALLOC_BYTELENGTH));
-        // calculate for save green
-        ptr = headOffset / BYTES_PER_HEADER;
-        // if pointer has content
-        if (byteLength = this.constructor.byteLength) {
-          // allocate data bytes for content
-          Atomics.add(u32, 0, byteLength);
-          // pointer has size --> set for re-construction
-          Atomics.store(u32, HINDEX_BUFFERLENGTH + ptr, byteLength);
-          // set prototype_id for re-construction
-          Atomics.store(u32, HINDEX_PROTOTYPE_ID + ptr, this.constructor.prototypeId);
-        } else {
+Atomics.add(u32, 0, BYTES_PER_ELEMENT * (INITIAL = 6));
 
-        }
+Atomics.add(u32, 1, INITIAL = 6);
+
+palloc = Atomics.add.bind(Atomics, u32, 0, BYTELENGTH_HEADER);
+
+malloc = function() {
+  var byteLength, next, ptr, ptri;
+  ptri = (ptr = arguments[0]) / 4;
+  if (byteLength = ptr.constructor.byteLength) {
+    Atomics.add(u32, 0, byteLength);
+    Atomics.add(u32, 1, byteLength / 4);
+    next = ptri + ITEMLENGTH_HEADER + byteLength / 4;
+    Atomics.store(u32, ptri + INDEX_ATOMIC_NEXT, next); //write byteLength
+    Atomics.store(u32, ptri + INDEX_BYTE_LENGTH, byteLength); //write byteLength
+    return Atomics.store(u32, ptri + INDEX_PROTO_CLASS, scopei(ptr.constructor)); //write byteLength
+  }
+};
+
+try {
+  (scopei = function() {
+    var i;
+    if (-1 === (i = obj.indexOf(arguments[0]))) {
+      i += obj.push(arguments[0]);
+    }
+    return i;
+  })();
+} catch (error) {}
+
+export default Optr = (function() {
+  class Optr extends Number {
+    static reserv(proto, length = 1) {
+      var ALGINBYTES, BYTELENGTH, byteOffset, mod;
+      BYTELENGTH = length * (proto.byteLength || proto.BYTES_PER_ELEMENT);
+      ALGINBYTES = proto.BYTES_PER_ELEMENT || Math.max(proto.byteLength % 4, 4);
+      if (mod = this.byteLength % ALGINBYTES) {
+        mod = ALGINBYTES - mod;
+      } else {
+        mod = 0;
       }
+      byteOffset = this.byteLength + mod;
+      Object.defineProperties(this, {
+        length: {
+          value: this.length + length,
+          writable: true
+        },
+        byteLength: {
+          writable: true,
+          value: byteOffset + BYTELENGTH
+        }
+      });
+      return byteOffset;
+    }
+
+    constructor() {
+      var O, argc, ptri;
+      if (!arguments[0]) {
+        malloc(super(ptri = palloc()));
+      // new Optr( offset1, offset2, ... )
+      } else if (argc = arguments.length) {
+        ptri = 0;
+        while (O = arguments[--argc]) {
+          ptri += O;
+        }
+        super(ptri);
+      }
+      try {
+        if (!ptri) {
+          // slient error notify
+          new Error(["OFFSET_POINTER_IS_ZERO", `new ${this.constructor.name}(${[...arguments]})`, ptri]);
+        }
+      } catch (error) {}
+    }
+
+    index4() {
+      return (this + arguments[0] || 0) / 4;
+    }
+
+    index2() {
+      return (this + arguments[0] || 0) / 2;
+    }
+
+    offset() {
+      return this + arguments[0] || 0;
+    }
+
+    attach(ptr) {
+      return this.storeUint32(BYTEOFFSET_PARENT, ptr);
+    }
+
+    ptrParent(Ptr) {
+      return this.ptrUint32(BYTEOFFSET_PARENT, Ptr);
+    }
+
+    ptrUint32() {
+      return new (arguments[1] || Pointer)(this.loadUint32(arguments[0]));
+    }
+
+    objUint32() {
+      return obj[this.loadUint32(arguments[0])];
+    }
+
+    loadUint32() {
+      return Atomics.load(u32, this.index4(arguments[0]));
+    }
+
+    storeUint32() {
+      return Atomics.store(u32, this.index4(arguments[0]), arguments[1]);
     }
 
   };
 
-  /* 
-            . . . . . . . . > [ -4 ] : @allocated bytes used by inset     
-            .
-            .   . . . . . . > [ -3 ] : @ui8Length writed on construct
-            .   .
-            .   .   . . . . > [ -2 ] : @prototype id for re-construct
-            .   .   . 
-            .   .   .   . . > [ -1 ] : @ptrParent pointer byte offset    
-            .   .   .   .
-            .   .   .   .    for you
-            .   .   .   . 3 empty slot 
-          +---+---+---+---+---+---+---+         +---+---+---+---+---+---+---+---+
-  ?       |   |   |   |   |   |   |   |    o    | 0   1   2     . . . . .     N | 
-          +---+---+---+---+---+---+---+    .    +---+---+---+---+---+---+---+---+
-            H   E   A   D   E   R   S      .    |                               |
-                                           .    |                               |
-                                           .    '--------- @byteLength ---------'                        
-                                           .
-                                           . . . . . . . .     
-                                                         .
-                                      .--- @byteOffset <-'
-                                      |    |                
-                      .--: negative <--'    '-------------> positive index <------.  
-                      |                                                           |
-                      |                 REAL BUFFER ALLOCATION MARK               |
-                      |                                                           |
-                      '-----------------------------------------------------------' 
+  Optr.prototype.buffer = u32.buffer;
 
-   */
-  Ptri.byteLength = 0;
+  Optr.prototype.scopei = scopei;
 
-  return Ptri;
+  Optr.byteLength = 0;
+
+  return Optr;
 
 }).call(this);
 
-// pointer just is a header
-console.log(test0ptr = new Color4(4));
+definePreparedDesc = function(proto, props) {
+  var j, len, prop, results;
+  results = [];
+  for (j = 0, len = props.length; j < len; j++) {
+    prop = props[j];
+    results.push(Object.defineProperty(proto, prop, (function() {
+      switch (prop) {
+        case "children":
+          return {
+            get: function() {
+              var Ptri, children, i, max, pclass, ptri;
+              i = INITIAL;
+              max = 2 + Atomics.load(u32, 1);
+              ptri = this * 1;
+              pclass = false;
+              children = [];
+              while (true) {
+                if (!(ptri - Atomics.load(u32, i + INDEX_PARENT_PTRI))) {
+                  Ptri = Atomics.load(u32, i + INDEX_PROTO_CLASS);
+                  if (!pclass || pclass === Ptri) {
+                    children.push(new obj[Ptri](i * 4));
+                  }
+                }
+                if (max < (i = Atomics.load(u32, i + INDEX_ATOMIC_NEXT))) {
+                  break;
+                }
+              }
+              return children;
+            }
+          };
+      }
+    })()));
+  }
+  return results;
+};
+
+Object.defineProperty(Optr, "definePreparedDesc", {
+  value: function() {
+    return definePreparedDesc(this.prototype, [...arguments].flat());
+  }
+});
+
+self.onclick = function() {
+  return console.warn(obj);
+};
