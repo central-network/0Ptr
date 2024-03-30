@@ -94,6 +94,10 @@ export var Display = (function() {
 
   Display.prototype.OFFSET_PROGRAM = Display.reserv(Uint32Array);
 
+  Display.filter({
+    children: Context
+  });
+
   Object.defineProperties(Display.prototype, {
     document: {
       get: function() {
@@ -104,8 +108,6 @@ export var Display = (function() {
       }
     }
   });
-
-  Display.definePreparedDesc("children");
 
   return Display;
 

@@ -35,6 +35,7 @@ export class Context        extends Optr
         @display.document.createElement "canvas"
 
     Object.defineProperties this::,
+
         display             :
             get             : -> @ptrParent Display
             set             : -> @storeUint32 @OFFSET_DOCUMENT, arguments[0]
@@ -55,6 +56,8 @@ export class Display        extends Optr
 
     OFFSET_PROGRAM          : @reserv Uint32Array
 
+    @filter children        : Context
+
     init                    : ( @document ) ->
         context = new Context()
         context . attach this
@@ -67,4 +70,5 @@ export class Display        extends Optr
             get             : -> @objUint32 @OFFSET_DOCUMENT
             set             : -> @storeUint32 @OFFSET_DOCUMENT, @scopei arguments[0]
 
-    this.definePreparedDesc "children"
+        
+

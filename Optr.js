@@ -1,5 +1,5 @@
 //? this is zero pointer - fastest
-var BYTELENGTH_HEADER, BYTEOFFSET_PARENT, BYTES_PER_ELEMENT, INDEX_ATOMIC_NEXT, INDEX_BYTE_LENGTH, INDEX_PARENT_PTRI, INDEX_PROTO_CLASS, INITIAL, ITEMLENGTH_HEADER, Optr/* Õ𝓟ṭṙ */, definePreparedDesc, malloc, palloc, scopei;
+var BYTELENGTH_HEADER, BYTEOFFSET_PARENT, BYTES_PER_ELEMENT, INDEX_ATOMIC_NEXT, INDEX_BYTE_LENGTH, INDEX_PARENT_PTRI, INDEX_PROTO_CLASS, INITIAL, ITEMLENGTH_HEADER, Optr/* Õ𝓟ṭṙ */, malloc, palloc, scopei;
 
 export var u32 = new Uint32Array(new SharedArrayBuffer(256));
 
@@ -59,6 +59,38 @@ try {
 
 export default Optr = (function() {
   class Optr extends Number {
+    static filter() {
+      var Prop, Proto, ref;
+      ref = arguments[0];
+      for (Prop in ref) {
+        Proto = ref[Prop];
+        (function(prop, pclass) {
+          return Object.defineProperty(this, prop, {
+            get: function() {
+              var Ptri, children, i, max, ptri;
+              i = INITIAL;
+              max = 2 + Atomics.load(u32, 1);
+              ptri = this * 1;
+              children = [];
+              while (true) {
+                if (!(ptri - Atomics.load(u32, i + INDEX_PARENT_PTRI))) {
+                  Ptri = Atomics.load(u32, i + INDEX_PROTO_CLASS);
+                  if (!pclass || pclass === Ptri) {
+                    children.push(new obj[Ptri](i * 4));
+                  }
+                }
+                if (max < (i = Atomics.load(u32, i + INDEX_ATOMIC_NEXT))) {
+                  break;
+                }
+              }
+              return children;
+            }
+          });
+        }).call(this.prototype, Prop, Proto === Optr ? 0 : scopei(Proto));
+      }
+      return this;
+    }
+
     static reserv(proto, length = 1) {
       var ALGINBYTES, BYTELENGTH, byteOffset, mod;
       BYTELENGTH = length * (proto.byteLength || proto.BYTES_PER_ELEMENT);
@@ -149,48 +181,6 @@ export default Optr = (function() {
   return Optr;
 
 }).call(this);
-
-definePreparedDesc = function(proto, props) {
-  var j, len, prop, results;
-  results = [];
-  for (j = 0, len = props.length; j < len; j++) {
-    prop = props[j];
-    results.push(Object.defineProperty(proto, prop, (function() {
-      switch (prop) {
-        case "children":
-          return {
-            get: function() {
-              var Ptri, children, i, max, pclass, ptri;
-              i = INITIAL;
-              max = 2 + Atomics.load(u32, 1);
-              ptri = this * 1;
-              pclass = false;
-              children = [];
-              while (true) {
-                if (!(ptri - Atomics.load(u32, i + INDEX_PARENT_PTRI))) {
-                  Ptri = Atomics.load(u32, i + INDEX_PROTO_CLASS);
-                  if (!pclass || pclass === Ptri) {
-                    children.push(new obj[Ptri](i * 4));
-                  }
-                }
-                if (max < (i = Atomics.load(u32, i + INDEX_ATOMIC_NEXT))) {
-                  break;
-                }
-              }
-              return children;
-            }
-          };
-      }
-    })()));
-  }
-  return results;
-};
-
-Object.defineProperty(Optr, "definePreparedDesc", {
-  value: function() {
-    return definePreparedDesc(this.prototype, [...arguments].flat());
-  }
-});
 
 self.onclick = function() {
   return console.warn(obj);

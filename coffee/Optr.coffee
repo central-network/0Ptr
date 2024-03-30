@@ -43,6 +43,30 @@ export default class Optr ### Õ𝓟ṭṙ ### extends Number
 
     scopei      : scopei
 
+    @filter     : ->
+
+        ( ( prop, pclass ) -> Object.defineProperty this, prop, get : ->
+            
+            i = INITIAL
+            max = 2 + Atomics.load u32, 1
+            ptri = this * 1
+            children = []
+
+            loop
+                unless ptri - Atomics.load u32, i + INDEX_PARENT_PTRI
+                    Ptri = Atomics.load u32, i + INDEX_PROTO_CLASS
+                    if !pclass or pclass is Ptri
+                        children.push new obj[ Ptri ] i * 4
+                break if max < i = Atomics.load u32, i + INDEX_ATOMIC_NEXT
+
+            children
+
+        ).call(
+            this::, Prop, if Proto is Optr then 0 else scopei Proto
+        ) for Prop, Proto of arguments[0]
+
+        this
+
     @reserv     : ( proto, length = 1 ) ->
 
         BYTELENGTH = length * (
@@ -116,29 +140,5 @@ export default class Optr ### Õ𝓟ṭṙ ### extends Number
     
     storeUint32 : -> Atomics.store u32, @index4( arguments[0] ), arguments[1]
 
-
-definePreparedDesc = ( proto, props ) ->
-    for prop in props then Object.defineProperty(
-        proto , prop , switch prop
-            when "children" then get : ->
-
-                i           = INITIAL
-                max         = 2 + Atomics.load u32, 1
-                ptri        = this * 1
-                pclass      = no
-                children    = []
-
-                loop
-                    unless ptri - Atomics.load u32, i + INDEX_PARENT_PTRI
-                        Ptri = Atomics.load u32, i + INDEX_PROTO_CLASS
-                        if !pclass or pclass is Ptri
-                            children.push new obj[ Ptri ] i * 4
-                    break if max < i = Atomics.load u32, i + INDEX_ATOMIC_NEXT
-
-                children
-    )
-
-Object.defineProperty Optr, "definePreparedDesc", value : ->
-    definePreparedDesc @prototype, [ arguments... ].flat()
 
 self.onclick = -> console.warn obj
