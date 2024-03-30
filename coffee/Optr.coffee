@@ -1,8 +1,62 @@
 #? this is zero pointer - fastest
 export u32 = new Uint32Array new SharedArrayBuffer 256
+export dvw = new DataView u32.buffer
 export obj = [u32]
+
+export class KeyBase extends Object
+
+    @filter     : Symbol.for "filter"
+
+    @extend     : Symbol.for "extend"
+
+    @encode     : Symbol.for "encode"
+
+    defaults    :
+        
+        filter  : -> arguments[0]
+
+        extend  : Number
+        
+        encode  : -> [ 0, ...arguments[0] ].reduce (a, b) -> a + b.charCodeAt()
+
+    constructor : ( source = {}, options = {} ) ->
+        super().configure( options ).add( source )
+            .scopeIndex = -1 + obj.push( this )
+
+    configure   : ( options ) ->
+        for option , value of @defaults
+
+            symbol = @constructor[ option ]
+            value ?= @constructor.defaults[ option ]
+            
+            Object.defineProperty @, symbol, { value }
+        this
+
+    @generate   : ( source = {} ) ->
+        base = new this()
+        Object.defineProperty(
+            base.set( label , base[ KeyBase.encode ] key ),
+            key , value : base[ label ]
+        ) for label , key of source ; return base
+
+    set         : ( label, value, proto = this[ KeyBase.extend ] ) ->
+        return unless @[ KeyBase.filter ] value
+        return if @hasOwnProperty value
+
+        key = new (eval("(class #{label} extends #{proto.name} {})"))( value )
+
+        Object.defineProperty this, label, value : key
+        Object.defineProperty this, value, value : key
+
+        this
+
+    add         : ( source, proto = this[ KeyBase.Extend ] ) ->
+        @set label, value for label , value of source ; this
+
 export class Error
     constructor : -> console.error [ arguments... ].flat()
+
+LENDIAN = 0x3f is new Uint8Array(Float32Array.of(1).buffer)[ 0x3 ]
 
 INDEX_BYTE_LENGTH   = -1
 INDEX_PROTO_CLASS   = -2
@@ -37,7 +91,7 @@ try do scopei   = ->
         i += obj.push arguments[0]
     ; i
 
-export default class Optr ### Õ𝓟ṭṙ ### extends Number
+export class Optr ### Õ𝓟ṭṙ ### extends Number
 
     buffer      : u32.buffer
 
@@ -139,6 +193,28 @@ export default class Optr ### Õ𝓟ṭṙ ### extends Number
     loadUint32  : -> Atomics.load u32, @index4( arguments[0] )
     
     storeUint32 : -> Atomics.store u32, @index4( arguments[0] ), arguments[1]
+
+    
+    keyUint8    : -> arguments[1][ @getUint8 arguments[0] ]
+
+    getUint8    : -> dvw.getUint8 this + arguments[0]
+
+    setUint8    : -> dvw.setUint8 this + arguments[0], arguments[1]
+
+
+    keyUint16   : -> arguments[1][ @getUint16 arguments[0] ]
+    
+    getUint16   : -> dvw.getUint16 this + arguments[0], LENDIAN
+
+    setUint16   : -> dvw.setUint16 this + arguments[0], arguments[1], LENDIAN ; arguments[1]
+
+
+    getFloat32  : -> dvw.getFloat32 this + arguments[0], LENDIAN
+
+    setFloat32  : -> dvw.setFloat32 this + arguments[0], arguments[1], LENDIAN ; arguments[1]
+
+
+export { Optr as default }
 
 
 self.onclick = -> console.warn obj

@@ -1,9 +1,94 @@
 //? this is zero pointer - fastest
-var BYTELENGTH_HEADER, BYTEOFFSET_PARENT, BYTES_PER_ELEMENT, INDEX_ATOMIC_NEXT, INDEX_BYTE_LENGTH, INDEX_PARENT_PTRI, INDEX_PROTO_CLASS, INITIAL, ITEMLENGTH_HEADER, Optr/* Õ𝓟ṭṙ */, malloc, palloc, scopei;
+var BYTELENGTH_HEADER, BYTEOFFSET_PARENT, BYTES_PER_ELEMENT, INDEX_ATOMIC_NEXT, INDEX_BYTE_LENGTH, INDEX_PARENT_PTRI, INDEX_PROTO_CLASS, INITIAL, ITEMLENGTH_HEADER, LENDIAN, malloc, palloc, scopei;
 
 export var u32 = new Uint32Array(new SharedArrayBuffer(256));
 
+export var dvw = new DataView(u32.buffer);
+
 export var obj = [u32];
+
+export var KeyBase = (function() {
+  class KeyBase extends Object {
+    constructor(source = {}, options = {}) {
+      super().configure(options).add(source).scopeIndex = -1 + obj.push(this);
+    }
+
+    configure(options) {
+      var option, ref, symbol, value;
+      ref = this.defaults;
+      for (option in ref) {
+        value = ref[option];
+        symbol = this.constructor[option];
+        if (value == null) {
+          value = this.constructor.defaults[option];
+        }
+        Object.defineProperty(this, symbol, {value});
+      }
+      return this;
+    }
+
+    static generate(source = {}) {
+      var base, key, label;
+      base = new this();
+      for (label in source) {
+        key = source[label];
+        Object.defineProperty(base.set(label, base[KeyBase.encode](key)), key, {
+          value: base[label]
+        });
+      }
+      return base;
+    }
+
+    set(label, value, proto = this[KeyBase.extend]) {
+      var key;
+      if (!this[KeyBase.filter](value)) {
+        return;
+      }
+      if (this.hasOwnProperty(value)) {
+        return;
+      }
+      key = new (eval(`(class ${label} extends ${proto.name} {})`))(value);
+      Object.defineProperty(this, label, {
+        value: key
+      });
+      Object.defineProperty(this, value, {
+        value: key
+      });
+      return this;
+    }
+
+    add(source, proto = this[KeyBase.Extend]) {
+      var label, value;
+      for (label in source) {
+        value = source[label];
+        this.set(label, value);
+      }
+      return this;
+    }
+
+  };
+
+  KeyBase.filter = Symbol.for("filter");
+
+  KeyBase.extend = Symbol.for("extend");
+
+  KeyBase.encode = Symbol.for("encode");
+
+  KeyBase.prototype.defaults = {
+    filter: function() {
+      return arguments[0];
+    },
+    extend: Number,
+    encode: function() {
+      return [0, ...arguments[0]].reduce(function(a, b) {
+        return a + b.charCodeAt();
+      });
+    }
+  };
+
+  return KeyBase;
+
+}).call(this);
 
 export var Error = class Error {
   constructor() {
@@ -11,6 +96,8 @@ export var Error = class Error {
   }
 
 };
+
+LENDIAN = 0x3f === new Uint8Array(Float32Array.of(1).buffer)[0x3];
 
 INDEX_BYTE_LENGTH = -1;
 
@@ -57,8 +144,8 @@ try {
   })();
 } catch (error) {}
 
-export default Optr = (function() {
-  class Optr extends Number {
+export var Optr = (function() {
+  class Optr/* Õ𝓟ṭṙ */ extends Number {
     static filter() {
       var Prop, Proto, ref;
       ref = arguments[0];
@@ -170,6 +257,40 @@ export default Optr = (function() {
       return Atomics.store(u32, this.index4(arguments[0]), arguments[1]);
     }
 
+    keyUint8() {
+      return arguments[1][this.getUint8(arguments[0])];
+    }
+
+    getUint8() {
+      return dvw.getUint8(this + arguments[0]);
+    }
+
+    setUint8() {
+      return dvw.setUint8(this + arguments[0], arguments[1]);
+    }
+
+    keyUint16() {
+      return arguments[1][this.getUint16(arguments[0])];
+    }
+
+    getUint16() {
+      return dvw.getUint16(this + arguments[0], LENDIAN);
+    }
+
+    setUint16() {
+      dvw.setUint16(this + arguments[0], arguments[1], LENDIAN);
+      return arguments[1];
+    }
+
+    getFloat32() {
+      return dvw.getFloat32(this + arguments[0], LENDIAN);
+    }
+
+    setFloat32() {
+      dvw.setFloat32(this + arguments[0], arguments[1], LENDIAN);
+      return arguments[1];
+    }
+
   };
 
   Optr.prototype.buffer = u32.buffer;
@@ -181,6 +302,10 @@ export default Optr = (function() {
   return Optr;
 
 }).call(this);
+
+export {
+  Optr as default
+};
 
 self.onclick = function() {
   return console.warn(obj);

@@ -73,12 +73,19 @@
     </head>
     <body>
         <script type="module">
-            import { Display } from "./ptr_gl2.js"
+            import { Display, Viewport } from "./ptr_gl2.js"
 
 
             let display = new Display();
+            let viewport = new Viewport();
             
-            display.init( document );
+            display.init( document );            
+            viewport
+                .readWindow( window )
+                .setFromBoundingRect();
+            
+            display.viewport = viewport;
+
 
             console.log(display)
             console.log(display.children)
