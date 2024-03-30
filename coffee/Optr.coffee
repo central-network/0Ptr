@@ -199,7 +199,7 @@ export class Optr ### Õ𝓟ṭṙ ### extends Number
 
     getUint8    : -> dvw.getUint8 this + arguments[0]
 
-    setUint8    : -> dvw.setUint8 this + arguments[0], arguments[1]
+    setUint8    : -> dvw.setUint8 this + arguments[0], arguments[1] ; arguments[1]
 
 
     keyUint16   : -> arguments[1][ @getUint16 arguments[0] ]

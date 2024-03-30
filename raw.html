@@ -80,16 +80,14 @@
             let viewport = new Viewport();
             
             display.init( document );            
-            viewport
-                .readWindow( window )
-                .setFromBoundingRect();
+            viewport.init( window )
+                .attach( display )
             
-            display.viewport = viewport;
-
 
             console.log(display)
             console.log(display.children)
 
+            self.viewport = viewport
 
         </script>
     </body>

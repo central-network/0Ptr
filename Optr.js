@@ -266,7 +266,8 @@ export var Optr = (function() {
     }
 
     setUint8() {
-      return dvw.setUint8(this + arguments[0], arguments[1]);
+      dvw.setUint8(this + arguments[0], arguments[1]);
+      return arguments[1];
     }
 
     keyUint16() {
