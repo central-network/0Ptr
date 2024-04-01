@@ -38,11 +38,16 @@ export class Thread extends OPtr
 
     OFFSET_IMPORTS          : @reserv Uint8Array, 4 + 256 * 20
 
-    imports                 : []
+    imports                 : [
+        { modules: [ "AtomicScope" ], metaUrl : AtomicScope.metaUrl}
+        { modules: [ "KeyBase" ], metaUrl : KeyBase.metaUrl}
+        { modules: [ "OPtr" ], metaUrl : OPtr.metaUrl}
+        { modules: [ "Thread" ], metaUrl : Thread.metaUrl}
+    ]
 
-    scriptURL               : ->
+    scriptURL               : ( onReadyFn ) ->
 
-        imports = @addImports  arguments... 
+        imports = @import()
         modules = @imports.map( (i) -> i.modules.join ",\n\t" ).join ",\n\t"
         exports = "export { #{modules.replace(/\s+|\n|\t/g, ' ')} };\n"
         
@@ -57,15 +62,15 @@ export class Thread extends OPtr
         URL.createObjectURL new Blob(
             [ 
                 "import {\n\t#{modules}\n}\nfrom '#{blobUrl}';\n\n"
-                "addEventListener( 'ready', #{ @function });\n\n"
+                "addEventListener( 'ready', #{ onReadyFn });\n\n",
             ], type : "application/javascript"
         )
 
-    addImports              : ->
-        for module in arguments
+    import                  : ->
+        for module in [ arguments... ]
 
             if  module.__proto__.metaUrl
-                @addImports module.__proto__
+                @import module.__proto__
 
             unless item = @imports.find (i) -> i.metaUrl is module.metaUrl
                 item = @imports[ @imports.length ] =
@@ -87,29 +92,24 @@ export class Thread extends OPtr
         @copyUint8 @OFFSET_DATA_ARRAY, data
         @storeUint32 @OFFSET_DATA_LENGTH, data.byteLength
 
-    init                    : ->
-        @addImports AtomicScope, KeyBase, OPtr, Thread
-        @createWorker arguments...
-
-    initDedicated           : ->
-        @isOnline = 1
-        @loadScopei @getWorkerScopei()
-        @loadScopei @getSelfScopei()
-        
-        console.log this
-
-    createWorker            : ->
+    init                    : ( handler, ptr ) ->
         @[ @kSelf ] = self
         @uuid = crypto.randomUUID()
 
-        script = @scriptURL arguments...
+        script = @scriptURL handler
         worker = this[ @kWorker ] =
             new Worker script , {
                 type : "module",
                 name : +this
             }
 
-        worker . postMessage @buffer
+        worker . postMessage { @buffer, ptri: ptr * 1 } ; @
+
+    initDedicated           : ->
+        @isOnline = 1
+        @loadScopei @getWorkerScopei()
+        @loadScopei @getSelfScopei()
+        this
 
     setWorker               : ->
         @[ @kWorker ] = arguments[0]
@@ -143,13 +143,6 @@ export class Thread extends OPtr
         self.obj[ scopei ] =
             @createProxy name , props         
 
-    #
-        #? runs on worker after setup
-        #  mark this works at ONREADY
-        #  todo now OPtr buffer settled   
-    function                : ->
-        new Thread +self.name
-            . initDedicated()
 
     old                : ->
 
@@ -256,8 +249,11 @@ if  window? and document?
     self.name = "window"
 
 else addEventListener "message", ( e ) ->
-    OPtr . setup e.data
-    dispatchEvent new CustomEvent "ready"
+    OPtr . setup e.data.buffer
+    new Thread( +self.name ).initDedicated()
+    dispatchEvent new CustomEvent "ready",
+        { detail : e.data.ptri }
+    
 , once : yes
 
 bc.onmessage = ->

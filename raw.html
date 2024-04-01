@@ -82,10 +82,16 @@
             let viewport = new Viewport();
             let thread = new Thread();
 
-            display.init( document );            
-            viewport.bind( window ).attach( display );
+            display.init( document );
 
-            thread.init( Display, Context, Viewport );
+            viewport
+                .bind( window )
+                .attach( display );
+
+            thread.import( Display, Context, Viewport )
+            thread.init(function ( e ){
+                console.warn( e.detail, new Display(e.detail) )
+            }, display);
 
             console.log(display)
             console.log(viewport)

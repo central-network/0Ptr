@@ -20,9 +20,9 @@ export var THREAD_KEYBASE = KeyBase.generate({
 
 export var Thread = (function() {
   class Thread extends OPtr {
-    scriptURL() {
+    scriptURL(onReadyFn) {
       var blobUrl, exports, imports, modules;
-      imports = this.addImports(...arguments);
+      imports = this.import();
       modules = this.imports.map(function(i) {
         return i.modules.join(",\n\t");
       }).join(",\n\t");
@@ -30,17 +30,18 @@ export var Thread = (function() {
       blobUrl = URL.createObjectURL(new Blob([imports, exports, "\nself.bc = new BroadcastChannel('OPtr');\n", `\nself.imports = {\n\t${modules}\n};\n\n`], {
         type: "application/javascript"
       }));
-      return URL.createObjectURL(new Blob([`import {\n\t${modules}\n}\nfrom '${blobUrl}';\n\n`, `addEventListener( 'ready', ${this.function});\n\n`], {
+      return URL.createObjectURL(new Blob([`import {\n\t${modules}\n}\nfrom '${blobUrl}';\n\n`, `addEventListener( 'ready', ${onReadyFn});\n\n`], {
         type: "application/javascript"
       }));
     }
 
-    addImports() {
-      var imports, item, j, k, len, len1, module, names, ref1, url;
-      for (j = 0, len = arguments.length; j < len; j++) {
-        module = arguments[j];
+    import() {
+      var imports, item, j, k, len, len1, module, names, ref1, ref2, url;
+      ref1 = [...arguments];
+      for (j = 0, len = ref1.length; j < len; j++) {
+        module = ref1[j];
         if (module.__proto__.metaUrl) {
-          this.addImports(module.__proto__);
+          this.import(module.__proto__);
         }
         if (!(item = this.imports.find(function(i) {
           return i.metaUrl === module.metaUrl;
@@ -55,9 +56,9 @@ export var Thread = (function() {
         }
       }
       imports = "";
-      ref1 = this.imports.slice();
-      for (k = 0, len1 = ref1.length; k < len1; k++) {
-        item = ref1[k];
+      ref2 = this.imports.slice();
+      for (k = 0, len1 = ref2.length; k < len1; k++) {
+        item = ref2[k];
         names = item.modules.join(', ');
         url = item.metaUrl;
         imports += `import {${names}} from '${url}';\n`;
@@ -72,28 +73,27 @@ export var Thread = (function() {
       return this.storeUint32(this.OFFSET_DATA_LENGTH, data.byteLength);
     }
 
-    init() {
-      this.addImports(AtomicScope, KeyBase, OPtr, Thread);
-      return this.createWorker(...arguments);
+    init(handler, ptr) {
+      var script, worker;
+      this[this.kSelf] = self;
+      this.uuid = crypto.randomUUID();
+      script = this.scriptURL(handler);
+      worker = this[this.kWorker] = new Worker(script, {
+        type: "module",
+        name: +this
+      });
+      worker.postMessage({
+        buffer: this.buffer,
+        ptri: ptr * 1
+      });
+      return this;
     }
 
     initDedicated() {
       this.isOnline = 1;
       this.loadScopei(this.getWorkerScopei());
       this.loadScopei(this.getSelfScopei());
-      return console.log(this);
-    }
-
-    createWorker() {
-      var script, worker;
-      this[this.kSelf] = self;
-      this.uuid = crypto.randomUUID();
-      script = this.scriptURL(...arguments);
-      worker = this[this.kWorker] = new Worker(script, {
-        type: "module",
-        name: +this
-      });
-      return worker.postMessage(this.buffer);
+      return this;
     }
 
     setWorker() {
@@ -136,14 +136,6 @@ export var Thread = (function() {
       }
       ({name, props} = this.postMessage("loadScopei", scopei));
       return self.obj[scopei] = this.createProxy(name, props);
-    }
-
-    
-    //? runs on worker after setup
-    //  mark this works at ONREADY
-    //  todo now OPtr buffer settled   
-    function() {
-      return new Thread(+self.name).initDedicated();
     }
 
     old() {
@@ -249,7 +241,24 @@ export var Thread = (function() {
 
   Thread.prototype.OFFSET_IMPORTS = Thread.reserv(Uint8Array, 4 + 256 * 20);
 
-  Thread.prototype.imports = [];
+  Thread.prototype.imports = [
+    {
+      modules: ["AtomicScope"],
+      metaUrl: AtomicScope.metaUrl
+    },
+    {
+      modules: ["KeyBase"],
+      metaUrl: KeyBase.metaUrl
+    },
+    {
+      modules: ["OPtr"],
+      metaUrl: OPtr.metaUrl
+    },
+    {
+      modules: ["Thread"],
+      metaUrl: Thread.metaUrl
+    }
+  ];
 
   Object.defineProperties(Thread.prototype, {
     [Thread.prototype.kSelf]: {
@@ -344,8 +353,11 @@ if ((typeof window !== "undefined" && window !== null) && (typeof document !== "
   self.name = "window";
 } else {
   addEventListener("message", function(e) {
-    OPtr.setup(e.data);
-    return dispatchEvent(new CustomEvent("ready"));
+    OPtr.setup(e.data.buffer);
+    new Thread(+self.name).initDedicated();
+    return dispatchEvent(new CustomEvent("ready", {
+      detail: e.data.ptri
+    }));
   }, {
     once: true
   });
