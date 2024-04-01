@@ -1,12 +1,4 @@
-var kWindow, kWorker;
-
-import {
-  requestIdleCallback
-} from "./window.js";
-
-import {
-  obj
-} from "./Optr.js";
+var bc;
 
 import {
   AtomicScope
@@ -20,9 +12,7 @@ import {
   OPtr
 } from "./0Ptr.js";
 
-kWorker = "#worker";
-
-kWindow = "#window";
+bc = new BroadcastChannel("OPtr");
 
 export var THREAD_KEYBASE = KeyBase.generate({
   LOCAL_WEBWORKER: "local-webworker"
@@ -31,20 +21,22 @@ export var THREAD_KEYBASE = KeyBase.generate({
 export var Thread = (function() {
   class Thread extends OPtr {
     scriptURL() {
-      var blobUrl, modules;
-      blobUrl = URL.createObjectURL(new Blob([this.addImports(...arguments)], {
-        type: "application/javascript"
-      }));
+      var blobUrl, exports, imports, modules;
+      imports = this.addImports(...arguments);
       modules = this.imports.map(function(i) {
         return i.modules.join(",\n\t");
       }).join(",\n\t");
-      return URL.createObjectURL(new Blob([`import * as imports\nfrom '${blobUrl}'\n\n`, `import {\n\t${modules}\n}\nfrom '${blobUrl}'\n\n`, `addEventListener('ready',${this.function});`], {
+      exports = `export { ${modules.replace(/\s+|\n|\t/g, ' ')} };\n`;
+      blobUrl = URL.createObjectURL(new Blob([imports, exports, "\nself.bc = new BroadcastChannel('OPtr');\n", `\nself.imports = {\n\t${modules}\n};\n\n`], {
+        type: "application/javascript"
+      }));
+      return URL.createObjectURL(new Blob([`import {\n\t${modules}\n}\nfrom '${blobUrl}';\n\n`, `addEventListener( 'ready', ${this.function});\n\n`], {
         type: "application/javascript"
       }));
     }
 
     addImports() {
-      var imports, item, j, k, len, len1, module, names, ref, url;
+      var imports, item, j, k, len, len1, module, names, ref1, url;
       for (j = 0, len = arguments.length; j < len; j++) {
         module = arguments[j];
         if (module.__proto__.metaUrl) {
@@ -63,14 +55,14 @@ export var Thread = (function() {
         }
       }
       imports = "";
-      ref = this.imports.slice();
-      for (k = 0, len1 = ref.length; k < len1; k++) {
-        item = ref[k];
+      ref1 = this.imports.slice();
+      for (k = 0, len1 = ref1.length; k < len1; k++) {
+        item = ref1[k];
         names = item.modules.join(', ');
         url = item.metaUrl;
-        imports += `export {${names}} from '${url}';\n`;
+        imports += `import {${names}} from '${url}';\n`;
       }
-      return imports;
+      return imports + "\n";
     }
 
     send(message) {
@@ -85,37 +77,90 @@ export var Thread = (function() {
       return this.createWorker(...arguments);
     }
 
-    createWorker() {
-      var script, worker;
-      script = this.scriptURL(...arguments);
-      worker = new Worker(script, {
-        type: "module",
-        name: this * 1
-      });
-      worker.postMessage(this.buffer);
-      this.uuid = crypto.randomUUID();
-      return this[kWorker] = worker;
+    initDedicated() {
+      this.isOnline = 1;
+      this.loadScopei(this.getWorkerScopei());
+      this.loadScopei(this.getSelfScopei());
+      return console.log(this);
     }
 
+    createWorker() {
+      var script, worker;
+      this[this.kSelf] = self;
+      this.uuid = crypto.randomUUID();
+      script = this.scriptURL(...arguments);
+      worker = this[this.kWorker] = new Worker(script, {
+        type: "module",
+        name: +this
+      });
+      return worker.postMessage(this.buffer);
+    }
+
+    setWorker() {
+      return this[this.kWorker] = arguments[0];
+    }
+
+    getWorkerScopei() {
+      return this.loadUint32(this.OFFSET_WORKER);
+    }
+
+    setSelf() {
+      return this[this.kSelf] = arguments[0];
+    }
+
+    getSelfScopei() {
+      return this.loadUint32(this.OFFSET_SELF);
+    }
+
+    postMessage(type, data) {
+      bc.postMessage({
+        type,
+        data,
+        ptri: +this
+      });
+      return this.lock().data;
+    }
+
+    createProxy(name, props = {}) {
+      var proto, ref;
+      name = `${name}`.substring(0, 64);
+      proto = new (eval(`(class ${name} {})`))();
+      ref = Object.assign(proto, props);
+      return new Proxy(ref, {});
+    }
+
+    loadScopei(scopei) {
+      var name, obji, props;
+      if (obji = self.obj[scopei]) {
+        return obji;
+      }
+      ({name, props} = this.postMessage("loadScopei", scopei));
+      return self.obj[scopei] = this.createProxy(name, props);
+    }
+
+    
     //? runs on worker after setup
     //  mark this works at ONREADY
     //  todo now OPtr buffer settled   
     function() {
-      var getObjectProp, module, scopei, setObjectProp;
-      this.ptr = new Thread(+self.name);
-      for (module in imports) {
-        scopei = this.ptr.bcast("findScopei", module);
-        if (scopei <= 0) {
-          continue;
-        } else {
-          this.ptr.scopei(imports[module], scopei);
+      return new Thread(+self.name).initDedicated();
+    }
+
+    old() {
+      var getObjectProp, ptrProtoClass, setObjectProp;
+      ptrProtoClass = function(imports, PtrClassName) {
+        var scopei;
+        bc.postMessage({
+          type: "findScopei",
+          data: PtrClassName,
+          ptri: +self.ptr
+        });
+        if (0 > (scopei = self.ptr.lock().data)) {
+          return;
         }
-      }
-      setTimeout(() => {
-        return console.warn(this.ptr.obj);
-      });
-      return console.warn(this.ptr);
-      //! test test test
+        self.ptr.scopei(imports[module], scopei);
+        return imports[module];
+      };
       getObjectProp = function(key) {
         return bc.postMessage({
           request: "getObjectProp",
@@ -176,6 +221,10 @@ export var Thread = (function() {
 
   };
 
+  Thread.prototype.kWorker = "#worker";
+
+  Thread.prototype.kSelf = "#self";
+
   Thread.metaUrl = import.meta.url;
 
   Thread.prototype.LENGTH_UUID = 36;
@@ -186,11 +235,13 @@ export var Thread = (function() {
 
   Thread.prototype.OFFSET_WORKER = Thread.reserv(Uint32Array);
 
+  Thread.prototype.OFFSET_SELF = Thread.reserv(Uint32Array);
+
   Thread.prototype.OFFSET_IS_LOCKED = Thread.reserv(Uint8Array);
 
   Thread.prototype.OFFSET_IS_ONLINE = Thread.reserv(Uint8Array);
 
-  Thread.prototype.OFFSET_IS_IDLE = Thread.reserv(Uint8Array);
+  Thread.prototype.OFFSET_IS_BUSY = Thread.reserv(Uint8Array);
 
   Thread.prototype.OFFSET_DATA_LENGTH = Thread.reserv(Uint32Array);
 
@@ -201,20 +252,20 @@ export var Thread = (function() {
   Thread.prototype.imports = [];
 
   Object.defineProperties(Thread.prototype, {
-    [kWindow]: {
+    [Thread.prototype.kSelf]: {
       get: function() {
-        return this.objUint32(this.OFFSET_WINDOW);
+        return this.objUint32(this.OFFSET_SELF);
       },
       set: function() {
-        return this.setUint32(this.OFFSET_WINDOW, this.scopei(arguments[0]));
+        return this.storeUint32(this.OFFSET_SELF, this.scopei(arguments[0]));
       }
     },
-    [kWorker]: {
+    [Thread.prototype.kWorker]: {
       get: function() {
-        return this.objUint32(this.OFFSET_WINDOW);
+        return this.objUint32(this.OFFSET_WORKER);
       },
       set: function() {
-        return this.setUint32(this.OFFSET_WINDOW, this.scopei(arguments[0]));
+        return this.storeUint32(this.OFFSET_WORKER, this.scopei(arguments[0]));
       }
     },
     isOnline: {
@@ -225,12 +276,12 @@ export var Thread = (function() {
         return this.storeUint8(this.OFFSET_IS_ONLINE, arguments[0]);
       }
     },
-    isIdle: {
+    isBusy: {
       get: function() {
-        return this.loadUint8(this.OFFSET_IS_IDLE);
+        return this.loadUint8(this.OFFSET_IS_BUSY);
       },
       set: function() {
-        return this.storeUint8(this.OFFSET_IS_IDLE, arguments[0]);
+        return this.storeUint8(this.OFFSET_IS_BUSY, arguments[0]);
       }
     },
     isLocked: {
@@ -283,4 +334,78 @@ export var Thread = (function() {
 
 export {
   Thread as default
+};
+
+if ((typeof window !== "undefined" && window !== null) && (typeof document !== "undefined" && document !== null)) {
+  OPtr.setup(new SharedArrayBuffer(1024 * 1024));
+  self.onclick = function() {
+    return console.warn(obj);
+  };
+  self.name = "window";
+} else {
+  addEventListener("message", function(e) {
+    OPtr.setup(e.data);
+    return dispatchEvent(new CustomEvent("ready"));
+  }, {
+    once: true
+  });
+}
+
+bc.onmessage = function() {
+  var data, desc, j, len, name, obji, prop, proto, ptr, ptri, ref1, scopei, type;
+  ({type, data, ptri} = arguments[0].data);
+  (ptr = new Thread(ptri));
+  switch (type) {
+    case "findScopei":
+      ref1 = obj.slice(1);
+      for (j = 0, len = ref1.length; j < len; j++) {
+        proto = ref1[j];
+        if (data === (proto != null ? proto.name : void 0)) {
+          ptr.data = obj.indexOf(proto);
+          return ptr.unlock();
+        }
+      }
+      ptr.data = -1;
+      return ptr.unlock();
+    //? delayed unlocker for not found
+    //  todo check inter proxied owners
+    case "loadScopei":
+      if (0 === ptri - self.name) {
+        return;
+      }
+      if (obj[scopei = data] == null) {
+        ptr.unlock();
+        throw ["NONONONNOONO"];
+      }
+      switch (typeof obj[scopei]) {
+        case "object":
+          obji = obj[scopei];
+          name = obji.constructor.name || obji.name;
+          data = {
+            name,
+            props: {}
+          };
+          for (prop in obji) {
+            desc = obji[prop];
+            data.props[prop] = typeof desc;
+          }
+          ptr.data = data;
+          return ptr.unlock();
+      }
+      break;
+    case "getObjectProp":
+      if (!obj[data.scopei]) {
+        return;
+      }
+      ptr.data = obj[data.scopei][data.prop];
+      return ptr.unlock();
+    case "setObjectProp":
+      if (!obj[data.scopei]) {
+        return;
+      }
+      console.warn(data.prop, data.val);
+      obj[data.scopei][data.prop] = data.val;
+      ptr.data = obj[data.scopei][data.prop];
+      return ptr.unlock();
+  }
 };

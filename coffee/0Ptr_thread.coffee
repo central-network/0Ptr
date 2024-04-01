@@ -1,17 +1,18 @@
-import { requestIdleCallback } from "./window.coffee"
-import { obj } from "./Optr.coffee"
 import { AtomicScope } from "./0Ptr_scope.js"
 import { KeyBase } from "./0Ptr_keybase.js"
 import { OPtr } from "./0Ptr.js"
 
-kWorker   = "#worker"
-kWindow   = "#window"
+bc = new BroadcastChannel "OPtr"
 
 export THREAD_KEYBASE       = KeyBase.generate {
     LOCAL_WEBWORKER         : "local-webworker"
 }
 
 export class Thread extends OPtr
+
+    kWorker                 : "#worker"
+
+    kSelf                   : "#self"
 
     @metaUrl                : `import.meta.url`
 
@@ -22,12 +23,14 @@ export class Thread extends OPtr
     OFFSET_UUID             : @reserv Uint8Array, @::LENGTH_UUID
 
     OFFSET_WORKER           : @reserv Uint32Array
+    
+    OFFSET_SELF             : @reserv Uint32Array
 
     OFFSET_IS_LOCKED        : @reserv Uint8Array
 
     OFFSET_IS_ONLINE        : @reserv Uint8Array
 
-    OFFSET_IS_IDLE          : @reserv Uint8Array
+    OFFSET_IS_BUSY          : @reserv Uint8Array
         
     OFFSET_DATA_LENGTH      : @reserv Uint32Array
     
@@ -39,20 +42,23 @@ export class Thread extends OPtr
 
     scriptURL               : ->
 
+        imports = @addImports  arguments... 
+        modules = @imports.map( (i) -> i.modules.join ",\n\t" ).join ",\n\t"
+        exports = "export { #{modules.replace(/\s+|\n|\t/g, ' ')} };\n"
+        
         blobUrl = URL.createObjectURL new Blob(
-            [ @addImports arguments...  ],
-            { type : "application/javascript" }
+            [
+                imports , exports
+                "\nself.bc = new BroadcastChannel('OPtr');\n"
+                "\nself.imports = {\n\t#{modules}\n};\n\n"
+            ], { type : "application/javascript" }
         )
-
-        modules = @imports.map (i) -> i.modules.join ",\n\t"
-            .join ",\n\t"
 
         URL.createObjectURL new Blob(
             [ 
-                "import * as imports\nfrom '#{blobUrl}'\n\n",
-                "import {\n\t#{modules}\n}\nfrom '#{blobUrl}'\n\n",
-                "addEventListener('ready',#{@function});" ],
-            { type : "application/javascript" }
+                "import {\n\t#{modules}\n}\nfrom '#{blobUrl}';\n\n"
+                "addEventListener( 'ready', #{ @function });\n\n"
+            ], type : "application/javascript"
         )
 
     addImports              : ->
@@ -72,8 +78,8 @@ export class Thread extends OPtr
         for item in @imports.slice()
             names = item.modules.join(', ')
             url = item.metaUrl
-            imports += "export {#{ names }} from '#{ url }';\n"
-        imports
+            imports += "import {#{ names }} from '#{ url }';\n"
+        imports + "\n"
     
     send                    : ( message ) ->
         data = @encodeJSON message
@@ -85,37 +91,80 @@ export class Thread extends OPtr
         @addImports AtomicScope, KeyBase, OPtr, Thread
         @createWorker arguments...
 
+    initDedicated           : ->
+        @isOnline = 1
+        @loadScopei @getWorkerScopei()
+        @loadScopei @getSelfScopei()
+        
+        console.log this
+
     createWorker            : ->
+        @[ @kSelf ] = self
+        @uuid = crypto.randomUUID()
 
         script = @scriptURL arguments...
+        worker = this[ @kWorker ] =
+            new Worker script , {
+                type : "module",
+                name : +this
+            }
 
-        worker = new Worker script , {
-            type : "module",
-            name : this * 1
-        }
+        worker . postMessage @buffer
 
-        worker.postMessage @buffer
-        @uuid = crypto.randomUUID()
-        @[ kWorker ] = worker
+    setWorker               : ->
+        @[ @kWorker ] = arguments[0]
 
-    #? runs on worker after setup
-    #  mark this works at ONREADY
-    #  todo now OPtr buffer settled   
+    getWorkerScopei         : ->
+        @loadUint32 @OFFSET_WORKER
+
+    setSelf                 : ->
+        @[ @kSelf ] = arguments[0]
+
+    getSelfScopei           : ->
+        @loadUint32 @OFFSET_SELF
+
+    postMessage             : ( type, data ) ->
+        bc.postMessage { type, data, ptri: +this }
+        return this.lock().data
+
+    createProxy             : ( name, props = {} ) ->
+        name = "#{ name }".substring 0 , 64
+        proto = new (eval("(class #{name} {})"))()
+        ref = Object.assign proto, props
+        new Proxy ref, {}
+
+    loadScopei              : ( scopei ) ->
+
+        return obji if obji = self.obj[ scopei ]
+
+        { name, props } =
+            @postMessage "loadScopei", scopei
+
+        self.obj[ scopei ] =
+            @createProxy name , props         
+
+    #
+        #? runs on worker after setup
+        #  mark this works at ONREADY
+        #  todo now OPtr buffer settled   
     function                : ->
+        new Thread +self.name
+            . initDedicated()
 
-        @ptr = new Thread +self.name
-        
-        for module of imports
-            scopei = @ptr.bcast "findScopei" , module
-            if scopei <= 0 then continue
-            else @ptr.scopei imports[ module ], scopei
+    old                : ->
 
-        setTimeout =>
-            console.warn @ptr.obj
+        ptrProtoClass = ( imports, PtrClassName ) ->
+            bc.postMessage {
+                type : "findScopei", 
+                data : PtrClassName
+                ptri : +self.ptr
+            }
 
-        return console.warn @ptr
+            return if 0 > scopei = self.ptr.lock().data
+            self.ptr.scopei imports[ module ], scopei
 
-        #! test test test
+            return imports[ module ]
+
         getObjectProp = ( key ) -> bc.postMessage {
             request : "getObjectProp"
             sender : self.name
@@ -163,22 +212,21 @@ export class Thread extends OPtr
 
     Object.defineProperties this::,
 
+        [ Thread::kSelf ]   :
+                    get     : -> @objUint32 @OFFSET_SELF
+                    set     : -> @storeUint32 @OFFSET_SELF, @scopei arguments[0]
 
-        [ kWindow ]         :
-                    get     : -> @objUint32 @OFFSET_WINDOW
-                    set     : -> @setUint32 @OFFSET_WINDOW, @scopei arguments[0]
-
-        [ kWorker ]         :
-                    get     : -> @objUint32 @OFFSET_WINDOW
-                    set     : -> @setUint32 @OFFSET_WINDOW, @scopei arguments[0]
+        [ Thread::kWorker ] :
+                    get     : -> @objUint32 @OFFSET_WORKER
+                    set     : -> @storeUint32 @OFFSET_WORKER, @scopei arguments[0]
 
         isOnline            :
                     get     : -> @loadUint8 @OFFSET_IS_ONLINE
                     set     : -> @storeUint8 @OFFSET_IS_ONLINE, arguments[0]
         
-        isIdle              :
-                    get     : -> @loadUint8 @OFFSET_IS_IDLE
-                    set     : -> @storeUint8 @OFFSET_IS_IDLE, arguments[0]
+        isBusy              :
+                    get     : -> @loadUint8 @OFFSET_IS_BUSY
+                    set     : -> @storeUint8 @OFFSET_IS_BUSY, arguments[0]
         
         isLocked            :
                     get     : -> @loadUint8 @OFFSET_IS_LOCKED
@@ -201,3 +249,65 @@ export class Thread extends OPtr
                     set     : -> @copyUint8 @OFFSET_UUID, @encodeText arguments[0]
 
 export { Thread as default }
+
+if  window? and document?
+    OPtr.setup new SharedArrayBuffer 1024 * 1024
+    self.onclick = -> console.warn obj
+    self.name = "window"
+
+else addEventListener "message", ( e ) ->
+    OPtr . setup e.data
+    dispatchEvent new CustomEvent "ready"
+, once : yes
+
+bc.onmessage = ->
+
+    { type , data , ptri } = arguments[ 0 ] . data    
+    ( ptr = new Thread ptri )
+    
+    switch type
+        
+        when "findScopei"
+            for proto in obj.slice 1
+                if  data is proto?.name 
+                    ptr.data = obj.indexOf proto
+                    return ptr.unlock()
+
+            ptr.data = -1
+            ptr.unlock()
+            #? delayed unlocker for not found
+            #  todo check inter proxied owners
+
+        when "loadScopei"
+            return if 0 is ptri - self.name
+
+            if !obj[ scopei = data ]?
+                ptr . unlock()
+                throw [ "NONONONNOONO" ]
+
+            switch typeof obj[ scopei ]
+                when "object"
+
+                    obji = obj[ scopei ]
+                    name = obji.constructor.name or obji.name
+                    data = { name , props : {} }
+
+                    for prop , desc of obji
+                        data . props[ prop ] =
+                            typeof desc
+
+                    ptr . data = data
+                    ptr . unlock()
+
+        when "getObjectProp"
+            return unless obj[ data.scopei ]
+            ptr . data = obj[ data.scopei ][ data.prop ]
+            ptr . unlock()
+                    
+        when "setObjectProp"
+            return unless obj[ data.scopei ]
+            console.warn data.prop, data.val
+            obj[ data.scopei ][ data.prop ] = data.val
+            ptr . data = obj[ data.scopei ][ data.prop ]
+            ptr . unlock()
+                    

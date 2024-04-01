@@ -1,4 +1,20 @@
 //? this is zero pointer - fastest
+var BYTELENGTH_HEADER, BYTEOFFSET_PARENT, BYTES_PER_ELEMENT, INDEX_ATOMIC_NEXT, INDEX_BYTE_LENGTH, INDEX_PARENT_PTRI, INDEX_PROTO_CLASS, INITIAL, ITEMLENGTH_HEADER, LENDIAN, dvw, f32, i32, malloc, obj, sab, scopei, textDecoder, textEncoder, u16, u32, ui8;
+
+import {
+  AtomicScope
+} from "./0Ptr_scope.js";
+
+import {
+  KeyBase
+} from "./0Ptr_keybase.js";
+
+textEncoder = new TextEncoder();
+
+textDecoder = new TextDecoder();
+
+[obj, sab, i32, u32, f32, u16, ui8, dvw, LENDIAN = 0x3f === new Uint8Array(Float32Array.of(1).buffer)[0x3], INDEX_BYTE_LENGTH = -1, INDEX_PROTO_CLASS = -2, INDEX_PARENT_PTRI = -3, INDEX_ATOMIC_NEXT = -4, BYTES_PER_ELEMENT = 4, ITEMLENGTH_HEADER = 4, BYTELENGTH_HEADER = ITEMLENGTH_HEADER * BYTES_PER_ELEMENT, BYTEOFFSET_PARENT = BYTES_PER_ELEMENT * INDEX_PARENT_PTRI, INITIAL = 8] = [[null]];
+
 /*
 unless WorkerGlobalScope? then obj = []
 else obj = new Proxy [], get : ( ref, key) ->
@@ -33,21 +49,7 @@ else obj = new Proxy [], get : ( ref, key) ->
 obj.push null, u32, i32, ui8
 self.obj = obj #! remove
 */
-var BYTELENGTH_HEADER, BYTEOFFSET_PARENT, BYTES_PER_ELEMENT, INDEX_ATOMIC_NEXT, INDEX_BYTE_LENGTH, INDEX_PARENT_PTRI, INDEX_PROTO_CLASS, INITIAL, ITEMLENGTH_HEADER, LENDIAN, bc, dvw, f32, i32, malloc, obj, sab, scopei, textDecoder, textEncoder, u16, u32, ui8;
-
-import {
-  AtomicScope
-} from "./0Ptr_scope.js";
-
-import {
-  KeyBase
-} from "./0Ptr_keybase.js";
-
-textEncoder = new TextEncoder();
-
-textDecoder = new TextDecoder();
-
-[bc, obj, sab, i32, u32, f32, u16, ui8, dvw, LENDIAN = 0x3f === new Uint8Array(Float32Array.of(1).buffer)[0x3], INDEX_BYTE_LENGTH = -1, INDEX_PROTO_CLASS = -2, INDEX_PARENT_PTRI = -3, INDEX_ATOMIC_NEXT = -4, BYTES_PER_ELEMENT = 4, ITEMLENGTH_HEADER = 4, BYTELENGTH_HEADER = ITEMLENGTH_HEADER * BYTES_PER_ELEMENT, BYTEOFFSET_PARENT = BYTES_PER_ELEMENT * INDEX_PARENT_PTRI, INITIAL = 8] = [new BroadcastChannel("0ptr"), [null]];
+self.obj = obj;
 
 malloc = function() {
   var byteLength, mod, next, ptr, ptri;
@@ -66,14 +68,9 @@ malloc = function() {
 };
 
 scopei = function() {
-  var i, object;
-  try {
-    [object, i = 0] = arguments;
-  } catch (error) {}
-  if (i) {
-    if (obj[i * 1] = object) {
-      return i;
-    }
+  var i;
+  if (arguments.length === 2) {
+    obj[arguments[1]] = arguments[0];
   }
   if (-1 === (i = obj.indexOf(arguments[0]))) {
     i += obj.push(arguments[0]);
@@ -198,15 +195,6 @@ export var OPtr = (function() {
 
     ptrParent(Ptr) {
       return this.ptrUint32(BYTEOFFSET_PARENT, Ptr);
-    }
-
-    bcast(type, data) {
-      bc.postMessage({
-        data,
-        type,
-        ptri: +this
-      });
-      return this.lock().data;
     }
 
     lock() {
@@ -350,8 +338,6 @@ export var OPtr = (function() {
 
   OPtr.prototype.scopei = scopei;
 
-  OPtr.prototype.obj = obj;
-
   OPtr.byteLength = 0;
 
   return OPtr;
@@ -360,79 +346,4 @@ export var OPtr = (function() {
 
 export {
   OPtr as default
-};
-
-if ((typeof window !== "undefined" && window !== null) && (typeof document !== "undefined" && document !== null)) {
-  OPtr.setup(new SharedArrayBuffer(1024 * 1024));
-  self.onclick = function() {
-    return console.warn(obj);
-  };
-  self.name = "window";
-} else {
-  addEventListener("message", function(e) {
-    OPtr.setup(e.data);
-    return dispatchEvent(new CustomEvent("ready", {
-      detail: self
-    }));
-  }, {
-    once: true
-  });
-  null;
-}
-
-bc.onmessage = function() {
-  var data, desc, j, len, name, obji, prop, proto, ptri, ref, thread, type;
-  (bc.Thread != null ? bc.Thread : bc.Thread = obj.find(function(o) {
-    return (o != null ? o.name : void 0) === "Thread";
-  }));
-  ({type, data, ptri} = arguments[0].data);
-  (thread = new bc.Thread(ptri));
-  switch (type) {
-    case "findScopei":
-      ref = obj.slice(1);
-      for (j = 0, len = ref.length; j < len; j++) {
-        proto = ref[j];
-        if (data === (proto != null ? proto.name : void 0)) {
-          thread.data = obj.indexOf(proto);
-          return thread.unlock();
-        }
-      }
-      thread.data = -1;
-      return thread.unlock();
-    case "loadObject":
-      if (!obj[data.scopei]) {
-        ptr.unlock();
-        throw ["nonononono"];
-      }
-      switch (typeof obj[data.scopei]) {
-        case "object":
-          obji = obj[data.scopei];
-          name = obji.name || obji.constructor.name;
-          data = {
-            name,
-            prop: {}
-          };
-          for (prop in obji) {
-            desc = obji[prop];
-            data.prop[prop] = typeof desc;
-          }
-          ptr.data = data;
-          return ptr.unlock();
-      }
-      break;
-    case "getObjectProp":
-      if (!obj[data.scopei]) {
-        return;
-      }
-      ptr.data = obj[data.scopei][data.prop];
-      return ptr.unlock();
-    case "setObjectProp":
-      if (!obj[data.scopei]) {
-        return;
-      }
-      console.warn(data.prop, data.val);
-      obj[data.scopei][data.prop] = data.val;
-      ptr.data = obj[data.scopei][data.prop];
-      return ptr.unlock();
-  }
 };

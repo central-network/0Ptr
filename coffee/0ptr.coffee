@@ -5,7 +5,7 @@ import { KeyBase } from "./0Ptr_keybase.js"
 textEncoder     = new TextEncoder()
 textDecoder     = new TextDecoder()
 
-[ bc, obj, sab, i32, u32, f32, u16, ui8, dvw ,
+[  obj, sab, i32, u32, f32, u16, ui8, dvw ,
 
     LENDIAN             = 0x3f is new Uint8Array(Float32Array.of(1).buffer)[ 0x3 ]
 
@@ -19,7 +19,7 @@ textDecoder     = new TextDecoder()
     BYTELENGTH_HEADER   = ITEMLENGTH_HEADER * BYTES_PER_ELEMENT
     BYTEOFFSET_PARENT   = BYTES_PER_ELEMENT * INDEX_PARENT_PTRI
 
-    INITIAL = 8 ] = [ new BroadcastChannel("0ptr"), [ null ] ]
+    INITIAL = 8 ] = [ [ null ] ]
 
 ###
 unless WorkerGlobalScope? then obj = []
@@ -56,6 +56,8 @@ obj.push null, u32, i32, ui8
 self.obj = obj #! remove
 ###
 
+self.obj = obj
+
 malloc   = ->
     ptri = ( ptr = arguments[ 0 ] ) / 4
 
@@ -74,10 +76,13 @@ malloc   = ->
         Atomics.store u32, ptri + INDEX_PROTO_CLASS, scopei ptr.constructor #write byteLength
 
 scopei   = ->
-    try [ object, i = 0 ] = arguments
-    return i if obj[ i * 1 ] = object if i
+        
+    if  arguments.length is 2
+        obj[arguments[1]] = arguments[0]
+        
     if -1 is i = obj.indexOf arguments[0]
         i += obj.push arguments[0]
+
     ; i
 
 export class    OPtr extends Number
@@ -85,8 +90,6 @@ export class    OPtr extends Number
     @metaUrl    : `import.meta.url`
 
     scopei      : scopei
-
-    obj         : obj
 
     @setup      : ->
         sab = arguments[0]
@@ -197,10 +200,6 @@ export class    OPtr extends Number
 
     ptrParent   : ( Ptr ) -> @ptrUint32 BYTEOFFSET_PARENT, Ptr
 
-    bcast       : ( type, data ) ->
-        bc.postMessage { data, type, ptri: +this }
-        @lock().data
-
     lock        : -> Atomics.wait i32, @index4( arguments[0] ) ; this
 
     unlock      : -> Atomics.notify i32, @index4( arguments[0] ), arguments[1] or 1 ; this
@@ -272,59 +271,3 @@ export class    OPtr extends Number
     
 export { OPtr as default }
 
-if  window? and document?
-    OPtr.setup new SharedArrayBuffer 1024 * 1024
-    self.onclick = -> console.warn obj
-    self.name = "window"
-
-else addEventListener "message", ( e ) ->
-    OPtr.setup e.data
-    dispatchEvent new CustomEvent "ready", { detail: self }
-, once : yes ; null
-
-bc.onmessage = ->
-
-    ( bc.Thread ?= obj.find (o) -> o?.name is "Thread" )
-    { type , data , ptri } = arguments[ 0 ] . data    
-    ( thread = new bc.Thread ptri )
-    
-    switch type
-        when "findScopei"
-            for proto in obj.slice 1
-                if  data is proto?.name 
-                    thread.data = obj.indexOf proto
-                    return thread.unlock()
-            thread.data = -1
-            thread.unlock()
-
-        when "loadObject"
-            unless obj[ data.scopei ]
-                ptr . unlock()
-                return throw ["nonononono"]
-
-            switch typeof obj[ data.scopei ]
-                when "object"
-
-                    obji = obj[ data.scopei ]
-                    name = obji.name or obji.constructor.name
-                    data = { name , prop : {} }
-
-                    for prop , desc of obji
-                        data . prop[ prop ] =
-                            typeof desc
-
-                    ptr . data = data
-                    ptr . unlock()
-
-        when "getObjectProp"
-            return unless obj[ data.scopei ]
-            ptr . data = obj[ data.scopei ][ data.prop ]
-            ptr . unlock()
-                    
-        when "setObjectProp"
-            return unless obj[ data.scopei ]
-            console.warn data.prop, data.val
-            obj[ data.scopei ][ data.prop ] = data.val
-            ptr . data = obj[ data.scopei ][ data.prop ]
-            ptr . unlock()
-                    
