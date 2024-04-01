@@ -67,9 +67,11 @@ malloc = function() {
 
 scopei = function() {
   var i, object;
-  [object, i = 0] = arguments;
+  try {
+    [object, i = 0] = arguments;
+  } catch (error) {}
   if (i) {
-    if (obj[i] = object) {
+    if (obj[i * 1] = object) {
       return i;
     }
   }
@@ -196,6 +198,15 @@ export var OPtr = (function() {
 
     ptrParent(Ptr) {
       return this.ptrUint32(BYTEOFFSET_PARENT, Ptr);
+    }
+
+    bcast(type, data) {
+      bc.postMessage({
+        data,
+        type,
+        ptri: +this
+      });
+      return this.lock().data;
     }
 
     lock() {
@@ -357,8 +368,6 @@ if ((typeof window !== "undefined" && window !== null) && (typeof document !== "
     return console.warn(obj);
   };
   self.name = "window";
-  document.title = "my";
-  document.num = 2;
 } else {
   addEventListener("message", function(e) {
     OPtr.setup(e.data);
@@ -371,14 +380,25 @@ if ((typeof window !== "undefined" && window !== null) && (typeof document !== "
   null;
 }
 
-bc.onmessage = function(e) {
-  var data, desc, name, obji, prop, ptr, request, sender, thread;
-  if (self.name !== e.data.receiver) {
-    return;
-  }
-  ({request, sender, thread, data} = e.data);
-  ptr = new obj[3](thread);
-  switch (request) {
+bc.onmessage = function() {
+  var data, desc, j, len, name, obji, prop, proto, ptri, ref, thread, type;
+  (bc.Thread != null ? bc.Thread : bc.Thread = obj.find(function(o) {
+    return (o != null ? o.name : void 0) === "Thread";
+  }));
+  ({type, data, ptri} = arguments[0].data);
+  (thread = new bc.Thread(ptri));
+  switch (type) {
+    case "findScopei":
+      ref = obj.slice(1);
+      for (j = 0, len = ref.length; j < len; j++) {
+        proto = ref[j];
+        if (data === (proto != null ? proto.name : void 0)) {
+          thread.data = obj.indexOf(proto);
+          return thread.unlock();
+        }
+      }
+      thread.data = -1;
+      return thread.unlock();
     case "loadObject":
       if (!obj[data.scopei]) {
         ptr.unlock();

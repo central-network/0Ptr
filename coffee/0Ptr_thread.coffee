@@ -1,3 +1,5 @@
+import { requestIdleCallback } from "./window.coffee"
+import { obj } from "./Optr.coffee"
 import { AtomicScope } from "./0Ptr_scope.js"
 import { KeyBase } from "./0Ptr_keybase.js"
 import { OPtr } from "./0Ptr.js"
@@ -37,10 +39,19 @@ export class Thread extends OPtr
 
     scriptURL               : ->
 
-        imports = @addImports arguments...
+        blobUrl = URL.createObjectURL new Blob(
+            [ @addImports arguments...  ],
+            { type : "application/javascript" }
+        )
+
+        modules = @imports.map (i) -> i.modules.join ",\n\t"
+            .join ",\n\t"
 
         URL.createObjectURL new Blob(
-            [ imports, "addEventListener('ready',#{@function});" ],
+            [ 
+                "import * as imports\nfrom '#{blobUrl}'\n\n",
+                "import {\n\t#{modules}\n}\nfrom '#{blobUrl}'\n\n",
+                "addEventListener('ready',#{@function});" ],
             { type : "application/javascript" }
         )
 
@@ -52,16 +63,17 @@ export class Thread extends OPtr
 
             unless item = @imports.find (i) -> i.metaUrl is module.metaUrl
                 item = @imports[ @imports.length ] =
-                    metaUrl : module.metaUrl
-                    modules : new Array()
+                    metaUrl : module.metaUrl, modules : []
             
             unless item.modules.includes module.name
                 item.modules.push module.name
 
-        @imports.map ( item ) ->
-            "import { #{item.modules.join(', ')} }
-             from '#{   item.metaUrl }';".trim()
-        .join( "\n" ) + "\n\n"
+        imports = ""
+        for item in @imports.slice()
+            names = item.modules.join(', ')
+            url = item.metaUrl
+            imports += "export {#{ names }} from '#{ url }';\n"
+        imports
     
     send                    : ( message ) ->
         data = @encodeJSON message
@@ -71,7 +83,7 @@ export class Thread extends OPtr
 
     init                    : ->
         @addImports AtomicScope, KeyBase, OPtr, Thread
-        @[ kWorker ] or= @createWorker arguments...
+        @createWorker arguments...
 
     createWorker            : ->
 
@@ -79,34 +91,31 @@ export class Thread extends OPtr
 
         worker = new Worker script , {
             type : "module",
-            name : @uuid = crypto.randomUUID()
+            name : this * 1
         }
 
+        worker.postMessage @buffer
+        @uuid = crypto.randomUUID()
+        @[ kWorker ] = worker
 
-
-        worker.postMessage @buffer ; worker
-
-    #? runs on worker
+    #? runs on worker after setup
+    #  mark this works at ONREADY
+    #  todo now OPtr buffer settled   
     function                : ->
+
+        @ptr = new Thread +self.name
+        
+        for module of imports
+            scopei = @ptr.bcast "findScopei" , module
+            if scopei <= 0 then continue
+            else @ptr.scopei imports[ module ], scopei
+
+        setTimeout =>
+            console.warn @ptr.obj
+
+        return console.warn @ptr
+
         #! test test test
-
-        bc = new BroadcastChannel("0ptr")
-
-        console.log ptr = new Thread 224
-
-        bc.postMessage {
-            request : "loadObject"
-            sender : self.name
-            receiver : "window"
-            thread : 224
-            data : { scopei : 4 }
-        }
-
-        ptr.lock()
-
-        { name, prop } = ptr.data
-        console.warn "obj[4]", { name, prop }
-
         getObjectProp = ( key ) -> bc.postMessage {
             request : "getObjectProp"
             sender : self.name
@@ -150,15 +159,6 @@ export class Thread extends OPtr
                     when "number", "string"
                         setObjectProp key, val
                         return ptr.lock().data
-
-        o = OPtr::obj[4]
-        console.warn "o.title :", o.title
-        console.warn "o.num :", o.num
-        o.num = 8
-        console.warn "o.num :", o.num
-        console.warn "o.title :", o.title = "özgür"
-        console.warn "o.title :", o.title
-        console.warn "o.readyState :", o.readyState
 
 
     Object.defineProperties this::,

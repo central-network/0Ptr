@@ -1,6 +1,14 @@
 var kWindow, kWorker;
 
 import {
+  requestIdleCallback
+} from "./window.js";
+
+import {
+  obj
+} from "./Optr.js";
+
+import {
   AtomicScope
 } from "./0Ptr_scope.js";
 
@@ -23,15 +31,20 @@ export var THREAD_KEYBASE = KeyBase.generate({
 export var Thread = (function() {
   class Thread extends OPtr {
     scriptURL() {
-      var imports;
-      imports = this.addImports(...arguments);
-      return URL.createObjectURL(new Blob([imports, `addEventListener('ready',${this.function});`], {
+      var blobUrl, modules;
+      blobUrl = URL.createObjectURL(new Blob([this.addImports(...arguments)], {
+        type: "application/javascript"
+      }));
+      modules = this.imports.map(function(i) {
+        return i.modules.join(",\n\t");
+      }).join(",\n\t");
+      return URL.createObjectURL(new Blob([`import * as imports\nfrom '${blobUrl}'\n\n`, `import {\n\t${modules}\n}\nfrom '${blobUrl}'\n\n`, `addEventListener('ready',${this.function});`], {
         type: "application/javascript"
       }));
     }
 
     addImports() {
-      var item, j, len, module;
+      var imports, item, j, k, len, len1, module, names, ref, url;
       for (j = 0, len = arguments.length; j < len; j++) {
         module = arguments[j];
         if (module.__proto__.metaUrl) {
@@ -42,16 +55,22 @@ export var Thread = (function() {
         }))) {
           item = this.imports[this.imports.length] = {
             metaUrl: module.metaUrl,
-            modules: new Array()
+            modules: []
           };
         }
         if (!item.modules.includes(module.name)) {
           item.modules.push(module.name);
         }
       }
-      return this.imports.map(function(item) {
-        return `import { ${item.modules.join(', ')} } from '${item.metaUrl}';`.trim();
-      }).join("\n") + "\n\n";
+      imports = "";
+      ref = this.imports.slice();
+      for (k = 0, len1 = ref.length; k < len1; k++) {
+        item = ref[k];
+        names = item.modules.join(', ');
+        url = item.metaUrl;
+        imports += `export {${names}} from '${url}';\n`;
+      }
+      return imports;
     }
 
     send(message) {
@@ -63,7 +82,7 @@ export var Thread = (function() {
 
     init() {
       this.addImports(AtomicScope, KeyBase, OPtr, Thread);
-      return this[kWorker] || (this[kWorker] = this.createWorker(...arguments));
+      return this.createWorker(...arguments);
     }
 
     createWorker() {
@@ -71,30 +90,32 @@ export var Thread = (function() {
       script = this.scriptURL(...arguments);
       worker = new Worker(script, {
         type: "module",
-        name: this.uuid = crypto.randomUUID()
+        name: this * 1
       });
       worker.postMessage(this.buffer);
-      return worker;
+      this.uuid = crypto.randomUUID();
+      return this[kWorker] = worker;
     }
 
-    //? runs on worker
+    //? runs on worker after setup
+    //  mark this works at ONREADY
+    //  todo now OPtr buffer settled   
     function() {
-      var bc, getObjectProp, name, o, prop, ptr, setObjectProp;
-      //! test test test
-      bc = new BroadcastChannel("0ptr");
-      console.log(ptr = new Thread(224));
-      bc.postMessage({
-        request: "loadObject",
-        sender: self.name,
-        receiver: "window",
-        thread: 224,
-        data: {
-          scopei: 4
+      var getObjectProp, module, scopei, setObjectProp;
+      this.ptr = new Thread(+self.name);
+      for (module in imports) {
+        scopei = this.ptr.bcast("findScopei", module);
+        if (scopei <= 0) {
+          continue;
+        } else {
+          this.ptr.scopei(imports[module], scopei);
         }
+      }
+      setTimeout(() => {
+        return console.warn(this.ptr.obj);
       });
-      ptr.lock();
-      ({name, prop} = ptr.data);
-      console.warn("obj[4]", {name, prop});
+      return console.warn(this.ptr);
+      //! test test test
       getObjectProp = function(key) {
         return bc.postMessage({
           request: "getObjectProp",
@@ -120,7 +141,7 @@ export var Thread = (function() {
           }
         });
       };
-      OPtr.prototype.obj[4] = new Proxy(eval(`new class ${name} {}`), {
+      return OPtr.prototype.obj[4] = new Proxy(eval(`new class ${name} {}`), {
         get: function() {
           var key, type;
           if (!(type = prop[key = arguments[1]])) {
@@ -151,14 +172,6 @@ export var Thread = (function() {
           }
         }
       });
-      o = OPtr.prototype.obj[4];
-      console.warn("o.title :", o.title);
-      console.warn("o.num :", o.num);
-      o.num = 8;
-      console.warn("o.num :", o.num);
-      console.warn("o.title :", o.title = "özgür");
-      console.warn("o.title :", o.title);
-      return console.warn("o.readyState :", o.readyState);
     }
 
   };

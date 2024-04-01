@@ -74,10 +74,8 @@ malloc   = ->
         Atomics.store u32, ptri + INDEX_PROTO_CLASS, scopei ptr.constructor #write byteLength
 
 scopei   = ->
-    [ object, i = 0 ] = arguments
-
-    return i if obj[ i ] = object if i
-
+    try [ object, i = 0 ] = arguments
+    return i if obj[ i * 1 ] = object if i
     if -1 is i = obj.indexOf arguments[0]
         i += obj.push arguments[0]
     ; i
@@ -199,6 +197,10 @@ export class    OPtr extends Number
 
     ptrParent   : ( Ptr ) -> @ptrUint32 BYTEOFFSET_PARENT, Ptr
 
+    bcast       : ( type, data ) ->
+        bc.postMessage { data, type, ptri: +this }
+        @lock().data
+
     lock        : -> Atomics.wait i32, @index4( arguments[0] ) ; this
 
     unlock      : -> Atomics.notify i32, @index4( arguments[0] ), arguments[1] or 1 ; this
@@ -274,21 +276,27 @@ if  window? and document?
     OPtr.setup new SharedArrayBuffer 1024 * 1024
     self.onclick = -> console.warn obj
     self.name = "window"
-    document.title = "my"
-    document.num = 2
 
 else addEventListener "message", ( e ) ->
     OPtr.setup e.data
     dispatchEvent new CustomEvent "ready", { detail: self }
 , once : yes ; null
 
-bc.onmessage = (e) ->
-    return unless self.name is e.data.receiver
-    { request, sender, thread, data } = e.data
+bc.onmessage = ->
 
-    ptr = new obj[3] thread
+    ( bc.Thread ?= obj.find (o) -> o?.name is "Thread" )
+    { type , data , ptri } = arguments[ 0 ] . data    
+    ( thread = new bc.Thread ptri )
     
-    switch request
+    switch type
+        when "findScopei"
+            for proto in obj.slice 1
+                if  data is proto?.name 
+                    thread.data = obj.indexOf proto
+                    return thread.unlock()
+            thread.data = -1
+            thread.unlock()
+
         when "loadObject"
             unless obj[ data.scopei ]
                 ptr . unlock()
@@ -307,7 +315,6 @@ bc.onmessage = (e) ->
 
                     ptr . data = data
                     ptr . unlock()
-
 
         when "getObjectProp"
             return unless obj[ data.scopei ]
