@@ -1,7 +1,24 @@
+var kBody, kDocument, kScreen, kWindow;
+
 import {
-  OPtr,
+  AtomicScope
+} from "./0Ptr_scope.js";
+
+import {
   KeyBase
-} from "./OPtr.js";
+} from "./0Ptr_keybase.js";
+
+import {
+  OPtr
+} from "./0Ptr.js";
+
+kScreen = "#screen";
+
+kWindow = "#window";
+
+kDocument = "$document";
+
+kBody = "$body";
 
 export var VIEWPORT_KEYBASE = KeyBase.generate({
   LANDSCAPE_PRIMARY: "landscape-primary",
@@ -17,54 +34,64 @@ export var VIEWPORT_KEYBASE = KeyBase.generate({
 export var Viewport = (function() {
   class Viewport extends OPtr {
     bind(window) {
-      this.window = window;
-      this.init();
+      this[kWindow] = window;
+      this.init().bindWindowEvents();
       return this;
     }
 
     init() {
-      var $bodyRect, source;
-      source = this.window;
-      this.angle = source.screen.orientation.angle;
-      this.orientation = source.screen.orientation.type;
-      this.isExtended = source.screen.isExtended;
-      this.isFullscreen = source.document.fullscreenElement;
-      this.pixelDepth = source.screen.pixelDepth;
-      this.pixelRatio = source.devicePixelRatio || 1;
-      this.innerWidth = source.innerWidth;
-      this.innerHeight = source.innerHeight;
-      this.outerWidth = source.outerWidth;
-      this.outerHeight = source.outerHeight;
-      this.screenWidth = source.screen.width;
-      this.screenHeight = source.screen.height;
-      this.availWidth = source.screen.availWidth;
-      this.availHeight = source.screen.availHeight;
-      this.clientLeft = source.document.body.clientLeft;
-      this.clientTop = source.document.body.clientTop;
-      this.clientWidth = source.document.body.clientWidth;
-      this.clientHeight = source.document.body.clientHeight;
-      this.scrollLeft = source.document.body.scrollLeft;
-      this.scrollTop = source.document.body.scrollTop;
-      this.scrollWidth = source.document.body.scrollWidth;
-      this.scrollHeight = source.document.body.scrollHeight;
-      $bodyRect = source.document.body.getBoundingClientRect();
+      var $bodyRect;
+      this.angle = this[kScreen].orientation.angle;
+      this.orientation = this[kScreen].orientation.type;
+      this.isExtended = this[kScreen].isExtended;
+      this.pixelDepth = this[kScreen].pixelDepth;
+      this.pixelRatio = this[kWindow].devicePixelRatio || 1;
+      this.innerWidth = this[kWindow].innerWidth;
+      this.innerHeight = this[kWindow].innerHeight;
+      this.outerWidth = this[kWindow].outerWidth;
+      this.outerHeight = this[kWindow].outerHeight;
+      this.screenLeft = this[kWindow].screenLeft;
+      this.screenTop = this[kWindow].screenTop;
+      this.screenWidth = this[kScreen].width;
+      this.screenHeight = this[kScreen].height;
+      this.availWidth = this[kScreen].availWidth;
+      this.availHeight = this[kScreen].availHeight;
+      this.clientLeft = this[kBody].clientLeft;
+      this.clientTop = this[kBody].clientTop;
+      this.clientWidth = this[kBody].clientWidth;
+      this.clientHeight = this[kBody].clientHeight;
+      this.scrollLeft = this[kBody].scrollLeft;
+      this.scrollTop = this[kBody].scrollTop;
+      this.scrollWidth = this[kBody].scrollWidth;
+      this.scrollHeight = this[kBody].scrollHeight;
+      $bodyRect = this[kBody].getBoundingClientRect();
       this.bodyLeft = $bodyRect.left;
       this.bodyTop = $bodyRect.top;
       this.bodyRight = $bodyRect.right;
       this.bodyBottom = $bodyRect.bottom;
       this.bodyWidth = $bodyRect.width;
       this.bodyHeight = $bodyRect.height;
-      console.log("vport init");
-      return this.setFromBody().listenWindowEvents();
+      this.isFullscreen = this.checkFullscreen();
+      this.setFromBody();
+      return this;
     }
 
-    listenWindowEvents() {
-      var timeoutId;
+    bindWindowEvents() {
+      var callback, timeouts;
       if (!this.isListening && (this.isListening = 1)) {
-        timeoutId = 0;
-        this.window.addEventListener("resize", () => {
-          return clearTimeout(timeoutId) || (timeoutId = setTimeout(this.init.bind(this), 100));
-        });
+        timeouts = [];
+        callback = function() {
+          var i, j, len, ref;
+          ref = timeouts.slice();
+          for (i = 0, len = ref.length; i < len; i++) {
+            j = ref[i];
+            clearTimeout(j, timeouts.splice(j, 1));
+          }
+          return timeouts[timeouts.length] = setTimeout(this.init.bind(this), 1000);
+        };
+        this[kWindow].addEventListener("resize", callback.bind(this));
+        this[kDocument].addEventListener("fullscreenerror", callback.bind(this));
+        this[kDocument].addEventListener("fullscreenchange", callback.bind(this));
       }
       return this;
     }
@@ -114,8 +141,8 @@ export var Viewport = (function() {
     }
 
     setFromScreen() {
-      this.left = 0;
-      this.top = 0;
+      this.left = this.screenLeft;
+      this.top = this.screenTop;
       this.right = 0;
       this.bottom = 0;
       this.width = this.screenWidth;
@@ -140,7 +167,7 @@ export var Viewport = (function() {
       this.top = this.scrollTop;
       this.right = 0;
       this.bottom = 0;
-      this.width = this.screenWidth;
+      this.width = this.scrollWidth;
       this.height = this.scrollHeight;
       this.type = VIEWPORT_KEYBASE.SCROLL_VIEWPORT;
       return this.updateRatioValues();
@@ -154,27 +181,62 @@ export var Viewport = (function() {
       return this;
     }
 
-    requestFullscreen() {
-      return this.window.document.documentElement.requestFullscreen();
+    async requestFullscreen() {
+      try {
+        return (await this[kDocument].documentElement.requestFullscreen());
+      } catch (error) {}
     }
 
-    exitFullscreen() {
-      return this.window.document.exitFullscreen();
+    async exitFullscreen() {
+      try {
+        return (await this[kDocument].exitFullscreen());
+      } catch (error) {}
     }
 
-    hasFullscreenElement() {
-      return this.window.document.fullscreenElement && 1 || 0;
+    checkFullscreen() {
+      if (this.fullscreenElement) {
+        return 1;
+      }
+      if (0 < this.innerHeight && this.outerHeight > 0) {
+        if (this.innerHeight === this.outerHeight) {
+          return 1;
+        }
+      }
+      return 0;
+    }
+
+    async toggleFullscreen() {
+      var $targetMode, ref;
+      this.isUpdating = 1;
+      $targetMode = (ref = arguments[0]) != null ? ref : !this.checkFullscreen();
+      if (!$targetMode) {
+        await this.exitFullscreen();
+      } else {
+        await this.requestFullscreen();
+      }
+      this.fullscreenEnabled = this[kDocument].fullscreenEnabled;
+      this.fullscreenElement = this[kDocument].fullscreenElement;
+      this.isUpdating = 0;
+      return this.isFullscreen = this.checkFullscreen();
     }
 
   };
 
-  Viewport.prototype.OFFSET_WINDOW = Viewport.reserv(Uint32Array);
+  Viewport.metaUrl = import.meta.url;
 
-  Viewport.prototype.OFFSET_CANVAS = Viewport.reserv(Uint32Array);
+  Viewport.prototype.OFFSET_WINDOW = Viewport.reserv(Uint32Array);
 
   Viewport.prototype.OFFSET_IS_ACTIVE = Viewport.reserv(Uint8Array);
 
   Viewport.prototype.OFFSET_IS_LISTENING = Viewport.reserv(Uint8Array);
+
+  Viewport.prototype.OFFSET_IS_UPDATING = Viewport.reserv(Uint8Array);
+
+  Viewport.prototype.OFFSET_TIMEOUT_ID = Viewport.reserv(Uint16Array);
+
+  Viewport.prototype.OFFSET_FULLSCREEN_ENABLE = Viewport.reserv(Uint8Array);
+
+  Viewport.prototype.OFFSET_FULLSCREEN_NODE = Viewport.reserv(Uint32Array);
 
   Viewport.prototype.OFFSET_IS_FULLSCREEN = Viewport.reserv(Uint8Array);
 
@@ -232,6 +294,10 @@ export var Viewport = (function() {
 
   Viewport.prototype.OFFSET_OUTERHEIGHT = Viewport.reserv(Uint16Array);
 
+  Viewport.prototype.OFFSET_SCREENLEFT = Viewport.reserv(Uint16Array);
+
+  Viewport.prototype.OFFSET_SCREENTOP = Viewport.reserv(Uint16Array);
+
   Viewport.prototype.OFFSET_SCREENWIDTH = Viewport.reserv(Uint16Array);
 
   Viewport.prototype.OFFSET_SCREENHEIGHT = Viewport.reserv(Uint16Array);
@@ -257,7 +323,22 @@ export var Viewport = (function() {
   Viewport.prototype.OFFSET_ORIENTATION = Viewport.reserv(Uint8Array);
 
   Object.defineProperties(Viewport.prototype, {
-    window: {
+    [kBody]: {
+      get: function() {
+        return this[kDocument].body;
+      }
+    },
+    [kScreen]: {
+      get: function() {
+        return this[kWindow].screen;
+      }
+    },
+    [kDocument]: {
+      get: function() {
+        return this[kWindow].document;
+      }
+    },
+    [kWindow]: {
       get: function() {
         return this.objUint32(this.OFFSET_WINDOW);
       },
@@ -265,12 +346,20 @@ export var Viewport = (function() {
         return this.setUint32(this.OFFSET_WINDOW, this.scopei(arguments[0]));
       }
     },
-    canvas: {
+    fullscreenEnabled: {
       get: function() {
-        return this.objUint32(this.OFFSET_CANVAS);
+        return this.loadUint8(this.OFFSET_FULLSCREEN_ENABLE);
       },
       set: function() {
-        return this.setUint32(this.OFFSET_CANVAS, this.scopei(arguments[0]));
+        return this.storeUint8(this.OFFSET_FULLSCREEN_ENABLE, arguments[0]);
+      }
+    },
+    fullscreenElement: {
+      get: function() {
+        return this.objUint32(this.OFFSET_FULLSCREEN_NODE);
+      },
+      set: function() {
+        return this.storeUint32(this.OFFSET_FULLSCREEN_NODE, this.scopei(arguments[0]));
       }
     },
     isActive: {
@@ -279,6 +368,14 @@ export var Viewport = (function() {
       },
       set: function() {
         return this.setUint8(this.OFFSET_IS_ACTIVE, arguments[0]);
+      }
+    },
+    isUpdating: {
+      get: function() {
+        return this.loadUint8(this.OFFSET_IS_UPDATING);
+      },
+      set: function() {
+        return this.storeUint8(this.OFFSET_IS_UPDATING, arguments[0]);
       }
     },
     isListening: {
@@ -293,23 +390,8 @@ export var Viewport = (function() {
       get: function() {
         return this.getUint8(this.OFFSET_IS_FULLSCREEN);
       },
-      set: async function() {
-        var isFullscreened, isReplyMatches, wantFullscreen;
-        wantFullscreen = Boolean(arguments[0]);
-        isFullscreened = this.hasFullscreenElement();
-        if (wantFullscreen && !isFullscreened) {
-          await this.requestFullscreen();
-        } else {
-
-        }
-        if (!wantFullscreen && isFullscreened) {
-          await this.exitFullscreen();
-        }
-        isReplyMatches = this.setUint8(this.OFFSET_IS_FULLSCREEN, this.hasFullscreenElement());
-        if (!(wantFullscreen - isReplyMatches)) {
-          return;
-        }
-        throw ["FAILED_FULLSCREEN_REQUEST"];
+      set: function() {
+        return this.storeUint8(this.OFFSET_IS_FULLSCREEN, arguments[0]);
       }
     },
     type: {
@@ -318,6 +400,14 @@ export var Viewport = (function() {
       },
       set: function() {
         return this.setUint16(this.OFFSET_TYPE, VIEWPORT_KEYBASE[arguments[0]]);
+      }
+    },
+    timeoutId: {
+      get: function() {
+        return this.loadUint16(this.OFFSET_TIMEOUT_ID);
+      },
+      set: function() {
+        return this.storeUint16(this.OFFSET_TIMEOUT_ID, arguments[0]);
       }
     },
     left: {
@@ -558,6 +648,22 @@ export var Viewport = (function() {
       },
       set: function() {
         return this.setUint16(this.OFFSET_OUTERHEIGHT, arguments[0]);
+      }
+    },
+    screenLeft: {
+      get: function() {
+        return this.getUint16(this.OFFSET_SCREENLEFT);
+      },
+      set: function() {
+        return this.setUint16(this.OFFSET_SCREENLEFT, arguments[0]);
+      }
+    },
+    screenTop: {
+      get: function() {
+        return this.getUint16(this.OFFSET_SCREENTOP);
+      },
+      set: function() {
+        return this.setUint16(this.OFFSET_SCREENTOP, arguments[0]);
       }
     },
     screenWidth: {

@@ -1,7 +1,11 @@
-import { Optr, KeyBase } from "./Optr.js"
-import Viewport from "./Optr_viewport.js"
+import { AtomicScope } from "./0Ptr_scope.js"
+import { KeyBase } from "./0Ptr_keybase.js"
+import { OPtr } from "./0Ptr.js"
+import Viewport from "./0Ptr_viewport.js"
 
-export class Color4         extends Optr
+export class Color4         extends OPtr
+
+    @metaUrl                : `import.meta.url`
     
     OFFSET_RED              : @reserv Float32Array
 
@@ -11,13 +15,17 @@ export class Color4         extends Optr
 
     OFFSET_ALPHA            : @reserv Float32Array
 
-export class Program        extends Optr
+export class Program        extends OPtr
+
+    @metaUrl                : `import.meta.url`
 
     OFFSET_CONTEXT          : @reserv Uint32Array
 
     OFFSET_ISLINKED         : @reserv Uint8Array
 
-export class Context        extends Optr
+export class Context        extends OPtr
+
+    @metaUrl                : `import.meta.url`
 
     OFFSET_RENDERING        : @reserv Uint8Array
 
@@ -45,7 +53,9 @@ export class Context        extends Optr
             get             : -> @objUint32 @OFFSET_CANVAS
             set             : -> @storeUint32 @OFFSET_CANVAS, @scopei arguments[0]
 
-export class Display        extends Optr
+export class Display        extends OPtr
+
+    @metaUrl                : `import.meta.url`
 
     OFFSET_UUID             : @reserv Uint8Array, 36
 
@@ -59,7 +69,7 @@ export class Display        extends Optr
     
     OFFSET_VIEWPORT         : @reserv Uint32Array
 
-    @filter children        : Optr
+    @filter children        : OPtr
 
     init                    : ( @document ) ->
         context = new Context()
@@ -78,4 +88,4 @@ export class Display        extends Optr
             set             : -> @storeUint32 @OFFSET_DOCUMENT, @scopei arguments[0]
 
         
-export { Display as default, Viewport }
+export { Display as default }

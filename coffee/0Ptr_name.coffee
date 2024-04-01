@@ -1,4 +1,7 @@
 
+### Õ𝓟ṭṙ ###
+### Õ𝓟ṭṙ ###
+
 try
     Ovariations = [
         "Ō",
@@ -40,6 +43,9 @@ try
         "🄞",
         "🄾"
     ]
+
+    kScreen   = "ˆscreen"
+    kScreen   = "Øscreen"
 
     Pvariations = [
         "𝑃"

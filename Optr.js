@@ -257,6 +257,39 @@ export var Optr = (function() {
       return Atomics.store(u32, this.index4(arguments[0]), arguments[1]);
     }
 
+    addUint32() {
+      return Atomics.add(u32, this.index4(arguments[0]), arguments[1]);
+    }
+
+    andUint32() {
+      return Atomics.and(u32, this.index4(arguments[0]), arguments[1]);
+    }
+
+    waitUint32() {
+      return Atomics.wait(u32, this.index4(arguments[0]), arguments[1]);
+    }
+
+    orUint32() {
+      return Atomics.or(u32, this.index4(arguments[0]), arguments[1]);
+    }
+
+    xorUint32() {
+      return Atomics.xor(u32, this.index4(arguments[0]), arguments[1]);
+    }
+
+    keyUint32() {
+      return arguments[1][this.getUint32(arguments[0])];
+    }
+
+    getUint32() {
+      return dvw.getUint32(this + arguments[0], LENDIAN);
+    }
+
+    setUint32() {
+      dvw.setUint32(this + arguments[0], arguments[1], LENDIAN);
+      return arguments[1];
+    }
+
     keyUint8() {
       return arguments[1][this.getUint8(arguments[0])];
     }

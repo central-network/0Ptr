@@ -1,4 +1,11 @@
-import { Optr, KeyBase } from "./Optr.js"
+import { AtomicScope } from "./0Ptr_scope.js"
+import { KeyBase } from "./0Ptr_keybase.js"
+import { OPtr } from "./0Ptr.js"
+
+kScreen   = "#screen"
+kWindow   = "#window"
+kDocument = "$document"
+kBody     = "$body"
 
 export VIEWPORT_KEYBASE     = KeyBase.generate {
     LANDSCAPE_PRIMARY       : "landscape-primary"
@@ -11,13 +18,27 @@ export VIEWPORT_KEYBASE     = KeyBase.generate {
     OUTER_VIEWPORT          : "outer-sized"
 }
 
-export class Viewport extends Optr
+export class Viewport extends OPtr
+
+    @metaUrl                : `import.meta.url`
+
+    OFFSET_WINDOW           : @reserv Uint32Array
 
     OFFSET_IS_ACTIVE        : @reserv Uint8Array
 
+    OFFSET_IS_LISTENING     : @reserv Uint8Array
+    
+    OFFSET_IS_UPDATING      : @reserv Uint8Array
+
+    OFFSET_TIMEOUT_ID       : @reserv Uint16Array
+    
+    OFFSET_FULLSCREEN_ENABLE: @reserv Uint8Array
+    
+    OFFSET_FULLSCREEN_NODE  : @reserv Uint32Array
+    
     OFFSET_IS_FULLSCREEN    : @reserv Uint8Array
 
-    OFFSET_VIEWPORT_FROM    : @reserv Uint16Array
+    OFFSET_TYPE             : @reserv Uint16Array
 
     OFFSET_LEFT             : @reserv Uint16Array
 
@@ -71,6 +92,10 @@ export class Viewport extends Optr
 
     OFFSET_OUTERHEIGHT      : @reserv Uint16Array
         
+    OFFSET_SCREENLEFT       : @reserv Uint16Array
+
+    OFFSET_SCREENTOP        : @reserv Uint16Array
+        
     OFFSET_SCREENWIDTH      : @reserv Uint16Array
 
     OFFSET_SCREENHEIGHT     : @reserv Uint16Array
@@ -95,53 +120,70 @@ export class Viewport extends Optr
     
     OFFSET_ORIENTATION      : @reserv Uint8Array
 
-    init                    : ( window, setFromBody = on ) ->
+    bind                    : ( window ) ->
+        @[ kWindow ] = window
+        this.init().bindWindowEvents() ; this
 
-        @angle              = window.screen.orientation.angle
-        @orientation        = window.screen.orientation.type
-        @isExtended         = window.screen.isExtended
-        @isFullscreen       = window.document.fullscreenElement
-        @pixelDepth         = window.screen.pixelDepth
-        @pixelRatio         = window.devicePixelRatio or 1
+    init                    : ->
+        @angle              = @[ kScreen ].orientation.angle
+        @orientation        = @[ kScreen ].orientation.type
+        @isExtended         = @[ kScreen ].isExtended
+        @pixelDepth         = @[ kScreen ].pixelDepth
+        @pixelRatio         = @[ kWindow ].devicePixelRatio or 1
+                
+        @innerWidth         = @[ kWindow ].innerWidth
+        @innerHeight        = @[ kWindow ].innerHeight
+
+        @outerWidth         = @[ kWindow ].outerWidth
+        @outerHeight        = @[ kWindow ].outerHeight        
         
-        @innerWidth         = window.innerWidth
-        @innerHeight        = window.innerHeight
+        @screenLeft         = @[ kWindow ].screenLeft
+        @screenTop          = @[ kWindow ].screenTop
+        @screenWidth        = @[ kScreen ].width
+        @screenHeight       = @[ kScreen ].height
 
-        @outerWidth         = window.outerWidth
-        @outerHeight        = window.outerHeight        
-        
-        @screenWidth        = window.screen.width
-        @screenHeight       = window.screen.height
+        @availWidth         = @[ kScreen ].availWidth
+        @availHeight        = @[ kScreen ].availHeight
 
-        @availWidth         = window.screen.availWidth
-        @availHeight        = window.screen.availHeight
+        @clientLeft         = @[ kBody ].clientLeft
+        @clientTop          = @[ kBody ].clientTop
+        @clientWidth        = @[ kBody ].clientWidth
+        @clientHeight       = @[ kBody ].clientHeight
 
-        @clientLeft         = window.document.body.clientLeft
-        @clientTop          = window.document.body.clientTop
-        @clientWidth        = window.document.body.clientWidth
-        @clientHeight       = window.document.body.clientHeight
+        @scrollLeft         = @[ kBody ].scrollLeft
+        @scrollTop          = @[ kBody ].scrollTop
+        @scrollWidth        = @[ kBody ].scrollWidth
+        @scrollHeight       = @[ kBody ].scrollHeight
+        $bodyRect           = @[ kBody ].getBoundingClientRect()
 
-        @scrollLeft         = window.document.body.scrollLeft
-        @scrollTop          = window.document.body.scrollTop
-        @scrollWidth        = window.document.body.scrollWidth
-        @scrollHeight       = window.document.body.scrollHeight
-
-        $bodyRect           = window.document.body.getBoundingClientRect()
         @bodyLeft           = $bodyRect.left
         @bodyTop            = $bodyRect.top
         @bodyRight          = $bodyRect.right
         @bodyBottom         = $bodyRect.bottom
         @bodyWidth          = $bodyRect.width
         @bodyHeight         = $bodyRect.height
+        @isFullscreen       = @checkFullscreen()
 
-        window.resizedHandle ?= window.addEventListener "resize",
-            window.resizedHandle = =>
-                clearTimeout window.resizedDelay
-                window.resizedDelay = setTimeout =>
-                    @init window
-                , 100
-                
-        @setFromBody() unless ! setFromBody ; @
+        @setFromBody() ; this
+    
+    bindWindowEvents        : ->
+
+        if !@isListening and @isListening = 1
+
+            timeouts = [] 
+            callback = ->
+                for j in timeouts.slice()
+                    clearTimeout j, timeouts.splice j, 1
+
+                timeouts[ timeouts.length ] =
+                    setTimeout @init.bind( this ), 1000
+
+            @[ kWindow ]  .addEventListener "resize"          , callback.bind this
+            @[ kDocument ].addEventListener "fullscreenerror" , callback.bind this
+            @[ kDocument ].addEventListener "fullscreenchange", callback.bind this
+
+        ; @
+
 
     setFromClient           : ->
         @left               = @clientLeft
@@ -150,7 +192,7 @@ export class Viewport extends Optr
         @bottom             = 0
         @width              = @clientWidth
         @height             = @clientHeight
-        @viewportFrom       = VIEWPORT_KEYBASE.CLIENT_VIEWPORT
+        @type               = VIEWPORT_KEYBASE.CLIENT_VIEWPORT
 
         ; @updateRatioValues()
 
@@ -161,7 +203,7 @@ export class Viewport extends Optr
         @bottom             = 0
         @width              = @innerWidth
         @height             = @innerHeight
-        @viewportFrom       = VIEWPORT_KEYBASE.INNER_VIEWPORT
+        @type               = VIEWPORT_KEYBASE.INNER_VIEWPORT
 
         ; @updateRatioValues()
 
@@ -172,7 +214,7 @@ export class Viewport extends Optr
         @bottom             = 0
         @width              = @outerWidth
         @height             = @outerHeight
-        @viewportFrom       = VIEWPORT_KEYBASE.INNER_VIEWPORT
+        @type               = VIEWPORT_KEYBASE.INNER_VIEWPORT
 
         ; @updateRatioValues()
 
@@ -183,18 +225,18 @@ export class Viewport extends Optr
         @bottom             = 0
         @width              = @availWidth
         @height             = @availHeight
-        @viewportFrom       = VIEWPORT_KEYBASE.AVAILABLE_VIEWPORT
+        @type               = VIEWPORT_KEYBASE.AVAILABLE_VIEWPORT
 
         ; @updateRatioValues()
 
     setFromScreen           : ->
-        @left               = 0
-        @top                = 0
+        @left               = @screenLeft
+        @top                = @screenTop
         @right              = 0
         @bottom             = 0
         @width              = @screenWidth
         @height             = @screenHeight
-        @viewportFrom       = VIEWPORT_KEYBASE.SCREEN_VIEWPORT
+        @type               = VIEWPORT_KEYBASE.SCREEN_VIEWPORT
 
         ; @updateRatioValues()
 
@@ -205,7 +247,7 @@ export class Viewport extends Optr
         @bottom             = @bodyBottom
         @width              = @bodyWidth
         @height             = @bodyHeight
-        @viewportFrom       = VIEWPORT_KEYBASE.BODY_VIEWPORT
+        @type               = VIEWPORT_KEYBASE.BODY_VIEWPORT
 
         ; @updateRatioValues()
 
@@ -214,9 +256,9 @@ export class Viewport extends Optr
         @top                = @scrollTop
         @right              = 0
         @bottom             = 0
-        @width              = @screenWidth
+        @width              = @scrollWidth
         @height             = @scrollHeight
-        @viewportFrom       = VIEWPORT_KEYBASE.SCROLL_VIEWPORT
+        @type               = VIEWPORT_KEYBASE.SCROLL_VIEWPORT
 
         ; @updateRatioValues()
 
@@ -228,29 +270,76 @@ export class Viewport extends Optr
 
         ; @
 
+    requestFullscreen       : ->
+        try await @[ kDocument ].documentElement.requestFullscreen() 
+
+    exitFullscreen          : ->
+        try await @[ kDocument ].exitFullscreen()
+
+    checkFullscreen         : ->
+
+        return 1 if @fullscreenElement
+        if 0 < @innerHeight and @outerHeight > 0
+            return 1 if @innerHeight is @outerHeight
+        return 0
+
+    toggleFullscreen        : ->
+        @isUpdating   = 1
+        $targetMode   = arguments[0] ? !@checkFullscreen() 
+
+        unless $targetMode
+            await @exitFullscreen() 
+        else await @requestFullscreen()
+                
+        @fullscreenEnabled = @[ kDocument ].fullscreenEnabled
+        @fullscreenElement = @[ kDocument ].fullscreenElement
+
+        @isUpdating   = 0
+        @isFullscreen = @checkFullscreen() 
 
     Object.defineProperties this::,
 
+        [ kBody ]                : get : -> @[ kDocument ].body
+
+        [ kScreen ]              : get : -> @[ kWindow ].screen
+
+        [ kDocument ]            : get : -> @[ kWindow ].document
+
+        [ kWindow ]              :
+                    get     : -> @objUint32 @OFFSET_WINDOW
+                    set     : -> @setUint32 @OFFSET_WINDOW, @scopei arguments[0]
+
+        fullscreenEnabled   :
+                    get     : -> @loadUint8 @OFFSET_FULLSCREEN_ENABLE
+                    set     : -> @storeUint8 @OFFSET_FULLSCREEN_ENABLE, arguments[0]
+
+        fullscreenElement   :
+                    get     : -> @objUint32 @OFFSET_FULLSCREEN_NODE
+                    set     : -> @storeUint32 @OFFSET_FULLSCREEN_NODE, @scopei arguments[0]
+                    
         isActive            :
                     get     : -> @getUint8 @OFFSET_IS_ACTIVE
                     set     : -> @setUint8 @OFFSET_IS_ACTIVE, arguments[0]
+        
+        isUpdating          :
+                    get     : -> @loadUint8 @OFFSET_IS_UPDATING
+                    set     : -> @storeUint8 @OFFSET_IS_UPDATING, arguments[0]
+        
+        isListening         :
+                    get     : -> @getUint8 @OFFSET_IS_LISTENING
+                    set     : -> @setUint8 @OFFSET_IS_LISTENING, arguments[0]
 
         isFullscreen        :
                     get     : -> @getUint8 @OFFSET_IS_FULLSCREEN
-                    set     : ->
-                        if !document.fullscreenElement and  Boolean arguments[0]
-                            return document.documentElement.requestFullscreen().then =>
-                                @setUint8 @OFFSET_IS_FULLSCREEN, !!document.fullscreenElement
+                    set     : -> @storeUint8 @OFFSET_IS_FULLSCREEN, arguments[0]
 
-                        if  document.fullscreenElement and !Boolean arguments[0]
-                            return document.exitFullscreen().then =>
-                                @setUint8 @OFFSET_IS_FULLSCREEN, !!document.fullscreenElement
+        type                :
+                    get     : -> @keyUint16 @OFFSET_TYPE, VIEWPORT_KEYBASE
+                    set     : -> @setUint16 @OFFSET_TYPE, VIEWPORT_KEYBASE[ arguments[0] ]
 
-                        @setUint8 @OFFSET_IS_FULLSCREEN, !!document.fullscreenElement
-
-        viewportFrom        :
-                    get     : -> @keyUint16 @OFFSET_VIEWPORT_FROM, VIEWPORT_KEYBASE
-                    set     : -> @setUint16 @OFFSET_VIEWPORT_FROM, VIEWPORT_KEYBASE[ arguments[0] ]
+        timeoutId           :
+                    get     : -> @loadUint16 @OFFSET_TIMEOUT_ID
+                    set     : -> @storeUint16 @OFFSET_TIMEOUT_ID, arguments[0]
 
         left                :
                     get     : -> @getUint16 @OFFSET_LEFT
@@ -371,6 +460,14 @@ export class Viewport extends Optr
         outerHeight         :
                     get     : -> @getUint16 @OFFSET_OUTERHEIGHT    
                     set     : -> @setUint16 @OFFSET_OUTERHEIGHT, arguments[0]
+
+        screenLeft          :
+                    get     : -> @getUint16 @OFFSET_SCREENLEFT
+                    set     : -> @setUint16 @OFFSET_SCREENLEFT, arguments[0]
+
+        screenTop           :
+                    get     : -> @getUint16 @OFFSET_SCREENTOP    
+                    set     : -> @setUint16 @OFFSET_SCREENTOP, arguments[0]
 
         screenWidth         :
                     get     : -> @getUint16 @OFFSET_SCREENWIDTH

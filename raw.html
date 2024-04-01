@@ -73,21 +73,64 @@
     </head>
     <body>
         <script type="module">
-            import { Display, Viewport } from "./ptr_gl2.js"
 
+            import { Display, Context } from "./0Ptr_gl2.js"
+            import { Viewport } from "./0Ptr_viewport.js"
+            import { Thread } from "./0Ptr_thread.js"
 
             let display = new Display();
             let viewport = new Viewport();
-            
+            let thread = new Thread();
+
             display.init( document );            
-            viewport.init( window )
-                .attach( display )
-            
+            viewport.bind( window ).attach( display );
+
+            thread.init( Display, Context, Viewport );
 
             console.log(display)
-            console.log(display.children)
+            console.log(viewport)
+            console.log(thread)
 
             self.viewport = viewport
+           
+            /*
+            let thread = new Worker("./0Ptr_worker.js", {type: "module"})
+            let notifyi, scopei;
+
+            thread.addEventListener( "message", function (e){
+                
+                [ notifyi, scopei ] = e.data
+
+                console.warn("obj[scopei]:", obj[scopei])
+
+                let objecti = obj[scopei];
+                let prototype = Object.getPrototypeOf(objecti);
+                let definition = {
+                    name : objecti.constructor.name,
+                    type : typeof objecti,
+                    prop : {}
+                };
+
+                for (let key in prototype )
+                    definition.prop[ key ] = typeof objecti[key]
+
+                let reply = JSON.stringify(definition);
+                let response = new TextEncoder().encode(reply);
+                let byteLength = response.byteLength;
+                
+                console.log("byteLength:", byteLength)
+
+                obj[3].set( response , 4 + notifyi * 4 )
+
+                Atomics.store( obj[1], notifyi, byteLength )
+                Atomics.notify( obj[2], notifyi, 1 )
+                
+                //console.warn("sub:", obj[3].subarray(4 + notifyi * 4, 2000 + notifyi * 4 ))
+
+            })
+
+            thread.postMessage( viewport.buffer )
+            */
 
         </script>
     </body>
