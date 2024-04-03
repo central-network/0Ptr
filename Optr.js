@@ -8,7 +8,7 @@ if (typeof document !== "undefined" && document !== null) {
 
 Object.defineProperties(SharedArrayBuffer.prototype, {
   SYMBOL_0PTR: {
-    value: Symbol.for("0Ptr")
+    value: Symbol("0Ptr")
   },
   LITTLE_ENDIAN: {
     value: new Uint8Array(Uint32Array.of(1).buffer)[0] === 1
@@ -19,8 +19,23 @@ Object.defineProperties(SharedArrayBuffer.prototype, {
   ITEMS_PER_POINTER: {
     value: 12
   },
+  BEGIN: {
+    value: 12
+  },
   BYTES_PER_POINTER: {
     value: 4 * 12
+  },
+  INDEX_OFFSET: {
+    value: 0
+  },
+  INDEX_LENGTH: {
+    value: 1
+  },
+  INDEX_COUNT: {
+    value: 2
+  },
+  INDEX_NEXT: {
+    value: 3
   },
   DEFINE_INTEGER_ATOMICS: {
     value: true
@@ -47,7 +62,7 @@ Object.defineProperties(SharedArrayBuffer.prototype, {
         return this;
       }
       nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
-      namePrefix = ["add", "sub", "load", "store", "and", "or", "xor"];
+      namePrefix = ["sub", "load", "store", "and", "or", "xor", "add"];
       for (i = 0, len = namePrefix.length; i < len; i++) {
         caller = namePrefix[i];
         Object.defineProperty(this, caller + nameSuffix, {
@@ -176,11 +191,16 @@ Object.defineProperties(SharedArrayBuffer.prototype, {
     }
   },
   scope: {
-    value: {}
+    value: new Object
   },
   init: {
     value: function() {
       var arrayPairs, dvw, f32, f64, i, i16, i32, i64, ii8, j, k, l, len, len1, len2, len3, len4, len5, m, n, ref, ref1, ref2, ref3, ref4, ref5, typedArray, u16, u32, u64, ui8;
+      Object.defineProperties(this, {
+        ["#thread"]: {
+          value: arguments[0]
+        }
+      });
       ui8 = new Uint8Array(this);
       ii8 = new Int8Array(this);
       i16 = new Int16Array(this);
@@ -223,31 +243,57 @@ Object.defineProperties(SharedArrayBuffer.prototype, {
         this.defineFloatAtomics.call(this, arrayPairs);
       }
       if (!ui8.length) {
-        this.grow(this.BYTES_PER_POINTER);
+        this.grow(this.BEGIN * this.BYTES_PER_ELEMENT);
       }
-      if (!this.orUint32(0, this.BYTES_PER_POINTER)) {
-        this.storeUint32(1, this.BYTES_PER_POINTER / 4);
+      if (!this.orUint32(this.INDEX_OFFSET, this.BEGIN * this.BYTES_PER_ELEMENT)) {
+        this.length = this.BEGIN;
       }
       return self.base = this;
     }
   },
   get: {
+    value: function(ptri) {
+      var ref;
+      return (ref = this.scope[`${ptri}`]) != null ? ref.deref() : void 0;
+    }
+  },
+  set: {
+    value: function(object, ptri) {
+      Object.defineProperty(this.scope, ptri, {
+        value: new WeakRef(object)
+      });
+      return ptri;
+    }
+  },
+  add: {
     value: function(object) {
       var ptri;
       if (!Object.hasOwn(object, this.SYMBOL_0PTR)) {
         Object.defineProperty(object, this.SYMBOL_0PTR, {
           value: ptri = this.malloc(object)
         });
-        Object.defineProperty(this.scope, ptri, {
-          value: object
-        });
+        this.set(object, ptri);
       }
-      return object[this.SYMBOL_0PTR];
+      return this.get(object[this.SYMBOL_0PTR]);
+    }
+  },
+  find: {
+    value: function() {
+      var i, len, object, ptri, ref;
+      ref = Object.getOwnPropertyNames(this.scope);
+      for (i = 0, len = ref.length; i < len; i++) {
+        ptri = ref[i];
+        object = this.scope[ptri].deref();
+        if (object === arguments[0]) {
+          return object;
+        }
+      }
+      return null;
     }
   },
   malloc: {
     value: function() {
-      var byteLength, byteOffset, protoClass;
+      var byteLength, byteOffset, index4, length, offset, protoClass;
       protoClass = arguments[0].constructor;
       byteLength = this.BYTES_PER_POINTER;
       if (protoClass != null ? protoClass.byteLength : void 0) {
@@ -260,13 +306,78 @@ Object.defineProperties(SharedArrayBuffer.prototype, {
         }
         this.grow(byteOffset);
       }
-      this.addUint32(1, 1);
-      return this.addUint32(0, byteLength);
+      this.addUint32(this.INDEX_COUNT, 1);
+      length = byteLength / 4;
+      index4 = this.addUint32(this.INDEX_LENGTH, length);
+      offset = this.addUint32(this.INDEX_OFFSET, byteLength);
+      this.storeUint32(index4 + 0, length);
+      this.storeUint32(index4 + 2, byteLength);
+      this.storeUint32(index4 + 3, length - this.ITEMS_PER_POINTER);
+      this.storeUint32(index4 + 4, byteLength - this.BYTES_PER_POINTER);
+      return index4;
     }
   },
   byteOffset: {
     get: function() {
-      return this.loadUint32(0);
+      return this.loadUint32(this.INDEX_OFFSET);
+    },
+    set: function() {
+      return this.storeUint32(this.INDEX_OFFSET, arguments[0]);
+    }
+  },
+  //? sab length
+  length: {
+    get: function() {
+      return this.loadUint32(this.INDEX_LENGTH);
+    },
+    set: function() {
+      return this.storeUint32(this.INDEX_LENGTH, arguments[0]);
+    }
+  },
+  //? scope length
+  count: {
+    get: function() {
+      return this.loadUint32(this.INDEX_COUNT);
+    },
+    set: function() {
+      return this.storeUint32(this.INDEX_COUNT, arguments[0]);
+    }
+  },
+  //? iteration index
+  index: {
+    get: function() {
+      var index, length;
+      index = this.loadUint32(this.INDEX_NEXT);
+      length = this.loadUint32(index);
+      this.addUint32(this.INDEX_NEXT, length);
+      return index;
+    },
+    set: function() {
+      return this.storeUint32(this.INDEX_NEXT, this.BEGIN + arguments[0]);
+    }
+  },
+  reset: {
+    value: function() {
+      this.storeUint32(this.INDEX_NEXT, this.BEGIN);
+      return this;
+    }
+  }
+});
+
+Object.defineProperties(SharedArrayBuffer.prototype, {
+  [Symbol.iterator]: {
+    value: function() {
+      return {
+        next: (function() {
+          var value;
+          if (!(value = this.get(this.index))) {
+            return {
+              done: true
+            };
+          }
+          return {value};
+        }).bind(this.reset())
+      };
     }
   }
 });
@@ -276,19 +387,27 @@ Object.defineProperties(Object.prototype, {
     configurable: true,
     value: new SharedArrayBuffer(0, {
       maxByteLength: Math.pow((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 1, 11)
-    }).init(self)
+    }).init((typeof window !== "undefined" && window !== null) && "window" || "worker")
   },
   ptr: {
     value: function() {
-      return {
-        get: this.sab.get(this),
-        set: this.sab.get(window),
-        tet: this.sab.get(new Set()),
-        det: this.sab.get((function() {
+      var di, ref, res;
+      res = {
+        get: this.sab.add(this),
+        set: this.sab.add(window),
+        tet: this.sab.add(new Set()),
+        a: this.sab.find("this"),
+        det: this.sab.add((function() {
           return 1;
         })),
-        def: this.sab.get(window)
+        def: this.sab.add(window)
       };
+      console.log(res);
+      ref = this.sab;
+      for (di of ref) {
+        console.log("iteri", di);
+      }
+      return res;
     }
   }
 });

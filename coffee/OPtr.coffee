@@ -4,7 +4,7 @@ if  document?
 
 Object.defineProperties SharedArrayBuffer::,
 
-    SYMBOL_0PTR             : value : Symbol.for "0Ptr"
+    SYMBOL_0PTR             : value : Symbol "0Ptr"
 
     LITTLE_ENDIAN           : value : new Uint8Array(Uint32Array.of(1).buffer)[0] is 1
 
@@ -12,7 +12,18 @@ Object.defineProperties SharedArrayBuffer::,
 
     ITEMS_PER_POINTER       : value : 12
 
+    BEGIN                   : value : 12
+
     BYTES_PER_POINTER       : value : 4 * 12
+
+    
+    INDEX_OFFSET        : value : 0
+
+    INDEX_LENGTH            : value : 1
+
+    INDEX_COUNT             : value : 2   
+    
+    INDEX_NEXT                 : value : 3
 
 
     DEFINE_INTEGER_ATOMICS  : value : on
@@ -36,9 +47,8 @@ Object.defineProperties SharedArrayBuffer::,
             .replace /View|Array/, ""
             
         namePrefix = [
-            "add", "sub",
-            "load", "store",
-            "and", "or", "xor"
+            "sub", "load", "store",
+            "and", "or", "xor", "add"
         ]
 
         for caller in namePrefix
@@ -164,9 +174,12 @@ Object.defineProperties SharedArrayBuffer::,
                 value : arguments[0][ caller ].bind arguments[0]
 
 
-    scope                   : value : {}
+    scope                   : value : new Object
 
     init                    : value : ->
+
+        Object.defineProperties this,
+            [ "#thread" ] : value : arguments[0]
 
         ui8 = new Uint8Array        this
         ii8 = new Int8Array         this
@@ -198,26 +211,35 @@ Object.defineProperties SharedArrayBuffer::,
         for arrayPairs in [ [ f32, i32 ], [ f64, i64 ] ]
             this.defineFloatAtomics.call this, arrayPairs
 
-        @grow @BYTES_PER_POINTER unless ui8.length
 
-        unless @orUint32 0, @BYTES_PER_POINTER
-            @storeUint32 1, @BYTES_PER_POINTER / 4
+        @grow @BEGIN * @BYTES_PER_ELEMENT unless ui8.length
+        unless @orUint32 @INDEX_OFFSET, @BEGIN * @BYTES_PER_ELEMENT
+            @length = @BEGIN
 
         self.base = this
     
-    get     : value : ( object ) ->
+    get                     : value : ( ptri ) ->
+        @scope[ "#{ptri}" ]?.deref()
 
+    set                     : value : ( object, ptri ) ->
+        Object.defineProperty @scope, ptri,
+            value : new WeakRef object
+        ptri
+
+    add                     : value : ( object ) ->
         unless Object.hasOwn object, @SYMBOL_0PTR
-            
             Object.defineProperty object, @SYMBOL_0PTR,
                 value : ptri = @malloc object
+            @set object, ptri
+        @get object[ @SYMBOL_0PTR ]
 
-            Object.defineProperty @scope, ptri,
-                value : object
-        
-        return object[ @SYMBOL_0PTR ]
+    find                    : value : ->
+        for ptri in Object.getOwnPropertyNames @scope
+            object = @scope[ ptri ].deref()
+            return object if object is arguments[0]
+        null
 
-    malloc  : value : ->
+    malloc                  : value : ->
         
         protoClass = arguments[0].constructor
         byteLength = @BYTES_PER_POINTER
@@ -233,25 +255,80 @@ Object.defineProperties SharedArrayBuffer::,
 
             @grow byteOffset
 
-        @addUint32 1, 1
-        @addUint32 0, byteLength
+        @addUint32 @INDEX_COUNT, 1
 
-    byteOffset : get : -> @loadUint32 0
+        length = byteLength / 4
+        index4 = @addUint32 @INDEX_LENGTH, length
+        offset = @addUint32 @INDEX_OFFSET, byteLength
 
+        @storeUint32 index4 + 0, length 
+        @storeUint32 index4 + 2, byteLength
+        @storeUint32 index4 + 3, length - @ITEMS_PER_POINTER
+        @storeUint32 index4 + 4, byteLength - @BYTES_PER_POINTER
+
+        index4
+
+    byteOffset              :
+                    get     : -> @loadUint32  @INDEX_OFFSET
+                    set     : -> @storeUint32 @INDEX_OFFSET, arguments[0]
+
+    #? sab length
+    length                  :
+                    get     : -> @loadUint32  @INDEX_LENGTH
+                    set     : -> @storeUint32 @INDEX_LENGTH, arguments[0]
+
+    #? scope length
+    count                   :
+                    get     : -> @loadUint32  @INDEX_COUNT
+                    set     : -> @storeUint32 @INDEX_COUNT, arguments[0]
+
+    #? iteration index
+    index                   :
+                    get     : ->
+                        index = @loadUint32 @INDEX_NEXT
+                        length = @loadUint32 index 
+                        @addUint32 @INDEX_NEXT, length
+                        index
+
+                    set     : ->
+                        @storeUint32 @INDEX_NEXT, @BEGIN + arguments[0]
+
+    reset                   :
+                    value   : ->
+                        @storeUint32 @INDEX_NEXT, @BEGIN ; this
+
+    
+Object.defineProperties SharedArrayBuffer::,
+
+    [ Symbol.iterator ]     : value : ->
+        next : ->
+            unless value = @get @index
+                return done : on
+            return { value }
+        .bind @reset()
+        
 Object.defineProperties Object::,
 
     sab :
         configurable : on
-        value : new SharedArrayBuffer(0 , {
-                maxByteLength : Math.pow( 
-                    navigator?.deviceMemory or 1, 11
-                )
-            }
-        ).init( self )
+        value : new SharedArrayBuffer(
+            0 , maxByteLength : Math.pow(
+                    navigator?.deviceMemory or 1, 11 )
+        ).init window? && "window" or "worker"
 
     ptr : value : ->
-        get : @sab.get( this )
-        set : @sab.get( window )
-        tet : @sab.get( new Set() )
-        det : @sab.get( ( -> 1 ) )
-        def : @sab.get( window )
+        res =
+            get : @sab.add( this )
+            set : @sab.add( window )
+            tet : @sab.add( new Set() )
+            a   : @sab.find( "this" )
+            det : @sab.add( ( -> 1 ) )
+            def : @sab.add( window )
+
+        console.log res
+
+        for di from @sab
+            console.log "iteri", di
+
+            
+        res
