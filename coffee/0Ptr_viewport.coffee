@@ -1,4 +1,3 @@
-import { AtomicScope } from "./0Ptr_scope.js"
 import { KeyBase } from "./0Ptr_keybase.js"
 import { OPtr } from "./0Ptr.js"
 

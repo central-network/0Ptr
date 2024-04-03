@@ -1,7 +1,7 @@
 var bc;
 
 import {
-  AtomicScope
+  Scope
 } from "./0Ptr_scope.js";
 
 import {
@@ -36,7 +36,7 @@ export var Thread = (function() {
     }
 
     import() {
-      var imports, item, j, k, len, len1, module, names, ref1, ref2, url;
+      var imports, item, j, l, len, len1, module, names, ref1, ref2, url;
       ref1 = [...arguments];
       for (j = 0, len = ref1.length; j < len; j++) {
         module = ref1[j];
@@ -57,8 +57,8 @@ export var Thread = (function() {
       }
       imports = "";
       ref2 = this.imports.slice();
-      for (k = 0, len1 = ref2.length; k < len1; k++) {
-        item = ref2[k];
+      for (l = 0, len1 = ref2.length; l < len1; l++) {
+        item = ref2[l];
         names = item.modules.join(', ');
         url = item.metaUrl;
         imports += `import {${names}} from '${url}';\n`;
@@ -73,7 +73,7 @@ export var Thread = (function() {
       return this.storeUint32(this.OFFSET_DATA_LENGTH, data.byteLength);
     }
 
-    init(handler, ptr) {
+    init(ptr, handler) {
       var script, worker;
       this[this.kSelf] = self;
       this.uuid = crypto.randomUUID();
@@ -121,21 +121,104 @@ export var Thread = (function() {
       return this.lock().data;
     }
 
-    createProxy(name, props = {}) {
-      var proto, ref;
+    getScopeiProp(ref, prop) {
+      var name, result, scopei, type;
+      type = ref[prop];
+      name = ref.__name__;
+      scopei = ref.__scopei__;
+      console.log("getting scopei.prop:", {prop, type});
+      result = this.postMessage("getScopeiProp", {scopei, prop});
+      console.log("result scopei.prop:", result);
+      return result.prop;
+    }
+
+    createProxy(scopei, name, props = {}) {
+      var _thssi, getter, getters, key, proto, type;
       name = `${name}`.substring(0, 64);
       proto = new (eval(`(class ${name} {})`))();
-      ref = Object.assign(proto, props);
-      return new Proxy(ref, {});
+      console.warn("creatingproxy", {scopei, name, props});
+      _thssi = this;
+      getter = function(key) {
+        return _thssi.postMessage("getScopeiProp", {scopei, key});
+      };
+      getters = function(prop, key) {
+        return _thssi.postMessage("getScopeiProps", {scopei, prop, key});
+      };
+      Object.defineProperties(proto, {
+        __scopei__: {
+          value: scopei
+        },
+        __name__: {
+          value: name
+        }
+      });
+      for (key in props) {
+        type = props[key];
+        if (type === "function") {
+          Object.defineProperty(proto, key, {
+            value: function() {}
+          });
+        } else if (type === "object") {
+          Object.defineProperty(proto, key, {
+            get: function() {
+              return new Proxy(new (eval(`(class ${key} {})`))(), {});
+            }
+          });
+        } else {
+          Object.defineProperty(proto, key, {
+            get: function() {
+              var prop;
+              ({type, prop} = getter(key));
+              return prop;
+            },
+            set: function() {}
+          });
+        }
+      }
+      return new Proxy(proto, {
+        get: function(ref, key) {
+          var j, k, len, prop, t, target;
+          ({type, prop} = getter(key));
+          if (type !== "object") {
+            return prop;
+          }
+          props = getters(prop, key);
+          target = new (eval(`(class ${key} {})`))();
+          for (t = j = 0, len = props.length; j < len; t = ++j) {
+            k = props[t];
+            if (t === "function") {
+              Object.defineProperty(target, k, {
+                value: function() {}
+              });
+            } else if (t === "object") {
+              Object.defineProperty(target, k, {
+                get: function() {}
+              });
+            } else {
+              Object.defineProperty(target, k, {
+                get: function() {},
+                set: function() {}
+              });
+            }
+          }
+          return new Proxy(target, {});
+        },
+        set: function() {}
+      });
     }
 
     loadScopei(scopei) {
-      var name, obji, props;
-      if (obji = self.obj[scopei]) {
-        return obji;
-      }
-      ({name, props} = this.postMessage("loadScopei", scopei));
-      return self.obj[scopei] = this.createProxy(name, props);
+      var name, object, props, type;
+      ({type, name, props} = this.postMessage("loadScopei", scopei));
+      object = (function() {
+        switch (type) {
+          case "prototype":
+            return self.imports[name];
+          case "object":
+            return this.createProxy(scopei, name, props);
+        }
+      }).call(this);
+      return self.obj[scopei] = object;
     }
 
     old() {
@@ -243,8 +326,8 @@ export var Thread = (function() {
 
   Thread.prototype.imports = [
     {
-      modules: ["AtomicScope"],
-      metaUrl: AtomicScope.metaUrl
+      modules: ["Scope"],
+      metaUrl: Scope.metaUrl
     },
     {
       modules: ["KeyBase"],
@@ -346,6 +429,7 @@ export {
 };
 
 if ((typeof window !== "undefined" && window !== null) && (typeof document !== "undefined" && document !== null)) {
+  self.obj = [null];
   OPtr.setup(new SharedArrayBuffer(1024 * 1024));
   self.onclick = function() {
     return console.warn(obj);
@@ -353,8 +437,16 @@ if ((typeof window !== "undefined" && window !== null) && (typeof document !== "
   self.name = "window";
 } else {
   addEventListener("message", function(e) {
+    var thread;
     OPtr.setup(e.data.buffer);
-    new Thread(+self.name).initDedicated();
+    thread = new Thread(+self.name);
+    self.obj = new Proxy([null], {
+      get: function(_obj, i) {
+        var ref1;
+        return (ref1 = _obj[i]) != null ? ref1 : thread.loadScopei(i);
+      }
+    });
+    thread.initDedicated();
     return dispatchEvent(new CustomEvent("ready", {
       detail: e.data.ptri
     }));
@@ -364,7 +456,7 @@ if ((typeof window !== "undefined" && window !== null) && (typeof document !== "
 }
 
 bc.onmessage = function() {
-  var data, desc, j, len, name, obji, prop, proto, ptr, ptri, ref1, scopei, type;
+  var data, desc, j, key, len, name, obji, prop, props, proto, ptr, ptri, ref1, scopei, type;
   ({type, data, ptri} = arguments[0].data);
   (ptr = new Thread(ptri));
   switch (type) {
@@ -387,13 +479,21 @@ bc.onmessage = function() {
       }
       if (obj[scopei = data] == null) {
         ptr.unlock();
-        throw ["NONONONNOONO"];
+        throw ["NONONONNOONO", data, obj];
+      }
+      if (OPtr.isPrototypeOf(obj[scopei])) {
+        ptr.data = {
+          type: "prototype",
+          name: obj[scopei].name
+        };
+        return ptr.unlock();
       }
       switch (typeof obj[scopei]) {
         case "object":
           obji = obj[scopei];
           name = obji.constructor.name || obji.name;
           data = {
+            type: "object",
             name,
             props: {}
           };
@@ -405,11 +505,30 @@ bc.onmessage = function() {
           return ptr.unlock();
       }
       break;
-    case "getObjectProp":
+    case "getScopeiProps":
       if (!obj[data.scopei]) {
         return;
       }
-      ptr.data = obj[data.scopei][data.prop];
+      prop = obj[data.scopei][data.prop];
+      type = typeof prop;
+      name = (prop != null ? prop.constructor.name : void 0) || (prop != null ? prop.name : void 0);
+      props = {};
+      for (key in prop[data.key]) {
+        props[key] = {
+          name: key,
+          type: typeof prop[key]
+        };
+      }
+      ptr.data = {type, name, prop};
+      return ptr.unlock();
+    case "getScopeiProp":
+      if (!obj[data.scopei]) {
+        return;
+      }
+      prop = obj[data.scopei][data.prop];
+      type = typeof prop;
+      name = (prop != null ? prop.constructor.name : void 0) || (prop != null ? prop.name : void 0);
+      ptr.data = {type, name, prop};
       return ptr.unlock();
     case "setObjectProp":
       if (!obj[data.scopei]) {

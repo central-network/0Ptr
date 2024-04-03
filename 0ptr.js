@@ -1,20 +1,4 @@
 //? this is zero pointer - fastest
-var BYTELENGTH_HEADER, BYTEOFFSET_PARENT, BYTES_PER_ELEMENT, INDEX_ATOMIC_NEXT, INDEX_BYTE_LENGTH, INDEX_PARENT_PTRI, INDEX_PROTO_CLASS, INITIAL, ITEMLENGTH_HEADER, LENDIAN, dvw, f32, i32, malloc, obj, sab, scopei, textDecoder, textEncoder, u16, u32, ui8;
-
-import {
-  AtomicScope
-} from "./0Ptr_scope.js";
-
-import {
-  KeyBase
-} from "./0Ptr_keybase.js";
-
-textEncoder = new TextEncoder();
-
-textDecoder = new TextDecoder();
-
-[obj, sab, i32, u32, f32, u16, ui8, dvw, LENDIAN = 0x3f === new Uint8Array(Float32Array.of(1).buffer)[0x3], INDEX_BYTE_LENGTH = -1, INDEX_PROTO_CLASS = -2, INDEX_PARENT_PTRI = -3, INDEX_ATOMIC_NEXT = -4, BYTES_PER_ELEMENT = 4, ITEMLENGTH_HEADER = 4, BYTELENGTH_HEADER = ITEMLENGTH_HEADER * BYTES_PER_ELEMENT, BYTEOFFSET_PARENT = BYTES_PER_ELEMENT * INDEX_PARENT_PTRI, INITIAL = 8] = [[null]];
-
 /*
 unless WorkerGlobalScope? then obj = []
 else obj = new Proxy [], get : ( ref, key) ->
@@ -49,7 +33,21 @@ else obj = new Proxy [], get : ( ref, key) ->
 obj.push null, u32, i32, ui8
 self.obj = obj #! remove
 */
-self.obj = obj;
+var BYTELENGTH_HEADER, BYTEOFFSET_PARENT, BYTES_PER_ELEMENT, INDEX_ATOMIC_NEXT, INDEX_BYTE_LENGTH, INDEX_PARENT_PTRI, INDEX_PROTO_CLASS, INITIAL, ITEMLENGTH_HEADER, LENDIAN, OFFSET_ATOMIC_NEXT, OFFSET_PARENT_PTRI, OFFSET_PROTO_CLASS, dvw, f32, i32, malloc, obj, sab, scopei, textDecoder, textEncoder, u16, u32, ui8;
+
+import {
+  Scope
+} from "./0Ptr_scope.js";
+
+import {
+  KeyBase
+} from "./0Ptr_keybase.js";
+
+textEncoder = new TextEncoder();
+
+textDecoder = new TextDecoder();
+
+[obj, sab, i32, u32, f32, u16, ui8, dvw, LENDIAN = 0x3f === new Uint8Array(Float32Array.of(1).buffer)[0x3], INDEX_BYTE_LENGTH = -1, INDEX_PROTO_CLASS = -2, INDEX_PARENT_PTRI = -3, INDEX_ATOMIC_NEXT = -4, OFFSET_PROTO_CLASS = INDEX_PROTO_CLASS * 4, OFFSET_PARENT_PTRI = INDEX_PARENT_PTRI * 4, OFFSET_ATOMIC_NEXT = INDEX_ATOMIC_NEXT * 4, BYTES_PER_ELEMENT = 4, ITEMLENGTH_HEADER = 4, BYTELENGTH_HEADER = ITEMLENGTH_HEADER * BYTES_PER_ELEMENT, BYTEOFFSET_PARENT = BYTES_PER_ELEMENT * INDEX_PARENT_PTRI, INITIAL = 8] = [null];
 
 malloc = function() {
   var byteLength, mod, next, ptr, ptri;
@@ -63,17 +61,22 @@ malloc = function() {
     next = ptri + ITEMLENGTH_HEADER + byteLength / 4;
     Atomics.store(u32, ptri + INDEX_ATOMIC_NEXT, next); //write byteLength
     Atomics.store(u32, ptri + INDEX_BYTE_LENGTH, byteLength); //write byteLength
-    return Atomics.store(u32, ptri + INDEX_PROTO_CLASS, scopei(ptr.constructor)); //write byteLength
+    return Atomics.store(u32, ptri + INDEX_PROTO_CLASS, ptr.scopei(ptr.constructor)); //write byteLength
   }
 };
 
 scopei = function() {
   var i;
+  console.warn({
+    i: arguments[1],
+    obji: arguments[0],
+    sci: this.scope.add(...arguments)
+  });
   if (arguments.length === 2) {
-    obj[arguments[1]] = arguments[0];
+    self.obj[arguments[1]] = arguments[0];
   }
-  if (-1 === (i = obj.indexOf(arguments[0]))) {
-    i += obj.push(arguments[0]);
+  if (-1 === (i = self.obj.indexOf(arguments[0]))) {
+    i += self.obj.push(arguments[0]);
   }
   return i;
 };
@@ -92,9 +95,10 @@ export var OPtr = (function() {
         Atomics.store(u32, 0, BYTES_PER_ELEMENT * INITIAL);
         Atomics.store(u32, 1, INITIAL);
       }
-      Object.defineProperty(this.prototype, "buffer", {
-        value: sab,
-        configurable: false
+      Object.defineProperties(this.prototype, {
+        buffer: {
+          value: sab
+        }
       });
       return console.warn("OPtr has been settled", this.prototype.buffer);
     }
@@ -116,10 +120,7 @@ export var OPtr = (function() {
                 if (!(ptri - Atomics.load(u32, i + INDEX_PARENT_PTRI))) {
                   Ptri = Atomics.load(u32, i + INDEX_PROTO_CLASS);
                   if (!pclass || pclass === Ptri) {
-                    if (typeof document === "undefined" || document === null) {
-                      console.error(Ptri);
-                    }
-                    children.push(new obj[Ptri](i * 4));
+                    children.push(new self.obj[Ptri](i * 4));
                   }
                 }
                 if (max < (i = Atomics.load(u32, i + INDEX_ATOMIC_NEXT))) {
@@ -129,7 +130,7 @@ export var OPtr = (function() {
               return children;
             }
           });
-        }).call(this.prototype, Prop, Proto === OPtr ? 0 : scopei(Proto));
+        }).call(this.prototype, Prop, (Proto === OPtr ? 0 : this.prototype.scopei(Proto)));
       }
       return this;
     }
@@ -228,7 +229,11 @@ export var OPtr = (function() {
     }
 
     objUint32() {
-      return obj[this.loadUint32(arguments[0])];
+      console.error(`${(typeof window !== "undefined" && window !== null) && 'window' || 'workler'}@scope.get:`, this.loadUint32(arguments[0]), {
+        result: this.scope.get(this.loadUint32(arguments[0])),
+        actual: self.obj[this.loadUint32(arguments[0])]
+      });
+      return self.obj[this.loadUint32(arguments[0])];
     }
 
     loadUint32() {
@@ -337,6 +342,8 @@ export var OPtr = (function() {
   OPtr.metaUrl = import.meta.url;
 
   OPtr.prototype.scopei = scopei;
+
+  OPtr.prototype.scope = new Scope(OPtr);
 
   OPtr.byteLength = 0;
 

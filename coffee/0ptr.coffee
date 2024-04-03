@@ -1,9 +1,10 @@
 #? this is zero pointer - fastest
-import { AtomicScope } from "./0Ptr_scope.js"
+import { Scope } from "./0Ptr_scope.js"
 import { KeyBase } from "./0Ptr_keybase.js"
 
 textEncoder     = new TextEncoder()
 textDecoder     = new TextDecoder()
+
 
 [  obj, sab, i32, u32, f32, u16, ui8, dvw ,
 
@@ -14,12 +15,16 @@ textDecoder     = new TextDecoder()
     INDEX_PARENT_PTRI   = -3
     INDEX_ATOMIC_NEXT   = -4
 
+    OFFSET_PROTO_CLASS  = INDEX_PROTO_CLASS * 4
+    OFFSET_PARENT_PTRI  = INDEX_PARENT_PTRI * 4
+    OFFSET_ATOMIC_NEXT  = INDEX_ATOMIC_NEXT * 4
+
     BYTES_PER_ELEMENT   = 4
     ITEMLENGTH_HEADER   = 4
     BYTELENGTH_HEADER   = ITEMLENGTH_HEADER * BYTES_PER_ELEMENT
     BYTEOFFSET_PARENT   = BYTES_PER_ELEMENT * INDEX_PARENT_PTRI
 
-    INITIAL = 8 ] = [ [ null ] ]
+    INITIAL = 8 ] = [ null ]
 
 ###
 unless WorkerGlobalScope? then obj = []
@@ -56,7 +61,6 @@ obj.push null, u32, i32, ui8
 self.obj = obj #! remove
 ###
 
-self.obj = obj
 
 malloc   = ->
     ptri = ( ptr = arguments[ 0 ] ) / 4
@@ -73,23 +77,28 @@ malloc   = ->
 
         Atomics.store u32, ptri + INDEX_ATOMIC_NEXT, next #write byteLength
         Atomics.store u32, ptri + INDEX_BYTE_LENGTH, byteLength #write byteLength
-        Atomics.store u32, ptri + INDEX_PROTO_CLASS, scopei ptr.constructor #write byteLength
+        Atomics.store u32, ptri + INDEX_PROTO_CLASS, ptr.scopei ptr.constructor #write byteLength
 
 scopei   = ->
-        
+    
+    console.warn i: arguments[1], obji: arguments[0] , sci: @scope.add arguments...
+
     if  arguments.length is 2
-        obj[arguments[1]] = arguments[0]
+        self.obj[arguments[1]] = arguments[0]
         
-    if -1 is i = obj.indexOf arguments[0]
-        i += obj.push arguments[0]
+    if -1 is i = self.obj.indexOf arguments[0]
+        i += self.obj.push arguments[0]
 
     ; i
+
 
 export class    OPtr extends Number
 
     @metaUrl    : `import.meta.url`
 
     scopei      : scopei
+
+    scope       : new Scope this
 
     @setup      : ->
         sab = arguments[0]
@@ -99,13 +108,14 @@ export class    OPtr extends Number
         u16 = new Uint16Array sab
         ui8 = new Uint8Array sab
         dvw = new DataView sab
+
     
         unless Atomics.load u32
             Atomics.store u32 , 0 , BYTES_PER_ELEMENT * INITIAL
             Atomics.store u32 , 1 , INITIAL
     
-        Object.defineProperty this::, "buffer",
-            value : sab , configurable : off
+        Object.defineProperties this::,
+            buffer : value : sab
 
         console.warn "OPtr has been settled", this::buffer
 
@@ -124,15 +134,13 @@ export class    OPtr extends Number
                 unless ptri - Atomics.load u32, i + INDEX_PARENT_PTRI
                     Ptri = Atomics.load u32, i + INDEX_PROTO_CLASS
                     if !pclass or pclass is Ptri
-                        console.error Ptri unless document?
-
-                        children.push new obj[ Ptri ] i * 4
+                        children.push new self.obj[ Ptri ] i * 4
                 break if max < i = Atomics.load u32, i + INDEX_ATOMIC_NEXT
 
             children
 
         ).call(
-            this::, Prop, if Proto is OPtr then 0 else scopei Proto
+            this::, Prop, (if Proto is OPtr then 0 else @::scopei Proto)
         ) for Prop, Proto of arguments[0]
 
         this
@@ -200,6 +208,7 @@ export class    OPtr extends Number
 
     ptrParent   : ( Ptr ) -> @ptrUint32 BYTEOFFSET_PARENT, Ptr
 
+
     lock        : -> Atomics.wait i32, @index4( arguments[0] ) ; this
 
     unlock      : -> Atomics.notify i32, @index4( arguments[0] ), arguments[1] or 1 ; this
@@ -215,7 +224,9 @@ export class    OPtr extends Number
 
     ptrUint32   : -> new( arguments[1] or Pointer ) ( @loadUint32 arguments[0] )
         
-    objUint32   : -> obj[ @loadUint32 arguments[0] ]
+    objUint32   : ->
+        console.error "#{window? && 'window' or 'workler'}@scope.get:", (@loadUint32 arguments[0]), result: @scope.get( @loadUint32 arguments[0]), actual: self.obj[ @loadUint32 arguments[0] ]
+        self.obj[ @loadUint32 arguments[0] ]
 
     loadUint32  : -> Atomics.load u32, @index4( arguments[0] )
     

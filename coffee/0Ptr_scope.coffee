@@ -14,26 +14,28 @@
 
     INITIAL = 8 ] = [ [] ]
 
-export class AtomicScope extends Array
+export class Scope extends Array
 
     @metaUrl    : `import.meta.url`
 
-    constructor : ->
-        
-        obj = super()
-        sab = arguments[0]
-        i32 = new Int32Array sab
-        u32 = new Uint32Array sab
-        f32 = new Float32Array sab
-        u16 = new Uint16Array sab
-        ui8 = new Uint8Array sab
-        dvw = new DataView sab
+    constructor : ( OPtr ) ->
+        super().push( null )
+        console.log OPtr::buffer
+
+    add         : ( item , i ) ->
+        @[ i ] = item if i > 0
+
+        if -1 is i = @indexOf item
+            i += @push new WeakRef item
+        i
+
+    get         : ( i ) ->
+        return @get @indexOf i if isNaN i
+        unless item = @at i
+            return if window?
+
+        item.deref()
+
     
-        unless Atomics.load u32
-            Atomics.store u32 , 0 , BYTES_PER_ELEMENT * INITIAL
-            Atomics.store u32 , 1 , INITIAL
 
-        Object.defineProperty proto, "buffer",
-            value : this.buffer
-
-export { AtomicScope as default }
+export { Scope as default }

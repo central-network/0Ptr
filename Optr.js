@@ -1,346 +1,262 @@
-//? this is zero pointer - fastest
-var BYTELENGTH_HEADER, BYTEOFFSET_PARENT, BYTES_PER_ELEMENT, INDEX_ATOMIC_NEXT, INDEX_BYTE_LENGTH, INDEX_PARENT_PTRI, INDEX_PROTO_CLASS, INITIAL, ITEMLENGTH_HEADER, LENDIAN, malloc, palloc, scopei;
-
-export var u32 = new Uint32Array(new SharedArrayBuffer(256));
-
-export var dvw = new DataView(u32.buffer);
-
-export var obj = [u32];
-
-export var KeyBase = (function() {
-  class KeyBase extends Object {
-    constructor(source = {}, options = {}) {
-      super().configure(options).add(source).scopeIndex = -1 + obj.push(this);
-    }
-
-    configure(options) {
-      var option, ref, symbol, value;
-      ref = this.defaults;
-      for (option in ref) {
-        value = ref[option];
-        symbol = this.constructor[option];
-        if (value == null) {
-          value = this.constructor.defaults[option];
-        }
-        Object.defineProperty(this, symbol, {value});
+Object.defineProperties(SharedArrayBuffer.prototype, {
+  LITTLE_ENDIAN: {
+    value: new Uint8Array(Uint32Array.of(1).buffer)[0] === 1
+  },
+  BYTES_PER_ELEMENT: {
+    value: 4
+  },
+  ITEMS_PER_POINTER: {
+    value: 12
+  },
+  BYTES_PER_POINTER: {
+    value: 4 * 12
+  },
+  DEFINE_INTEGER_ATOMICS: {
+    value: true
+  },
+  DEFINE_WAITLOCK_ATOMICS: {
+    value: true
+  },
+  DEFINE_FLOAT_ATOMICS: {
+    value: true
+  },
+  DEFINE_EXCHANGE_ATOMICS: {
+    value: true
+  },
+  DEFINE_DVIEW_MODIFIERS: {
+    value: true
+  },
+  DEFINE_TARRAY_MODIFIERS: {
+    value: true
+  },
+  defineIntegerAtomics: {
+    value: function() {
+      var caller, i, len, namePrefix, nameSuffix;
+      if (!this.DEFINE_INTEGER_ATOMICS) {
+        return this;
       }
-      return this;
-    }
-
-    static generate(source = {}) {
-      var base, key, label;
-      base = new this();
-      for (label in source) {
-        key = source[label];
-        Object.defineProperty(base.set(label, base[KeyBase.encode](key)), key, {
-          value: base[label]
+      nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
+      namePrefix = ["add", "sub", "load", "store", "and", "or", "xor"];
+      for (i = 0, len = namePrefix.length; i < len; i++) {
+        caller = namePrefix[i];
+        Object.defineProperty(this, caller + nameSuffix, {
+          value: Atomics[caller].bind(Atomics, arguments[0])
         });
       }
-      return base;
-    }
-
-    set(label, value, proto = this[KeyBase.extend]) {
-      var key;
-      if (!this[KeyBase.filter](value)) {
-        return;
-      }
-      if (this.hasOwnProperty(value)) {
-        return;
-      }
-      key = new (eval(`(class ${label} extends ${proto.name} {})`))(value);
-      Object.defineProperty(this, label, {
-        value: key
-      });
-      Object.defineProperty(this, value, {
-        value: key
-      });
       return this;
     }
-
-    add(source, proto = this[KeyBase.Extend]) {
-      var label, value;
-      for (label in source) {
-        value = source[label];
-        this.set(label, value);
+  },
+  defineWaitLockAtomics: {
+    value: function() {
+      var caller, i, len, namePrefix, nameSuffix;
+      if (!this.DEFINE_WAITLOCK_ATOMICS) {
+        return this;
+      }
+      nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
+      namePrefix = ["wait", "notify", "waitAsync"];
+      for (i = 0, len = namePrefix.length; i < len; i++) {
+        caller = namePrefix[i];
+        Object.defineProperty(this, caller + nameSuffix, {
+          value: Atomics[caller].bind(Atomics, arguments[0])
+        });
       }
       return this;
     }
+  },
+  defineFloatAtomics: {
+    value: function() {
+      var FloatArray, UintArray, caller, floatArray, handle, i, j, len, len1, namePrefix, nameSuffix, uIntArray;
+      if (!this.DEFINE_FLOAT_ATOMICS) {
+        return this;
+      }
+      [floatArray, uIntArray] = arguments[0];
+      [FloatArray, UintArray] = [floatArray.constructor, uIntArray.constructor];
+      nameSuffix = floatArray.constructor.name.replace(/View|Array/, "");
+      namePrefix = ["add", "sub", "store", "and", "or", "xor"];
+      for (i = 0, len = namePrefix.length; i < len; i++) {
+        caller = namePrefix[i];
+        handle = Atomics[caller].bind(Atomics, uIntArray);
+        Object.defineProperty(this, caller + nameSuffix, {
+          value: function() {
+            return handle(arguments[0], new UintArray(FloatArray.of(arguments[1]).buffer)[0]);
+          }
+        });
+      }
+      namePrefix = ["load"];
+      for (j = 0, len1 = namePrefix.length; j < len1; j++) {
+        caller = namePrefix[j];
+        handle = Atomics[caller].bind(Atomics, uIntArray);
+        Object.defineProperty(this, caller + nameSuffix, {
+          value: function() {
+            return new FloatArray(UintArray.of(handle(arguments[0])).buffer)[0];
+          }
+        });
+      }
+      return this;
+    }
+  },
+  defineExchangeAtomics: {
+    value: function() {
+      var caller, i, len, namePrefix, nameSuffix;
+      if (!this.DEFINE_EXCHANGE_ATOMICS) {
+        return this;
+      }
+      nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
+      namePrefix = ["exchange", "compareExchange"];
+      for (i = 0, len = namePrefix.length; i < len; i++) {
+        caller = namePrefix[i];
+        Object.defineProperty(this, caller + nameSuffix, {
+          value: Atomics[caller].bind(Atomics, arguments[0])
+        });
+      }
+      return this;
+    }
+  },
+  defineDataViewModifiers: {
+    value: function() {
+      var caller, dataView, handle, i, len, nameSuffix, ref;
+      if (!this.DEFINE_DVIEW_MODIFIERS) {
+        return this;
+      }
+      dataView = arguments[1];
+      nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
+      ref = ["get", "set"];
+      for (i = 0, len = ref.length; i < len; i++) {
+        caller = ref[i];
+        caller = caller + nameSuffix;
+        handle = dataView[caller].bind(dataView);
+        Object.defineProperty(this, caller, {
+          value: function() {
+            return handle(arguments[0], this.LITTLE_ENDIAN);
+          }
+        });
+      }
+      return this;
+    }
+  },
+  defineTArrayModifiers: {
+    value: function() {
+      var caller, i, len, modifiers, nameSuffix, results;
+      if (!this.DEFINE_TARRAY_MODIFIERS) {
+        return this;
+      }
+      nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
+      caller = `at${nameSuffix}`;
+      Object.defineProperty(this, caller, {
+        value: function() {
+          return typedArray[arguments[0]];
+        }
+      });
+      caller = `setarray${nameSuffix}`;
+      Object.defineProperty(this, caller, {
+        value: function() {
+          return typedArray.set(arguments[0], arguments[1]);
+        }
+      });
+      modifiers = ["subarray", "fill", "slice", "copyWithin", "entries", "every", "filter", "find", "findIndex", "findLast", "findLastIndex", "forEach", "includes", "indexOf", "join", "keys", "lastIndexOf", "map", "reduce", "reduceRight", "reverse", "some", "sort", "values", "with"];
+      results = [];
+      for (i = 0, len = modifiers.length; i < len; i++) {
+        caller = modifiers[i];
+        results.push(Object.defineProperty(this, caller + nameSuffix, {
+          value: arguments[0][caller].bind(arguments[0])
+        }));
+      }
+      return results;
+    }
+  },
+  init: {
+    value: function() {
+      var arrayPairs, dvw, f32, f64, i, i16, i32, i64, ii8, j, k, l, len, len1, len2, len3, len4, len5, m, n, ref, ref1, ref2, ref3, ref4, ref5, typedArray, u16, u32, u64, ui8;
+      ui8 = new Uint8Array(this);
+      ii8 = new Int8Array(this);
+      i16 = new Int16Array(this);
+      u16 = new Uint16Array(this);
+      u32 = new Uint32Array(this);
+      i32 = new Int32Array(this);
+      f32 = new Float32Array(this);
+      f64 = new Float64Array(this);
+      u64 = new BigUint64Array(this);
+      i64 = new BigInt64Array(this);
+      dvw = new DataView(this);
+      ref = [ui8, ii8, u16, i16, u32, i32, u64, i64];
+      for (i = 0, len = ref.length; i < len; i++) {
+        typedArray = ref[i];
+        this.defineIntegerAtomics.call(this, typedArray);
+      }
+      ref1 = [ui8, ii8, u16, i16, u32, i32, u64, i64];
+      for (j = 0, len1 = ref1.length; j < len1; j++) {
+        typedArray = ref1[j];
+        this.defineExchangeAtomics.call(this, typedArray);
+      }
+      ref2 = [i32, i64];
+      for (k = 0, len2 = ref2.length; k < len2; k++) {
+        typedArray = ref2[k];
+        this.defineWaitLockAtomics.call(this, typedArray);
+      }
+      ref3 = [ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64];
+      for (l = 0, len3 = ref3.length; l < len3; l++) {
+        typedArray = ref3[l];
+        this.defineDataViewModifiers.call(this, typedArray, dvw);
+      }
+      ref4 = [ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64];
+      for (m = 0, len4 = ref4.length; m < len4; m++) {
+        typedArray = ref4[m];
+        this.defineTArrayModifiers.call(this, typedArray);
+      }
+      ref5 = [[f32, i32], [f64, i64]];
+      for (n = 0, len5 = ref5.length; n < len5; n++) {
+        arrayPairs = ref5[n];
+        this.defineFloatAtomics.call(this, arrayPairs);
+      }
+      if (!ui8.length) {
+        this.grow(this.BYTES_PER_POINTER);
+      }
+      if (!this.orUint32(0, this.BYTES_PER_POINTER)) {
+        this.storeUint32(1, this.BYTES_PER_POINTER / 4);
+      }
+      console.log(this);
+      return this;
+    }
+  },
+  get: {
+    value: function(object) {
+      return object.__ptr__ != null ? object.__ptr__ : object.__ptr__ = this.malloc();
+    }
+  },
+  malloc: {
+    value: function() {
+      this.addUint32(1, this.ITEMS_PER_POINTER);
+      return this.addUint32(0, this.BYTES_PER_POINTER);
+    }
+  }
+});
 
-  };
+Object.defineProperties(Object.prototype, {
+  sab: {
+    configurable: true,
+    value: new SharedArrayBuffer(0, {
+      maxByteLength: Math.pow((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 1, 11)
+    }).init(self)
+  },
+  ptr: {
+    value: function() {
+      return {
+        get: this.sab.get(this),
+        set: this.sab.get("this"),
+        tet: this.sab.get([this])
+      };
+    }
+  }
+});
 
-  KeyBase.filter = Symbol.for("filter");
-
-  KeyBase.extend = Symbol.for("extend");
-
-  KeyBase.encode = Symbol.for("encode");
-
-  KeyBase.prototype.defaults = {
-    filter: function() {
-      return arguments[0];
+Object.defineProperties(Number.prototype, {
+  buffer: {
+    get: function() {
+      return this.sab;
     },
-    extend: Number,
-    encode: function() {
-      return [0, ...arguments[0]].reduce(function(a, b) {
-        return a + b.charCodeAt();
-      });
-    }
-  };
-
-  return KeyBase;
-
-}).call(this);
-
-export var Error = class Error {
-  constructor() {
-    console.error([...arguments].flat());
+    set: function() {}
+  },
+  ptr: {
+    value: function() {}
   }
-
-};
-
-LENDIAN = 0x3f === new Uint8Array(Float32Array.of(1).buffer)[0x3];
-
-INDEX_BYTE_LENGTH = -1;
-
-INDEX_PROTO_CLASS = -2;
-
-INDEX_PARENT_PTRI = -3;
-
-INDEX_ATOMIC_NEXT = -4;
-
-BYTES_PER_ELEMENT = 4;
-
-ITEMLENGTH_HEADER = 4;
-
-BYTELENGTH_HEADER = ITEMLENGTH_HEADER * BYTES_PER_ELEMENT;
-
-BYTEOFFSET_PARENT = BYTES_PER_ELEMENT * INDEX_PARENT_PTRI;
-
-Atomics.add(u32, 0, BYTES_PER_ELEMENT * (INITIAL = 6));
-
-Atomics.add(u32, 1, INITIAL = 6);
-
-palloc = Atomics.add.bind(Atomics, u32, 0, BYTELENGTH_HEADER);
-
-malloc = function() {
-  var byteLength, next, ptr, ptri;
-  ptri = (ptr = arguments[0]) / 4;
-  if (byteLength = ptr.constructor.byteLength) {
-    Atomics.add(u32, 0, byteLength);
-    Atomics.add(u32, 1, byteLength / 4);
-    next = ptri + ITEMLENGTH_HEADER + byteLength / 4;
-    Atomics.store(u32, ptri + INDEX_ATOMIC_NEXT, next); //write byteLength
-    Atomics.store(u32, ptri + INDEX_BYTE_LENGTH, byteLength); //write byteLength
-    return Atomics.store(u32, ptri + INDEX_PROTO_CLASS, scopei(ptr.constructor)); //write byteLength
-  }
-};
-
-try {
-  (scopei = function() {
-    var i;
-    if (-1 === (i = obj.indexOf(arguments[0]))) {
-      i += obj.push(arguments[0]);
-    }
-    return i;
-  })();
-} catch (error) {}
-
-export var Optr = (function() {
-  class Optr/* Õ𝓟ṭṙ */ extends Number {
-    static filter() {
-      var Prop, Proto, ref;
-      ref = arguments[0];
-      for (Prop in ref) {
-        Proto = ref[Prop];
-        (function(prop, pclass) {
-          return Object.defineProperty(this, prop, {
-            get: function() {
-              var Ptri, children, i, max, ptri;
-              i = INITIAL;
-              max = 2 + Atomics.load(u32, 1);
-              ptri = this * 1;
-              children = [];
-              while (true) {
-                if (!(ptri - Atomics.load(u32, i + INDEX_PARENT_PTRI))) {
-                  Ptri = Atomics.load(u32, i + INDEX_PROTO_CLASS);
-                  if (!pclass || pclass === Ptri) {
-                    children.push(new obj[Ptri](i * 4));
-                  }
-                }
-                if (max < (i = Atomics.load(u32, i + INDEX_ATOMIC_NEXT))) {
-                  break;
-                }
-              }
-              return children;
-            }
-          });
-        }).call(this.prototype, Prop, Proto === Optr ? 0 : scopei(Proto));
-      }
-      return this;
-    }
-
-    static reserv(proto, length = 1) {
-      var ALGINBYTES, BYTELENGTH, byteOffset, mod;
-      BYTELENGTH = length * (proto.byteLength || proto.BYTES_PER_ELEMENT);
-      ALGINBYTES = proto.BYTES_PER_ELEMENT || Math.max(proto.byteLength % 4, 4);
-      if (mod = this.byteLength % ALGINBYTES) {
-        mod = ALGINBYTES - mod;
-      } else {
-        mod = 0;
-      }
-      byteOffset = this.byteLength + mod;
-      Object.defineProperties(this, {
-        length: {
-          value: this.length + length,
-          writable: true
-        },
-        byteLength: {
-          writable: true,
-          value: byteOffset + BYTELENGTH
-        }
-      });
-      return byteOffset;
-    }
-
-    constructor() {
-      var O, argc, ptri;
-      if (!arguments[0]) {
-        malloc(super(ptri = palloc()));
-      // new Optr( offset1, offset2, ... )
-      } else if (argc = arguments.length) {
-        ptri = 0;
-        while (O = arguments[--argc]) {
-          ptri += O;
-        }
-        super(ptri);
-      }
-      try {
-        if (!ptri) {
-          // slient error notify
-          new Error(["OFFSET_POINTER_IS_ZERO", `new ${this.constructor.name}(${[...arguments]})`, ptri]);
-        }
-      } catch (error) {}
-    }
-
-    index4() {
-      return (this + arguments[0] || 0) / 4;
-    }
-
-    index2() {
-      return (this + arguments[0] || 0) / 2;
-    }
-
-    offset() {
-      return this + arguments[0] || 0;
-    }
-
-    attach(ptr) {
-      return this.storeUint32(BYTEOFFSET_PARENT, ptr);
-    }
-
-    ptrParent(Ptr) {
-      return this.ptrUint32(BYTEOFFSET_PARENT, Ptr);
-    }
-
-    ptrUint32() {
-      return new (arguments[1] || Pointer)(this.loadUint32(arguments[0]));
-    }
-
-    objUint32() {
-      return obj[this.loadUint32(arguments[0])];
-    }
-
-    loadUint32() {
-      return Atomics.load(u32, this.index4(arguments[0]));
-    }
-
-    storeUint32() {
-      return Atomics.store(u32, this.index4(arguments[0]), arguments[1]);
-    }
-
-    addUint32() {
-      return Atomics.add(u32, this.index4(arguments[0]), arguments[1]);
-    }
-
-    andUint32() {
-      return Atomics.and(u32, this.index4(arguments[0]), arguments[1]);
-    }
-
-    waitUint32() {
-      return Atomics.wait(u32, this.index4(arguments[0]), arguments[1]);
-    }
-
-    orUint32() {
-      return Atomics.or(u32, this.index4(arguments[0]), arguments[1]);
-    }
-
-    xorUint32() {
-      return Atomics.xor(u32, this.index4(arguments[0]), arguments[1]);
-    }
-
-    keyUint32() {
-      return arguments[1][this.getUint32(arguments[0])];
-    }
-
-    getUint32() {
-      return dvw.getUint32(this + arguments[0], LENDIAN);
-    }
-
-    setUint32() {
-      dvw.setUint32(this + arguments[0], arguments[1], LENDIAN);
-      return arguments[1];
-    }
-
-    keyUint8() {
-      return arguments[1][this.getUint8(arguments[0])];
-    }
-
-    getUint8() {
-      return dvw.getUint8(this + arguments[0]);
-    }
-
-    setUint8() {
-      dvw.setUint8(this + arguments[0], arguments[1]);
-      return arguments[1];
-    }
-
-    keyUint16() {
-      return arguments[1][this.getUint16(arguments[0])];
-    }
-
-    getUint16() {
-      return dvw.getUint16(this + arguments[0], LENDIAN);
-    }
-
-    setUint16() {
-      dvw.setUint16(this + arguments[0], arguments[1], LENDIAN);
-      return arguments[1];
-    }
-
-    getFloat32() {
-      return dvw.getFloat32(this + arguments[0], LENDIAN);
-    }
-
-    setFloat32() {
-      dvw.setFloat32(this + arguments[0], arguments[1], LENDIAN);
-      return arguments[1];
-    }
-
-  };
-
-  Optr.prototype.buffer = u32.buffer;
-
-  Optr.prototype.scopei = scopei;
-
-  Optr.byteLength = 0;
-
-  return Optr;
-
-}).call(this);
-
-export {
-  Optr as default
-};
-
-self.onclick = function() {
-  return console.warn(obj);
-};
+});

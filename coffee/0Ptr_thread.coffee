@@ -1,4 +1,4 @@
-import { AtomicScope } from "./0Ptr_scope.js"
+import { Scope } from "./0Ptr_scope.js"
 import { KeyBase } from "./0Ptr_keybase.js"
 import { OPtr } from "./0Ptr.js"
 
@@ -39,7 +39,7 @@ export class Thread extends OPtr
     OFFSET_IMPORTS          : @reserv Uint8Array, 4 + 256 * 20
 
     imports                 : [
-        { modules: [ "AtomicScope" ], metaUrl : AtomicScope.metaUrl}
+        { modules: [ "Scope" ], metaUrl : Scope.metaUrl}
         { modules: [ "KeyBase" ], metaUrl : KeyBase.metaUrl}
         { modules: [ "OPtr" ], metaUrl : OPtr.metaUrl}
         { modules: [ "Thread" ], metaUrl : Thread.metaUrl}
@@ -92,7 +92,7 @@ export class Thread extends OPtr
         @copyUint8 @OFFSET_DATA_ARRAY, data
         @storeUint32 @OFFSET_DATA_LENGTH, data.byteLength
 
-    init                    : ( handler, ptr ) ->
+    init                    : ( ptr, handler ) ->
         @[ @kSelf ] = self
         @uuid = crypto.randomUUID()
 
@@ -127,22 +127,95 @@ export class Thread extends OPtr
         bc.postMessage { type, data, ptri: +this }
         return this.lock().data
 
-    createProxy             : ( name, props = {} ) ->
+    getScopeiProp           : ( ref, prop ) ->
+        type = ref[prop]
+        name = ref.__name__
+        scopei = ref.__scopei__
+
+        console.log "getting scopei.prop:", { prop, type }
+
+        result = @postMessage "getScopeiProp", { scopei, prop }
+        console.log "result scopei.prop:", result
+
+
+        result.prop
+
+    createProxy             : ( scopei, name, props = {} ) ->
         name = "#{ name }".substring 0 , 64
         proto = new (eval("(class #{name} {})"))()
-        ref = Object.assign proto, props
-        new Proxy ref, {}
+
+        console.warn "creatingproxy", { scopei, name, props }
+
+        _thssi = this
+        getter = ( key ) ->
+            _thssi.postMessage "getScopeiProp", { scopei, key }
+
+        getters = ( prop, key ) ->
+            _thssi.postMessage "getScopeiProps", { scopei, prop, key }
+
+        Object.defineProperties proto,
+            __scopei__  : value : scopei
+            __name__    : value : name
+
+        for key , type of props 
+
+            if  type is "function"
+                Object.defineProperty proto, key,
+                    value : ->
+
+            else if type is "object"
+                Object.defineProperty proto, key,
+                    get : ->
+                        new Proxy new (eval("(class #{key} {})"))(), {}
+
+            else
+                Object.defineProperty proto, key,
+                    get : ->
+                        { type, prop } = getter key
+                        prop
+                        
+                    set : ->
+
+        new Proxy proto, {
+            get : ( ref, key ) ->
+                { type, prop } = getter key
+
+                if type isnt "object"
+                    return prop
+
+                props = getters prop, key
+                target = new (eval("(class #{key} {})"))()
+
+                for k, t in props
+                    if t is "function"
+                        Object.defineProperty target, k,
+                            value : ->
+
+                    else if t is "object"
+                        Object.defineProperty target, k,
+                            get : ->
+                            
+                    else
+                        Object.defineProperty target, k,
+                            get : ->
+                            set : ->
+
+
+                new Proxy target, {}
+
+            set : ->
+        }
 
     loadScopei              : ( scopei ) ->
 
-        return obji if obji = self.obj[ scopei ]
-
-        { name, props } =
+        { type, name, props } =
             @postMessage "loadScopei", scopei
 
-        self.obj[ scopei ] =
-            @createProxy name , props         
+        object = switch type
+            when "prototype" then self.imports[ name ]
+            when "object" then @createProxy scopei, name , props         
 
+        self.obj[ scopei ] = object
 
     old                : ->
 
@@ -244,13 +317,20 @@ export class Thread extends OPtr
 export { Thread as default }
 
 if  window? and document?
+    self.obj = [ null ]
     OPtr.setup new SharedArrayBuffer 1024 * 1024
     self.onclick = -> console.warn obj
     self.name = "window"
 
 else addEventListener "message", ( e ) ->
-    OPtr . setup e.data.buffer
-    new Thread( +self.name ).initDedicated()
+
+    OPtr.setup e.data.buffer
+    thread = new Thread( +self.name )
+
+    self.obj = new Proxy [ null ], get : ( _obj, i ) ->
+        _obj[ i ] ? thread.loadScopei i
+
+    thread.initDedicated()
     dispatchEvent new CustomEvent "ready",
         { detail : e.data.ptri }
     
@@ -279,26 +359,55 @@ bc.onmessage = ->
 
             if !obj[ scopei = data ]?
                 ptr . unlock()
-                throw [ "NONONONNOONO" ]
+                throw [ "NONONONNOONO", data, obj ]
+
+            if  OPtr.isPrototypeOf obj[ scopei ]
+                ptr.data = {
+                    type : "prototype"
+                    name : obj[ scopei ].name
+                }
+
+                return ptr.unlock()
 
             switch typeof obj[ scopei ]
                 when "object"
 
                     obji = obj[ scopei ]
                     name = obji.constructor.name or obji.name
-                    data = { name , props : {} }
+                    data = { type: "object", name , props : {} }
 
                     for prop , desc of obji
-                        data . props[ prop ] =
-                            typeof desc
+                        data . props[ prop ] = typeof desc
 
                     ptr . data = data
                     ptr . unlock()
 
-        when "getObjectProp"
+        when "getScopeiProps"
             return unless obj[ data.scopei ]
-            ptr . data = obj[ data.scopei ][ data.prop ]
-            ptr . unlock()
+
+            prop = obj[ data.scopei ][ data.prop ]
+            type = typeof prop
+            name = prop?.constructor.name or prop?.name
+
+            props = {}
+            for key of prop[ data.key ]
+                props[ key ] = {
+                    name : key,
+                    type : typeof prop[key]
+                }
+
+            ptr.data = { type, name, prop }
+            ptr.unlock()
+
+        when "getScopeiProp"
+            return unless obj[ data.scopei ]
+
+            prop = obj[ data.scopei ][ data.prop ]
+            type = typeof prop
+            name = prop?.constructor.name or prop?.name
+
+            ptr.data = { type, name, prop }
+            ptr.unlock()
                     
         when "setObjectProp"
             return unless obj[ data.scopei ]

@@ -1,10 +1,6 @@
 var kBody, kDocument, kScreen, kWindow;
 
 import {
-  AtomicScope
-} from "./0Ptr_scope.js";
-
-import {
   KeyBase
 } from "./0Ptr_keybase.js";
 
