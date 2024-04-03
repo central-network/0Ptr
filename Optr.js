@@ -1,4 +1,15 @@
+if (typeof document !== "undefined" && document !== null) {
+  Object.defineProperties(Node, {
+    byteLength: {
+      value: 4 * 64
+    }
+  });
+}
+
 Object.defineProperties(SharedArrayBuffer.prototype, {
+  SYMBOL_0PTR: {
+    value: Symbol.for("0Ptr")
+  },
   LITTLE_ENDIAN: {
     value: new Uint8Array(Uint32Array.of(1).buffer)[0] === 1
   },
@@ -164,6 +175,9 @@ Object.defineProperties(SharedArrayBuffer.prototype, {
       return results;
     }
   },
+  scope: {
+    value: {}
+  },
   init: {
     value: function() {
       var arrayPairs, dvw, f32, f64, i, i16, i32, i64, ii8, j, k, l, len, len1, len2, len3, len4, len5, m, n, ref, ref1, ref2, ref3, ref4, ref5, typedArray, u16, u32, u64, ui8;
@@ -214,19 +228,45 @@ Object.defineProperties(SharedArrayBuffer.prototype, {
       if (!this.orUint32(0, this.BYTES_PER_POINTER)) {
         this.storeUint32(1, this.BYTES_PER_POINTER / 4);
       }
-      console.log(this);
-      return this;
+      return self.base = this;
     }
   },
   get: {
     value: function(object) {
-      return object.__ptr__ != null ? object.__ptr__ : object.__ptr__ = this.malloc();
+      var ptri;
+      if (!Object.hasOwn(object, this.SYMBOL_0PTR)) {
+        Object.defineProperty(object, this.SYMBOL_0PTR, {
+          value: ptri = this.malloc(object)
+        });
+        Object.defineProperty(this.scope, ptri, {
+          value: object
+        });
+      }
+      return object[this.SYMBOL_0PTR];
     }
   },
   malloc: {
     value: function() {
-      this.addUint32(1, this.ITEMS_PER_POINTER);
-      return this.addUint32(0, this.BYTES_PER_POINTER);
+      var byteLength, byteOffset, protoClass;
+      protoClass = arguments[0].constructor;
+      byteLength = this.BYTES_PER_POINTER;
+      if (protoClass != null ? protoClass.byteLength : void 0) {
+        byteLength += protoClass.byteLength;
+      }
+      if (this.byteLength < (byteOffset = byteLength + this.byteOffset)) {
+        byteOffset += this.BYTES_PER_ELEMENT * 4096;
+        if (this.maxByteLength < byteOffset) {
+          throw ["MAX_GROWABLE_MEMORY_LENGTH_EXCEED", this];
+        }
+        this.grow(byteOffset);
+      }
+      this.addUint32(1, 1);
+      return this.addUint32(0, byteLength);
+    }
+  },
+  byteOffset: {
+    get: function() {
+      return this.loadUint32(0);
     }
   }
 });
@@ -242,21 +282,13 @@ Object.defineProperties(Object.prototype, {
     value: function() {
       return {
         get: this.sab.get(this),
-        set: this.sab.get("this"),
-        tet: this.sab.get([this])
+        set: this.sab.get(window),
+        tet: this.sab.get(new Set()),
+        det: this.sab.get((function() {
+          return 1;
+        })),
+        def: this.sab.get(window)
       };
     }
-  }
-});
-
-Object.defineProperties(Number.prototype, {
-  buffer: {
-    get: function() {
-      return this.sab;
-    },
-    set: function() {}
-  },
-  ptr: {
-    value: function() {}
   }
 });

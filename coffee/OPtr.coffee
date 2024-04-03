@@ -1,4 +1,10 @@
+if  document?
+    Object.defineProperties Node,
+        byteLength              : value : 4 * 64
+
 Object.defineProperties SharedArrayBuffer::,
+
+    SYMBOL_0PTR             : value : Symbol.for "0Ptr"
 
     LITTLE_ENDIAN           : value : new Uint8Array(Uint32Array.of(1).buffer)[0] is 1
 
@@ -7,6 +13,7 @@ Object.defineProperties SharedArrayBuffer::,
     ITEMS_PER_POINTER       : value : 12
 
     BYTES_PER_POINTER       : value : 4 * 12
+
 
     DEFINE_INTEGER_ATOMICS  : value : on
     
@@ -157,6 +164,8 @@ Object.defineProperties SharedArrayBuffer::,
                 value : arguments[0][ caller ].bind arguments[0]
 
 
+    scope                   : value : {}
+
     init                    : value : ->
 
         ui8 = new Uint8Array        this
@@ -194,16 +203,40 @@ Object.defineProperties SharedArrayBuffer::,
         unless @orUint32 0, @BYTES_PER_POINTER
             @storeUint32 1, @BYTES_PER_POINTER / 4
 
-        console.log this
-
-        this
+        self.base = this
     
     get     : value : ( object ) ->
-        object.__ptr__ ?= @malloc()
+
+        unless Object.hasOwn object, @SYMBOL_0PTR
+            
+            Object.defineProperty object, @SYMBOL_0PTR,
+                value : ptri = @malloc object
+
+            Object.defineProperty @scope, ptri,
+                value : object
+        
+        return object[ @SYMBOL_0PTR ]
 
     malloc  : value : ->
-        @addUint32 1, @ITEMS_PER_POINTER
-        @addUint32 0, @BYTES_PER_POINTER
+        
+        protoClass = arguments[0].constructor
+        byteLength = @BYTES_PER_POINTER
+
+        if  protoClass?.  byteLength 
+            byteLength += protoClass.byteLength
+
+        if  @byteLength < byteOffset = byteLength + @byteOffset 
+            byteOffset += @BYTES_PER_ELEMENT * 4096
+
+            if  @maxByteLength < byteOffset
+                throw [ "MAX_GROWABLE_MEMORY_LENGTH_EXCEED", @ ]
+
+            @grow byteOffset
+
+        @addUint32 1, 1
+        @addUint32 0, byteLength
+
+    byteOffset : get : -> @loadUint32 0
 
 Object.defineProperties Object::,
 
@@ -218,18 +251,7 @@ Object.defineProperties Object::,
 
     ptr : value : ->
         get : @sab.get( this )
-        set : @sab.get( "this" )
-        tet : @sab.get( [this] )
-
-
-Object.defineProperties Number::,
-
-
-
-    buffer :
-        get : -> @sab
-        set : ->
-
-    ptr    :
-        value :  ->
-
+        set : @sab.get( window )
+        tet : @sab.get( new Set() )
+        det : @sab.get( ( -> 1 ) )
+        def : @sab.get( window )
