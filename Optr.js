@@ -1,4 +1,4 @@
-var Display, HTMLDocument, Pointer, RefLink, Scope, Thread, Viewport, Window;
+var Display, Element, HTMLCanvasElement, HTMLDocument, HTMLElement, Node, Pointer, RefLink, Scope, Thread, Viewport, Window;
 
 if (typeof document !== "undefined" && document !== null) {
   queueMicrotask(function() {
@@ -15,7 +15,7 @@ if (typeof document !== "undefined" && document !== null) {
     type = document.currentScript.type || "application/javascript";
     head = (() => {
       var imports, libs, names, url;
-      imports = [Window, HTMLDocument, Thread, Scope, Pointer];
+      imports = [Window, Node, Element, HTMLElement, HTMLDocument, HTMLCanvasElement, Thread, Scope, Pointer];
       libs = imports.flatMap(function(m) {
         return ["export ", m, "\n\n"];
       });
@@ -28,13 +28,12 @@ if (typeof document !== "undefined" && document !== null) {
     init = function(onready) {
       return addEventListener("message", function(e) {
         var window;
-        self.window = new (window = class window extends Window {});
-        return onready.call(new Thread(e.data));
+        return onready.call(new Thread(e.data, new (window = class window extends Window {})));
       });
     };
     results = [];
     for (i = j = 0, ref = (typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 2; (0 <= ref ? j < ref : j > ref); i = 0 <= ref ? ++j : --j) {
-      results.push(new Worker(URL.createObjectURL(new Blob([`${head}(${init})(${code})`.replace(/\s+/g, " ")], {type})), {
+      results.push(new Worker(URL.createObjectURL(new Blob([`${head}(${init})`.replace(/\s+/g, " "), code], {type})), {
         type: "module",
         name: i
       }).postMessage(data));
@@ -61,9 +60,20 @@ Object.defineProperties(Symbol, {
 Window = class Window {
   constructor() {
     var document;
-    Object.defineProperties(this, {
+    Object.defineProperties(self, {
+      window: {
+        value: this
+      },
       document: {
         value: new (document = class document extends HTMLDocument {})
+      }
+    });
+    Object.defineProperties(Window.prototype, {
+      self: {
+        value: self
+      },
+      document: {
+        value: self.document
       }
     });
     Object.defineProperties(Thread, {
@@ -77,15 +87,27 @@ Window = class Window {
         value: Thread.maxLength * 4
       }
     });
-    self.document = this.document;
   }
 
 };
 
-HTMLDocument = class HTMLDocument {
+Node = class Node {};
+
+Element = class Element extends Node {};
+
+HTMLElement = class HTMLElement extends Element {};
+
+HTMLDocument = class HTMLDocument extends HTMLElement {
   getElementById() {}
 
+  querySelector() {
+    var canvas;
+    return new (canvas = class canvas extends HTMLCanvasElement {});
+  }
+
 };
+
+HTMLCanvasElement = class HTMLCanvasElement extends HTMLElement {};
 
 Thread = class Thread {
   constructor(buffer) {

@@ -6,9 +6,10 @@ if  document? then queueMicrotask ->
     Atomics.store new Uint32Array(data), 0, 8
 
     code = document.currentScript.text or throw [ "NEED_SOME_CODE" ]
-    type = document.currentScript.type or "application/javascript"
+    type = document.currentScript.type or ("application/javascript")
+    
     head = do =>
-        imports = [ Window, HTMLDocument, Thread, Scope, Pointer ]
+        imports = [ Window, Node, Element, HTMLElement, HTMLDocument, HTMLCanvasElement, Thread, Scope, Pointer ]
         
         libs = imports.flatMap( (m) -> [ "export ", m , "\n\n" ] )
         names = imports.map( (m) -> ( m . name ) ).join(", ")
@@ -18,13 +19,17 @@ if  document? then queueMicrotask ->
 
     init = ( onready ) -> addEventListener "message", ( e ) ->
 
-        self.window = new (class window extends Window)
-        onready.call new Thread e.data
+        onready.call new Thread e.data, new class window extends Window        
 
     for i in [ 0 ... navigator?.hardwareConcurrency or 2 ]
-        new Worker(URL.createObjectURL( new Blob(
-            [ "#{head}(#{init})(#{code})".replace /\s+/g, " " ]
-        ,{ type })), { type: "module", name: i }).postMessage(data)
+        new Worker(
+            URL.createObjectURL(
+                new Blob(
+                    [ "#{head}(#{init})".replace( /\s+/g, " " ), code ],
+                    { type }
+                )),
+            { type: "module", name: i }
+        ).postMessage( data )
 
 
 Object.defineProperties Object::,
@@ -41,10 +46,18 @@ Object.defineProperties Symbol,
 class Window
 
     constructor : ->
+        
+        Object.defineProperties self,
 
-        Object.defineProperties this,
+            window                  : value : this
 
-            document                : value : new (class document extends HTMLDocument)
+            document                : value : new class document extends HTMLDocument
+        
+        Object.defineProperties Window::,
+
+            self                    : value : self
+
+            document                : value : self.document
 
         Object.defineProperties Thread,
 
@@ -55,12 +68,21 @@ class Window
             maxByteLength           : value : Thread.maxLength * 4
 
 
-        self.document = this.document
 
-class HTMLDocument
+class Node
+
+class Element           extends Node
+
+class HTMLElement       extends Element
+
+class HTMLDocument      extends HTMLElement
     
-    getElementById : ->
+    getElementById  : ->
 
+    querySelector   : ->
+        new class canvas extends HTMLCanvasElement
+
+class HTMLCanvasElement extends HTMLElement
 
 class Thread
 
