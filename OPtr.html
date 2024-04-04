@@ -69,25 +69,10 @@
         </style>
     </head>
     <body onclick="console.log(self.base)" >
-        <script type="module">
-            import {Pointer, Display, Viewport, RefLink } from "./OPtr.js"
-
-            let display = new Display();
-            let viewport = new Viewport();
-
-            console.log(display);
-            console.log(viewport);
-
-            let docptr = document.toPointer();
-
-            console.log( docptr );
-            console.log(12..toPointer());
-            
-            display.add( document );
-            display.add( viewport );
-
-            console.log(24..toPointer( Viewport ));
-            console.log(display.findAllChilds( RefLink ));
+        <script src="OPtr.js" type="application/javascript">
+            (function (){
+                console.log( document.getElementById("testid") )
+            })
         </script>
     </body>
 </html>

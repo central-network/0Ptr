@@ -1,6 +1,31 @@
-if  document?
-    Object.defineProperties Node,
-        byteLength              : value : 4 * 64
+if  document? then queueMicrotask ->
+    size = Math.pow( navigator?.deviceMemory or 2 , 11 ) / 4
+    data = new SharedArrayBuffer 4 , { maxByteLength: size }
+
+    Atomics.store new Uint32Array(data), 0, 2
+    Atomics.store new Uint32Array(data), 0, 8
+
+    code = document.currentScript.text or throw [ "NEED_SOME_CODE" ]
+    type = document.currentScript.type or "application/javascript"
+    head = do =>
+        imports = [ Window, HTMLDocument, Thread, Scope, Pointer ]
+        
+        libs = imports.flatMap( (m) -> [ "export ", m , "\n\n" ] )
+        names = imports.map( (m) -> ( m . name ) ).join(", ")
+        url = URL.createObjectURL new Blob libs, { type }
+
+        "import {#{names}} from '#{url}';\n"
+
+    init = ( onready ) -> addEventListener "message", ( e ) ->
+
+        self.window = new (class window extends Window)
+        onready.call new Thread e.data
+
+    for i in [ 0 ... navigator?.hardwareConcurrency or 2 ]
+        new Worker(URL.createObjectURL( new Blob(
+            [ "#{head}(#{init})(#{code})".replace /\s+/g, " " ]
+        ,{ type })), { type: "module", name: i }).postMessage(data)
+
 
 Object.defineProperties Object::,
 
@@ -13,23 +38,43 @@ Object.defineProperties Symbol,
     pointer                 :
         value               : "{[Pointer]}"
 
-class Memory extends SharedArrayBuffer
+class Window
 
-    @uuid                   : crypto.randomUUID()
+    constructor : ->
 
-    @threadType             : window? && "window" or "worker"
+        Object.defineProperties this,
 
-    @maxLength              : Math.pow( navigator?.deviceMemory or 2 , 11 ) / 4
+            document                : value : new (class document extends HTMLDocument)
 
-    @maxByteLength          : @maxLength * 4
+        Object.defineProperties Thread,
 
-    constructor             : ( byteLength = 0 ) ->
+            uuid                    : value : crypto.randomUUID()
 
-        super byteLength, {
-            maxByteLength : Memory.maxByteLength
-        }
+            maxLength               : value : Math.pow( navigator?.deviceMemory or 2 , 11 ) / 4
+        
+            maxByteLength           : value : Thread.maxLength * 4
 
-        @defineProperties()
+
+        self.document = this.document
+
+class HTMLDocument
+    
+    getElementById : ->
+
+
+class Thread
+
+    constructor             : ( buffer ) ->
+
+        @name = self.name
+
+        Object.defineProperties Pointer::,
+            buffer : value : buffer
+
+        #console.log "pointer buffer settled up", buffer
+        
+
+        #@defineProperties()
 
     defineIntegerAtomics    : ->
 
@@ -211,8 +256,7 @@ class Memory extends SharedArrayBuffer
 
         this
                 
-
-class Scope extends Array
+class Scope     extends Array
 
     constructor : ->
         super().push(null)
@@ -241,14 +285,13 @@ class Scope extends Array
         [ object , i ] = [ arguments..., this.length ]
         ( this[ i ] = new WeakRef object ) ; return i
 
-class Pointer extends Number
+class Pointer   extends Number
 
     @TypedArray             : Uint32Array
 
     @byteLength             : 0
 
     scope                   : new Scope()
-
 
     HINDEX_PROTOCLASS       : 7
 
@@ -338,7 +381,7 @@ Object.defineProperties Pointer,
 
     buffer                  :
             configurable    : on
-            value           : new Memory( 4 * 1e7 )
+            value           : 2#new Thread( 4 * 1e7 )
 
     array                   :
             value           : -> 
@@ -346,10 +389,11 @@ Object.defineProperties Pointer,
     #! <--- HEADER's SHARED ARRAY BUFFER ONLY
     header                  :
             configurable    : on
-            value           : new Memory( 12 * 1e5 )
+            value           : 1#new Thread( 12 * 1e5 )
 
     GetNewIndex             :
             get             : ->
+                return 1;
                 @header.addUint32 0, @BYTES_PER_POINTER
                 @header.addUint32 1, @ITEMS_PER_POINTER
 
@@ -561,4 +605,5 @@ Object.defineProperties Viewport::,
     background              :
         get                 : ->
 
-export { Pointer as default, Pointer, Display, Viewport, RefLink }
+#export { Pointer as default, Pointer, Display, Viewport, RefLink }
+

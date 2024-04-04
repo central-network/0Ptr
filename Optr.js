@@ -1,10 +1,45 @@
-var Display, Memory, Pointer, RefLink, Scope, Viewport;
+var Display, HTMLDocument, Pointer, RefLink, Scope, Thread, Viewport, Window;
 
 if (typeof document !== "undefined" && document !== null) {
-  Object.defineProperties(Node, {
-    byteLength: {
-      value: 4 * 64
+  queueMicrotask(function() {
+    var code, data, head, i, init, j, ref, results, size, type;
+    size = Math.pow((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 2, 11) / 4;
+    data = new SharedArrayBuffer(4, {
+      maxByteLength: size
+    });
+    Atomics.store(new Uint32Array(data), 0, 2);
+    Atomics.store(new Uint32Array(data), 0, 8);
+    code = document.currentScript.text || (function() {
+      throw ["NEED_SOME_CODE"];
+    })();
+    type = document.currentScript.type || "application/javascript";
+    head = (() => {
+      var imports, libs, names, url;
+      imports = [Window, HTMLDocument, Thread, Scope, Pointer];
+      libs = imports.flatMap(function(m) {
+        return ["export ", m, "\n\n"];
+      });
+      names = imports.map(function(m) {
+        return m.name;
+      }).join(", ");
+      url = URL.createObjectURL(new Blob(libs, {type}));
+      return `import {${names}} from '${url}';\n`;
+    })();
+    init = function(onready) {
+      return addEventListener("message", function(e) {
+        var window;
+        self.window = new (window = class window extends Window {});
+        return onready.call(new Thread(e.data));
+      });
+    };
+    results = [];
+    for (i = j = 0, ref = (typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 2; (0 <= ref ? j < ref : j > ref); i = 0 <= ref ? ++j : --j) {
+      results.push(new Worker(URL.createObjectURL(new Blob([`${head}(${init})(${code})`.replace(/\s+/g, " ")], {type})), {
+        type: "module",
+        name: i
+      }).postMessage(data));
     }
+    return results;
   });
 }
 
@@ -23,195 +58,216 @@ Object.defineProperties(Symbol, {
   }
 });
 
-Memory = (function() {
-  class Memory extends SharedArrayBuffer {
-    constructor(byteLength = 0) {
-      super(byteLength, {
-        maxByteLength: Memory.maxByteLength
+Window = class Window {
+  constructor() {
+    var document;
+    Object.defineProperties(this, {
+      document: {
+        value: new (document = class document extends HTMLDocument {})
+      }
+    });
+    Object.defineProperties(Thread, {
+      uuid: {
+        value: crypto.randomUUID()
+      },
+      maxLength: {
+        value: Math.pow((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 2, 11) / 4
+      },
+      maxByteLength: {
+        value: Thread.maxLength * 4
+      }
+    });
+    self.document = this.document;
+  }
+
+};
+
+HTMLDocument = class HTMLDocument {
+  getElementById() {}
+
+};
+
+Thread = class Thread {
+  constructor(buffer) {
+    this.name = self.name;
+    Object.defineProperties(Pointer.prototype, {
+      buffer: {
+        value: buffer
+      }
+    });
+  }
+
+  //console.log "pointer buffer settled up", buffer
+
+  //@defineProperties()
+  defineIntegerAtomics() {
+    var caller, j, len, namePrefix, nameSuffix;
+    nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
+    namePrefix = ["sub", "load", "store", "and", "or", "xor", "add"];
+    for (j = 0, len = namePrefix.length; j < len; j++) {
+      caller = namePrefix[j];
+      Object.defineProperty(this, caller + nameSuffix, {
+        value: Atomics[caller].bind(Atomics, arguments[0])
       });
-      this.defineProperties();
     }
+    return this;
+  }
 
-    defineIntegerAtomics() {
-      var caller, j, len, namePrefix, nameSuffix;
-      nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
-      namePrefix = ["sub", "load", "store", "and", "or", "xor", "add"];
-      for (j = 0, len = namePrefix.length; j < len; j++) {
-        caller = namePrefix[j];
-        Object.defineProperty(this, caller + nameSuffix, {
-          value: Atomics[caller].bind(Atomics, arguments[0])
-        });
-      }
-      return this;
+  defineWaitLockAtomics() {
+    var caller, j, len, namePrefix, nameSuffix;
+    nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
+    namePrefix = ["wait", "notify", "waitAsync"];
+    for (j = 0, len = namePrefix.length; j < len; j++) {
+      caller = namePrefix[j];
+      Object.defineProperty(this, caller + nameSuffix, {
+        value: Atomics[caller].bind(Atomics, arguments[0])
+      });
     }
+    return this;
+  }
 
-    defineWaitLockAtomics() {
-      var caller, j, len, namePrefix, nameSuffix;
-      nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
-      namePrefix = ["wait", "notify", "waitAsync"];
-      for (j = 0, len = namePrefix.length; j < len; j++) {
-        caller = namePrefix[j];
-        Object.defineProperty(this, caller + nameSuffix, {
-          value: Atomics[caller].bind(Atomics, arguments[0])
-        });
-      }
-      return this;
+  defineFloatAtomics() {
+    var FloatArray, UintArray, caller, floatArray, handle, j, k, len, len1, namePrefix, nameSuffix, uIntArray;
+    [floatArray, uIntArray] = arguments[0];
+    [FloatArray, UintArray] = [floatArray.constructor, uIntArray.constructor];
+    nameSuffix = floatArray.constructor.name.replace(/View|Array/, "");
+    namePrefix = ["add", "sub", "store", "and", "or", "xor"];
+    for (j = 0, len = namePrefix.length; j < len; j++) {
+      caller = namePrefix[j];
+      handle = Atomics[caller].bind(Atomics, uIntArray);
+      Object.defineProperty(this, caller + nameSuffix, {
+        value: function() {
+          return handle(arguments[0], new UintArray(FloatArray.of(arguments[1]).buffer)[0]);
+        }
+      });
     }
-
-    defineFloatAtomics() {
-      var FloatArray, UintArray, caller, floatArray, handle, j, k, len, len1, namePrefix, nameSuffix, uIntArray;
-      [floatArray, uIntArray] = arguments[0];
-      [FloatArray, UintArray] = [floatArray.constructor, uIntArray.constructor];
-      nameSuffix = floatArray.constructor.name.replace(/View|Array/, "");
-      namePrefix = ["add", "sub", "store", "and", "or", "xor"];
-      for (j = 0, len = namePrefix.length; j < len; j++) {
-        caller = namePrefix[j];
-        handle = Atomics[caller].bind(Atomics, uIntArray);
-        Object.defineProperty(this, caller + nameSuffix, {
-          value: function() {
-            return handle(arguments[0], new UintArray(FloatArray.of(arguments[1]).buffer)[0]);
-          }
-        });
-      }
-      namePrefix = ["load"];
-      for (k = 0, len1 = namePrefix.length; k < len1; k++) {
-        caller = namePrefix[k];
-        handle = Atomics[caller].bind(Atomics, uIntArray);
-        Object.defineProperty(this, caller + nameSuffix, {
-          value: function() {
-            return new FloatArray(UintArray.of(handle(arguments[0])).buffer)[0];
-          }
-        });
-      }
-      return this;
+    namePrefix = ["load"];
+    for (k = 0, len1 = namePrefix.length; k < len1; k++) {
+      caller = namePrefix[k];
+      handle = Atomics[caller].bind(Atomics, uIntArray);
+      Object.defineProperty(this, caller + nameSuffix, {
+        value: function() {
+          return new FloatArray(UintArray.of(handle(arguments[0])).buffer)[0];
+        }
+      });
     }
+    return this;
+  }
 
-    defineExchangeAtomics() {
-      var caller, j, len, namePrefix, nameSuffix;
-      nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
-      namePrefix = ["exchange", "compareExchange"];
-      for (j = 0, len = namePrefix.length; j < len; j++) {
-        caller = namePrefix[j];
-        Object.defineProperty(this, caller + nameSuffix, {
-          value: Atomics[caller].bind(Atomics, arguments[0])
-        });
-      }
-      return this;
+  defineExchangeAtomics() {
+    var caller, j, len, namePrefix, nameSuffix;
+    nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
+    namePrefix = ["exchange", "compareExchange"];
+    for (j = 0, len = namePrefix.length; j < len; j++) {
+      caller = namePrefix[j];
+      Object.defineProperty(this, caller + nameSuffix, {
+        value: Atomics[caller].bind(Atomics, arguments[0])
+      });
     }
+    return this;
+  }
 
-    defineDataViewModifiers() {
-      var caller, dataView, handle, j, len, littleEndian, nameSuffix, ref;
-      dataView = arguments[1];
-      nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
-      littleEndian = Boolean(new Uint8Array(Uint32Array.of(1).buffer).at(0));
-      ref = ["get", "set"];
-      for (j = 0, len = ref.length; j < len; j++) {
-        caller = ref[j];
-        caller = caller + nameSuffix;
-        handle = dataView[caller].bind(dataView);
-        Object.defineProperty(this, caller, {
-          value: function() {
-            return handle(arguments[0], littleEndian);
-          }
-        });
-      }
-      return this;
-    }
-
-    defineTArrayModifiers() {
-      var TypedArray, caller, constructor, handle, j, len, modifiers, nameSuffix, results;
-      TypedArray = arguments[0];
-      constructor = TypedArray.constructor;
-      nameSuffix = constructor.name.replace(/View|Array/, "");
-      caller = `at${nameSuffix}`;
+  defineDataViewModifiers() {
+    var caller, dataView, handle, j, len, littleEndian, nameSuffix, ref;
+    dataView = arguments[1];
+    nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
+    littleEndian = Boolean(new Uint8Array(Uint32Array.of(1).buffer).at(0));
+    ref = ["get", "set"];
+    for (j = 0, len = ref.length; j < len; j++) {
+      caller = ref[j];
+      caller = caller + nameSuffix;
+      handle = dataView[caller].bind(dataView);
       Object.defineProperty(this, caller, {
         value: function() {
-          return TypedArray[arguments[0]];
+          return handle(arguments[0], littleEndian);
         }
       });
-      caller = `setarray${nameSuffix}`;
-      Object.defineProperty(this, caller, {
-        value: function() {
-          return TypedArray.set(arguments[0], arguments[1]);
-        }
+    }
+    return this;
+  }
+
+  defineTArrayModifiers() {
+    var TypedArray, caller, constructor, handle, j, len, modifiers, nameSuffix, results;
+    TypedArray = arguments[0];
+    constructor = TypedArray.constructor;
+    nameSuffix = constructor.name.replace(/View|Array/, "");
+    caller = `at${nameSuffix}`;
+    Object.defineProperty(this, caller, {
+      value: function() {
+        return TypedArray[arguments[0]];
+      }
+    });
+    caller = `setarray${nameSuffix}`;
+    Object.defineProperty(this, caller, {
+      value: function() {
+        return TypedArray.set(arguments[0], arguments[1]);
+      }
+    });
+    modifiers = ["subarray", "fill", "slice", "copyWithin", "entries", "every", "filter", "find", "findIndex", "findLast", "findLastIndex", "forEach", "includes", "indexOf", "join", "keys", "lastIndexOf", "map", "reduce", "reduceRight", "reverse", "some", "sort", "values", "with"];
+    results = [];
+    for (j = 0, len = modifiers.length; j < len; j++) {
+      caller = modifiers[j];
+      handle = caller + nameSuffix;
+      Object.defineProperty(this, handle, {
+        value: arguments[0][caller].bind(arguments[0])
       });
-      modifiers = ["subarray", "fill", "slice", "copyWithin", "entries", "every", "filter", "find", "findIndex", "findLast", "findLastIndex", "forEach", "includes", "indexOf", "join", "keys", "lastIndexOf", "map", "reduce", "reduceRight", "reverse", "some", "sort", "values", "with"];
-      results = [];
-      for (j = 0, len = modifiers.length; j < len; j++) {
-        caller = modifiers[j];
-        handle = caller + nameSuffix;
-        Object.defineProperty(this, handle, {
-          value: arguments[0][caller].bind(arguments[0])
-        });
-        if (Object.hasOwn(constructor, caller)) {
-          continue;
-        }
-        results.push(Object.defineProperty(constructor, caller, {
-          value: handle
-        }));
+      if (Object.hasOwn(constructor, caller)) {
+        continue;
       }
-      return results;
+      results.push(Object.defineProperty(constructor, caller, {
+        value: handle
+      }));
     }
+    return results;
+  }
 
-    defineProperties() {
-      var TypedArray, arrayPairs, dvw, f32, f64, i16, i32, i64, ii8, j, k, l, len, len1, len2, len3, len4, len5, m, n, o, ref, ref1, ref2, ref3, ref4, ref5, u16, u32, u64, ui8;
-      ui8 = new Uint8Array(this);
-      ii8 = new Int8Array(this);
-      i16 = new Int16Array(this);
-      u16 = new Uint16Array(this);
-      u32 = new Uint32Array(this);
-      i32 = new Int32Array(this);
-      f32 = new Float32Array(this);
-      f64 = new Float64Array(this);
-      u64 = new BigUint64Array(this);
-      i64 = new BigInt64Array(this);
-      dvw = new DataView(this);
-      ref = [ui8, ii8, u16, i16, u32, i32, u64, i64];
-      for (j = 0, len = ref.length; j < len; j++) {
-        TypedArray = ref[j];
-        this.defineIntegerAtomics(TypedArray);
-      }
-      ref1 = [ui8, ii8, u16, i16, u32, i32, u64, i64];
-      for (k = 0, len1 = ref1.length; k < len1; k++) {
-        TypedArray = ref1[k];
-        this.defineExchangeAtomics(TypedArray);
-      }
-      ref2 = [i32, i64];
-      for (l = 0, len2 = ref2.length; l < len2; l++) {
-        TypedArray = ref2[l];
-        this.defineWaitLockAtomics(TypedArray);
-      }
-      ref3 = [ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64];
-      for (m = 0, len3 = ref3.length; m < len3; m++) {
-        TypedArray = ref3[m];
-        this.defineDataViewModifiers(TypedArray, dvw);
-      }
-      ref4 = [ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64];
-      for (n = 0, len4 = ref4.length; n < len4; n++) {
-        TypedArray = ref4[n];
-        this.defineTArrayModifiers(TypedArray);
-      }
-      ref5 = [[f32, i32], [f64, i64]];
-      for (o = 0, len5 = ref5.length; o < len5; o++) {
-        arrayPairs = ref5[o];
-        this.defineFloatAtomics(arrayPairs);
-      }
-      return this;
+  defineProperties() {
+    var TypedArray, arrayPairs, dvw, f32, f64, i16, i32, i64, ii8, j, k, l, len, len1, len2, len3, len4, len5, n, o, p, ref, ref1, ref2, ref3, ref4, ref5, u16, u32, u64, ui8;
+    ui8 = new Uint8Array(this);
+    ii8 = new Int8Array(this);
+    i16 = new Int16Array(this);
+    u16 = new Uint16Array(this);
+    u32 = new Uint32Array(this);
+    i32 = new Int32Array(this);
+    f32 = new Float32Array(this);
+    f64 = new Float64Array(this);
+    u64 = new BigUint64Array(this);
+    i64 = new BigInt64Array(this);
+    dvw = new DataView(this);
+    ref = [ui8, ii8, u16, i16, u32, i32, u64, i64];
+    for (j = 0, len = ref.length; j < len; j++) {
+      TypedArray = ref[j];
+      this.defineIntegerAtomics(TypedArray);
     }
+    ref1 = [ui8, ii8, u16, i16, u32, i32, u64, i64];
+    for (k = 0, len1 = ref1.length; k < len1; k++) {
+      TypedArray = ref1[k];
+      this.defineExchangeAtomics(TypedArray);
+    }
+    ref2 = [i32, i64];
+    for (l = 0, len2 = ref2.length; l < len2; l++) {
+      TypedArray = ref2[l];
+      this.defineWaitLockAtomics(TypedArray);
+    }
+    ref3 = [ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64];
+    for (n = 0, len3 = ref3.length; n < len3; n++) {
+      TypedArray = ref3[n];
+      this.defineDataViewModifiers(TypedArray, dvw);
+    }
+    ref4 = [ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64];
+    for (o = 0, len4 = ref4.length; o < len4; o++) {
+      TypedArray = ref4[o];
+      this.defineTArrayModifiers(TypedArray);
+    }
+    ref5 = [[f32, i32], [f64, i64]];
+    for (p = 0, len5 = ref5.length; p < len5; p++) {
+      arrayPairs = ref5[p];
+      this.defineFloatAtomics(arrayPairs);
+    }
+    return this;
+  }
 
-  };
-
-  Memory.uuid = crypto.randomUUID();
-
-  Memory.threadType = (typeof window !== "undefined" && window !== null) && "window" || "worker";
-
-  Memory.maxLength = Math.pow((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 2, 11) / 4;
-
-  Memory.maxByteLength = Memory.maxLength * 4;
-
-  return Memory;
-
-}).call(this);
+};
 
 Scope = (function() {
   class Scope extends Array {
@@ -360,7 +416,7 @@ Object.defineProperties(Pointer, {
   },
   buffer: {
     configurable: true,
-    value: new Memory(4 * 1e7)
+    value: 2 //new Thread( 4 * 1e7 )
   },
   array: {
     value: function() {}
@@ -369,10 +425,11 @@ Object.defineProperties(Pointer, {
   //! <--- HEADER's SHARED ARRAY BUFFER ONLY
   header: {
     configurable: true,
-    value: new Memory(12 * 1e5)
+    value: 1 //new Thread( 12 * 1e5 )
   },
   GetNewIndex: {
     get: function() {
+      return 1;
       this.header.addUint32(0, this.BYTES_PER_POINTER);
       return this.header.addUint32(1, this.ITEMS_PER_POINTER);
     }
@@ -653,10 +710,4 @@ Object.defineProperties(Viewport.prototype, {
   }
 });
 
-export {
-  Pointer as default,
-  Pointer,
-  Display,
-  Viewport,
-  RefLink
-};
+//export { Pointer as default, Pointer, Display, Viewport, RefLink }
