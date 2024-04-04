@@ -2,45 +2,36 @@ if  document?
     Object.defineProperties Node,
         byteLength              : value : 4 * 64
 
-Object.defineProperties SharedArrayBuffer::,
+Object.defineProperties Object::,
 
-    SYMBOL_0PTR             : value : Symbol "0Ptr"
+    toPointer               :
+        configurable        : on,
+        value               : -> new RefLink().setRef( this )
 
-    LITTLE_ENDIAN           : value : new Uint8Array(Uint32Array.of(1).buffer)[0] is 1
+Object.defineProperties Symbol,
 
-    BYTES_PER_ELEMENT       : value : 4
+    pointer                 :
+        value               : "{[Pointer]}"
 
-    ITEMS_PER_POINTER       : value : 12
+class Memory extends SharedArrayBuffer
 
-    BEGIN                   : value : 12
+    @uuid                   : crypto.randomUUID()
 
-    BYTES_PER_POINTER       : value : 4 * 12
+    @threadType             : window? && "window" or "worker"
 
-    
-    INDEX_OFFSET        : value : 0
+    @maxLength              : Math.pow( navigator?.deviceMemory or 2 , 11 ) / 4
 
-    INDEX_LENGTH            : value : 1
+    @maxByteLength          : @maxLength * 4
 
-    INDEX_COUNT             : value : 2   
-    
-    INDEX_NEXT                 : value : 3
+    constructor             : ( byteLength = 0 ) ->
 
+        super byteLength, {
+            maxByteLength : Memory.maxByteLength
+        }
 
-    DEFINE_INTEGER_ATOMICS  : value : on
-    
-    DEFINE_WAITLOCK_ATOMICS : value : on
+        @defineProperties()
 
-    DEFINE_FLOAT_ATOMICS    : value : on
-
-    DEFINE_EXCHANGE_ATOMICS : value : on
-    
-    DEFINE_DVIEW_MODIFIERS  : value : on
-
-    DEFINE_TARRAY_MODIFIERS : value : on
-
-
-    defineIntegerAtomics    : value : ->
-        return this unless @DEFINE_INTEGER_ATOMICS
+    defineIntegerAtomics    : ->
 
         nameSuffix = arguments[0]
             .constructor.name
@@ -57,8 +48,7 @@ Object.defineProperties SharedArrayBuffer::,
 
         this
 
-    defineWaitLockAtomics   : value : ->
-        return this unless @DEFINE_WAITLOCK_ATOMICS
+    defineWaitLockAtomics   : ->
 
         nameSuffix = arguments[0]
             .constructor.name
@@ -74,8 +64,7 @@ Object.defineProperties SharedArrayBuffer::,
 
         this
 
-    defineFloatAtomics      : value : ->
-        return this unless @DEFINE_FLOAT_ATOMICS
+    defineFloatAtomics      : ->
 
         [ floatArray , uIntArray ] = arguments[0]
         [ FloatArray , UintArray ] =
@@ -110,8 +99,7 @@ Object.defineProperties SharedArrayBuffer::,
         
         this
 
-    defineExchangeAtomics   : value : ->
-        return this unless @DEFINE_EXCHANGE_ATOMICS
+    defineExchangeAtomics   : ->
 
         nameSuffix = arguments[0]
             .constructor.name
@@ -127,37 +115,45 @@ Object.defineProperties SharedArrayBuffer::,
 
         this
 
-    defineDataViewModifiers : value : ->
-        return this unless @DEFINE_DVIEW_MODIFIERS
+    defineDataViewModifiers : ->
 
         dataView = arguments[1]
 
         nameSuffix = arguments[0]
             .constructor.name
             .replace /View|Array/, ""
-            
+
+        littleEndian = Boolean(
+            new Uint8Array(
+                Uint32Array.of(1).buffer
+            ).at(0)
+        )
+             
         for caller in [ "get", "set" ]
             caller = caller + nameSuffix
             handle = dataView[ caller ].bind dataView
             Object.defineProperty this, caller, value : ->
-                handle arguments[0], @LITTLE_ENDIAN
+                handle arguments[0], littleEndian
 
         this
 
-    defineTArrayModifiers   : value : ->
-        return this unless @DEFINE_TARRAY_MODIFIERS
+    defineTArrayModifiers   : ->
 
-        nameSuffix = arguments[0]
-            .constructor.name
-            .replace /View|Array/, ""
+        TypedArray = arguments[0]
+        constructor = TypedArray.constructor
+
+
+        nameSuffix = constructor
+            .name.replace /View|Array/, ""
+
 
         caller = "at#{nameSuffix}"
         Object.defineProperty this, caller, value : ->
-            typedArray[ arguments[0] ]
+            TypedArray[ arguments[0] ]
 
         caller = "setarray#{nameSuffix}"
         Object.defineProperty this, caller, value : ->
-            typedArray.set arguments[0], arguments[1]
+            TypedArray.set arguments[0], arguments[1]
 
         modifiers = [
             "subarray", "fill", "slice", "copyWithin",
@@ -170,16 +166,18 @@ Object.defineProperties SharedArrayBuffer::,
         ]
 
         for caller in modifiers
-            Object.defineProperty this, caller + nameSuffix,
+
+            handle = caller + nameSuffix
+
+            Object.defineProperty this, handle,
                 value : arguments[0][ caller ].bind arguments[0]
 
+            continue if Object.hasOwn constructor, caller
 
-    scope                   : value : new Object
+            Object.defineProperty constructor, caller,
+                value : handle
 
-    init                    : value : ->
-
-        Object.defineProperties this,
-            [ "#thread" ] : value : arguments[0]
+    defineProperties        : ->
 
         ui8 = new Uint8Array        this
         ii8 = new Int8Array         this
@@ -193,31 +191,197 @@ Object.defineProperties SharedArrayBuffer::,
         i64 = new BigInt64Array     this
         dvw = new DataView          this
 
-        for typedArray in [ ui8, ii8, u16, i16, u32, i32, u64, i64 ]
-            this.defineIntegerAtomics.call this, typedArray
+        for TypedArray in [ ui8, ii8, u16, i16, u32, i32, u64, i64 ]
+            @defineIntegerAtomics TypedArray
 
-        for typedArray in [ ui8, ii8, u16, i16, u32, i32, u64, i64 ]
-            this.defineExchangeAtomics.call this, typedArray
+        for TypedArray in [ ui8, ii8, u16, i16, u32, i32, u64, i64 ]
+            @defineExchangeAtomics TypedArray
 
-        for typedArray in [ i32, i64 ]
-            this.defineWaitLockAtomics.call this, typedArray
+        for TypedArray in [ i32, i64 ]
+            @defineWaitLockAtomics TypedArray
 
-        for typedArray in [ ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64 ]
-            this.defineDataViewModifiers.call this, typedArray, dvw
+        for TypedArray in [ ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64 ]
+            @defineDataViewModifiers TypedArray, dvw
 
-        for typedArray in [ ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64 ]
-            this.defineTArrayModifiers.call this, typedArray
+        for TypedArray in [ ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64 ]
+            @defineTArrayModifiers TypedArray
 
         for arrayPairs in [ [ f32, i32 ], [ f64, i64 ] ]
-            this.defineFloatAtomics.call this, arrayPairs
+            @defineFloatAtomics arrayPairs
+
+        this
+                
+
+class Scope extends Array
+
+    constructor : ->
+        super().push(null)
+
+    map : new WeakMap()
+
+    get : ->
+        this[ arguments[0] ].deref()
+
+    has : ->
+        object = arguments[0]
+
+        return unless @map.has object
+       
+        for i in [ 1 ... @length ]
+            return i if object is @get i
+                
+        no
+
+    add : ->
+        unless @map.has arguments[0]
+            @map.set arguments[0], @set arguments[0]
+        @map.get arguments[0]
+
+    set : ->
+        [ object , i ] = [ arguments..., this.length ]
+        ( this[ i ] = new WeakRef object ) ; return i
+
+class Pointer extends Number
+
+    @TypedArray             : Uint32Array
+
+    @byteLength             : 0
+
+    scope                   : new Scope()
 
 
-        @grow @BEGIN * @BYTES_PER_ELEMENT unless ui8.length
-        unless @orUint32 @INDEX_OFFSET, @BEGIN * @BYTES_PER_ELEMENT
-            @length = @BEGIN
+    HINDEX_PROTOCLASS       : 7
 
-        self.base = this
+
+    HINDEX_BEGIN            : 0
+
+    HINDEX_END              : 1
     
+    HINDEX_LENGTH           : 2
+    
+
+    HINDEX_PARENT           : 3
+
+
+    HINDEX_BYTEOFFSET       : 4
+
+    HINDEX_BYTELENGTH       : 5
+
+    HINDEX_BYTEFINISH       : 6
+
+    HINDEX_RESERVED         : 7
+    
+
+    toPointer               : -> this
+
+    constructor             : ->
+        unless arguments.length
+            return super Pointer.GetNewIndex
+                .setHeadersFrom this.constructor 
+
+        super arguments[0]
+            .usePrototype arguments[1]
+
+    setHeadersFrom          : ->
+
+        constructr = arguments[0]
+        TypedArray = constructr.TypedArray
+        protoclass = @scope.add constructr::
+
+        byteLength = constructr.byteLength or 0
+        byteOffset = Pointer.malloc byteLength
+
+        begin      = byteOffset / 4
+        end        = begin + byteLength / 4
+        length     = byteLength / TypedArray.BYTES_PER_ELEMENT
+        
+        @storeHeader @HINDEX_PROTOCLASS, protoclass
+        
+        @storeHeader @HINDEX_BEGIN, begin
+        @storeHeader @HINDEX_END, end
+        @storeHeader @HINDEX_LENGTH, length
+
+        @storeHeader @HINDEX_BYTEOFFSET, byteOffset
+        @storeHeader @HINDEX_BYTELENGTH, byteLength
+        @storeHeader @HINDEX_BYTEFINISH, byteOffset + byteLength
+
+        this
+
+    loadHeader              : ->
+        Pointer.header.loadUint32 this + ( arguments[0] or 0 )
+
+    storeHeader             : ->
+        Pointer.header.storeUint32 this + arguments[0] , arguments[1] ; this
+
+    usePrototype            : ->
+        return this unless @constructor is Pointer
+
+        protoclass = arguments[0] ? @scope.get(
+            @loadHeader @HINDEX_PROTOCLASS
+        )
+        
+        Object.setPrototypeOf this, protoclass
+
+    add                     : ->
+        return unless ptr = arguments[0]
+
+        unless ptr instanceof Pointer
+            ptr = ptr.toPointer()
+
+        ptr.storeHeader @HINDEX_PARENT, this
+
+Object.defineProperties Pointer,
+
+    ITEMS_PER_POINTER       : value : 12
+
+    BYTES_PER_POINTER       : value : 4 * 12
+
+    buffer                  :
+            configurable    : on
+            value           : new Memory( 4 * 1e7 )
+
+    array                   :
+            value           : -> 
+
+    #! <--- HEADER's SHARED ARRAY BUFFER ONLY
+    header                  :
+            configurable    : on
+            value           : new Memory( 12 * 1e5 )
+
+    GetNewIndex             :
+            get             : ->
+                @header.addUint32 0, @BYTES_PER_POINTER
+                @header.addUint32 1, @ITEMS_PER_POINTER
+
+    length                  :
+            get             : ->
+                @header.loadUint32 1
+                
+    malloc                  :
+            value           : ( byteLength = 0 ) ->
+                @header.addUint32 3, byteLength
+    #! HEADER's SHARED ARRAY BUFFER ONLY --->
+
+[ Pointer.GetNewIndex, self.base = Pointer::scope ]
+
+class RefLink extends Pointer
+
+Object.defineProperties RefLink::,
+
+    HINDEX_SCOPEI   :
+        value       : 1 + Pointer::HINDEX_RESERVED
+
+    setRef          :
+        value       : ->
+            scopei = @scope.add arguments[0]
+            @storeHeader @HINDEX_SCOPEI, scopei
+            ; @
+
+    link            :
+        get         : -> @scope.get @loadHeader @HINDEX_SCOPEI
+
+Object.defineProperties Boolean::,
+
     get                     : value : ( ptri ) ->
         @scope[ "#{ptri}" ]?.deref()
 
@@ -227,11 +391,11 @@ Object.defineProperties SharedArrayBuffer::,
         ptri
 
     add                     : value : ( object ) ->
-        unless Object.hasOwn object, @SYMBOL_0PTR
-            Object.defineProperty object, @SYMBOL_0PTR,
+        unless Object.hasOwn object, Symbol.pointer
+            Object.defineProperty object, Symbol.pointer,
                 value : ptri = @malloc object
             @set object, ptri
-        @get object[ @SYMBOL_0PTR ]
+        @get object[ Symbol.pointer ]
 
     find                    : value : ->
         for ptri in Object.getOwnPropertyNames @scope
@@ -239,13 +403,13 @@ Object.defineProperties SharedArrayBuffer::,
             return object if object is arguments[0]
         null
 
-    malloc                  : value : ->
+    malloc2                 : value : ->
         
-        protoClass = arguments[0].constructor
+        protoclass = arguments[0].constructor
         byteLength = @BYTES_PER_POINTER
 
-        if  protoClass?.  byteLength 
-            byteLength += protoClass.byteLength
+        if  protoclass?.  byteLength 
+            byteLength += protoclass.byteLength
 
         if  @byteLength < byteOffset = byteLength + @byteOffset 
             byteOffset += @BYTES_PER_ELEMENT * 4096
@@ -262,73 +426,139 @@ Object.defineProperties SharedArrayBuffer::,
         offset = @addUint32 @INDEX_OFFSET, byteLength
 
         @storeUint32 index4 + 0, length 
-        @storeUint32 index4 + 2, byteLength
-        @storeUint32 index4 + 3, length - @ITEMS_PER_POINTER
-        @storeUint32 index4 + 4, byteLength - @BYTES_PER_POINTER
+        @storeUint32 index4 + 1, byteLength
+        @storeUint32 index4 + 2, length - @ITEMS_PER_POINTER
+        @storeUint32 index4 + 3, byteLength - @BYTES_PER_POINTER
 
         index4
 
     byteOffset              :
-                    get     : -> @loadUint32  @INDEX_OFFSET
-                    set     : -> @storeUint32 @INDEX_OFFSET, arguments[0]
+        get     : -> @loadUint32  @INDEX_OFFSET
+        set     : -> @storeUint32 @INDEX_OFFSET, arguments[0]
 
     #? sab length
     length                  :
-                    get     : -> @loadUint32  @INDEX_LENGTH
-                    set     : -> @storeUint32 @INDEX_LENGTH, arguments[0]
+        get     : -> @loadUint32  @INDEX_LENGTH
+        set     : -> @storeUint32 @INDEX_LENGTH, arguments[0]
 
     #? scope length
     count                   :
-                    get     : -> @loadUint32  @INDEX_COUNT
-                    set     : -> @storeUint32 @INDEX_COUNT, arguments[0]
+        get     : -> @loadUint32  @INDEX_COUNT
+        set     : -> @storeUint32 @INDEX_COUNT, arguments[0]
 
     #? iteration index
     index                   :
-                    get     : ->
-                        index = @loadUint32 @INDEX_NEXT
-                        length = @loadUint32 index 
-                        @addUint32 @INDEX_NEXT, length
-                        index
+        get     : ->
+            index = @loadUint32 @INDEX_NEXT
+            length = @loadUint32 index 
+            @addUint32 @INDEX_NEXT, length
+            index
 
-                    set     : ->
-                        @storeUint32 @INDEX_NEXT, @BEGIN + arguments[0]
+        set     : ->
+            @storeUint32 @INDEX_NEXT, @BEGIN + arguments[0]
 
-    reset                   :
-                    value   : ->
-                        @storeUint32 @INDEX_NEXT, @BEGIN ; this
+    iterator                :
+        value   : ->
+            @storeUint32 @INDEX_NEXT, @BEGIN
 
+            return =>
+                unless value = @get @index
+                    return done : on
+                return { value }
     
-Object.defineProperties SharedArrayBuffer::,
+Object.defineProperties Pointer::,
+
+    findAllChilds        : value : ( protoclass ) ->
+        offset = 
+        hindex = Pointer::HINDEX_PARENT
+        pclass = Pointer::HINDEX_PROTOCLASS - hindex
+        stride = Pointer.ITEMS_PER_POINTER
+        length = Pointer.length
+        parent = this * 1
+        childs = []
+
+        if  protoclass
+            protoclass = @scope.has protoclass::
+
+        while length > offset += stride
+
+            if  parent is Pointer.header.loadUint32 offset
+
+                continue if (
+                    protoclass and 
+                    protoclass - Pointer.header.loadUint32 offset + pclass
+                )
+
+                childs.push new Pointer offset - hindex
+
+
+
+        return childs
 
     [ Symbol.iterator ]     : value : ->
-        next : ->
-            unless value = @get @index
-                return done : on
-            return { value }
-        .bind @reset()
+        next : @iterator()
+
+    [ Symbol.pointer ]      : get   : ->
+
+        protoclass      = @loadHeader @HINDEX_PROTOCLASS
+        prototype       = @scope.get protoclass
+        constructor     = prototype . constructor
+        TypedArray      = constructor . TypedArray ? Uint8Array
+
+        parent          = Number::toPointer.call @loadHeader @HINDEX_PARENT
+
+        begin           = @loadHeader @HINDEX_BEGIN
+        end             = @loadHeader @HINDEX_END
+        length          = @loadHeader @HINDEX_LENGTH
+
+        byteOffset      = @loadHeader @HINDEX_BYTEOFFSET
+        byteLength      = @loadHeader @HINDEX_BYTELENGTH
+        byteFinish      = @loadHeader @HINDEX_BYTEFINISH
+
+
+        headersBegin    = this * 1
+        headersLength   = Pointer.ITEMS_PER_POINTER
+        headersEnd      = headersBegin + headersLength
+
+        array           = Pointer.buffer[ TypedArray.subarray ]( begin, end )
+        byteArray       = Pointer.buffer.subarrayUint8( byteOffset, byteFinish )
+        headers         = Pointer.header.subarrayUint32( headersBegin, headersEnd )
         
-Object.defineProperties Object::,
+        return {
+            array, scope : prototype.scope, parent, children : @findAllChilds(),
+            byteArray, byteOffset, byteLength, byteFinish,
+            headers, headersBegin, headersLength, headersEnd,
+            begin, end, length,
+            protoclass, prototype, constructor
+        }
+    
+Object.defineProperties Number::,
 
-    sab :
-        configurable : on
-        value : new SharedArrayBuffer(
-            0 , maxByteLength : Math.pow(
-                    navigator?.deviceMemory or 1, 11 )
-        ).init window? && "window" or "worker"
+    toPointer : value : ->
 
-    ptr : value : ->
-        res =
-            get : @sab.add( this )
-            set : @sab.add( window )
-            tet : @sab.add( new Set() )
-            a   : @sab.find( "this" )
-            det : @sab.add( ( -> 1 ) )
-            def : @sab.add( window )
+        return null unless this
 
-        console.log res
+        unless prototype = arguments[0]?.prototype
 
-        for di from @sab
-            console.log "iteri", di
+            protoclass = Pointer::loadHeader.call this, Pointer::HINDEX_PROTOCLASS
+            prototype = Pointer::scope.get protoclass
 
-            
-        res
+        return new Ptr this if Ptr = prototype.constructor
+
+        return null
+
+
+class Display extends Pointer
+
+    @byteLength             : 2 * 4
+
+class Viewport extends Pointer
+
+    @byteLength             : 26 * 4
+
+Object.defineProperties Viewport::,
+
+    background              :
+        get                 : ->
+
+export { Pointer as default, Pointer, Display, Viewport, RefLink }

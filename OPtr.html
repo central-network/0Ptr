@@ -67,15 +67,27 @@
                 background-color: #0f3057;
             }
         </style>
-        <script src="Optr.js"></script>
     </head>
-    <body onclick="console.log(self.base.scope)" >
-        <script>
-            console.log( base )
-            let uzay = document.ptr( 0 );
+    <body onclick="console.log(self.base)" >
+        <script type="module">
+            import {Pointer, Display, Viewport, RefLink } from "./OPtr.js"
 
+            let display = new Display();
+            let viewport = new Viewport();
 
-            console.log(uzay);
+            console.log(display);
+            console.log(viewport);
+
+            let docptr = document.toPointer();
+
+            console.log( docptr );
+            console.log(12..toPointer());
+            
+            display.add( document );
+            display.add( viewport );
+
+            console.log(24..toPointer( Viewport ));
+            console.log(display.findAllChilds( RefLink ));
         </script>
     </body>
 </html>
