@@ -68,12 +68,16 @@
             }
         </style>
     </head>
-    <body onclick="console.log(self.base)" >
+    <body>
+        <canvas id="viewport-canvas"></canvas>
+        
         <script src="OPtr.js" type="application/javascript">
             (function (){
-                let canvas = document.querySelector('canvas')
+                let canvas = document.getElementById('viewport-canvas')
 
                 console.log(canvas)
+                console.log(window)
+                console.log(document)
 
             })
         </script>
