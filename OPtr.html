@@ -73,11 +73,10 @@
         
         <script src="OPtr.js" type="application/javascript">
             (function (){
-                let canvas = document.getElementById('viewport-canvas')
+                let canvas;
 
-                console.log(canvas)
-                console.log(window)
-                console.log(document)
+                canvas = document.getElementById('viewport-canvas');
+                console.log( `readed in(${self.name}):`, window.loadInt32(0), canvas );
 
             })
         </script>

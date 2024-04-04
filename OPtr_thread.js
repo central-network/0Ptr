@@ -3,7 +3,8 @@ var Thread;
 Thread = (function() {
   class Thread {
     constructor(buffer) {
-      this.name = self.name;
+      this.offset = self.name * 1000;
+      this.buffer = buffer;
       Object.defineProperties(Pointer.prototype, {
         buffer: {
           value: buffer

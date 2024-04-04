@@ -8,7 +8,8 @@ class Thread
 
     constructor             : ( buffer ) ->
 
-        @name = self.name
+        @offset = self.name * 1000
+        @buffer = buffer
 
         Object.defineProperties Pointer::,
             buffer : value : buffer

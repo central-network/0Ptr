@@ -2,12 +2,23 @@ var fetchAll, onready, onrequest;
 
 onready = function() {
   return addEventListener("message", (e) => {
-    return arguments[0].call(new Thread(e.data), new Window());
+    return arguments[0].call(new Window(new Thread(e.data)));
   });
 };
 
-onrequest = function(e) {
-  return console.log("worker request", e);
+onrequest = function(i, e) {
+  var args, call, func, j, len, lock, prop, root;
+  ({func, args, lock} = e.data);
+  (root = self);
+  for (j = 0, len = func.length; j < len; j++) {
+    prop = func[j];
+    root = root[prop];
+  }
+  func = root.bind(self[func[0]]);
+  call = func(...args);
+  Atomics.add(this, 0, 1);
+  Atomics.store(this, i, 10000 * Math.random());
+  return Atomics.notify(this, i, 1);
 };
 
 fetchAll = async function() {
@@ -27,7 +38,7 @@ fetchAll = async function() {
 queueMicrotask(async function() {
   var base, body, code, data, head, i, j, libs, mods, ref, results, size, thread, type;
   size = .25 * Math.pow((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 2, 10 + 1);
-  data = new SharedArrayBuffer(4, {
+  data = new SharedArrayBuffer(1e8, {
     maxByteLength: size
   });
   body = document.currentScript.text || (function() {
@@ -47,12 +58,12 @@ queueMicrotask(async function() {
   head = `import { ${mods} } from '${libs}';` + `(${onready})`;
   code = URL.createObjectURL(new Blob([head, body], {type}));
   results = [];
-  for (i = j = 0, ref = (typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 2; (0 <= ref ? j < ref : j > ref); i = 0 <= ref ? ++j : --j) {
+  for (i = j = 1, ref = (typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 2; (1 <= ref ? j < ref : j > ref); i = 1 <= ref ? ++j : --j) {
     thread = new Worker(code, {
       type: "module",
       name: i
     });
-    thread.addEventListener("message", onrequest);
+    thread.addEventListener("message", onrequest.bind(new Int32Array(data), i));
     results.push(thread.postMessage(data));
   }
   return results;
