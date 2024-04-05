@@ -17,7 +17,7 @@ ref = document.scripts;
 for (j = 0, len = ref.length; j < len; j++) {
   script = ref[j];
   if (import.meta.url === script.src) {
-    if (script = script.text) {
+    if (script = `${script.text}`) {
       break;
     }
   }
@@ -44,10 +44,27 @@ onrequest = function(i, e) {
 
 addEventListener("message", function({data}) {
   var buffer;
+  console.log(2, data);
   //? window gets message that means some remote
   //? controller connected to this device
   //? so, we need to do what we do 
   buffer = new SharedArrayBuffer(data);
   //* at this point, memory is initialized
   return console.warn(`[${self.constructor.name}]`, performance.now(2), "memory is initialized", buffer);
+});
+
+addEventListener("load", function() {
+  var cpu;
+  console.log(this);
+  cpu = new Worker(URL.createWorkerURL(`import 'https://localhost/0PTR/prototype.js'; self.window = self; self.document = {}; self.memory = new SharedArrayBuffer(); self.postMessage({ memory, name }); console.warn( 'memory sent:', memory ); memory.lock(); console.warn( 'thread unlocked:', name ); ${script}`.split(/\; /g).join(";\n")));
+  return cpu.addEventListener("message", function({data}) {
+    var memory, thread;
+    memory = data.memory;
+    thread = data.name;
+    self.onclick = function() {
+      return console.log(memory);
+    };
+    console.warn('raised cpu:', thread);
+    return memory.unlock();
+  });
 });

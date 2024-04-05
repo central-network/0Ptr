@@ -8,7 +8,7 @@ scope = new Scope( self )
 
 for script in document.scripts
     if `import.meta.url` is script.src
-        break if script = script.text
+        break if script = "#{script.text}"
 unless script then throw "?CODE?"
 
 onrequest   = ( i, e ) -> 
@@ -27,6 +27,7 @@ onrequest   = ( i, e ) ->
     Atomics.notify this, i, 1
 
 addEventListener "message", ({ data }) ->
+    console.log 2, data
 
     #? window gets message that means some remote
     #? controller connected to this device
@@ -35,3 +36,36 @@ addEventListener "message", ({ data }) ->
 
     #* at this point, memory is initialized
     console.warn "[#{self.constructor.name}]", performance.now(2), "memory is initialized", buffer
+
+
+addEventListener "load", ->
+
+    console.log this
+
+    cpu = new Worker URL.createWorkerURL "
+        import 'https://localhost/0PTR/prototype.js';
+        
+        self.window = self;
+        self.document = {};
+        self.memory = new SharedArrayBuffer();
+        self.postMessage({ memory, name });
+
+        console.warn( 'memory sent:', memory );
+        memory.lock();
+
+        console.warn( 'thread unlocked:', name );
+        
+        #{script}
+
+    ".split(/\; /g).join(";\n")
+
+    cpu.addEventListener "message", ({ data }) ->
+
+        memory = data.memory
+        thread = data.name
+
+        self.onclick = -> console.log memory
+
+        console.warn( 'raised cpu:', thread );
+
+        memory.unlock()

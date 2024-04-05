@@ -72,20 +72,7 @@
         <canvas id="viewport-canvas"></canvas>
         
         <script src="OPtr.js" type="module">
-            (function (){
-
-                console.log({self, window, document})
-                let canvas;
-
-                canvas = document.getElementById('viewport-canvas');
-                console.log( `readed in(${self.name}):`, window.loadInt32(0), canvas );
-            })
-        </script>
-
-        <script>
-            setTimeout(function (){
-                postMessage(0)
-            }, 300)
+            console.log( "HPC code running", {self, window, document});
         </script>
     </body>
 </html>

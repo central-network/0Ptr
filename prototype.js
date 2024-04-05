@@ -1,4 +1,4 @@
-var SharedArrayBuffer;
+var SharedArrayBuffer, Worker;
 
 Object.defineProperties(Object.prototype, {
   toPointer: {
@@ -40,7 +40,51 @@ Object.defineProperties(DataView.prototype, {
   }
 });
 
+Object.defineProperties(URL, {
+  createWorkerURL: {
+    value: function() {
+      return this.createObjectURL(new Blob([...arguments].flat(), {
+        type: "application/javascript",
+        endings: "native"
+      }));
+    }
+  }
+});
+
+Object.defineProperties(self.SharedArrayBuffer.prototype, {
+  lock: {
+    value: function(byteOffset = 8) {
+      var i32;
+      i32 = new Int32Array(this, byteOffset, 1);
+      return Atomics.wait(i32);
+    }
+  },
+  unlock: {
+    value: function(byteOffset = 8) {
+      var i32;
+      i32 = new Int32Array(this, byteOffset, 1);
+      return setTimeout(() => {
+        return Atomics.notify(i32);
+      }, 400);
+    }
+  }
+});
+
 Object.defineProperties(self, {
+  Worker: {
+    value: Worker = class Worker extends self.Worker {
+      constructor() {
+        super(arguments[0], {...{
+            type: "module",
+            name: crypto.randomUUID()
+          }, ...(arguments[1] || {})});
+        this.onerror = function() {
+          return !console.error(...arguments);
+        };
+      }
+
+    }
+  },
   SharedArrayBuffer: {
     value: SharedArrayBuffer = (function() {
       class SharedArrayBuffer extends self.SharedArrayBuffer {
@@ -63,7 +107,10 @@ Object.defineProperties(self, {
           if (Array.isArray(source)) {
             source = Uint8Array.from(source);
           }
-          //? new SharedArrayBuffer( new SharedArrayBuffer(256) || new ArrayBuffer(256) )
+          if (source instanceof SharedArrayBuffer) {
+            return source;
+          }
+          //? new SharedArrayBuffer( new ArrayBuffer(256) )
           if (source.byteLength) {
             byteLength = Math.max(source.byteLength, byteLength);
             return super(byteLength, options).initialAlloc().set(source);
@@ -85,7 +132,7 @@ Object.defineProperties(self, {
 
       };
 
-      SharedArrayBuffer.byteLength = 8;
+      SharedArrayBuffer.byteLength = 12;
 
       SharedArrayBuffer.maxByteLength = Math.pow((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 2, 11);
 

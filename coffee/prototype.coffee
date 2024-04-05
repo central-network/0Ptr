@@ -29,11 +29,40 @@ Object.defineProperties DataView::,
 
     littleEndian        : value : new Uint8Array(Uint32Array.of(0x01).buffer)[0]
 
+Object.defineProperties URL,
+
+    createWorkerURL     : value : ->
+        this.createObjectURL new Blob [ arguments... ].flat(),
+        { type: "application/javascript", endings: "native" }
+
+Object.defineProperties self.SharedArrayBuffer::,
+
+    lock                : value : ( byteOffset = 8 ) ->
+        i32 = new Int32Array this, byteOffset, 1
+        Atomics.wait i32
+
+    unlock              : value : ( byteOffset = 8 ) ->
+        i32 = new Int32Array this, byteOffset, 1
+        setTimeout =>
+            Atomics.notify i32
+        , 400
+
+
 Object.defineProperties self,
+
+    Worker              : value : class Worker extends self.Worker 
+
+        constructor     : ->
+            super arguments[0], { ...{
+                type : "module"
+                name : crypto.randomUUID()
+            }, ...(arguments[1] or {}) }
+
+            @onerror = -> !console.error ...arguments
 
     SharedArrayBuffer   : value : class SharedArrayBuffer extends self.SharedArrayBuffer
 
-        @byteLength     : 8
+        @byteLength     : 12
 
         @maxByteLength  : Math.pow navigator?.deviceMemory or 2 , 11
 
@@ -58,7 +87,10 @@ Object.defineProperties self,
             if  Array.isArray source
                 source = Uint8Array.from source
 
-            #? new SharedArrayBuffer( new SharedArrayBuffer(256) || new ArrayBuffer(256) )
+            if  source instanceof SharedArrayBuffer
+                return source
+
+            #? new SharedArrayBuffer( new ArrayBuffer(256) )
             if  source.byteLength
                 byteLength = Math.max source.byteLength , byteLength
                 
@@ -74,4 +106,7 @@ Object.defineProperties self,
 
         initialAlloc    : ->
             Atomics.or new Uint32Array( this ), 0, 8
-            Atomics.or new Uint32Array( this ), 1, 2 ; this
+            Atomics.or new Uint32Array( this ), 1, 2
+
+            this
+            
