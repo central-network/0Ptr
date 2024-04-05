@@ -47,5 +47,7 @@ addEventListener("message", function({data}) {
   //? window gets message that means some remote
   //? controller connected to this device
   //? so, we need to do what we do 
-  return buffer = new SharedArrayBuffer(data);
+  buffer = new SharedArrayBuffer(data);
+  //* at this point, memory is initialized
+  return console.warn(`[${self.constructor.name}]`, performance.now(2), "memory is initialized", buffer);
 });

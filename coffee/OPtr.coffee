@@ -32,3 +32,6 @@ addEventListener "message", ({ data }) ->
     #? controller connected to this device
     #? so, we need to do what we do 
     buffer = new SharedArrayBuffer data
+
+    #* at this point, memory is initialized
+    console.warn "[#{self.constructor.name}]", performance.now(2), "memory is initialized", buffer
