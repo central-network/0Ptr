@@ -1,4 +1,4 @@
-class Window
+export class Window
 
     constructor : ( thread ) ->
         
@@ -31,14 +31,13 @@ class Window
 
                 Atomics.load i32, arguments[0]
 
+export class Node
 
-class Node
+export class Element           extends Node
 
-class Element           extends Node
+export class HTMLElement       extends Element
 
-class HTMLElement       extends Element
-
-class HTMLDocument      extends HTMLElement
+export class HTMLDocument      extends HTMLElement
     
     getElementById  : ( id ) ->
         window.post {
@@ -52,7 +51,7 @@ class HTMLDocument      extends HTMLElement
     createElement   : ( tagName ) ->
         HTMLCanvasElement.create() 
 
-class HTMLCanvasElement extends HTMLElement
+export class HTMLCanvasElement extends HTMLElement
 
     @create         : ->
         new (class canvas extends OffscreenCanvas)(256, 256)

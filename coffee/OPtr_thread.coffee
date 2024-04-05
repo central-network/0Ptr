@@ -1,4 +1,4 @@
-class Thread
+export class Thread
 
     @uuid                   : crypto.randomUUID()
 
@@ -16,6 +16,8 @@ class Thread
 
         #console.log "pointer buffer settled up", buffer
         
+        addEventListener "message", ( e ) =>
+            arguments[0].call new Window new Thread e.data 
 
         #@defineProperties()
 

@@ -1,6 +1,4 @@
-var Thread;
-
-Thread = (function() {
+export var Thread = (function() {
   class Thread {
     constructor(buffer) {
       this.offset = self.name * 1000;
@@ -10,10 +8,13 @@ Thread = (function() {
           value: buffer
         }
       });
+      //console.log "pointer buffer settled up", buffer
+      addEventListener("message", (e) => {
+        return arguments[0].call(new Window(new Thread(e.data)));
+      });
     }
 
-    //console.log "pointer buffer settled up", buffer
-
+    
     //@defineProperties()
     defineIntegerAtomics() {
       var caller, i, len, namePrefix, nameSuffix;

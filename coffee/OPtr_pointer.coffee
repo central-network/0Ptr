@@ -1,52 +1,10 @@
+export { Scope } from "./0Ptr_scope.js"
 
-Object.defineProperties Object::,
-
-    toPointer               :
-        configurable        : on,
-        value               : -> new RefLink().setRef( this )
-
-Object.defineProperties Symbol,
-
-    pointer                 :
-        value               : "{[Pointer]}"
-
-
-class Scope     extends Array
-
-    constructor : ->
-        super().push(null)
-
-    map : new WeakMap()
-
-    get : ->
-        this[ arguments[0] ].deref()
-
-    has : ->
-        object = arguments[0]
-
-        return unless @map.has object
-       
-        for i in [ 1 ... @length ]
-            return i if object is @get i
-                
-        no
-
-    add : ->
-        unless @map.has arguments[0]
-            @map.set arguments[0], @set arguments[0]
-        @map.get arguments[0]
-
-    set : ->
-        [ object , i ] = [ arguments..., this.length ]
-        ( this[ i ] = new WeakRef object ) ; return i
-
-class Pointer   extends Number
+export class Pointer   extends Number
 
     @TypedArray             : Uint32Array
 
     @byteLength             : 0
-
-    scope                   : new Scope()
 
     HINDEX_PROTOCLASS       : 7
 
@@ -161,9 +119,7 @@ Object.defineProperties Pointer,
                 @header.addUint32 3, byteLength
     #! HEADER's SHARED ARRAY BUFFER ONLY --->
 
-[ Pointer.GetNewIndex, self.base = Pointer::scope ]
-
-class RefLink extends Pointer
+export class RefLink    extends Pointer
 
 Object.defineProperties RefLink::,
 
@@ -331,31 +287,3 @@ Object.defineProperties Pointer::,
             protoclass, prototype, constructor
         }
     
-Object.defineProperties Number::,
-
-    toPointer : value : ->
-
-        return null unless this
-
-        unless prototype = arguments[0]?.prototype
-
-            protoclass = Pointer::loadHeader.call this, Pointer::HINDEX_PROTOCLASS
-            prototype = Pointer::scope.get protoclass
-
-        return new Ptr this if Ptr = prototype.constructor
-
-        return null
-
-
-class Display extends Pointer
-
-    @byteLength             : 2 * 4
-
-class Viewport extends Pointer
-
-    @byteLength             : 26 * 4
-
-Object.defineProperties Viewport::,
-
-    background              :
-        get                 : ->

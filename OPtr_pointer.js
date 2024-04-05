@@ -1,67 +1,8 @@
-var Display, Pointer, RefLink, Scope, Viewport;
+export {
+  Scope
+} from "./0Ptr_scope.js";
 
-Object.defineProperties(Object.prototype, {
-  toPointer: {
-    configurable: true,
-    value: function() {
-      return new RefLink().setRef(this);
-    }
-  }
-});
-
-Object.defineProperties(Symbol, {
-  pointer: {
-    value: "{[Pointer]}"
-  }
-});
-
-Scope = (function() {
-  class Scope extends Array {
-    constructor() {
-      super().push(null);
-    }
-
-    get() {
-      return this[arguments[0]].deref();
-    }
-
-    has() {
-      var i, j, object, ref;
-      object = arguments[0];
-      if (!this.map.has(object)) {
-        return;
-      }
-      for (i = j = 1, ref = this.length; (1 <= ref ? j < ref : j > ref); i = 1 <= ref ? ++j : --j) {
-        if (object === this.get(i)) {
-          return i;
-        }
-      }
-      return false;
-    }
-
-    add() {
-      if (!this.map.has(arguments[0])) {
-        this.map.set(arguments[0], this.set(arguments[0]));
-      }
-      return this.map.get(arguments[0]);
-    }
-
-    set() {
-      var i, object;
-      [object, i] = [...arguments, this.length];
-      (this[i] = new WeakRef(object));
-      return i;
-    }
-
-  };
-
-  Scope.prototype.map = new WeakMap();
-
-  return Scope;
-
-}).call(this);
-
-Pointer = (function() {
+export var Pointer = (function() {
   class Pointer extends Number {
     toPointer() {
       return this;
@@ -129,8 +70,6 @@ Pointer = (function() {
 
   Pointer.byteLength = 0;
 
-  Pointer.prototype.scope = new Scope();
-
   Pointer.prototype.HINDEX_PROTOCLASS = 7;
 
   Pointer.prototype.HINDEX_BEGIN = 0;
@@ -193,9 +132,7 @@ Object.defineProperties(Pointer, {
 });
 
 //! HEADER's SHARED ARRAY BUFFER ONLY --->
-[Pointer.GetNewIndex, self.base = Pointer.prototype.scope];
-
-RefLink = class RefLink extends Pointer {};
+export var RefLink = class RefLink extends Pointer {};
 
 Object.defineProperties(RefLink.prototype, {
   HINDEX_SCOPEI: {
@@ -245,10 +182,10 @@ Object.defineProperties(Boolean.prototype, {
   },
   find: {
     value: function() {
-      var j, len, object, ptri, ref;
+      var i, len, object, ptri, ref;
       ref = Object.getOwnPropertyNames(this.scope);
-      for (j = 0, len = ref.length; j < len; j++) {
-        ptri = ref[j];
+      for (i = 0, len = ref.length; i < len; i++) {
+        ptri = ref[i];
         object = this.scope[ptri].deref();
         if (object === arguments[0]) {
           return object;
@@ -410,48 +347,5 @@ Object.defineProperties(Pointer.prototype, {
         constructor
       };
     }
-  }
-});
-
-Object.defineProperties(Number.prototype, {
-  toPointer: {
-    value: function() {
-      var Ptr, protoclass, prototype, ref;
-      if (!this) {
-        return null;
-      }
-      if (!(prototype = (ref = arguments[0]) != null ? ref.prototype : void 0)) {
-        protoclass = Pointer.prototype.loadHeader.call(this, Pointer.prototype.HINDEX_PROTOCLASS);
-        prototype = Pointer.prototype.scope.get(protoclass);
-      }
-      if (Ptr = prototype.constructor) {
-        return new Ptr(this);
-      }
-      return null;
-    }
-  }
-});
-
-Display = (function() {
-  class Display extends Pointer {};
-
-  Display.byteLength = 2 * 4;
-
-  return Display;
-
-}).call(this);
-
-Viewport = (function() {
-  class Viewport extends Pointer {};
-
-  Viewport.byteLength = 26 * 4;
-
-  return Viewport;
-
-}).call(this);
-
-Object.defineProperties(Viewport.prototype, {
-  background: {
-    get: function() {}
   }
 });

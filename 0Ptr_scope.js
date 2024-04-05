@@ -4,37 +4,56 @@ var BYTELENGTH_HEADER, BYTEOFFSET_PARENT, BYTES_PER_ELEMENT, INDEX_ATOMIC_NEXT, 
 
 export var Scope = (function() {
   class Scope extends Array {
-    constructor(OPtr) {
-      super().push(null);
-      console.log(OPtr.prototype.buffer);
+    constructor(root) {
+      super().add(root);
     }
 
-    add(item, i) {
-      if (i > 0) {
-        this[i] = item;
+    get() {
+      var i;
+      if (!isNaN(i = arguments[0])) {
+        return this[i].deref();
+      } else if (!isNaN(i = this.has(i))) {
+        return this.get(i);
       }
-      if (-1 === (i = this.indexOf(item))) {
-        i += this.push(new WeakRef(item));
-      }
-      return i;
+      return null;
     }
 
-    get(i) {
-      var item;
-      if (isNaN(i)) {
-        return this.get(this.indexOf(i));
+    has() {
+      var i, j, o, ref;
+      if (!this.map.has(o = arguments[0])) {
+        return false;
       }
-      if (!(item = this.at(i))) {
-        if (typeof window !== "undefined" && window !== null) {
-          return;
+      for (i = j = 0, ref = this.length; (0 <= ref ? j < ref : j > ref); i = 0 <= ref ? ++j : --j) {
+        if (o === this.get(i)) {
+          return i;
         }
       }
-      return item.deref();
+      return false;
+    }
+
+    add() {
+      if (!this.map.has(arguments[0])) {
+        this.map.set(arguments[0], this.set(arguments[0]));
+      }
+      return this.map.get(arguments[0]);
+    }
+
+    set() {
+      var i, object;
+      [object, i] = [...arguments, this.length];
+      (this[i] = new WeakRef(object));
+      return i;
     }
 
   };
 
   Scope.metaUrl = import.meta.url;
+
+  Scope.maxLength = Math.pow((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 2, 11) / 4;
+
+  Scope.maxByteLength = Scope.maxLength * 4;
+
+  Scope.prototype.map = new WeakMap();
 
   return Scope;
 

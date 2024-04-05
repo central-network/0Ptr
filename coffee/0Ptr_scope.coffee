@@ -16,26 +16,41 @@
 
 export class Scope extends Array
 
-    @metaUrl    : `import.meta.url`
+    @metaUrl        : `import.meta.url`
 
-    constructor : ( OPtr ) ->
-        super().push( null )
-        console.log OPtr::buffer
+    @maxLength      : Math.pow( navigator?.deviceMemory or 2 , 11 ) / 4
 
-    add         : ( item , i ) ->
-        @[ i ] = item if i > 0
+    @maxByteLength  : Scope.maxLength * 4
 
-        if -1 is i = @indexOf item
-            i += @push new WeakRef item
-        i
+    constructor : ( root ) ->
+        super().add( root )
 
-    get         : ( i ) ->
-        return @get @indexOf i if isNaN i
-        unless item = @at i
-            return if window?
+    map : new WeakMap()
 
-        item.deref()
+    get : ->
+        if !isNaN i = arguments[0]
+            return this[ i ].deref()
+        else if !isNaN i = @has i
+            return @get i
+        null 
 
-    
+    has : ->
+        
+        unless @map.has o = arguments[0]
+            return no
+            
+        for i in [ 0 ... @length ]
+            return i if o is @get i
+                
+        no
+
+    add : ->
+        unless @map.has arguments[0]
+            @map.set arguments[0], @set arguments[0]
+        @map.get arguments[0]
+
+    set : ->
+        [ object , i ] = [ arguments..., this.length ]
+        ( this[ i ] = new WeakRef object ) ; return i
 
 export { Scope as default }

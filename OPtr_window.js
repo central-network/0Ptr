@@ -1,6 +1,4 @@
-var Element, HTMLCanvasElement, HTMLDocument, HTMLElement, Node, Window;
-
-Window = class Window {
+export var Window = class Window {
   constructor(thread) {
     var document;
     Object.defineProperties(self, {
@@ -47,13 +45,13 @@ Window = class Window {
 
 };
 
-Node = class Node {};
+export var Node = class Node {};
 
-Element = class Element extends Node {};
+export var Element = class Element extends Node {};
 
-HTMLElement = class HTMLElement extends Element {};
+export var HTMLElement = class HTMLElement extends Element {};
 
-HTMLDocument = class HTMLDocument extends HTMLElement {
+export var HTMLDocument = class HTMLDocument extends HTMLElement {
   getElementById(id) {
     return window.post({
       func: ["document", "getElementById"],
@@ -72,7 +70,7 @@ HTMLDocument = class HTMLDocument extends HTMLElement {
 
 };
 
-HTMLCanvasElement = class HTMLCanvasElement extends HTMLElement {
+export var HTMLCanvasElement = class HTMLCanvasElement extends HTMLElement {
   static create() {
     var canvas;
     return new (canvas = class canvas extends OffscreenCanvas {})(256, 256);
