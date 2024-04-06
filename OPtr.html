@@ -70,9 +70,17 @@
     </head>
     <body>
         <canvas id="viewport-canvas"></canvas>
-        
         <script src="OPtr.js" type="module">
+
             console.log( "HPC code running", {self, window, document});
+
+            let testArray2 = new Uint32Array( 12 );
+            let testArray = new Uint8Array( 24 );
+
+            console.log(testArray2)
+            console.log(testArray)
+
+
         </script>
     </body>
 </html>

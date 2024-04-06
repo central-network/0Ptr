@@ -55,15 +55,11 @@ addEventListener("message", function({data}) {
 
 addEventListener("load", function() {
   var cpu;
-  console.log(this);
-  cpu = new Worker(URL.createWorkerURL(`import 'https://localhost/0PTR/prototype.js'; self.window = self; self.document = {}; self.memory = new SharedArrayBuffer(); self.postMessage({ memory, name }); console.warn( 'memory sent:', memory ); memory.lock(); console.warn( 'thread unlocked:', name ); ${script}`.split(/\; /g).join(";\n")));
+  cpu = new Worker(URL.createWorkerURL(`import 'https://localhost/0PTR/prototype.js'; self.window = self; self.document = {}; self.memory = new SharedArrayBuffer(); console.log(self.memory); self.postMessage({ memory, name }); console.warn( 'memory sent:', memory ); memory.lock(); console.warn( 'thread unlocked:', name, { memory } ); ${script}`.split(/\; /g).join(";\n")));
   return cpu.addEventListener("message", function({data}) {
     var memory, thread;
     memory = data.memory;
     thread = data.name;
-    self.onclick = function() {
-      return console.log(memory);
-    };
     console.warn('raised cpu:', thread);
     return memory.unlock();
   });

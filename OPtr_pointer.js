@@ -1,25 +1,58 @@
+var protoclasses, weakmap;
+
+import defaults from "./0Ptr_self.js";
+
 export {
   Scope
 } from "./0Ptr_scope.js";
 
+protoclasses = [weakmap = new WeakMap()];
+
+Object.defineProperties(Symbol, {
+  pointer: {
+    value: "{[Pointer]}"
+  }
+});
+
 export var Pointer = (function() {
   class Pointer extends Number {
+    static scopei() {
+      var bpe, i, ref;
+      if (!weakmap.has(this.prototype)) {
+        weakmap.set(this.prototype, protoclasses[i = protoclasses.length] = this.prototype);
+        Object.defineProperty(this.prototype, "protoclass", {
+          value: i
+        });
+        if (bpe = (ref = defaults[this.name]) != null ? ref.BYTES_PER_ELEMENT : void 0) {
+          Object.defineProperty(this.prototype, "BYTES_PER_ELEMENT", {
+            value: bpe
+          });
+        }
+      }
+      return i;
+    }
+
     toPointer() {
       return this;
     }
 
     constructor() {
+      var ptri;
       if (!arguments.length) {
-        return super(Pointer.GetNewIndex).setHeadersFrom(this.constructor);
+        super(ptri = memory.malloc());
+        memory.storeUint32(ptri, this.protoclass);
+      } else {
+        super(arguments[0]);
+        this.usePrototype(arguments[1]);
       }
-      super(arguments[0]).usePrototype(arguments[1]);
     }
 
     setHeadersFrom() {
       var TypedArray, begin, byteLength, byteOffset, constructr, end, length, protoclass;
+      return this;
       constructr = arguments[0];
       TypedArray = constructr.TypedArray;
-      protoclass = this.scope.add(constructr.prototype);
+      protoclass = 1; // @scope.add constructr::
       byteLength = constructr.byteLength || 0;
       byteOffset = Pointer.malloc(byteLength);
       begin = byteOffset / 4;
@@ -36,11 +69,11 @@ export var Pointer = (function() {
     }
 
     loadHeader() {
-      return Pointer.header.loadUint32(this + (arguments[0] || 0));
+      return memory.loadUint32(this + (arguments[0] || 0));
     }
 
     storeHeader() {
-      Pointer.header.storeUint32(this + arguments[0], arguments[1]);
+      memory.storeUint32(this + arguments[0], arguments[1]);
       return this;
     }
 
@@ -64,9 +97,13 @@ export var Pointer = (function() {
       return ptr.storeHeader(this.HINDEX_PARENT, this);
     }
 
+    getAllHeaders() {
+      return memory.subarrayUint32(this, this + 4);
+    }
+
   };
 
-  Pointer.TypedArray = Uint32Array;
+  Pointer.TypedArray = defaults.Uint32Array;
 
   Pointer.byteLength = 0;
 
@@ -92,46 +129,6 @@ export var Pointer = (function() {
 
 }).call(this);
 
-Object.defineProperties(Pointer, {
-  ITEMS_PER_POINTER: {
-    value: 12
-  },
-  BYTES_PER_POINTER: {
-    value: 4 * 12
-  },
-  buffer: {
-    configurable: true,
-    value: 2 //new Thread( 4 * 1e7 )
-  },
-  array: {
-    value: function() {}
-  },
-  
-  //! <--- HEADER's SHARED ARRAY BUFFER ONLY
-  header: {
-    configurable: true,
-    value: 1 //new Thread( 12 * 1e5 )
-  },
-  GetNewIndex: {
-    get: function() {
-      return 1;
-      this.header.addUint32(0, this.BYTES_PER_POINTER);
-      return this.header.addUint32(1, this.ITEMS_PER_POINTER);
-    }
-  },
-  length: {
-    get: function() {
-      return this.header.loadUint32(1);
-    }
-  },
-  malloc: {
-    value: function(byteLength = 0) {
-      return this.header.addUint32(3, byteLength);
-    }
-  }
-});
-
-//! HEADER's SHARED ARRAY BUFFER ONLY --->
 export var RefLink = class RefLink extends Pointer {};
 
 Object.defineProperties(RefLink.prototype, {
@@ -182,10 +179,10 @@ Object.defineProperties(Boolean.prototype, {
   },
   find: {
     value: function() {
-      var i, len, object, ptri, ref;
+      var j, len, object, ptri, ref;
       ref = Object.getOwnPropertyNames(this.scope);
-      for (i = 0, len = ref.length; i < len; i++) {
-        ptri = ref[i];
+      for (j = 0, len = ref.length; j < len; j++) {
+        ptri = ref[j];
         object = this.scope[ptri].deref();
         if (object === arguments[0]) {
           return object;
@@ -276,6 +273,20 @@ Object.defineProperties(Boolean.prototype, {
 });
 
 Object.defineProperties(Pointer.prototype, {
+  subarray: {
+    value: function() {
+      var begin, byteLength, end, finish, offset, protoclass;
+      [offset = 0, finish = 0] = arguments;
+      [protoclass, byteLength, begin, end] = memory.subarrayUint32(this, this + 4);
+      if (offset) {
+        begin += offset;
+      }
+      if (finish) {
+        end -= finish - offset;
+      }
+      return memory[defaults[protoclasses[protoclass].constructor.name].subarray](begin + offset, end);
+    }
+  },
   findAllChilds: {
     value: function(protoclass) {
       var childs, hindex, length, offset, parent, pclass, stride;
@@ -289,8 +300,8 @@ Object.defineProperties(Pointer.prototype, {
         protoclass = this.scope.has(protoclass.prototype);
       }
       while (length > (offset += stride)) {
-        if (parent === Pointer.header.loadUint32(offset)) {
-          if (protoclass && protoclass - Pointer.header.loadUint32(offset + pclass)) {
+        if (parent === memory.loadUint32(offset)) {
+          if (protoclass && protoclass - memory.loadUint32(offset + pclass)) {
             continue;
           }
           childs.push(new Pointer(offset - hindex));
@@ -308,7 +319,7 @@ Object.defineProperties(Pointer.prototype, {
   },
   [Symbol.pointer]: {
     get: function() {
-      var TypedArray, array, begin, byteArray, byteFinish, byteLength, byteOffset, constructor, end, headers, headersBegin, headersEnd, headersLength, length, parent, protoclass, prototype, ref;
+      var TypedArray, begin, byteFinish, byteLength, byteOffset, constructor, end, headersBegin, headersEnd, headersLength, length, parent, protoclass, prototype, ref;
       protoclass = this.loadHeader(this.HINDEX_PROTOCLASS);
       prototype = this.scope.get(protoclass);
       constructor = prototype.constructor;
@@ -323,19 +334,16 @@ Object.defineProperties(Pointer.prototype, {
       headersBegin = this * 1;
       headersLength = Pointer.ITEMS_PER_POINTER;
       headersEnd = headersBegin + headersLength;
-      array = Pointer.buffer[TypedArray.subarray](begin, end);
-      byteArray = Pointer.buffer.subarrayUint8(byteOffset, byteFinish);
-      headers = Pointer.header.subarrayUint32(headersBegin, headersEnd);
       return {
-        array,
+        //array           = memory[ TypedArray.subarray ]( begin, end )
+        //byteArray       = memory.subarrayUint8( byteOffset, byteFinish )
+        //headers         = memory.subarrayUint32( headersBegin, headersEnd )
         scope: prototype.scope,
         parent,
         children: this.findAllChilds(),
-        byteArray,
         byteOffset,
         byteLength,
         byteFinish,
-        headers,
         headersBegin,
         headersLength,
         headersEnd,

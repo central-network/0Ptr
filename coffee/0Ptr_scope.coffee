@@ -12,7 +12,7 @@
     BYTELENGTH_HEADER   = ITEMLENGTH_HEADER * BYTES_PER_ELEMENT
     BYTEOFFSET_PARENT   = BYTES_PER_ELEMENT * INDEX_PARENT_PTRI
 
-    INITIAL = 8 ] = [ [] ]
+    INITIAL = 12 ] = [ [] ]
 
 export class Scope extends Array
 

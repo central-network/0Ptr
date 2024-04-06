@@ -37,10 +37,7 @@ addEventListener "message", ({ data }) ->
     #* at this point, memory is initialized
     console.warn "[#{self.constructor.name}]", performance.now(2), "memory is initialized", buffer
 
-
 addEventListener "load", ->
-
-    console.log this
 
     cpu = new Worker URL.createWorkerURL "
         import 'https://localhost/0PTR/prototype.js';
@@ -48,12 +45,13 @@ addEventListener "load", ->
         self.window = self;
         self.document = {};
         self.memory = new SharedArrayBuffer();
+        console.log(self.memory);
         self.postMessage({ memory, name });
 
         console.warn( 'memory sent:', memory );
         memory.lock();
 
-        console.warn( 'thread unlocked:', name );
+        console.warn( 'thread unlocked:', name, { memory } );
         
         #{script}
 
@@ -63,9 +61,5 @@ addEventListener "load", ->
 
         memory = data.memory
         thread = data.name
-
-        self.onclick = -> console.log memory
-
         console.warn( 'raised cpu:', thread );
-
         memory.unlock()

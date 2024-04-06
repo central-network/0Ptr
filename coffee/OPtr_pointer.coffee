@@ -1,8 +1,15 @@
+import defaults from "./0Ptr_self.js"
 export { Scope } from "./0Ptr_scope.js"
+
+protoclasses = [ weakmap = new WeakMap(), ]
+
+Object.defineProperties Symbol,
+    pointer                 :
+        value               : "{[Pointer]}"
 
 export class Pointer   extends Number
 
-    @TypedArray             : Uint32Array
+    @TypedArray             : defaults.Uint32Array
 
     @byteLength             : 0
 
@@ -26,23 +33,36 @@ export class Pointer   extends Number
     HINDEX_BYTEFINISH       : 6
 
     HINDEX_RESERVED         : 7
-    
+
+    @scopei                 : ->
+        if !weakmap.has this:: 
+            weakmap.set this::, protoclasses[ i = protoclasses.length ] = this::
+            
+            Object.defineProperty this::, "protoclass", { value : i }
+
+            if  bpe = defaults[ @name ]?.BYTES_PER_ELEMENT
+                Object.defineProperty this::, "BYTES_PER_ELEMENT", { value : bpe }
+
+        i
 
     toPointer               : -> this
 
     constructor             : ->
         unless arguments.length
-            return super Pointer.GetNewIndex
-                .setHeadersFrom this.constructor 
+            super ptri = memory.malloc()
+            memory.storeUint32 ptri, @protoclass
 
-        super arguments[0]
-            .usePrototype arguments[1]
+        else
+            super arguments[0]
+            @usePrototype arguments[1]
 
     setHeadersFrom          : ->
 
+        return this
+
         constructr = arguments[0]
         TypedArray = constructr.TypedArray
-        protoclass = @scope.add constructr::
+        protoclass = 1# @scope.add constructr::
 
         byteLength = constructr.byteLength or 0
         byteOffset = Pointer.malloc byteLength
@@ -64,10 +84,10 @@ export class Pointer   extends Number
         this
 
     loadHeader              : ->
-        Pointer.header.loadUint32 this + ( arguments[0] or 0 )
+        memory.loadUint32 this + ( arguments[0] or 0 )
 
     storeHeader             : ->
-        Pointer.header.storeUint32 this + arguments[0] , arguments[1] ; this
+        memory.storeUint32 this + arguments[0] , arguments[1] ; this
 
     usePrototype            : ->
         return this unless @constructor is Pointer
@@ -86,38 +106,9 @@ export class Pointer   extends Number
 
         ptr.storeHeader @HINDEX_PARENT, this
 
-Object.defineProperties Pointer,
+    getAllHeaders           : ->
+        memory.subarrayUint32 this, this + 4
 
-    ITEMS_PER_POINTER       : value : 12
-
-    BYTES_PER_POINTER       : value : 4 * 12
-
-    buffer                  :
-            configurable    : on
-            value           : 2#new Thread( 4 * 1e7 )
-
-    array                   :
-            value           : -> 
-
-    #! <--- HEADER's SHARED ARRAY BUFFER ONLY
-    header                  :
-            configurable    : on
-            value           : 1#new Thread( 12 * 1e5 )
-
-    GetNewIndex             :
-            get             : ->
-                return 1;
-                @header.addUint32 0, @BYTES_PER_POINTER
-                @header.addUint32 1, @ITEMS_PER_POINTER
-
-    length                  :
-            get             : ->
-                @header.loadUint32 1
-                
-    malloc                  :
-            value           : ( byteLength = 0 ) ->
-                @header.addUint32 3, byteLength
-    #! HEADER's SHARED ARRAY BUFFER ONLY --->
 
 export class RefLink    extends Pointer
 
@@ -223,6 +214,20 @@ Object.defineProperties Boolean::,
     
 Object.defineProperties Pointer::,
 
+    subarray                : value : ->
+        [ offset = 0, finish = 0 ] = arguments
+
+        [ protoclass, byteLength, begin, end ] =
+            memory.subarrayUint32 this , this + 4
+
+        begin += offset if offset
+        end -= ( finish - offset ) if finish
+        
+        memory[ defaults[ protoclasses[ protoclass ].constructor.name ].subarray ](
+            begin + offset, end
+        )
+        
+
     findAllChilds        : value : ( protoclass ) ->
         offset = 
         hindex = Pointer::HINDEX_PARENT
@@ -237,11 +242,11 @@ Object.defineProperties Pointer::,
 
         while length > offset += stride
 
-            if  parent is Pointer.header.loadUint32 offset
+            if  parent is memory.loadUint32 offset
 
                 continue if (
                     protoclass and 
-                    protoclass - Pointer.header.loadUint32 offset + pclass
+                    protoclass - memory.loadUint32 offset + pclass
                 )
 
                 childs.push new Pointer offset - hindex
@@ -275,14 +280,14 @@ Object.defineProperties Pointer::,
         headersLength   = Pointer.ITEMS_PER_POINTER
         headersEnd      = headersBegin + headersLength
 
-        array           = Pointer.buffer[ TypedArray.subarray ]( begin, end )
-        byteArray       = Pointer.buffer.subarrayUint8( byteOffset, byteFinish )
-        headers         = Pointer.header.subarrayUint32( headersBegin, headersEnd )
+        #array           = memory[ TypedArray.subarray ]( begin, end )
+        #byteArray       = memory.subarrayUint8( byteOffset, byteFinish )
+        #headers         = memory.subarrayUint32( headersBegin, headersEnd )
         
         return {
-            array, scope : prototype.scope, parent, children : @findAllChilds(),
-            byteArray, byteOffset, byteLength, byteFinish,
-            headers, headersBegin, headersLength, headersEnd,
+            scope : prototype.scope, parent, children : @findAllChilds(),
+            byteOffset, byteLength, byteFinish,
+            headersBegin, headersLength, headersEnd,
             begin, end, length,
             protoclass, prototype, constructor
         }
