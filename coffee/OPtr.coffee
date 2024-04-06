@@ -41,12 +41,13 @@ addEventListener "load", ->
 
     cpu = new Worker URL.createWorkerURL "
         import 'https://localhost/0PTR/prototype.js';
+        import 'https://localhost/0PTR/OPtr_window.js';
         
-        self.window = self;
-        self.document = {};
+        
         self.memory = new SharedArrayBuffer();
-        console.log(self.memory);
         self.postMessage({ memory, name });
+
+        console.log(self.memory);
 
         console.warn( 'memory sent:', memory );
         memory.lock();
@@ -63,6 +64,6 @@ addEventListener "load", ->
         memory = data.memory
         thread = data.name
         console.warn( 'raised cpu:', thread );
-        
+
         memory.defineProperties()
         memory.unlock()

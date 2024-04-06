@@ -69,10 +69,12 @@
         </style>
     </head>
     <body>
-        <canvas id="viewport-canvas"></canvas>
+        <canvas id="viewport"></canvas>
         <script src="OPtr.js" type="module">
 
             console.log( "HPC code running", {self, window, document});
+
+            let canvas = document.getElementById("viewport");
 
             let testArray = new Uint8Array( 24 );
             let testArray2 = new Uint32Array( 2 );

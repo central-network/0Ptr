@@ -1,49 +1,6 @@
-export var Window = class Window {
-  constructor(thread) {
-    var document;
-    Object.defineProperties(self, {
-      window: {
-        value: this
-      },
-      thread: {
-        value: thread
-      },
-      document: {
-        value: new (document = class document extends HTMLDocument {})
-      }
-    });
-    Object.defineProperties(Window.prototype, {
-      self: {
-        value: self
-      },
-      document: {
-        value: self.document
-      },
-      lock: {
-        value: function() {
-          var i32;
-          i32 = new Int32Array(thread.buffer);
-          Atomics.wait(i32, self.name);
-          return Atomics.load(i32, self.name);
-        }
-      },
-      post: {
-        value: function() {
-          postMessage(arguments[0]);
-          return this.lock();
-        }
-      },
-      loadInt32: {
-        value: function() {
-          var i32;
-          i32 = new Int32Array(thread.buffer);
-          return Atomics.load(i32, arguments[0]);
-        }
-      }
-    });
-  }
+var document;
 
-};
+export var Window = class Window {};
 
 export var Node = class Node {};
 
@@ -53,6 +10,7 @@ export var HTMLElement = class HTMLElement extends Element {};
 
 export var HTMLDocument = class HTMLDocument extends HTMLElement {
   getElementById(id) {
+    return console.log(id);
     return window.post({
       func: ["document", "getElementById"],
       args: [id]
@@ -79,3 +37,24 @@ export var HTMLCanvasElement = class HTMLCanvasElement extends HTMLElement {
   getContext(type) {}
 
 };
+
+Object.defineProperties(self, {
+  window: {
+    value: self
+  },
+  document: {
+    value: document = new (document = class document extends HTMLDocument {})
+  }
+});
+
+Object.defineProperties(self.window, {
+  self: {
+    value: self
+  },
+  document: {
+    value: document
+  },
+  window: {
+    value: window
+  }
+});
