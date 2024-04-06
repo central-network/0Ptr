@@ -10,4 +10,6 @@ export default defaults = {
     BigUint64Array    : self.BigUint64Array
     BigInt64Array     : self.BigInt64Array
     DataView          : self.DataView
+    ArrayBuffer       : self.ArrayBuffer
+    SharedArrayBuffer : self.SharedArrayBuffer
 }

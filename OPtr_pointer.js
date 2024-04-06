@@ -37,44 +37,13 @@ export var Pointer = (function() {
     }
 
     constructor() {
-      var ptri;
       if (!arguments.length) {
-        super(ptri = memory.malloc());
-        memory.storeUint32(ptri, this.protoclass);
+        super(memory.malloc());
+        memory.setProtoClass(this, this.protoclass);
       } else {
         super(arguments[0]);
         this.usePrototype(arguments[1]);
       }
-    }
-
-    setHeadersFrom() {
-      var TypedArray, begin, byteLength, byteOffset, constructr, end, length, protoclass;
-      return this;
-      constructr = arguments[0];
-      TypedArray = constructr.TypedArray;
-      protoclass = 1; // @scope.add constructr::
-      byteLength = constructr.byteLength || 0;
-      byteOffset = Pointer.malloc(byteLength);
-      begin = byteOffset / 4;
-      end = begin + byteLength / 4;
-      length = byteLength / TypedArray.BYTES_PER_ELEMENT;
-      this.storeHeader(this.HINDEX_PROTOCLASS, protoclass);
-      this.storeHeader(this.HINDEX_BEGIN, begin);
-      this.storeHeader(this.HINDEX_END, end);
-      this.storeHeader(this.HINDEX_LENGTH, length);
-      this.storeHeader(this.HINDEX_BYTEOFFSET, byteOffset);
-      this.storeHeader(this.HINDEX_BYTELENGTH, byteLength);
-      this.storeHeader(this.HINDEX_BYTEFINISH, byteOffset + byteLength);
-      return this;
-    }
-
-    loadHeader() {
-      return memory.loadUint32(this + (arguments[0] || 0));
-    }
-
-    storeHeader() {
-      memory.storeUint32(this + arguments[0], arguments[1]);
-      return this;
     }
 
     usePrototype() {
@@ -86,19 +55,8 @@ export var Pointer = (function() {
       return Object.setPrototypeOf(this, protoclass);
     }
 
-    add() {
-      var ptr;
-      if (!(ptr = arguments[0])) {
-        return;
-      }
-      if (!(ptr instanceof Pointer)) {
-        ptr = ptr.toPointer();
-      }
-      return ptr.storeHeader(this.HINDEX_PARENT, this);
-    }
-
-    getAllHeaders() {
-      return memory.subarrayUint32(this, this + 4);
+    getPrototype() {
+      return protoclasses[memory.getProtoClass(this)];
     }
 
   };
@@ -273,20 +231,6 @@ Object.defineProperties(Boolean.prototype, {
 });
 
 Object.defineProperties(Pointer.prototype, {
-  subarray: {
-    value: function() {
-      var begin, byteLength, end, finish, offset, protoclass;
-      [offset = 0, finish = 0] = arguments;
-      [protoclass, byteLength, begin, end] = memory.subarrayUint32(this, this + 4);
-      if (offset) {
-        begin += offset;
-      }
-      if (finish) {
-        end -= finish - offset;
-      }
-      return memory[defaults[protoclasses[protoclass].constructor.name].subarray](begin + offset, end);
-    }
-  },
   findAllChilds: {
     value: function(protoclass) {
       var childs, hindex, length, offset, parent, pclass, stride;

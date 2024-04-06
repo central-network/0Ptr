@@ -1,13 +1,11 @@
 import defaults from "./0Ptr_self.js"
 import { TypedArray } from "./0ptr_TypedArray.js"
 
-BYTES_PER_HEADER            = 4
+COUNT_OF_HEADERS            = 8
 
-ITEMS_OF_HEADERS            = 4
+BYTES_OF_HEADERS            = 4 * COUNT_OF_HEADERS
 
-BYTES_OF_HEADERS            = ITEMS_OF_HEADERS * BYTES_PER_HEADER
-
-LOCKS_BYTEOFFSET            = 8
+GLOBAL_LOCKINDEX            = 8 / 4
 
 Object.defineProperties Object::,
 
@@ -50,15 +48,13 @@ Object.defineProperties self.SharedArrayBuffer::,
             new defaults.Uint8Array( buffer ), offset
         ) ; this
 
-    lock                : value : ( byteOffset = LOCKS_BYTEOFFSET ) ->
-        i32 = new defaults.Int32Array this, byteOffset, 1
-        Atomics.wait i32
+    lock                : value : ( index = GLOBAL_LOCKINDEX ) ->
+        Atomics.wait new defaults.Int32Array( this ), index
 
-    unlock              : value : ( byteOffset = LOCKS_BYTEOFFSET ) ->
-        i32 = new defaults.Int32Array this, byteOffset, 1
+    unlock              : value : ( index = GLOBAL_LOCKINDEX ) ->
         setTimeout =>
-            Atomics.notify i32
-        , 10
+            Atomics.notify new defaults.Int32Array( this ), index
+        , 210
 
     #*   headers has 4 items:
     #* - nexti4     : memory's next index  index4(ptr) + 8 (head + data(ptr))
@@ -68,7 +64,7 @@ Object.defineProperties self.SharedArrayBuffer::,
 
     malloc              : value : ->
         unless arguments.length
-            return @addUint32 1, ITEMS_OF_HEADERS
+            return @addUint32 1, COUNT_OF_HEADERS
 
         else if arguments[0] > 0
             return @addUint32 0, arguments[0]
@@ -89,7 +85,6 @@ Object.defineProperties self.SharedArrayBuffer::,
         u64 = new defaults.BigUint64Array    this
         i64 = new defaults.BigInt64Array     this
         dvw = new defaults.DataView          this
-
 
         for view in [ ui8, ii8, u16, i16, u32, i32, u64, i64 ]
             @defineIntegerAtomics view
@@ -223,7 +218,6 @@ Object.defineProperties self.SharedArrayBuffer::,
         view = arguments[0]
         constructor = view.constructor
 
-
         nameSuffix = constructor
             .name.replace /View|Array/, ""
 
@@ -257,8 +251,10 @@ Object.defineProperties self.SharedArrayBuffer::,
             Object.defineProperty constructor, caller,
                 value : handle
 
+        view
 
-Object.defineProperties self,
+
+Object.defineProperties self, 
 
     Worker              : value : class Worker extends self.Worker 
 
@@ -270,29 +266,15 @@ Object.defineProperties self,
 
             @onerror = -> !console.error ...arguments
 
-    Uint8Array          : value : class Uint8Array extends TypedArray
 
-        @protoclass     : @scopei()
+Object.defineProperty self, "SharedArrayBuffer", value :
 
-    Uint32Array         : value : class Uint32Array extends TypedArray
+    class SharedArrayBuffer extends defaults.SharedArrayBuffer
 
-        @protoclass     : @scopei()
-
-    SharedArrayBuffer   : value : class SharedArrayBuffer extends self.SharedArrayBuffer
-
-        BEGIN               : 1e5
-
-        LENGTH              : 4
-
-        BYTELENGTH          : 4 * 4
+        BEGIN               : 8e5 #! ITEMS: 8e5 = POINTERS: 1e5 = BYTES: 32e5
 
         MAX_BYTELENGTH      : Math.pow navigator?.deviceMemory or 2 , 11
 
-        LITTLE_ENDIAN       : DataView::littleEndian
-
-
-
-        
         INDEX4_CLASS        : 0
 
         INDEX4_BYTELENGTH   : 1
@@ -301,8 +283,10 @@ Object.defineProperties self,
 
         INDEX4_END          : 3
 
+        constructor         : ->
+            if  arguments[0] instanceof SharedArrayBuffer
+                return arguments[0].defineProperties()
 
-        constructor     : ->
             byteLength = SharedArrayBuffer::BEGIN * 8
             options = maxByteLength : SharedArrayBuffer::MAX_BYTELENGTH
 
@@ -321,9 +305,6 @@ Object.defineProperties self,
             if  self.Array.isArray source
                 source = defaults.Uint8Array.from source
 
-            if  source instanceof SharedArrayBuffer
-                return source.defineProperties()
-
             #? new SharedArrayBuffer( new ArrayBuffer(256) )
             if  source.byteLength
                 byteLength = Math.max source.byteLength , byteLength
@@ -333,10 +314,40 @@ Object.defineProperties self,
 
             throw /MEMORY_COULD_NOT_INITIALIZED/
 
-        initialAlloc    : ->
+        initialAlloc        : ->
             @defineProperties()
 
             @orUint32 0, @BEGIN * 4
-            @orUint32 1, 4
+            # byte offset for objects
+
+            @orUint32 1, COUNT_OF_HEADERS
+            # index offset for headers
             
             this
+
+        getHeaders          : ( ptri ) ->
+            @subarrayUint32 this , this + COUNT_OF_HEADERS
+
+        getProtoClass       : ( ptri ) ->
+            @loadUint32  ptri + @INDEX4_CLASS
+
+        getByteLength       : ( ptri ) ->
+            @loadUint32  ptri + @INDEX4_BYTELENGTH
+    
+        getBegin            : ( ptri ) ->
+            @loadUint32  ptri + @INDEX4_BEGIN
+    
+        getEnd              : ( ptri ) ->
+            @loadUint32  ptri + @INDEX4_END
+    
+        setProtoClass       : ( ptri, uInt32 ) ->
+            @storeUint32 ptri + @INDEX4_CLASS, uInt32 ; ptri
+
+        setByteLength       : ( ptri, uInt32 ) ->
+            @storeUint32 ptri + @INDEX4_BYTELENGTH, uInt32 ; ptri
+        
+        setBegin            : ( ptri, uInt32 ) ->
+            @storeUint32 ptri + @INDEX4_BEGIN, uInt32 ; ptri
+
+        setEnd              : ( ptri, uInt32 ) ->
+            @storeUint32 ptri + @INDEX4_END, uInt32 ; ptri

@@ -1,4 +1,4 @@
-var BYTES_OF_HEADERS, BYTES_PER_HEADER, ITEMS_OF_HEADERS, LOCKS_BYTEOFFSET, SharedArrayBuffer, Uint32Array, Uint8Array, Worker;
+var BYTES_OF_HEADERS, COUNT_OF_HEADERS, GLOBAL_LOCKINDEX, SharedArrayBuffer, Worker;
 
 import defaults from "./0Ptr_self.js";
 
@@ -6,13 +6,11 @@ import {
   TypedArray
 } from "./0ptr_TypedArray.js";
 
-BYTES_PER_HEADER = 4;
+COUNT_OF_HEADERS = 8;
 
-ITEMS_OF_HEADERS = 4;
+BYTES_OF_HEADERS = 4 * COUNT_OF_HEADERS;
 
-BYTES_OF_HEADERS = ITEMS_OF_HEADERS * BYTES_PER_HEADER;
-
-LOCKS_BYTEOFFSET = 8;
+GLOBAL_LOCKINDEX = 8 / 4;
 
 Object.defineProperties(Object.prototype, {
   toPointer: {
@@ -70,19 +68,15 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
     }
   },
   lock: {
-    value: function(byteOffset = LOCKS_BYTEOFFSET) {
-      var i32;
-      i32 = new defaults.Int32Array(this, byteOffset, 1);
-      return Atomics.wait(i32);
+    value: function(index = GLOBAL_LOCKINDEX) {
+      return Atomics.wait(new defaults.Int32Array(this), index);
     }
   },
   unlock: {
-    value: function(byteOffset = LOCKS_BYTEOFFSET) {
-      var i32;
-      i32 = new defaults.Int32Array(this, byteOffset, 1);
+    value: function(index = GLOBAL_LOCKINDEX) {
       return setTimeout(() => {
-        return Atomics.notify(i32);
-      }, 10);
+        return Atomics.notify(new defaults.Int32Array(this), index);
+      }, 210);
     }
   },
   //*   headers has 4 items:
@@ -93,7 +87,7 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   malloc: {
     value: function() {
       if (!arguments.length) {
-        return this.addUint32(1, ITEMS_OF_HEADERS);
+        return this.addUint32(1, COUNT_OF_HEADERS);
       } else if (arguments[0] > 0) {
         return this.addUint32(0, arguments[0]);
       }
@@ -240,7 +234,7 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   },
   defineTArrayModifiers: {
     value: function() {
-      var caller, constructor, handle, i, len, modifiers, nameSuffix, results, view;
+      var caller, constructor, handle, i, len, modifiers, nameSuffix, view;
       view = arguments[0];
       constructor = view.constructor;
       nameSuffix = constructor.name.replace(/View|Array/, "");
@@ -257,7 +251,6 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
         }
       });
       modifiers = ["subarray", "fill", "slice", "copyWithin", "entries", "every", "filter", "find", "findIndex", "findLast", "findLastIndex", "forEach", "includes", "indexOf", "join", "keys", "lastIndexOf", "map", "reduce", "reduceRight", "reverse", "some", "sort", "values", "with"];
-      results = [];
       for (i = 0, len = modifiers.length; i < len; i++) {
         caller = modifiers[i];
         handle = caller + nameSuffix;
@@ -267,11 +260,11 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
         if (Object.hasOwn(constructor, caller)) {
           continue;
         }
-        results.push(Object.defineProperty(constructor, caller, {
+        Object.defineProperty(constructor, caller, {
           value: handle
-        }));
+        });
       }
-      return results;
+      return view;
     }
   }
 });
@@ -290,89 +283,105 @@ Object.defineProperties(self, {
       }
 
     }
-  },
-  Uint8Array: {
-    value: Uint8Array = (function() {
-      class Uint8Array extends TypedArray {};
-
-      Uint8Array.protoclass = Uint8Array.scopei();
-
-      return Uint8Array;
-
-    }).call(this)
-  },
-  Uint32Array: {
-    value: Uint32Array = (function() {
-      class Uint32Array extends TypedArray {};
-
-      Uint32Array.protoclass = Uint32Array.scopei();
-
-      return Uint32Array;
-
-    }).call(this)
-  },
-  SharedArrayBuffer: {
-    value: SharedArrayBuffer = (function() {
-      class SharedArrayBuffer extends self.SharedArrayBuffer {
-        constructor() {
-          var byteLength, options, source;
-          byteLength = SharedArrayBuffer.prototype.BEGIN * 8;
-          options = {
-            maxByteLength: SharedArrayBuffer.prototype.MAX_BYTELENGTH
-          };
-          //? new SharedArrayBuffer()
-          if (!arguments.length) {
-            return super(byteLength, options).initialAlloc();
-          }
-          //? new SharedArrayBuffer( 256 )
-          if (Number.isInteger(source = arguments[0])) {
-            byteLength = Math.max(source, byteLength);
-            return super(byteLength, arguments[1] || options).initialAlloc();
-          }
-          //? new SharedArrayBuffer( [2, 41, ...N ] )
-          if (self.Array.isArray(source)) {
-            source = defaults.Uint8Array.from(source);
-          }
-          if (source instanceof SharedArrayBuffer) {
-            return source.defineProperties();
-          }
-          //? new SharedArrayBuffer( new ArrayBuffer(256) )
-          if (source.byteLength) {
-            byteLength = Math.max(source.byteLength, byteLength);
-            return super(byteLength, options).initialAlloc().set(source);
-          }
-          throw /MEMORY_COULD_NOT_INITIALIZED/;
-        }
-
-        initialAlloc() {
-          this.defineProperties();
-          this.orUint32(0, this.BEGIN * 4);
-          this.orUint32(1, 4);
-          return this;
-        }
-
-      };
-
-      SharedArrayBuffer.prototype.BEGIN = 1e5;
-
-      SharedArrayBuffer.prototype.LENGTH = 4;
-
-      SharedArrayBuffer.prototype.BYTELENGTH = 4 * 4;
-
-      SharedArrayBuffer.prototype.MAX_BYTELENGTH = Math.pow((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 2, 11);
-
-      SharedArrayBuffer.prototype.LITTLE_ENDIAN = DataView.prototype.littleEndian;
-
-      SharedArrayBuffer.prototype.INDEX4_CLASS = 0;
-
-      SharedArrayBuffer.prototype.INDEX4_BYTELENGTH = 1;
-
-      SharedArrayBuffer.prototype.INDEX4_BEGIN = 2;
-
-      SharedArrayBuffer.prototype.INDEX4_END = 3;
-
-      return SharedArrayBuffer;
-
-    }).call(this)
   }
+});
+
+Object.defineProperty(self, "SharedArrayBuffer", {
+  value: SharedArrayBuffer = (function() {
+    class SharedArrayBuffer extends defaults.SharedArrayBuffer {
+      constructor() {
+        var byteLength, options, source;
+        if (arguments[0] instanceof SharedArrayBuffer) {
+          return arguments[0].defineProperties();
+        }
+        byteLength = SharedArrayBuffer.prototype.BEGIN * 8;
+        options = {
+          maxByteLength: SharedArrayBuffer.prototype.MAX_BYTELENGTH
+        };
+        //? new SharedArrayBuffer()
+        if (!arguments.length) {
+          return super(byteLength, options).initialAlloc();
+        }
+        //? new SharedArrayBuffer( 256 )
+        if (Number.isInteger(source = arguments[0])) {
+          byteLength = Math.max(source, byteLength);
+          return super(byteLength, arguments[1] || options).initialAlloc();
+        }
+        //? new SharedArrayBuffer( [2, 41, ...N ] )
+        if (self.Array.isArray(source)) {
+          source = defaults.Uint8Array.from(source);
+        }
+        //? new SharedArrayBuffer( new ArrayBuffer(256) )
+        if (source.byteLength) {
+          byteLength = Math.max(source.byteLength, byteLength);
+          return super(byteLength, options).initialAlloc().set(source);
+        }
+        throw /MEMORY_COULD_NOT_INITIALIZED/;
+      }
+
+      initialAlloc() {
+        this.defineProperties();
+        this.orUint32(0, this.BEGIN * 4);
+        // byte offset for objects
+        this.orUint32(1, COUNT_OF_HEADERS);
+        return this;
+      }
+
+      getHeaders(ptri) {
+        return this.subarrayUint32(this, this + COUNT_OF_HEADERS);
+      }
+
+      getProtoClass(ptri) {
+        return this.loadUint32(ptri + this.INDEX4_CLASS);
+      }
+
+      getByteLength(ptri) {
+        return this.loadUint32(ptri + this.INDEX4_BYTELENGTH);
+      }
+
+      getBegin(ptri) {
+        return this.loadUint32(ptri + this.INDEX4_BEGIN);
+      }
+
+      getEnd(ptri) {
+        return this.loadUint32(ptri + this.INDEX4_END);
+      }
+
+      setProtoClass(ptri, uInt32) {
+        this.storeUint32(ptri + this.INDEX4_CLASS, uInt32);
+        return ptri;
+      }
+
+      setByteLength(ptri, uInt32) {
+        this.storeUint32(ptri + this.INDEX4_BYTELENGTH, uInt32);
+        return ptri;
+      }
+
+      setBegin(ptri, uInt32) {
+        this.storeUint32(ptri + this.INDEX4_BEGIN, uInt32);
+        return ptri;
+      }
+
+      setEnd(ptri, uInt32) {
+        this.storeUint32(ptri + this.INDEX4_END, uInt32);
+        return ptri;
+      }
+
+    };
+
+    SharedArrayBuffer.prototype.BEGIN = 8e5; //! ITEMS: 8e5 = POINTERS: 1e5 = BYTES: 32e5
+
+    SharedArrayBuffer.prototype.MAX_BYTELENGTH = Math.pow((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 2, 11);
+
+    SharedArrayBuffer.prototype.INDEX4_CLASS = 0;
+
+    SharedArrayBuffer.prototype.INDEX4_BYTELENGTH = 1;
+
+    SharedArrayBuffer.prototype.INDEX4_BEGIN = 2;
+
+    SharedArrayBuffer.prototype.INDEX4_END = 3;
+
+    return SharedArrayBuffer;
+
+  }).call(this)
 });

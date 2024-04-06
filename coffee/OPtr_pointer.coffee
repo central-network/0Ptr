@@ -41,7 +41,9 @@ export class Pointer   extends Number
             Object.defineProperty this::, "protoclass", { value : i }
 
             if  bpe = defaults[ @name ]?.BYTES_PER_ELEMENT
-                Object.defineProperty this::, "BYTES_PER_ELEMENT", { value : bpe }
+
+                Object.defineProperty this::,
+                    "BYTES_PER_ELEMENT", { value : bpe }
 
         i
 
@@ -49,45 +51,12 @@ export class Pointer   extends Number
 
     constructor             : ->
         unless arguments.length
-            super ptri = memory.malloc()
-            memory.storeUint32 ptri, @protoclass
+            super memory.malloc()                
+            memory.setProtoClass this, @protoclass
 
         else
             super arguments[0]
             @usePrototype arguments[1]
-
-    setHeadersFrom          : ->
-
-        return this
-
-        constructr = arguments[0]
-        TypedArray = constructr.TypedArray
-        protoclass = 1# @scope.add constructr::
-
-        byteLength = constructr.byteLength or 0
-        byteOffset = Pointer.malloc byteLength
-
-        begin      = byteOffset / 4
-        end        = begin + byteLength / 4
-        length     = byteLength / TypedArray.BYTES_PER_ELEMENT
-        
-        @storeHeader @HINDEX_PROTOCLASS, protoclass
-        
-        @storeHeader @HINDEX_BEGIN, begin
-        @storeHeader @HINDEX_END, end
-        @storeHeader @HINDEX_LENGTH, length
-
-        @storeHeader @HINDEX_BYTEOFFSET, byteOffset
-        @storeHeader @HINDEX_BYTELENGTH, byteLength
-        @storeHeader @HINDEX_BYTEFINISH, byteOffset + byteLength
-
-        this
-
-    loadHeader              : ->
-        memory.loadUint32 this + ( arguments[0] or 0 )
-
-    storeHeader             : ->
-        memory.storeUint32 this + arguments[0] , arguments[1] ; this
 
     usePrototype            : ->
         return this unless @constructor is Pointer
@@ -98,16 +67,8 @@ export class Pointer   extends Number
         
         Object.setPrototypeOf this, protoclass
 
-    add                     : ->
-        return unless ptr = arguments[0]
-
-        unless ptr instanceof Pointer
-            ptr = ptr.toPointer()
-
-        ptr.storeHeader @HINDEX_PARENT, this
-
-    getAllHeaders           : ->
-        memory.subarrayUint32 this, this + 4
+    getPrototype            : ->
+        protoclasses[ memory.getProtoClass this ]
 
 
 export class RefLink    extends Pointer
@@ -213,20 +174,6 @@ Object.defineProperties Boolean::,
                 return { value }
     
 Object.defineProperties Pointer::,
-
-    subarray                : value : ->
-        [ offset = 0, finish = 0 ] = arguments
-
-        [ protoclass, byteLength, begin, end ] =
-            memory.subarrayUint32 this , this + 4
-
-        begin += offset if offset
-        end -= ( finish - offset ) if finish
-        
-        memory[ defaults[ protoclasses[ protoclass ].constructor.name ].subarray ](
-            begin + offset, end
-        )
-        
 
     findAllChilds        : value : ( protoclass ) ->
         offset = 
