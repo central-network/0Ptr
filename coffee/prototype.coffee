@@ -1,32 +1,10 @@
-import defaults from "./0Ptr_self.js"
-import { TypedArray } from "./0ptr_TypedArray.js"
+import { TypedArray, defaults } from "./0ptr_TypedArray.js"
 
 COUNT_OF_HEADERS            = 8
 
 BYTES_OF_HEADERS            = 4 * COUNT_OF_HEADERS
 
 GLOBAL_LOCKINDEX            = 8 / 4
-
-Object.defineProperties Object::,
-
-    toPointer               :
-        configurable        : on,
-        value               : -> new RefLink().setRef( this )
-
-Object.defineProperties Number::,
-
-    toPointer               : value : ->
-
-        return null unless this
-
-        unless prototype = arguments[0]?.prototype
-
-            protoclass = Pointer::loadHeader.call this, Pointer::HINDEX_PROTOCLASS
-            prototype = Pointer::scope.get protoclass
-
-        return new Ptr this if Ptr = prototype.constructor
-
-        return null
 
 Object.defineProperties DataView::,
 
@@ -40,7 +18,76 @@ Object.defineProperties URL,
 
 Object.defineProperties self.SharedArrayBuffer::,
 
-    set                 : value : ->
+    scope           : value : new class ScopeChannel extends BroadcastChannel
+
+        objects             : [ new WeakRef self ]
+
+        uuid                : self.name or= crypto.randomUUID()
+
+        map                 : new WeakMap()
+
+        load                : ( index ) ->
+            return null unless index
+
+            unless ref = @objects[ index ]
+                console.log "need proxy", index
+                @request { index }
+                memory.lock()
+                ref = new WeakRef {done: 2}
+
+            return ref.deref()
+
+        store               : ( object ) ->
+            unless @map.has object
+                @map.set object , index = @objects.length
+                @objects[ index ] = new WeakRef object
+                return index
+           
+            for ref, index in @objects
+                return index if ref.deref() is object
+
+            throw [ "UNEXPECTED_STORE", ...arguments ]
+    
+        constructor         : -> super( "0ptr_sc" ).listen()
+
+        listen              : -> @onmessage = @message.bind this
+
+        message             : ({ data, ports }) ->
+            if  data.to
+                @onreply data if data.to is @uuid
+            
+            else
+                @onrequest data
+
+        onreply             : ( res ) ->
+            console.log "got res:", res, @uuid, @objects
+            
+        onrequest           : ( req ) ->
+            console.log "got req:", req, @uuid, @objects
+            
+            { port1, port2  } = new MessageChannel()
+            
+            @reply req, { done: 222 }, [ port1 ]
+
+            memory.unlock()
+
+        reply               : ( req, res ) ->
+            @postMessage {
+                ...res, from: @uuid, to: req.from
+            }, arguments[1]
+
+        request             : ( req ) ->
+            @postMessage {
+                ...req, from: @uuid
+            }, arguments[1]
+
+    loadObject              : value : ( ptri, index ) ->
+        @scope.load @loadUint32 @getBegin( ptri ) + index
+
+    storeObject             : value : ( ptri, index, object ) ->
+        @storeUint32 @getBegin( ptri ) + index, @scope.store object ; object
+
+    set                     : value : ->
         buffer = arguments[0].buffer ? arguments[0]
         offset = arguments[1] or 0
 
@@ -48,21 +95,20 @@ Object.defineProperties self.SharedArrayBuffer::,
             new defaults.Uint8Array( buffer ), offset
         ) ; this
 
-    lock                : value : ( index = GLOBAL_LOCKINDEX ) ->
-        Atomics.wait new defaults.Int32Array( this ), index
+    lock                    : value : ( index = GLOBAL_LOCKINDEX ) ->
+        @waitInt32 index
 
-    unlock              : value : ( index = GLOBAL_LOCKINDEX ) ->
-        setTimeout =>
-            Atomics.notify new defaults.Int32Array( this ), index
-        , 210
+    unlock                  : value : ( index = GLOBAL_LOCKINDEX ) ->
+        setTimeout (=> @notifyInt32 index ), 210
 
-    #*   headers has 4 items:
-    #* - nexti4     : memory's next index  index4(ptr) + 8 (head + data(ptr))
-    #* - byteLength : data byte [not aligned] length {it's 0 when deleted} 
-    #* - parent     : linked target index4
-    #* - prototype  : protoclass of TypedArray.......!!!Pointer!!!!
+    malloc                  : value : ->
 
-    malloc              : value : ->
+        #*   headers has 4 items:
+        #* - nexti4     : memory's next index  index4(ptr) + 8 (head + data(ptr))
+        #* - byteLength : data byte [not aligned] length {it's 0 when deleted} 
+        #* - parent     : linked target index4
+        #* - prototype  : protoclass of TypedArray.......!!!Pointer!!!!
+
         unless arguments.length
             return @addUint32 1, COUNT_OF_HEADERS
 
@@ -70,7 +116,6 @@ Object.defineProperties self.SharedArrayBuffer::,
             return @addUint32 0, arguments[0]
 
         throw [ "NON_SIZED_ALLOCATION" ]
-
 
     defineProperties        : value : ->
 
@@ -254,9 +299,9 @@ Object.defineProperties self.SharedArrayBuffer::,
         view
 
 
-Object.defineProperties self, 
+Object.defineProperty   self, "Worker", value :
 
-    Worker              : value : class Worker extends self.Worker 
+    class Worker extends self.Worker 
 
         constructor     : ->
             super arguments[0], { ...{
@@ -266,8 +311,7 @@ Object.defineProperties self,
 
             @onerror = -> !console.error ...arguments
 
-
-Object.defineProperty self, "SharedArrayBuffer", value :
+Object.defineProperty   self, "SharedArrayBuffer", value :
 
     class SharedArrayBuffer extends defaults.SharedArrayBuffer
 

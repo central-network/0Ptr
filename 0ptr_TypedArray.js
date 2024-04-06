@@ -1,12 +1,14 @@
-var BigInt64Array, BigUint64Array, Float32Array, Float64Array, Int16Array, Int32Array, Int8Array, Uint16Array, Uint32Array, Uint8Array;
+var BigInt64Array, BigUint64Array, Float32Array, Float64Array, Int16Array, Int32Array, Int8Array, TypedArray, Uint16Array, Uint32Array, Uint8Array;
 
-import defaults from "./0Ptr_self.js";
+import {
+  defaults
+} from "./0Ptr_self.js";
 
 import {
   Pointer
 } from "./OPtr_pointer.js";
 
-export var TypedArray = (function() {
+TypedArray = (function() {
   class TypedArray extends Pointer {
     //*   headers has 4 items:
     //* - nexti4     : memory's next index  index4(ptr) + 8 (head + data(ptr))
@@ -200,3 +202,9 @@ Object.defineProperties(self, {
     }).call(this)
   }
 });
+
+export {
+  TypedArray as default,
+  TypedArray,
+  defaults
+};

@@ -57,10 +57,11 @@ addEventListener("load", function() {
   var cpu;
   cpu = new Worker(URL.createWorkerURL(`import 'https://localhost/0PTR/prototype.js'; self.window = self; self.document = {}; self.memory = new SharedArrayBuffer(); console.log(self.memory); self.postMessage({ memory, name }); console.warn( 'memory sent:', memory ); memory.lock(); console.warn( 'thread unlocked:', name, { memory } ); ${script}`.split(/\; /g).join(";\n")));
   return cpu.addEventListener("message", function({data}) {
-    var memory, thread;
-    memory = data.memory;
+    var thread;
+    self.memory = data.memory;
     thread = data.name;
     console.warn('raised cpu:', thread);
+    memory.defineProperties();
     return memory.unlock();
   });
 });

@@ -59,7 +59,10 @@ addEventListener "load", ->
 
     cpu.addEventListener "message", ({ data }) ->
 
+        self.
         memory = data.memory
         thread = data.name
         console.warn( 'raised cpu:', thread );
+        
+        memory.defineProperties()
         memory.unlock()

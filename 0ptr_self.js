@@ -1,6 +1,4 @@
-var defaults;
-
-export default defaults = {
+export var defaults = {
   Uint8Array: self.Uint8Array,
   Int8Array: self.Int8Array,
   Int16Array: self.Int16Array,
@@ -14,4 +12,8 @@ export default defaults = {
   DataView: self.DataView,
   ArrayBuffer: self.ArrayBuffer,
   SharedArrayBuffer: self.SharedArrayBuffer
+};
+
+export {
+  defaults as default
 };

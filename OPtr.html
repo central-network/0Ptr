@@ -74,13 +74,15 @@
 
             console.log( "HPC code running", {self, window, document});
 
-            let testArray2 = new Uint32Array( 1 );
             let testArray = new Uint8Array( 24 );
+            let testArray2 = new Uint32Array( 2 );
             let testArray3 = new Float32Array( 4 );
 
             console.log(testArray2)
             console.log(testArray3)
             console.log(testArray)
+            console.log(testArray2.storeObject(1, {a:1}))
+            console.log(testArray2.loadObject(1))
 
         </script>
     </body>

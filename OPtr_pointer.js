@@ -59,6 +59,18 @@ export var Pointer = (function() {
       return protoclasses[memory.getProtoClass(this)];
     }
 
+    getIndex() {
+      return memory.getBegin(this) + arguments[0] || 0;
+    }
+
+    storeObject() {
+      return memory.storeObject(this, arguments[0], arguments[1]);
+    }
+
+    loadObject() {
+      return memory.loadObject(this, arguments[0]);
+    }
+
   };
 
   Pointer.TypedArray = defaults.Uint32Array;
@@ -231,6 +243,16 @@ Object.defineProperties(Boolean.prototype, {
 });
 
 Object.defineProperties(Pointer.prototype, {
+  memory: {
+    get: function() {
+      return memory;
+    }
+  },
+  scope: {
+    get: function() {
+      return memory.scope;
+    }
+  },
   findAllChilds: {
     value: function(protoclass) {
       var childs, hindex, length, offset, parent, pclass, stride;

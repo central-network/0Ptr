@@ -1,9 +1,8 @@
-var BYTES_OF_HEADERS, COUNT_OF_HEADERS, GLOBAL_LOCKINDEX, SharedArrayBuffer, Worker;
-
-import defaults from "./0Ptr_self.js";
+var BYTES_OF_HEADERS, COUNT_OF_HEADERS, GLOBAL_LOCKINDEX, ScopeChannel, SharedArrayBuffer, Worker;
 
 import {
-  TypedArray
+  TypedArray,
+  defaults
 } from "./0ptr_TypedArray.js";
 
 COUNT_OF_HEADERS = 8;
@@ -11,34 +10,6 @@ COUNT_OF_HEADERS = 8;
 BYTES_OF_HEADERS = 4 * COUNT_OF_HEADERS;
 
 GLOBAL_LOCKINDEX = 8 / 4;
-
-Object.defineProperties(Object.prototype, {
-  toPointer: {
-    configurable: true,
-    value: function() {
-      return new RefLink().setRef(this);
-    }
-  }
-});
-
-Object.defineProperties(Number.prototype, {
-  toPointer: {
-    value: function() {
-      var Ptr, protoclass, prototype, ref;
-      if (!this) {
-        return null;
-      }
-      if (!(prototype = (ref = arguments[0]) != null ? ref.prototype : void 0)) {
-        protoclass = Pointer.prototype.loadHeader.call(this, Pointer.prototype.HINDEX_PROTOCLASS);
-        prototype = Pointer.prototype.scope.get(protoclass);
-      }
-      if (Ptr = prototype.constructor) {
-        return new Ptr(this);
-      }
-      return null;
-    }
-  }
-});
 
 Object.defineProperties(DataView.prototype, {
   littleEndian: {
@@ -58,10 +29,116 @@ Object.defineProperties(URL, {
 });
 
 Object.defineProperties(self.SharedArrayBuffer.prototype, {
+  scope: {
+    value: new (ScopeChannel = (function() {
+      class ScopeChannel extends BroadcastChannel {
+        load(index) {
+          var ref;
+          if (!index) {
+            return null;
+          }
+          if (!(ref = this.objects[index])) {
+            console.log("need proxy", index);
+            this.request({index});
+            memory.lock();
+            ref = new WeakRef({
+              done: 2
+            });
+          }
+          return ref.deref();
+        }
+
+        store(object) {
+          var i, index, len, ref, ref1;
+          if (!this.map.has(object)) {
+            this.map.set(object, index = this.objects.length);
+            this.objects[index] = new WeakRef(object);
+            return index;
+          }
+          ref1 = this.objects;
+          for (index = i = 0, len = ref1.length; i < len; index = ++i) {
+            ref = ref1[index];
+            if (ref.deref() === object) {
+              return index;
+            }
+          }
+          throw ["UNEXPECTED_STORE", ...arguments];
+        }
+
+        constructor() {
+          super("0ptr_sc").listen();
+        }
+
+        listen() {
+          return this.onmessage = this.message.bind(this);
+        }
+
+        message({data, ports}) {
+          if (data.to) {
+            if (data.to === this.uuid) {
+              return this.onreply(data);
+            }
+          } else {
+            return this.onrequest(data);
+          }
+        }
+
+        onreply(res) {
+          return console.log("got res:", res, this.uuid, this.objects);
+        }
+
+        onrequest(req) {
+          var port1, port2;
+          console.log("got req:", req, this.uuid, this.objects);
+          ({port1, port2} = new MessageChannel());
+          this.reply(req, {
+            done: 222
+          }, [port1]);
+          return memory.unlock();
+        }
+
+        reply(req, res) {
+          return this.postMessage({
+            ...res,
+            from: this.uuid,
+            to: req.from
+          }, arguments[1]);
+        }
+
+        request(req) {
+          return this.postMessage({
+            ...req,
+            from: this.uuid
+          }, arguments[1]);
+        }
+
+      };
+
+      ScopeChannel.prototype.objects = [new WeakRef(self)];
+
+      ScopeChannel.prototype.uuid = self.name || (self.name = crypto.randomUUID());
+
+      ScopeChannel.prototype.map = new WeakMap();
+
+      return ScopeChannel;
+
+    }).call(this))
+  },
+  loadObject: {
+    value: function(ptri, index) {
+      return this.scope.load(this.loadUint32(this.getBegin(ptri) + index));
+    }
+  },
+  storeObject: {
+    value: function(ptri, index, object) {
+      this.storeUint32(this.getBegin(ptri) + index, this.scope.store(object));
+      return object;
+    }
+  },
   set: {
     value: function() {
-      var buffer, offset, ref;
-      buffer = (ref = arguments[0].buffer) != null ? ref : arguments[0];
+      var buffer, offset, ref1;
+      buffer = (ref1 = arguments[0].buffer) != null ? ref1 : arguments[0];
       offset = arguments[1] || 0;
       new defaults.Uint8Array(this).set(new defaults.Uint8Array(buffer), offset);
       return this;
@@ -69,23 +146,23 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   },
   lock: {
     value: function(index = GLOBAL_LOCKINDEX) {
-      return Atomics.wait(new defaults.Int32Array(this), index);
+      return this.waitInt32(index);
     }
   },
   unlock: {
     value: function(index = GLOBAL_LOCKINDEX) {
-      return setTimeout(() => {
-        return Atomics.notify(new defaults.Int32Array(this), index);
-      }, 210);
+      return setTimeout((() => {
+        return this.notifyInt32(index);
+      }), 210);
     }
   },
-  //*   headers has 4 items:
-  //* - nexti4     : memory's next index  index4(ptr) + 8 (head + data(ptr))
-  //* - byteLength : data byte [not aligned] length {it's 0 when deleted} 
-  //* - parent     : linked target index4
-  //* - prototype  : protoclass of TypedArray.......!!!Pointer!!!!
   malloc: {
     value: function() {
+      //*   headers has 4 items:
+      //* - nexti4     : memory's next index  index4(ptr) + 8 (head + data(ptr))
+      //* - byteLength : data byte [not aligned] length {it's 0 when deleted} 
+      //* - parent     : linked target index4
+      //* - prototype  : protoclass of TypedArray.......!!!Pointer!!!!
       if (!arguments.length) {
         return this.addUint32(1, COUNT_OF_HEADERS);
       } else if (arguments[0] > 0) {
@@ -96,7 +173,7 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   },
   defineProperties: {
     value: function() {
-      var dvw, f32, f64, i, i16, i32, i64, ii8, j, k, l, len, len1, len2, len3, len4, len5, m, n, pair, ref, ref1, ref2, ref3, ref4, ref5, u16, u32, u64, ui8, view;
+      var dvw, f32, f64, i, i16, i32, i64, ii8, j, k, l, len, len1, len2, len3, len4, len5, m, n, pair, ref1, ref2, ref3, ref4, ref5, ref6, u16, u32, u64, ui8, view;
       ui8 = new defaults.Uint8Array(this);
       ii8 = new defaults.Int8Array(this);
       i16 = new defaults.Int16Array(this);
@@ -108,34 +185,34 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
       u64 = new defaults.BigUint64Array(this);
       i64 = new defaults.BigInt64Array(this);
       dvw = new defaults.DataView(this);
-      ref = [ui8, ii8, u16, i16, u32, i32, u64, i64];
-      for (i = 0, len = ref.length; i < len; i++) {
-        view = ref[i];
+      ref1 = [ui8, ii8, u16, i16, u32, i32, u64, i64];
+      for (i = 0, len = ref1.length; i < len; i++) {
+        view = ref1[i];
         this.defineIntegerAtomics(view);
       }
-      ref1 = [ui8, ii8, u16, i16, u32, i32, u64, i64];
-      for (j = 0, len1 = ref1.length; j < len1; j++) {
-        view = ref1[j];
+      ref2 = [ui8, ii8, u16, i16, u32, i32, u64, i64];
+      for (j = 0, len1 = ref2.length; j < len1; j++) {
+        view = ref2[j];
         this.defineExchangeAtomics(view);
       }
-      ref2 = [i32, i64];
-      for (k = 0, len2 = ref2.length; k < len2; k++) {
-        view = ref2[k];
+      ref3 = [i32, i64];
+      for (k = 0, len2 = ref3.length; k < len2; k++) {
+        view = ref3[k];
         this.defineWaitLockAtomics(view);
       }
-      ref3 = [ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64];
-      for (l = 0, len3 = ref3.length; l < len3; l++) {
-        view = ref3[l];
+      ref4 = [ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64];
+      for (l = 0, len3 = ref4.length; l < len3; l++) {
+        view = ref4[l];
         this.defineDataViewModifiers(view, dvw);
       }
-      ref4 = [ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64];
-      for (m = 0, len4 = ref4.length; m < len4; m++) {
-        view = ref4[m];
+      ref5 = [ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64];
+      for (m = 0, len4 = ref5.length; m < len4; m++) {
+        view = ref5[m];
         this.defineTArrayModifiers(view);
       }
-      ref5 = [[f32, i32], [f64, i64]];
-      for (n = 0, len5 = ref5.length; n < len5; n++) {
-        pair = ref5[n];
+      ref6 = [[f32, i32], [f64, i64]];
+      for (n = 0, len5 = ref6.length; n < len5; n++) {
+        pair = ref6[n];
         this.defineFloatAtomics(pair);
       }
       return this;
@@ -214,13 +291,13 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   },
   defineDataViewModifiers: {
     value: function() {
-      var caller, dataView, handle, i, len, littleEndian, nameSuffix, ref;
+      var caller, dataView, handle, i, len, littleEndian, nameSuffix, ref1;
       dataView = arguments[1];
       nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
       littleEndian = Boolean(new defaults.Uint8Array(defaults.Uint32Array.of(1).buffer).at(0));
-      ref = ["get", "set"];
-      for (i = 0, len = ref.length; i < len; i++) {
-        caller = ref[i];
+      ref1 = ["get", "set"];
+      for (i = 0, len = ref1.length; i < len; i++) {
+        caller = ref1[i];
         caller = caller + nameSuffix;
         handle = dataView[caller].bind(dataView);
         Object.defineProperty(this, caller, {
@@ -269,20 +346,18 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   }
 });
 
-Object.defineProperties(self, {
-  Worker: {
-    value: Worker = class Worker extends self.Worker {
-      constructor() {
-        super(arguments[0], {...{
-            type: "module",
-            name: crypto.randomUUID()
-          }, ...(arguments[1] || {})});
-        this.onerror = function() {
-          return !console.error(...arguments);
-        };
-      }
-
+Object.defineProperty(self, "Worker", {
+  value: Worker = class Worker extends self.Worker {
+    constructor() {
+      super(arguments[0], {...{
+          type: "module",
+          name: crypto.randomUUID()
+        }, ...(arguments[1] || {})});
+      this.onerror = function() {
+        return !console.error(...arguments);
+      };
     }
+
   }
 });
 

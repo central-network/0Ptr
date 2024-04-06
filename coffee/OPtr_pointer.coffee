@@ -70,6 +70,14 @@ export class Pointer   extends Number
     getPrototype            : ->
         protoclasses[ memory.getProtoClass this ]
 
+    getIndex                : ->
+        memory.getBegin( this ) + arguments[0] or 0 
+
+    storeObject             : ->
+        memory.storeObject this, arguments[0], arguments[1] 
+
+    loadObject              : ->
+        memory.loadObject this, arguments[0]
 
 export class RefLink    extends Pointer
 
@@ -175,7 +183,11 @@ Object.defineProperties Boolean::,
     
 Object.defineProperties Pointer::,
 
-    findAllChilds        : value : ( protoclass ) ->
+    memory                  : get : -> memory
+    
+    scope                   : get : -> memory.scope
+
+    findAllChilds           : value : ( protoclass ) ->
         offset = 
         hindex = Pointer::HINDEX_PARENT
         pclass = Pointer::HINDEX_PROTOCLASS - hindex

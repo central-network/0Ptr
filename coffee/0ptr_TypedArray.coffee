@@ -1,7 +1,7 @@
-import defaults from "./0Ptr_self.js"
+import { defaults } from "./0Ptr_self.js"
 import { Pointer } from "./OPtr_pointer.js"
 
-export class TypedArray extends Pointer
+class TypedArray extends Pointer
 
     #*   headers has 4 items:
     #* - nexti4     : memory's next index  index4(ptr) + 8 (head + data(ptr))
@@ -111,3 +111,7 @@ Object.defineProperties self,
         realizeWith : defaults.BigInt64Array
 
 
+export {
+    TypedArray as default,
+    TypedArray  , defaults
+}
