@@ -70,7 +70,7 @@ addEventListener("load", function() {
     waiting = cpuCount;
     threads = [];
     while (cpuCount--) {
-      cpu = new Worker(cpuURL, cpuCount);
+      cpu = new Worker(cpuURL, "cpu" + cpuCount);
       cpu.onmessage = function({
           data: i
         }) {

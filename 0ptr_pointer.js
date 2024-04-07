@@ -38,33 +38,20 @@ export var Pointer = (function() {
     }
 
     constructor() {
-      var callResolv, id, offset, ptri;
+      var callResolv, ptri;
       if (!arguments.length) {
+        callResolv = new CallResolv();
         if (self.isBridge) {
           super(ptri = memory.malloc());
-          callResolv = new CallResolv();
           callResolv.ptri = this * 1;
           this.callResolv = callResolv * 1;
-        } else if (self.isCPU) {
-          callResolv = new CallResolv();
-          id = callResolv.id;
-          offset = 8 + 4;
-          while (true) {
-            if (id === memory.loadUint32(offset)) {
-              super(memory.loadUint32(offset + 1));
-              break;
-            }
-            offset += 8;
-            if (offset > 100000) {
-              break;
-            }
-          }
+        } else {
+          super(callResolv.ptri);
         }
       } else if (arguments[0]) {
         super(arguments[0]);
       } else {
-        console.error(["ZERO_POINTER_MUST_BE_DIFFERENT_THEN_ZERO"]);
-        return void 0;
+        throw ["ZERO_POINTER_MUST_BE_DIFFERENT_THEN_ZERO"];
       }
     }
 
@@ -113,17 +100,20 @@ export var CallResolv = (function() {
         }
       }
       id = CallResolv.parse(stack).at(-1).id;
-      offset = 8 + 4;
-      while (true) {
-        if (id === memory.loadUint32(offset)) {
-          return super(offset - 4);
-        }
-        offset += 8;
-        if (offset > 100000) {
-          break;
+      if (self.isCPU) {
+        offset = 4;
+        while (true) {
+          if (id === memory.loadUint32(offset)) {
+            return super(offset - 4);
+          }
+          offset += 8;
+          if (offset > 100) {
+            break;
+          }
         }
       }
       super(memory.malloc());
+      this.id = id;
     }
 
     //Object.defineProperties this,

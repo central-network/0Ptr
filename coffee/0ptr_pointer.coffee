@@ -35,32 +35,20 @@ export class Pointer   extends Number
 
         unless arguments.length
 
+            callResolv = new CallResolv()
+
             if  self.isBridge            
                 super ptri = memory.malloc() 
-
-                callResolv = new CallResolv()
-                callResolv.ptri = this * 1
+                callResolv . ptri = this * 1
                 @callResolv = callResolv * 1
 
-            else if self.isCPU
-                callResolv = new CallResolv()
-                id = callResolv.id
-                offset = 8 + 4
-
-                loop
-                    if  id is memory.loadUint32 offset
-                        super memory.loadUint32 offset + 1
-                        break
-
-                    offset += 8
-                    break if offset > 100000
+            else
+                super callResolv . ptri
 
         else if arguments[0]
             super arguments[0]
 
-        else
-            console.error ["ZERO_POINTER_MUST_BE_DIFFERENT_THEN_ZERO"]
-            return undefined
+        else throw ["ZERO_POINTER_MUST_BE_DIFFERENT_THEN_ZERO"]
 
     usePrototype            : ->
         return this unless @constructor is Pointer
@@ -95,16 +83,18 @@ export class CallResolv extends Pointer
             catch e then stack = e.stack
             
         id = CallResolv.parse(stack).at(-1).id
-        offset = 8 + 4
 
-        loop
-            if  id is memory.loadUint32 offset
-                return super offset - 4
-            offset += 8
-            
-            break if offset > 100000
+
+        if  self.isCPU
+            offset = 4
+            loop
+                if  id is memory.loadUint32 offset
+                    return super offset - 4
+                offset += 8
+                break if offset > 100
 
         super memory.malloc()
+        @id = id
 
         #Object.defineProperties this,
         #    id : value : calls.at(-1).id

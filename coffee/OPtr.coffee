@@ -88,7 +88,7 @@ addEventListener "load", ->
 
         while cpuCount--
             
-            cpu = new Worker cpuURL, cpuCount
+            cpu = new Worker cpuURL, "cpu" + cpuCount
 
             cpu . onmessage = ({ data: i }) ->
                 threads.push this
