@@ -30,8 +30,7 @@ export class Pointer   extends Number
         this
 
     constructor             : ->
-        resolv = new CallResolv()
-        console.log "\x1b[1m\x1b[95mnew\x1b[0m \x1b[1m\x1b[93m#{resolv.class.name}()\x1b[0m","<--", resolv
+        new CallResolv()            
 
         unless arguments.length
             super memory.malloc()                
@@ -67,6 +66,8 @@ export class CallResolv extends Number
         Object.defineProperties super( calls.at(-1).id ),
             class : value : calls.find( (c) -> c.isConstructor ).prototype
             chain : value : Object.assign calls, { stack }
+
+        console.log "\x1b[1m\x1b[95mnew\x1b[0m \x1b[1m\x1b[93m#{@class.name}()\x1b[0m","<--", this
 
     @parse                  : ->
         arguments[0].split(/\n| at /).slice(3).filter(isNaN).reverse().map( ( text, i, lines ) ->

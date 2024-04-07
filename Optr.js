@@ -71,10 +71,13 @@ addEventListener("load", function() {
           data: i
         }) {
         threads.push(this);
-        if (!--waiting) {
-          memory.unlock();
-          return memory.unlock(1);
+        if (--waiting) {
+          return;
         }
+        requestIdleCallback(function() {
+          return memory.unlock(1);
+        });
+        return memory.unlock();
       };
       cpu.postMessage({
         memory: self.memory

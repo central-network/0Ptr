@@ -86,9 +86,12 @@ addEventListener "load", ->
 
             cpu . onmessage = ({ data: i }) ->
                 threads.push this
-                unless --waiting
-                    memory.unlock()                                             
-                    memory.unlock(1)                                             
+                return if --waiting
+
+                requestIdleCallback ->
+                    memory.unlock(1)
+                memory.unlock()
+                                                                     
             cpu . postMessage({ memory: self.memory });
 
         self.onclick = -> console.log threads

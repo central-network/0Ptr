@@ -38,9 +38,7 @@ export var Pointer = (function() {
     }
 
     constructor() {
-      var resolv;
-      resolv = new CallResolv();
-      console.log(`\x1b[1m\x1b[95mnew\x1b[0m \x1b[1m\x1b[93m${resolv.class.name}()\x1b[0m`, "<--", resolv);
+      new CallResolv();
       if (!arguments.length) {
         super(memory.malloc());
       } else {
@@ -96,6 +94,7 @@ export var CallResolv = class CallResolv extends Number {
         value: Object.assign(calls, {stack})
       }
     });
+    console.log(`\x1b[1m\x1b[95mnew\x1b[0m \x1b[1m\x1b[93m${this.class.name}()\x1b[0m`, "<--", this);
   }
 
   static parse() {
