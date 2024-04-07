@@ -40,8 +40,8 @@ addEventListener "message", ({ data }) ->
 addEventListener "load", ->
 
     cpuURL = URL.createWorkerURL "
-        import 'https://localhost/0PTR/prototype.js';
-        import 'https://localhost/0PTR/0ptr_window.js';
+        import 'https://#{location.href}/prototype.js';
+        import 'https://#{location.href}/0ptr_window.js';
 
         addEventListener( 'message', function ({ data }){
             self.memory = data.memory.defineProperties();                        
@@ -54,8 +54,8 @@ addEventListener "load", ->
     "
 
     self.bridge = new Worker URL.createWorkerURL "
-        import 'https://localhost/0PTR/prototype.js';
-        import 'https://localhost/0PTR/0ptr_window.js';
+        import 'https://#{location.href}/prototype.js';
+        import 'https://#{location.href}/0ptr_window.js';
                 
         self.memory = new SharedArrayBuffer();
         self.postMessage({ memory: self.memory, name });
