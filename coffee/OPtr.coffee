@@ -75,7 +75,7 @@ addEventListener "load", ->
             2, ( navigator?.hardwareConcurrency or 2 ) - 2
         )
 
-        cpuCount = 1
+        cpuCount = 2
 
         waiting = cpuCount
         threads = []
