@@ -1,5 +1,7 @@
 var basepath, j, len, onrequest, ref, scope, script;
 
+self.isWindow = Boolean(typeof document !== "undefined" && document !== null);
+
 if (typeof SharedArrayBuffer === "undefined" || SharedArrayBuffer === null) {
   throw /SHARED_ARRAY_BUFFER_NOT_AVAILABLE/;
 }
@@ -13,7 +15,7 @@ import {
 
 scope = new Scope(self);
 
-basepath = location.href.replace('index.html', '');
+basepath = location.href.replace('/index.html', '');
 
 ref = document.scripts;
 for (j = 0, len = ref.length; j < len; j++) {
@@ -57,8 +59,8 @@ addEventListener("message", function({data}) {
 
 addEventListener("load", function() {
   var cpuURL;
-  cpuURL = URL.createWorkerURL(`import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; addEventListener( 'message', function ({ data }){ self.memory = data.memory.defineProperties(); self.postMessage(0); memory.lock(1); console.error('cpu unlocked', name ); /* user code evaulating: */${script} });`);
-  self.bridge = new Worker(URL.createWorkerURL(`import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; self.memory = new SharedArrayBuffer(); self.postMessage({ memory: self.memory, name }); memory.lock(); console.warn( 'bridge unlocked:', name ); /* user code evaulating: */${script}`));
+  cpuURL = URL.createWorkerURL(`self.isCPU = true; import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; addEventListener( 'message', function ({ data }){ self.memory = data.memory.defineProperties(); self.postMessage(0); memory.lock(1); console.error('cpu unlocked', name ); /* user code evaulating: */${script} });`);
+  self.bridge = new Worker(URL.createWorkerURL(`self.isBridge = true; import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; self.memory = new SharedArrayBuffer(); self.postMessage({ memory: self.memory, name }); memory.lock(); console.warn( 'bridge unlocked:', name ); /* user code evaulating: */${script}`));
   return bridge.addEventListener("message", function({data}) {
     var cpu, cpuCount, threads, waiting;
     self.memory = data.memory.defineProperties();

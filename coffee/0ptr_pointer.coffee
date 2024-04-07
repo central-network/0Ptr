@@ -11,6 +11,8 @@ export class Pointer   extends Number
 
     @byteLength             : 0
 
+    INDEX4_RESVU32_RESOLV   : 0
+
     @scopei                 : ->
         if !weakmap.has this:: 
             weakmap.set this::, protoclasses[ i = protoclasses.length ] = this::
@@ -30,14 +32,31 @@ export class Pointer   extends Number
         this
 
     constructor             : ->
-        unless arguments.length
-            chain = new CallResolv()            
-            super memory.malloc()                
-            #memory.setProtoClass this, @protoclass
 
-        else
+        unless arguments.length
+
+            if  self.isBridge            
+                super ptri = memory.malloc() 
+
+                callResolv = new CallResolv()
+                callResolv.ptri = ptri
+                @callResolv = callResolv
+
+            else if self.isCPU
+                callResolv = new CallResolv()
+                offset = 8 + 4
+                loop
+                    unless callResolv.id - memory.loadUint32 offset
+                        return super memory.loadUint32 offset + 1
+                    break if 1000 < offset += 8
+
+        else if arguments[0]
             super arguments[0]
             @usePrototype arguments[1]
+
+        else
+            console.error ["ZERO_POINTER_MUST_BE_DIFFERENT_THEN_ZERO"]
+            return undefined
 
     usePrototype            : ->
         return this unless @constructor is Pointer
@@ -54,22 +73,37 @@ export class Pointer   extends Number
     loadObject              : ->
         memory.loadObject this, arguments[0]
 
-export class CallResolv extends Number
+export class CallResolv extends Pointer
+
+    INDEX4_RESVU32_ID       : 0
+    
+    INDEX4_RESVU32_PTRI     : 1
 
     constructor             : ->
-        try throw new Error()
-        catch error
-            stack = error.stack.toString()
-            calls = CallResolv.parse stack
 
-        Object.defineProperties super( calls.at(-1).id ),
-            class : value : calls.find( (c) -> c.isConstructor ).prototype
-            chain : value : Object.assign calls, { stack }
+        if  arguments.length
+            unless ptri = arguments[0]
+                return undefined
+            return super ptri
+            
+        else
+            try throw new Error()
+            catch e then stack = e.stack
+            
 
-        console.log "\x1b[1m\x1b[95mnew\x1b[0m \x1b[1m\x1b[93m#{@class.name}()\x1b[0m","<--", this
+        super memory.malloc()
+
+        @id = CallResolv.parse(stack).at(-1).id
+
+        #Object.defineProperties this,
+        #    id : value : calls.at(-1).id
+        #    class : value : calls.find( (c) -> c.isConstructor ).prototype
+        #    chain : value : Object.assign calls, { stack }
+
+        #console.log "\x1b[1m\x1b[95mnew\x1b[0m \x1b[1m\x1b[93m#{@class.name}()\x1b[0m","<--", this
 
     @parse                  : ->
-        arguments[0].split(/\n| at /).slice(3).filter(isNaN).reverse().map( ( text, i, lines ) ->
+        "#{arguments[0]}".split(/\n| at /).slice(3).filter(isNaN).reverse().map( ( text, i, lines ) ->
             [ line, col ]   = text.replace(/\)/g, '').split(':').slice(-2).map(Number);
             urlEnd          = text.lastIndexOf( [ line, col ].join(':') ) - 1;
             urlBegin        = text.lastIndexOf( ' ' ) + 1;
@@ -97,9 +131,24 @@ export class CallResolv extends Number
             }, stackLine : value : text
         )
 
+Object.defineProperties CallResolv::,
+
+    id                      :
+                        get : -> memory.loadUint32 this + @INDEX4_RESVU32_ID + 4
+                        set : -> memory.storeUint32 this + @INDEX4_RESVU32_ID + 4, arguments[0]
+
+    ptri                    :
+                        get : -> memory.loadUint32 this + @INDEX4_RESVU32_PTRI + 4
+                        set : -> memory.storeUint32 this + @INDEX4_RESVU32_PTRI + 4, arguments[0]
+
+
 Object.defineProperties Pointer::,
 
-    memory                  : get : -> memory
+    callResolv              :
+                        get : -> new CallResolv memory.loadUint32 this + @INDEX4_RESVU32_RESOLV + 4
+                        set : -> memory.storeUint32 this + @INDEX4_RESVU32_RESOLV + 4, arguments[0]
+
+    headers                 : get : -> memory.subarrayUint32 this, this + 8
     
     scope                   : get : -> memory.scope
 

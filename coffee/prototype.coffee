@@ -109,10 +109,10 @@ Object.defineProperties self. SharedArrayBuffer::,
     unlock                  : value : ( ptri = 0 ) ->
         return @notifyInt32 ptri + GLOBAL_LOCKINDEX, arguments[1]
 
-        console.warn name, "unlocking:", {ptri}
-        setTimeout =>
-            @notifyInt32 ptri + GLOBAL_LOCKINDEX, arguments[1]
-        , 2220
+        #console.warn name, "unlocking:", {ptri}
+        #setTimeout =>
+        #    @notifyInt32 ptri + GLOBAL_LOCKINDEX, arguments[1]
+        #, 2220
 
     malloc                  : value : ->
 
@@ -338,6 +338,8 @@ Object.defineProperty   self, "SharedArrayBuffer", value :
 
         INDEX4_END          : 3
 
+        INDEX4_RESVU32      : 4
+
         constructor         : ->
             if  arguments[0] instanceof SharedArrayBuffer
                 return arguments[0].defineProperties()
@@ -385,6 +387,12 @@ Object.defineProperty   self, "SharedArrayBuffer", value :
 
         getProtoClass       : ( ptri ) ->
             @loadUint32  ptri + @INDEX4_CLASS
+
+        loadResvUint32      : ( ptri, index = 0 ) ->
+            @loadUint32  ptri + @INDEX4_RESVU32 + index
+
+        storeResvUint32     : ( ptri, index = 0, value ) ->
+            @storeUint32  ptri + @INDEX4_RESVU32 + index, value
 
         getByteLength       : ( ptri ) ->
             @loadUint32  ptri + @INDEX4_BYTELENGTH

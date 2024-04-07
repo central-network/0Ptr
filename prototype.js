@@ -160,12 +160,12 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   unlock: {
     value: function(ptri = 0) {
       return this.notifyInt32(ptri + GLOBAL_LOCKINDEX, arguments[1]);
-      console.warn(name, "unlocking:", {ptri});
-      return setTimeout(() => {
-        return this.notifyInt32(ptri + GLOBAL_LOCKINDEX, arguments[1]);
-      }, 2220);
     }
   },
+  //console.warn name, "unlocking:", {ptri}
+  //setTimeout =>
+  //    @notifyInt32 ptri + GLOBAL_LOCKINDEX, arguments[1]
+  //, 2220
   malloc: {
     value: function() {
       //*   headers has 4 items:
@@ -421,6 +421,14 @@ Object.defineProperty(self, "SharedArrayBuffer", {
         return this.loadUint32(ptri + this.INDEX4_CLASS);
       }
 
+      loadResvUint32(ptri, index = 0) {
+        return this.loadUint32(ptri + this.INDEX4_RESVU32 + index);
+      }
+
+      storeResvUint32(ptri, index = 0, value) {
+        return this.storeUint32(ptri + this.INDEX4_RESVU32 + index, value);
+      }
+
       getByteLength(ptri) {
         return this.loadUint32(ptri + this.INDEX4_BYTELENGTH);
       }
@@ -466,6 +474,8 @@ Object.defineProperty(self, "SharedArrayBuffer", {
     SharedArrayBuffer.prototype.INDEX4_BEGIN = 2;
 
     SharedArrayBuffer.prototype.INDEX4_END = 3;
+
+    SharedArrayBuffer.prototype.INDEX4_RESVU32 = 4;
 
     return SharedArrayBuffer;
 
