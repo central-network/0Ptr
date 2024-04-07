@@ -5,6 +5,7 @@ import "./prototype.js"
 import { Pointer, Scope } from "./0ptr_pointer.js"
 
 scope = new Scope( self )
+basepath = location.href.replace('index.html', '')
 
 for script in document.scripts
     if `import.meta.url` is script.src
@@ -40,8 +41,8 @@ addEventListener "message", ({ data }) ->
 addEventListener "load", ->
 
     cpuURL = URL.createWorkerURL "
-        import '#{location.href}/prototype.js';
-        import '#{location.href}/0ptr_window.js';
+        import '#{basepath}/prototype.js';
+        import '#{basepath}/0ptr_window.js';
 
         addEventListener( 'message', function ({ data }){
             self.memory = data.memory.defineProperties();                        
@@ -54,8 +55,8 @@ addEventListener "load", ->
     "
 
     self.bridge = new Worker URL.createWorkerURL "
-        import '#{location.href}/prototype.js';
-        import '#{location.href}/0ptr_window.js';
+        import '#{basepath}/prototype.js';
+        import '#{basepath}/0ptr_window.js';
                 
         self.memory = new SharedArrayBuffer();
         self.postMessage({ memory: self.memory, name });
