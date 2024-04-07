@@ -2,11 +2,11 @@ var BigInt64Array, BigUint64Array, Float32Array, Float64Array, Int16Array, Int32
 
 import {
   defaults
-} from "./0Ptr_self.js";
+} from "./0ptr_self.js";
 
 import {
   Pointer
-} from "./OPtr_pointer.js";
+} from "./Optr_pointer.js";
 
 TypedArray = (function() {
   class TypedArray extends Pointer {

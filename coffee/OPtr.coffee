@@ -2,7 +2,7 @@ unless SharedArrayBuffer?
     throw /SHARED_ARRAY_BUFFER_NOT_AVAILABLE/
 
 import "./prototype.js"
-import { Pointer, Scope } from "./OPtr_pointer.js"
+import { Pointer, Scope } from "./Optr_pointer.js"
 
 scope = new Scope( self )
 
@@ -41,7 +41,7 @@ addEventListener "load", ->
 
     cpuURL = URL.createWorkerURL "
         import 'https://localhost/0PTR/prototype.js';
-        import 'https://localhost/0PTR/OPtr_window.js';
+        import 'https://localhost/0PTR/Optr_window.js';
 
         addEventListener( 'message', function ({ data }){
             self.memory = data.memory.defineProperties();                        
@@ -55,7 +55,7 @@ addEventListener "load", ->
 
     self.bridge = new Worker URL.createWorkerURL "
         import 'https://localhost/0PTR/prototype.js';
-        import 'https://localhost/0PTR/OPtr_window.js';
+        import 'https://localhost/0PTR/Optr_window.js';
                 
         self.memory = new SharedArrayBuffer();
         self.postMessage({ memory: self.memory, name });

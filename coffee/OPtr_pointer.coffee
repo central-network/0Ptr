@@ -1,5 +1,5 @@
-import defaults from "./0Ptr_self.js"
-export { Scope } from "./0Ptr_scope.js"
+import defaults from "./0ptr_self.js"
+export { Scope } from "./0ptr_scope.js"
 
 protoclasses = [ weakmap = new WeakMap(), ]
 
