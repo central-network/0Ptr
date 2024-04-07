@@ -25,6 +25,8 @@ export class Scope extends Array
     constructor : ( root ) ->
         super().add( root )
 
+
+    
     map : new WeakMap()
 
     get : ->
