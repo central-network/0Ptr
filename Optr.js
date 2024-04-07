@@ -54,14 +54,34 @@ addEventListener("message", function({data}) {
 });
 
 addEventListener("load", function() {
-  var cpu;
-  cpu = new Worker(URL.createWorkerURL(`import 'https://localhost/0PTR/prototype.js'; import 'https://localhost/0PTR/OPtr_window.js'; self.memory = new SharedArrayBuffer(); self.postMessage({ memory, name }); console.log(self.memory); console.warn( 'memory sent:', memory ); memory.lock(); console.warn( 'thread unlocked:', name, { memory } ); ${script}`.split(/\; /g).join(";\n")));
-  return cpu.addEventListener("message", function({data}) {
-    var thread;
-    self.memory = data.memory;
-    thread = data.name;
-    console.warn('raised cpu:', thread);
-    memory.defineProperties();
-    return memory.unlock();
+  var cpuURL;
+  cpuURL = URL.createWorkerURL(`import 'https://localhost/0PTR/prototype.js'; import 'https://localhost/0PTR/OPtr_window.js'; addEventListener( 'message', function ({ data }){ self.memory = data.memory.defineProperties(); self.postMessage(0); memory.lock(1); console.error('cpu unlocked', name ); /* user code evaulating: */${script} });`);
+  self.bridge = new Worker(URL.createWorkerURL(`import 'https://localhost/0PTR/prototype.js'; import 'https://localhost/0PTR/OPtr_window.js'; self.memory = new SharedArrayBuffer(); self.postMessage({ memory: self.memory, name }); memory.lock(); console.warn( 'bridge unlocked:', name ); /* user code evaulating: */${script}`));
+  return bridge.addEventListener("message", function({data}) {
+    var cpu, cpuCount, threads, waiting;
+    self.memory = data.memory.defineProperties();
+    console.warn('bridge ready:', data.name);
+    cpuCount = Math.max(2, ((typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 2) - 2);
+    cpuCount = 1;
+    waiting = cpuCount;
+    threads = [];
+    while (cpuCount--) {
+      cpu = new Worker(cpuURL, cpuCount);
+      cpu.onmessage = function({
+          data: i
+        }) {
+        threads.push(this);
+        if (!--waiting) {
+          memory.unlock();
+          return memory.unlock(1);
+        }
+      };
+      cpu.postMessage({
+        memory: self.memory
+      });
+    }
+    return self.onclick = function() {
+      return console.log(threads);
+    };
   });
 });

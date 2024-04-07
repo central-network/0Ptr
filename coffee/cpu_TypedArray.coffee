@@ -1,5 +1,5 @@
 import { defaults } from "./0Ptr_self.js"
-import { Pointer } from "./OPtr_pointer.js"
+import { Pointer } from "./cpu_pointer.js"
 
 class TypedArray extends Pointer
 
@@ -15,23 +15,30 @@ class TypedArray extends Pointer
     #? - end    : end of content
     #? - type   : protoclass of TypedArray (Uint8Array etc.)
 
-    solve : ->
-        [ buffer, byteOffset, length ] = arguments
+    constructor : ->
+        #console.warn ResolveCall()
 
-        unless isNaN buffer
-            @alloc buffer
+        unless arguments.length
+            throw [ "POINTER_NEEDS_ARGS" ]
+
+        super()
+
+        #[ buffer, byteOffset, length ] = arguments
+
+        #unless isNaN buffer
+        #    @alloc buffer
 
         # todo clone needed
-        else if ArrayBuffer.isView buffer
-            @alloc buffer.length
+        #else if ArrayBuffer.isView buffer
+        #    @alloc buffer.length
 
-        else if Array.isArray buffer
-            @alloc buffer.length
+        #else if Array.isArray buffer
+        #    @alloc buffer.length
 
-        else if buffer.byteLength
-            @alloc buffer.byteLength / @BYTES_PER_ELEMENT
+        #else if buffer.byteLength
+        #    @alloc buffer.byteLength / @BYTES_PER_ELEMENT
 
-        else throw [ "What is this", arguments... ]
+        #else throw [ "What is this", arguments... ] 
 
 
     alloc       : ( length ) ->

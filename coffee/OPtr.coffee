@@ -39,31 +39,56 @@ addEventListener "message", ({ data }) ->
 
 addEventListener "load", ->
 
-    cpu = new Worker URL.createWorkerURL "
+    cpuURL = URL.createWorkerURL "
         import 'https://localhost/0PTR/prototype.js';
         import 'https://localhost/0PTR/OPtr_window.js';
-        
-        
+
+        addEventListener( 'message', function ({ data }){
+            self.memory = data.memory.defineProperties();                        
+            self.postMessage(0);
+            memory.lock(1);
+            console.error('cpu unlocked', name );
+
+            /* user code evaulating: */#{script}                        
+        });
+    "
+
+    self.bridge = new Worker URL.createWorkerURL "
+        import 'https://localhost/0PTR/prototype.js';
+        import 'https://localhost/0PTR/OPtr_window.js';
+                
         self.memory = new SharedArrayBuffer();
-        self.postMessage({ memory, name });
+        self.postMessage({ memory: self.memory, name });
 
-        console.log(self.memory);
-
-        console.warn( 'memory sent:', memory );
         memory.lock();
-
-        console.warn( 'thread unlocked:', name, { memory } );
+        console.warn( 'bridge unlocked:', name );
         
-        #{script}
+        /* user code evaulating: */#{script}
+    "
 
-    ".split(/\; /g).join(";\n")
+    bridge.addEventListener "message", ({ data }) ->
 
-    cpu.addEventListener "message", ({ data }) ->
+        self.memory = data.memory.defineProperties();
+        console.warn( 'bridge ready:', data.name );
 
-        self.
-        memory = data.memory
-        thread = data.name
-        console.warn( 'raised cpu:', thread );
+        cpuCount = Math.max( 
+            2, ( navigator?.hardwareConcurrency or 2 ) - 2
+        )
 
-        memory.defineProperties()
-        memory.unlock()
+        cpuCount = 1
+
+        waiting = cpuCount
+        threads = []
+
+        while cpuCount--
+            
+            cpu = new Worker cpuURL, cpuCount
+
+            cpu . onmessage = ({ data: i }) ->
+                threads.push this
+                unless --waiting
+                    memory.unlock()                                             
+                    memory.unlock(1)                                             
+            cpu . postMessage({ memory: self.memory });
+
+        self.onclick = -> console.log threads

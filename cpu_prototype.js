@@ -1,9 +1,9 @@
-var BYTES_OF_HEADERS, COUNT_OF_HEADERS, CallResolv, GLOBAL_LOCKINDEX, ScopeChannel, SharedArrayBuffer, Worker;
+var BYTES_OF_HEADERS, COUNT_OF_HEADERS, GLOBAL_LOCKINDEX, ScopeChannel, SharedArrayBuffer, Worker;
 
 import {
   TypedArray,
   defaults
-} from "./0ptr_TypedArray.js";
+} from "./cpu_TypedArray.js";
 
 COUNT_OF_HEADERS = 8;
 
@@ -55,14 +55,14 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
         }
 
         store(object) {
-          var index, j, len, ref, ref1;
+          var i, index, len, ref, ref1;
           if (!this.map.has(object)) {
             this.map.set(object, index = this.objects.length);
             this.objects[index] = new WeakRef(object);
             return index;
           }
           ref1 = this.objects;
-          for (index = j = 0, len = ref1.length; j < len; index = ++j) {
+          for (index = i = 0, len = ref1.length; i < len; index = ++i) {
             ref = ref1[index];
             if (ref.deref() === object) {
               return index;
@@ -152,18 +152,17 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   },
   lock: {
     value: function(ptri = 0) {
-      return this.waitInt32(ptri + GLOBAL_LOCKINDEX, arguments[1]);
+      //console.warn "locking:", { ptri }
+      return this.waitInt32(ptri + GLOBAL_LOCKINDEX); //, arguments[1]
     }
   },
   unlock: {
     value: function(ptri = 0) {
-      return this.notifyInt32(ptri + GLOBAL_LOCKINDEX, arguments[1]);
-      console.warn(name, "unlocking:", {ptri});
-      return setTimeout(() => {
-        return this.notifyInt32(ptri + GLOBAL_LOCKINDEX, arguments[1]);
-      }, 2220);
+      this.notifyInt32(ptri + GLOBAL_LOCKINDEX, 11); //, arguments[1]
+      return console.warn("unlocking:", {ptri});
     }
   },
+  //setTimeout (=> @notifyInt32 ptri + GLOBAL_LOCKINDEX, arguments[1] ), 20
   malloc: {
     value: function() {
       //*   headers has 4 items:
@@ -181,7 +180,7 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   },
   defineProperties: {
     value: function() {
-      var dvw, f32, f64, i16, i32, i64, ii8, j, k, l, len, len1, len2, len3, len4, len5, m, n, o, pair, ref1, ref2, ref3, ref4, ref5, ref6, u16, u32, u64, ui8, view;
+      var dvw, f32, f64, i, i16, i32, i64, ii8, j, k, l, len, len1, len2, len3, len4, len5, m, n, pair, ref1, ref2, ref3, ref4, ref5, ref6, u16, u32, u64, ui8, view;
       ui8 = new defaults.Uint8Array(this);
       ii8 = new defaults.Int8Array(this);
       i16 = new defaults.Int16Array(this);
@@ -194,33 +193,33 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
       i64 = new defaults.BigInt64Array(this);
       dvw = new defaults.DataView(this);
       ref1 = [ui8, ii8, u16, i16, u32, i32, u64, i64];
-      for (j = 0, len = ref1.length; j < len; j++) {
-        view = ref1[j];
+      for (i = 0, len = ref1.length; i < len; i++) {
+        view = ref1[i];
         this.defineIntegerAtomics(view);
       }
       ref2 = [ui8, ii8, u16, i16, u32, i32, u64, i64];
-      for (k = 0, len1 = ref2.length; k < len1; k++) {
-        view = ref2[k];
+      for (j = 0, len1 = ref2.length; j < len1; j++) {
+        view = ref2[j];
         this.defineExchangeAtomics(view);
       }
       ref3 = [i32, i64];
-      for (l = 0, len2 = ref3.length; l < len2; l++) {
-        view = ref3[l];
+      for (k = 0, len2 = ref3.length; k < len2; k++) {
+        view = ref3[k];
         this.defineWaitLockAtomics(view);
       }
       ref4 = [ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64];
-      for (m = 0, len3 = ref4.length; m < len3; m++) {
-        view = ref4[m];
+      for (l = 0, len3 = ref4.length; l < len3; l++) {
+        view = ref4[l];
         this.defineDataViewModifiers(view, dvw);
       }
       ref5 = [ui8, ii8, u16, i16, u32, i32, u64, i64, f32, f64];
-      for (n = 0, len4 = ref5.length; n < len4; n++) {
-        view = ref5[n];
+      for (m = 0, len4 = ref5.length; m < len4; m++) {
+        view = ref5[m];
         this.defineTArrayModifiers(view);
       }
       ref6 = [[f32, i32], [f64, i64]];
-      for (o = 0, len5 = ref6.length; o < len5; o++) {
-        pair = ref6[o];
+      for (n = 0, len5 = ref6.length; n < len5; n++) {
+        pair = ref6[n];
         this.defineFloatAtomics(pair);
       }
       return this;
@@ -228,11 +227,11 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   },
   defineIntegerAtomics: {
     value: function() {
-      var caller, j, len, namePrefix, nameSuffix;
+      var caller, i, len, namePrefix, nameSuffix;
       nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
       namePrefix = ["sub", "load", "store", "and", "or", "xor", "add"];
-      for (j = 0, len = namePrefix.length; j < len; j++) {
-        caller = namePrefix[j];
+      for (i = 0, len = namePrefix.length; i < len; i++) {
+        caller = namePrefix[i];
         Object.defineProperty(this, caller + nameSuffix, {
           value: Atomics[caller].bind(Atomics, arguments[0])
         });
@@ -242,11 +241,11 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   },
   defineWaitLockAtomics: {
     value: function() {
-      var caller, j, len, namePrefix, nameSuffix;
+      var caller, i, len, namePrefix, nameSuffix;
       nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
       namePrefix = ["wait", "notify", "waitAsync"];
-      for (j = 0, len = namePrefix.length; j < len; j++) {
-        caller = namePrefix[j];
+      for (i = 0, len = namePrefix.length; i < len; i++) {
+        caller = namePrefix[i];
         Object.defineProperty(this, caller + nameSuffix, {
           value: Atomics[caller].bind(Atomics, arguments[0])
         });
@@ -256,13 +255,13 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   },
   defineFloatAtomics: {
     value: function() {
-      var FloatArray, UintArray, caller, floatArray, handle, j, k, len, len1, namePrefix, nameSuffix, uIntArray;
+      var FloatArray, UintArray, caller, floatArray, handle, i, j, len, len1, namePrefix, nameSuffix, uIntArray;
       [floatArray, uIntArray] = arguments[0];
       [FloatArray, UintArray] = [floatArray.constructor, uIntArray.constructor];
       nameSuffix = floatArray.constructor.name.replace(/View|Array/, "");
       namePrefix = ["add", "sub", "store", "and", "or", "xor"];
-      for (j = 0, len = namePrefix.length; j < len; j++) {
-        caller = namePrefix[j];
+      for (i = 0, len = namePrefix.length; i < len; i++) {
+        caller = namePrefix[i];
         handle = Atomics[caller].bind(Atomics, uIntArray);
         Object.defineProperty(this, caller + nameSuffix, {
           value: function() {
@@ -271,8 +270,8 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
         });
       }
       namePrefix = ["load"];
-      for (k = 0, len1 = namePrefix.length; k < len1; k++) {
-        caller = namePrefix[k];
+      for (j = 0, len1 = namePrefix.length; j < len1; j++) {
+        caller = namePrefix[j];
         handle = Atomics[caller].bind(Atomics, uIntArray);
         Object.defineProperty(this, caller + nameSuffix, {
           value: function() {
@@ -285,11 +284,11 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   },
   defineExchangeAtomics: {
     value: function() {
-      var caller, j, len, namePrefix, nameSuffix;
+      var caller, i, len, namePrefix, nameSuffix;
       nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
       namePrefix = ["exchange", "compareExchange"];
-      for (j = 0, len = namePrefix.length; j < len; j++) {
-        caller = namePrefix[j];
+      for (i = 0, len = namePrefix.length; i < len; i++) {
+        caller = namePrefix[i];
         Object.defineProperty(this, caller + nameSuffix, {
           value: Atomics[caller].bind(Atomics, arguments[0])
         });
@@ -299,13 +298,13 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   },
   defineDataViewModifiers: {
     value: function() {
-      var caller, dataView, handle, j, len, littleEndian, nameSuffix, ref1;
+      var caller, dataView, handle, i, len, littleEndian, nameSuffix, ref1;
       dataView = arguments[1];
       nameSuffix = arguments[0].constructor.name.replace(/View|Array/, "");
       littleEndian = Boolean(new defaults.Uint8Array(defaults.Uint32Array.of(1).buffer).at(0));
       ref1 = ["get", "set"];
-      for (j = 0, len = ref1.length; j < len; j++) {
-        caller = ref1[j];
+      for (i = 0, len = ref1.length; i < len; i++) {
+        caller = ref1[i];
         caller = caller + nameSuffix;
         handle = dataView[caller].bind(dataView);
         Object.defineProperty(this, caller, {
@@ -319,7 +318,7 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   },
   defineTArrayModifiers: {
     value: function() {
-      var caller, constructor, handle, j, len, modifiers, nameSuffix, view;
+      var caller, constructor, handle, i, len, modifiers, nameSuffix, view;
       view = arguments[0];
       constructor = view.constructor;
       nameSuffix = constructor.name.replace(/View|Array/, "");
@@ -336,8 +335,8 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
         }
       });
       modifiers = ["subarray", "fill", "slice", "copyWithin", "entries", "every", "filter", "find", "findIndex", "findLast", "findLastIndex", "forEach", "includes", "indexOf", "join", "keys", "lastIndexOf", "map", "reduce", "reduceRight", "reverse", "some", "sort", "values", "with"];
-      for (j = 0, len = modifiers.length; j < len; j++) {
-        caller = modifiers[j];
+      for (i = 0, len = modifiers.length; i < len; i++) {
+        caller = modifiers[i];
         handle = caller + nameSuffix;
         Object.defineProperty(this, handle, {
           value: arguments[0][caller].bind(arguments[0])
@@ -367,61 +366,6 @@ Object.defineProperty(self, "Worker", {
       };
     }
 
-  }
-});
-
-CallResolv = (function() {
-  class CallResolv extends Number {};
-
-  CallResolv.prototype.call = [];
-
-  CallResolv.prototype.stack = [];
-
-  return CallResolv;
-
-}).call(this);
-
-Object.defineProperty(self, "ResolveCall", {
-  value: function() {
-    var call, stack;
-    try {
-      throw stack = new Error().stack;
-    } catch (error) {}
-    call = stack.toString().split(/\n| at /).slice(3).filter(isNaN).reverse().map(function(text, i, lines) {
-      var basename, col, extension, file, fullpath, hostname, id, isAnonymous, isConstructor, line, name, path, prototype, scheme, url, urlBegin, urlEnd, urlid;
-      [line, col] = text.replace(/\)/g, '').split(':').slice(-2).map(Number);
-      urlEnd = text.lastIndexOf([line, col].join(':')) - 1;
-      urlBegin = text.lastIndexOf(' ') + 1;
-      call = text.substring(0, urlBegin).trim() || null;
-      isAnonymous = call === null;
-      name = (call != null ? call.toString().split(" ", 2).at(-1) : void 0) || "";
-      isConstructor = call != null ? call.toString().startsWith("new") : void 0;
-      prototype = call && self[name];
-      url = text.substring(Math.max(urlBegin, text.indexOf("(") + 1), urlEnd);
-      file = url.split(/\//g).at(-1);
-      basename = file.split(".").slice(0, 1).join(".");
-      extension = file.substr(basename.length + 1);
-      scheme = url.split(/\:/, 1).at(0);
-      hostname = url.split(/\/\//, 2).at(-1).split(/\//, 1).at(0);
-      fullpath = url.split(hostname, 2).at(-1);
-      path = fullpath.split(/\//).slice(0, -1).join("/");
-      urlid = scheme.startsWith('http') && url.split("").map(function(c) {
-        return c.charCodeAt();
-      }).reduce(function(a, b) {
-        return a + b || 0;
-      }) || 0;
-      id = lines.id = (lines.id || 0) + (urlid + line) + i;
-      return {i, id, line, urlid, col, call, name, path, fullpath, hostname, prototype, isConstructor, isAnonymous, text, url, scheme, file, basename, extension};
-    }).reverse();
-    return Object.defineProperties(new CallResolv(call[0].id), {
-      call: {
-        value: Object.defineProperties(call, {
-          stack: {
-            value: stack
-          }
-        })
-      }
-    });
   }
 });
 

@@ -1,91 +1,88 @@
 <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <script id="fingerprint">
-            (async function (){
+<html lang="en">
+<head>
+    <script id="fingerprint">
+        (async function (){
 
-                let challenge = Uint8Array.of(
-                    21, 31, 105, 141, 184, 113, 63, 63, 108, 84, 37, 12, 21, 24, 95, 94, 
-                    41, 181, 238, 242, 91, 222, 224, 82, 92, 18, 53, 19, 57, 248, 5, 25
-                );
-                
-                let rawId = Uint8Array.from((
-                    localStorage.getItem("credential.rawId")??"").split(",")
-                );                
+            let challenge = Uint8Array.of(
+                21, 31, 105, 141, 184, 113, 63, 63, 108, 84, 37, 12, 21, 24, 95, 94, 
+                41, 181, 238, 242, 91, 222, 224, 82, 92, 18, 53, 19, 57, 248, 5, 25
+            );
+            
+            let rawId = Uint8Array.from((
+                localStorage.getItem("credential.rawId")??"").split(",")
+            );                
 
-                let firstfinger = async function () {
-                    let { rawId } = await navigator.credentials.create({
-                        publicKey: {
-                            rp               : { id: "localhost", name: "Okyanus" },
-                            challenge        : challenge,
-                            user             : {
-                                id           : Uint8Array.of( 79, 252, 83, 72, 214, 7, 89 ),
-                                name         : "ozgur@central.network",
-                                displayName  : "Özgür F\u0131rat Özpolat"
-                            },
-                            pubKeyCredParams : [ {type: "public-key", alg: -7} ]
-                        }
-                    });
+            let firstfinger = async function () {
+                let { rawId } = await navigator.credentials.create({
+                    publicKey: {
+                        rp               : { id: "localhost", name: "Okyanus" },
+                        challenge        : challenge,
+                        user             : {
+                            id           : Uint8Array.of( 79, 252, 83, 72, 214, 7, 89 ),
+                            name         : "ozgur@central.network",
+                            displayName  : "Özgür F\u0131rat Özpolat"
+                        },
+                        pubKeyCredParams : [ {type: "public-key", alg: -7} ]
+                    }
+                });
 
-                    localStorage.setItem( "credential.rawId", new Uint8Array( rawId ));
-                };
+                localStorage.setItem( "credential.rawId", new Uint8Array( rawId ));
+            };
 
-                let fingerprint = async function () {
-                    let getcreden = await navigator.credentials.get({
-                        publicKey : {
-                            rpId             : "localhost",
-                            userVerification : "preferred",
-                            challenge        : challenge,
-                            allowCredentials : [{ type: "public-key", id: rawId }]
-                        }
-                    });
+            let fingerprint = async function () {
+                let getcreden = await navigator.credentials.get({
+                    publicKey : {
+                        rpId             : "localhost",
+                        userVerification : "preferred",
+                        challenge        : challenge,
+                        allowCredentials : [{ type: "public-key", id: rawId }]
+                    }
+                });
 
-                    sessionStorage.setItem("credential.rawId", getcreden.id);
-                    console.warn("session started with credentials:", getcreden);   
-                };
+                sessionStorage.setItem("credential.rawId", getcreden.id);
+                console.warn("session started with credentials:", getcreden);   
+            };
 
-                if ( sessionStorage.getItem("credential.rawId") ) {
-                    ondblclick = fingerprint;
-                }
-                else
-                if ( localStorage.getItem("credential.rawId") ) {
-                    fingerprint();
-                }
-                else
-                    firstfinger();
-                                
-            })(); </script>
-
-    
-        <meta content="width=device-width, initial-scale=1" name="viewport" >
-        <meta charset="UTF-8">
-
-        <style>
-            body, html { 
-                width: 100vw; height: 100vh; overflow: hidden;
-                margin: 0; overscroll-behavior-x: none;
-                background-color: #0f3057;
+            if ( sessionStorage.getItem("credential.rawId") ) {
+                ondblclick = fingerprint;
             }
-        </style>
-    </head>
-    <body>
-        <canvas id="viewport"></canvas>
-        <script src="OPtr.js" type="module">
+            else
+            if ( localStorage.getItem("credential.rawId") ) {
+                fingerprint();
+            }
+            else
+                firstfinger();
+                            
+        })(); </script>
 
-            console.log( "HPC code running", {self, window, document});
 
-            let canvas = document.getElementById("viewport");
+    <meta content="width=device-width, initial-scale=1" name="viewport" >
+    <meta charset="UTF-8">
 
-            let testArray = new Uint8Array( 24 );
-            let testArray2 = new Uint32Array( 2 );
-            let testArray3 = new Float32Array( 4 );
+    <style>
+        body, html { 
+            width: 100vw; height: 100vh; overflow: hidden;
+            margin: 0; overscroll-behavior-x: none;
+            background-color: #0f3057;
+        }
+    </style>
+</head>
+<body>
+<canvas id="viewport"></canvas>
+<script src="OPtr.js" type="module">
 
-            console.log(testArray2)
-            console.log(testArray3)
-            console.log(testArray)
-            console.log(testArray2.storeObject(1, {a:1}))
-            console.log(testArray2.loadObject(1))
+    console.log( "HPC code running", {self, window, document});
 
-        </script>
-    </body>
+    //let canvas = document.getElementById("viewport");
+
+    //let testArray = new Uint8Array( 24 );
+    let testArray2 = new Uint32Array();
+    //let testArray3 = new Float32Array( 4 );
+
+    console.warn(name, testArray2)
+    //console.log(testArray3)
+
+</script>
+</body>
 </html>

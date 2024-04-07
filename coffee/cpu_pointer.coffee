@@ -50,15 +50,8 @@ export class Pointer   extends Number
     toPointer               : -> this
 
     constructor             : ->
-        #console.warn ResolveCall()
-
-        unless arguments.length
-            super memory.malloc()                
-            #memory.setProtoClass this, @protoclass
-
-        else
-            super arguments[0]
-            @usePrototype arguments[1]
+        super()
+        console.log "cpu constructing pointer"
 
     usePrototype            : ->
         return this unless @constructor is Pointer

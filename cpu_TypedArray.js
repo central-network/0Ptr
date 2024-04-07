@@ -6,7 +6,7 @@ import {
 
 import {
   Pointer
-} from "./OPtr_pointer.js";
+} from "./cpu_pointer.js";
 
 TypedArray = (function() {
   class TypedArray extends Pointer {
@@ -21,23 +21,30 @@ TypedArray = (function() {
     //? - begin  : beginning of array's content   - index of 1/2/4/8 
     //? - end    : end of content
     //? - type   : protoclass of TypedArray (Uint8Array etc.)
-    solve() {
-      var buffer, byteOffset, length;
-      [buffer, byteOffset, length] = arguments;
-      if (!isNaN(buffer)) {
-        return this.alloc(buffer);
-      // todo clone needed
-      } else if (ArrayBuffer.isView(buffer)) {
-        return this.alloc(buffer.length);
-      } else if (Array.isArray(buffer)) {
-        return this.alloc(buffer.length);
-      } else if (buffer.byteLength) {
-        return this.alloc(buffer.byteLength / this.BYTES_PER_ELEMENT);
-      } else {
-        throw ["What is this", ...arguments];
+    constructor() {
+      //console.warn ResolveCall()
+      if (!arguments.length) {
+        throw ["POINTER_NEEDS_ARGS"];
       }
+      super();
     }
 
+    //[ buffer, byteOffset, length ] = arguments
+
+    //unless isNaN buffer
+    //    @alloc buffer
+
+    // todo clone needed
+    //else if ArrayBuffer.isView buffer
+    //    @alloc buffer.length
+
+    //else if Array.isArray buffer
+    //    @alloc buffer.length
+
+    //else if buffer.byteLength
+    //    @alloc buffer.byteLength / @BYTES_PER_ELEMENT
+
+    //else throw [ "What is this", arguments... ] 
     alloc(length) {
       var begin, byteLength, byteOffset, end;
       byteLength = length * this.BYTES_PER_ELEMENT;

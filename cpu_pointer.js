@@ -37,15 +37,8 @@ export var Pointer = (function() {
     }
 
     constructor() {
-      //console.warn ResolveCall()
-      if (!arguments.length) {
-        super(memory.malloc());
-      } else {
-        
-        //memory.setProtoClass this, @protoclass
-        super(arguments[0]);
-        this.usePrototype(arguments[1]);
-      }
+      super();
+      console.log("cpu constructing pointer");
     }
 
     usePrototype() {
