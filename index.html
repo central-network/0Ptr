@@ -30,11 +30,10 @@
 
     else {
         testArray = new Uint32Array();
-        console.log(memory.storeUint32( testArray, 1e7 * Math.random(), 2 ))
     }
 
-    console.error(testArray, memory.loadUint32( testArray, 10 ), name)
-    console.error(performance.now() - now, name )
+    console.error(testArray, name)
+    //console.error(performance.now() - now, name )
 
 </script>
 </body>

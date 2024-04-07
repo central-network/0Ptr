@@ -66,7 +66,7 @@ addEventListener("load", function() {
     self.memory = data.memory.defineProperties();
     console.warn('bridge ready:', data.name);
     cpuCount = Math.max(2, ((typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 2) - 2);
-    cpuCount = 2;
+    cpuCount = 3;
     waiting = cpuCount;
     threads = [];
     while (cpuCount--) {

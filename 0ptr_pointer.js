@@ -38,28 +38,30 @@ export var Pointer = (function() {
     }
 
     constructor() {
-      var callResolv, offset, ptri;
+      var callResolv, id, offset, ptri;
       if (!arguments.length) {
         if (self.isBridge) {
           super(ptri = memory.malloc());
           callResolv = new CallResolv();
-          callResolv.ptri = ptri;
-          this.callResolv = callResolv;
+          callResolv.ptri = this * 1;
+          this.callResolv = callResolv * 1;
         } else if (self.isCPU) {
           callResolv = new CallResolv();
+          id = callResolv.id;
           offset = 8 + 4;
           while (true) {
-            if (!(callResolv.id - memory.loadUint32(offset))) {
-              return super(memory.loadUint32(offset + 1));
+            if (id === memory.loadUint32(offset)) {
+              super(memory.loadUint32(offset + 1));
+              break;
             }
-            if (1000 < (offset += 8)) {
+            offset += 8;
+            if (offset > 100000) {
               break;
             }
           }
         }
       } else if (arguments[0]) {
         super(arguments[0]);
-        this.usePrototype(arguments[1]);
       } else {
         console.error(["ZERO_POINTER_MUST_BE_DIFFERENT_THEN_ZERO"]);
         return void 0;
@@ -96,7 +98,7 @@ export var Pointer = (function() {
 export var CallResolv = (function() {
   class CallResolv extends Pointer {
     constructor() {
-      var e, ptri, stack;
+      var e, id, offset, ptri, stack;
       if (arguments.length) {
         if (!(ptri = arguments[0])) {
           return void 0;
@@ -110,8 +112,18 @@ export var CallResolv = (function() {
           stack = e.stack;
         }
       }
+      id = CallResolv.parse(stack).at(-1).id;
+      offset = 8 + 4;
+      while (true) {
+        if (id === memory.loadUint32(offset)) {
+          return super(offset - 4);
+        }
+        offset += 8;
+        if (offset > 100000) {
+          break;
+        }
+      }
       super(memory.malloc());
-      this.id = CallResolv.parse(stack).at(-1).id;
     }
 
     //Object.defineProperties this,

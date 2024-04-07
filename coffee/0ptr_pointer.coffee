@@ -39,20 +39,24 @@ export class Pointer   extends Number
                 super ptri = memory.malloc() 
 
                 callResolv = new CallResolv()
-                callResolv.ptri = ptri
-                @callResolv = callResolv
+                callResolv.ptri = this * 1
+                @callResolv = callResolv * 1
 
             else if self.isCPU
                 callResolv = new CallResolv()
+                id = callResolv.id
                 offset = 8 + 4
+
                 loop
-                    unless callResolv.id - memory.loadUint32 offset
-                        return super memory.loadUint32 offset + 1
-                    break if 1000 < offset += 8
+                    if  id is memory.loadUint32 offset
+                        super memory.loadUint32 offset + 1
+                        break
+
+                    offset += 8
+                    break if offset > 100000
 
         else if arguments[0]
             super arguments[0]
-            @usePrototype arguments[1]
 
         else
             console.error ["ZERO_POINTER_MUST_BE_DIFFERENT_THEN_ZERO"]
@@ -90,10 +94,17 @@ export class CallResolv extends Pointer
             try throw new Error()
             catch e then stack = e.stack
             
+        id = CallResolv.parse(stack).at(-1).id
+        offset = 8 + 4
+
+        loop
+            if  id is memory.loadUint32 offset
+                return super offset - 4
+            offset += 8
+            
+            break if offset > 100000
 
         super memory.malloc()
-
-        @id = CallResolv.parse(stack).at(-1).id
 
         #Object.defineProperties this,
         #    id : value : calls.at(-1).id
