@@ -72,19 +72,13 @@
 <canvas id="viewport"></canvas>
 <script src="OPtr.js" type="module">
 
-    console.log( "HPC code running", {name, self, window, document});
+    console.log( "HPC code will run on:", {name, window, document});
 
     let now = performance.now()
+    let testArray = new Uint32Array();
 
-    //let canvas = document.getElementById("viewport");
-
-    //let testArray = new Uint8Array( 24 );
-    let testArray2 = new Uint32Array();
-    //let testArray3 = new Float32Array( 4 );
-
-    console.warn(testArray2, name)
-    console.warn(performance.now() - now, name )
-    //console.log(testArray3)
+    console.error(testArray, name)
+    console.error(performance.now() - now, name )
 
 </script>
 </body>
