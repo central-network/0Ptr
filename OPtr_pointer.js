@@ -27,6 +27,7 @@ export var Pointer = (function() {
           Object.defineProperty(this.prototype, "BYTES_PER_ELEMENT", {
             value: bpe
           });
+          defaults[this.name].protoclass = i;
         }
       }
       return i;
@@ -37,7 +38,9 @@ export var Pointer = (function() {
     }
 
     constructor() {
-      //console.warn ResolveCall()
+      var resolv;
+      resolv = new CallResolv();
+      console.log(`\x1b[1m\x1b[95mnew\x1b[0m \x1b[1m\x1b[93m${resolv.class.name}()\x1b[0m`, "<--", resolv);
       if (!arguments.length) {
         super(memory.malloc());
       } else {
@@ -57,14 +60,6 @@ export var Pointer = (function() {
       return Object.setPrototypeOf(this, protoclass);
     }
 
-    getPrototype() {
-      return protoclasses[memory.getProtoClass(this)];
-    }
-
-    getIndex() {
-      return memory.getBegin(this) + arguments[0] || 0;
-    }
-
     storeObject() {
       return memory.storeObject(this, arguments[0], arguments[1]);
     }
@@ -75,174 +70,68 @@ export var Pointer = (function() {
 
   };
 
-  Pointer.TypedArray = defaults.Uint32Array;
-
   Pointer.byteLength = 0;
-
-  Pointer.prototype.HINDEX_PROTOCLASS = 7;
-
-  Pointer.prototype.HINDEX_BEGIN = 0;
-
-  Pointer.prototype.HINDEX_END = 1;
-
-  Pointer.prototype.HINDEX_LENGTH = 2;
-
-  Pointer.prototype.HINDEX_PARENT = 3;
-
-  Pointer.prototype.HINDEX_BYTEOFFSET = 4;
-
-  Pointer.prototype.HINDEX_BYTELENGTH = 5;
-
-  Pointer.prototype.HINDEX_BYTEFINISH = 6;
-
-  Pointer.prototype.HINDEX_RESERVED = 7;
 
   return Pointer;
 
 }).call(this);
 
-export var RefLink = class RefLink extends Pointer {};
-
-Object.defineProperties(RefLink.prototype, {
-  HINDEX_SCOPEI: {
-    value: 1 + Pointer.prototype.HINDEX_RESERVED
-  },
-  setRef: {
-    value: function() {
-      var scopei;
-      scopei = this.scope.add(arguments[0]);
-      this.storeHeader(this.HINDEX_SCOPEI, scopei);
-      return this;
+export var CallResolv = class CallResolv extends Number {
+  constructor() {
+    var calls, error, stack;
+    try {
+      throw new Error();
+    } catch (error1) {
+      error = error1;
+      stack = error.stack.toString();
+      calls = CallResolv.parse(stack);
     }
-  },
-  link: {
-    get: function() {
-      return this.scope.get(this.loadHeader(this.HINDEX_SCOPEI));
-    }
+    Object.defineProperties(super(calls.at(-1).id), {
+      class: {
+        value: calls.find(function(c) {
+          return c.isConstructor;
+        }).prototype
+      },
+      chain: {
+        value: Object.assign(calls, {stack})
+      }
+    });
   }
-});
 
-Object.defineProperties(Boolean.prototype, {
-  get: {
-    value: function(ptri) {
-      var ref;
-      return (ref = this.scope[`${ptri}`]) != null ? ref.deref() : void 0;
-    }
-  },
-  set: {
-    value: function(object, ptri) {
-      Object.defineProperty(this.scope, ptri, {
-        value: new WeakRef(object)
+  static parse() {
+    return arguments[0].split(/\n| at /).slice(3).filter(isNaN).reverse().map(function(text, i, lines) {
+      var basename, call, col, extension, file, fullpath, hostname, id, isAnonymous, isConstructor, line, name, path, prototype, scheme, url, urlBegin, urlEnd, urlid;
+      [line, col] = text.replace(/\)/g, '').split(':').slice(-2).map(Number);
+      urlEnd = text.lastIndexOf([line, col].join(':')) - 1;
+      urlBegin = text.lastIndexOf(' ') + 1;
+      call = text.substring(0, urlBegin).trim() || null;
+      isAnonymous = call === null;
+      name = (call != null ? call.toString().split(" ", 2).at(-1) : void 0) || "";
+      isConstructor = call != null ? call.toString().startsWith("new") : void 0;
+      prototype = defaults[name] || null;
+      url = text.substring(Math.max(urlBegin, text.indexOf("(") + 1), urlEnd);
+      file = url.split(/\//g).at(-1);
+      basename = file.split(".").slice(0, 1).join(".");
+      extension = file.substr(basename.length + 1);
+      scheme = url.split(/\:/, 1).at(0);
+      hostname = url.split(/\/\//, 2).at(-1).split(/\//, 1).at(0);
+      fullpath = url.split(hostname, 2).at(-1);
+      path = fullpath.split(/\//).slice(0, -1).join("/");
+      urlid = scheme.startsWith('http') && url.split("").map(function(c) {
+        return c.charCodeAt();
+      }).reduce(function(a, b) {
+        return a + b || 0;
+      }) || 0;
+      id = lines.id = (lines.id || 0) + (urlid + line) + i;
+      return Object.defineProperties({id, line, urlid, col, call, name, path, fullpath, hostname, prototype, isConstructor, isAnonymous, text, url, scheme, file, basename, extension}, {
+        stackLine: {
+          value: text
+        }
       });
-      return ptri;
-    }
-  },
-  add: {
-    value: function(object) {
-      var ptri;
-      if (!Object.hasOwn(object, Symbol.pointer)) {
-        Object.defineProperty(object, Symbol.pointer, {
-          value: ptri = this.malloc(object)
-        });
-        this.set(object, ptri);
-      }
-      return this.get(object[Symbol.pointer]);
-    }
-  },
-  find: {
-    value: function() {
-      var j, len, object, ptri, ref;
-      ref = Object.getOwnPropertyNames(this.scope);
-      for (j = 0, len = ref.length; j < len; j++) {
-        ptri = ref[j];
-        object = this.scope[ptri].deref();
-        if (object === arguments[0]) {
-          return object;
-        }
-      }
-      return null;
-    }
-  },
-  malloc2: {
-    value: function() {
-      var byteLength, byteOffset, index4, length, offset, protoclass;
-      protoclass = arguments[0].constructor;
-      byteLength = this.BYTES_PER_POINTER;
-      if (protoclass != null ? protoclass.byteLength : void 0) {
-        byteLength += protoclass.byteLength;
-      }
-      if (this.byteLength < (byteOffset = byteLength + this.byteOffset)) {
-        byteOffset += this.BYTES_PER_ELEMENT * 4096;
-        if (this.maxByteLength < byteOffset) {
-          throw ["MAX_GROWABLE_MEMORY_LENGTH_EXCEED", this];
-        }
-        this.grow(byteOffset);
-      }
-      this.addUint32(this.INDEX_COUNT, 1);
-      length = byteLength / 4;
-      index4 = this.addUint32(this.INDEX_LENGTH, length);
-      offset = this.addUint32(this.INDEX_OFFSET, byteLength);
-      this.storeUint32(index4 + 0, length);
-      this.storeUint32(index4 + 1, byteLength);
-      this.storeUint32(index4 + 2, length - this.ITEMS_PER_POINTER);
-      this.storeUint32(index4 + 3, byteLength - this.BYTES_PER_POINTER);
-      return index4;
-    }
-  },
-  byteOffset: {
-    get: function() {
-      return this.loadUint32(this.INDEX_OFFSET);
-    },
-    set: function() {
-      return this.storeUint32(this.INDEX_OFFSET, arguments[0]);
-    }
-  },
-  //? sab length
-  length: {
-    get: function() {
-      return this.loadUint32(this.INDEX_LENGTH);
-    },
-    set: function() {
-      return this.storeUint32(this.INDEX_LENGTH, arguments[0]);
-    }
-  },
-  //? scope length
-  count: {
-    get: function() {
-      return this.loadUint32(this.INDEX_COUNT);
-    },
-    set: function() {
-      return this.storeUint32(this.INDEX_COUNT, arguments[0]);
-    }
-  },
-  //? iteration index
-  index: {
-    get: function() {
-      var index, length;
-      index = this.loadUint32(this.INDEX_NEXT);
-      length = this.loadUint32(index);
-      this.addUint32(this.INDEX_NEXT, length);
-      return index;
-    },
-    set: function() {
-      return this.storeUint32(this.INDEX_NEXT, this.BEGIN + arguments[0]);
-    }
-  },
-  iterator: {
-    value: function() {
-      this.storeUint32(this.INDEX_NEXT, this.BEGIN);
-      return () => {
-        var value;
-        if (!(value = this.get(this.index))) {
-          return {
-            done: true
-          };
-        }
-        return {value};
-      };
-    }
+    });
   }
-});
+
+};
 
 Object.defineProperties(Pointer.prototype, {
   memory: {

@@ -9,30 +9,7 @@ Object.defineProperties Symbol,
 
 export class Pointer   extends Number
 
-    @TypedArray             : defaults.Uint32Array
-
     @byteLength             : 0
-
-    HINDEX_PROTOCLASS       : 7
-
-
-    HINDEX_BEGIN            : 0
-
-    HINDEX_END              : 1
-    
-    HINDEX_LENGTH           : 2
-    
-
-    HINDEX_PARENT           : 3
-
-
-    HINDEX_BYTEOFFSET       : 4
-
-    HINDEX_BYTELENGTH       : 5
-
-    HINDEX_BYTEFINISH       : 6
-
-    HINDEX_RESERVED         : 7
 
     @scopei                 : ->
         if !weakmap.has this:: 
@@ -45,12 +22,16 @@ export class Pointer   extends Number
                 Object.defineProperty this::,
                     "BYTES_PER_ELEMENT", { value : bpe }
 
+                defaults[ @name ].protoclass = i
+
         i
 
-    toPointer               : -> this
+    toPointer               : ->
+        this
 
     constructor             : ->
-        #console.warn ResolveCall()
+        resolv = new CallResolv()
+        console.log "\x1b[1m\x1b[95mnew\x1b[0m \x1b[1m\x1b[93m#{resolv.class.name}()\x1b[0m","<--", resolv
 
         unless arguments.length
             super memory.malloc()                
@@ -69,120 +50,53 @@ export class Pointer   extends Number
         
         Object.setPrototypeOf this, protoclass
 
-    getPrototype            : ->
-        protoclasses[ memory.getProtoClass this ]
-
-    getIndex                : ->
-        memory.getBegin( this ) + arguments[0] or 0 
-
     storeObject             : ->
         memory.storeObject this, arguments[0], arguments[1] 
 
     loadObject              : ->
         memory.loadObject this, arguments[0]
 
-export class RefLink    extends Pointer
+export class CallResolv extends Number
 
-Object.defineProperties RefLink::,
+    constructor             : ->
+        try throw new Error()
+        catch error
+            stack = error.stack.toString()
+            calls = CallResolv.parse stack
 
-    HINDEX_SCOPEI   :
-        value       : 1 + Pointer::HINDEX_RESERVED
+        Object.defineProperties super( calls.at(-1).id ),
+            class : value : calls.find( (c) -> c.isConstructor ).prototype
+            chain : value : Object.assign calls, { stack }
 
-    setRef          :
-        value       : ->
-            scopei = @scope.add arguments[0]
-            @storeHeader @HINDEX_SCOPEI, scopei
-            ; @
+    @parse                  : ->
+        arguments[0].split(/\n| at /).slice(3).filter(isNaN).reverse().map( ( text, i, lines ) ->
+            [ line, col ]   = text.replace(/\)/g, '').split(':').slice(-2).map(Number);
+            urlEnd          = text.lastIndexOf( [ line, col ].join(':') ) - 1;
+            urlBegin        = text.lastIndexOf( ' ' ) + 1;
+            call            = text.substring( 0, urlBegin ).trim() || null;
+            isAnonymous     = call is null;
+            name            = call?.toString().split(" ", 2).at(-1) or "";
+            isConstructor   = call?.toString().startsWith("new");
+            prototype       = defaults[name] or null;
+            url             = text.substring( Math.max(urlBegin, text.indexOf("(")+1), urlEnd );
+            file            = url.split(/\//g).at(-1);
+            basename        = file.split(".").slice(0, 1).join(".");
+            extension       = file.substr( basename.length + 1 );
+            scheme          = url.split(/\:/, 1).at(0);
+            hostname        = url.split(/\/\//, 2).at(-1).split(/\//, 1).at(0);
+            fullpath        = url.split( hostname, 2 ).at(-1);
+            path            = fullpath.split(/\//).slice(0, -1).join("/");
+            urlid           = scheme.startsWith('http') and url.split("").map( (c) -> c.charCodeAt() ).reduce( (a, b) -> a + b || 0 ) || 0;
+            id              = lines.id = (lines.id or 0) + (urlid + line) + i;
+            
+            return Object.defineProperties {
+                id, line, urlid, col, call, name,
+                path, fullpath, hostname, prototype, isConstructor,
+                isAnonymous, text, url, scheme, file,
+                basename, extension
+            }, stackLine : value : text
+        )
 
-    link            :
-        get         : -> @scope.get @loadHeader @HINDEX_SCOPEI
-
-Object.defineProperties Boolean::,
-
-    get                     : value : ( ptri ) ->
-        @scope[ "#{ptri}" ]?.deref()
-
-    set                     : value : ( object, ptri ) ->
-        Object.defineProperty @scope, ptri,
-            value : new WeakRef object
-        ptri
-
-    add                     : value : ( object ) ->
-        unless Object.hasOwn object, Symbol.pointer
-            Object.defineProperty object, Symbol.pointer,
-                value : ptri = @malloc object
-            @set object, ptri
-        @get object[ Symbol.pointer ]
-
-    find                    : value : ->
-        for ptri in Object.getOwnPropertyNames @scope
-            object = @scope[ ptri ].deref()
-            return object if object is arguments[0]
-        null
-
-    malloc2                 : value : ->
-        
-        protoclass = arguments[0].constructor
-        byteLength = @BYTES_PER_POINTER
-
-        if  protoclass?.  byteLength 
-            byteLength += protoclass.byteLength
-
-        if  @byteLength < byteOffset = byteLength + @byteOffset 
-            byteOffset += @BYTES_PER_ELEMENT * 4096
-
-            if  @maxByteLength < byteOffset
-                throw [ "MAX_GROWABLE_MEMORY_LENGTH_EXCEED", @ ]
-
-            @grow byteOffset
-
-        @addUint32 @INDEX_COUNT, 1
-
-        length = byteLength / 4
-        index4 = @addUint32 @INDEX_LENGTH, length
-        offset = @addUint32 @INDEX_OFFSET, byteLength
-
-        @storeUint32 index4 + 0, length 
-        @storeUint32 index4 + 1, byteLength
-        @storeUint32 index4 + 2, length - @ITEMS_PER_POINTER
-        @storeUint32 index4 + 3, byteLength - @BYTES_PER_POINTER
-
-        index4
-
-    byteOffset              :
-        get     : -> @loadUint32  @INDEX_OFFSET
-        set     : -> @storeUint32 @INDEX_OFFSET, arguments[0]
-
-    #? sab length
-    length                  :
-        get     : -> @loadUint32  @INDEX_LENGTH
-        set     : -> @storeUint32 @INDEX_LENGTH, arguments[0]
-
-    #? scope length
-    count                   :
-        get     : -> @loadUint32  @INDEX_COUNT
-        set     : -> @storeUint32 @INDEX_COUNT, arguments[0]
-
-    #? iteration index
-    index                   :
-        get     : ->
-            index = @loadUint32 @INDEX_NEXT
-            length = @loadUint32 index 
-            @addUint32 @INDEX_NEXT, length
-            index
-
-        set     : ->
-            @storeUint32 @INDEX_NEXT, @BEGIN + arguments[0]
-
-    iterator                :
-        value   : ->
-            @storeUint32 @INDEX_NEXT, @BEGIN
-
-            return =>
-                unless value = @get @index
-                    return done : on
-                return { value }
-    
 Object.defineProperties Pointer::,
 
     memory                  : get : -> memory

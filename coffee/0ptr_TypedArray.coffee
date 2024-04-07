@@ -3,19 +3,7 @@ import { Pointer } from "./OPtr_pointer.js"
 
 class TypedArray extends Pointer
 
-    #*   headers has 4 items:
-    #* - nexti4     : memory's next index  index4(ptr) + 8 (head + data(ptr))
-    #* - byteLength : data byte [not aligned] length {it's 0 when deleted} 
-    #* - parent     : if this record has parent record
-    #* - type       : protoclass of TypedArrayPointer
-
-    #?   typed array pointers needs 4 elements:
-    #? - index4 : start index of targeted Typed Array's header
-    #? - begin  : beginning of array's content   - index of 1/2/4/8 
-    #? - end    : end of content
-    #? - type   : protoclass of TypedArray (Uint8Array etc.)
-
-    solve : ->
+    solve       : ->
         [ buffer, byteOffset, length ] = arguments
 
         unless isNaN buffer
@@ -32,7 +20,6 @@ class TypedArray extends Pointer
             @alloc buffer.byteLength / @BYTES_PER_ELEMENT
 
         else throw [ "What is this", arguments... ]
-
 
     alloc       : ( length ) ->
 
@@ -108,5 +95,6 @@ Object.defineProperties self,
 
 export {
     TypedArray as default,
-    TypedArray  , defaults
+    TypedArray  , defaults,
+    Pointer
 }

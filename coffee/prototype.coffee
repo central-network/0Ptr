@@ -1,3 +1,4 @@
+import * as Modules from "./0ptr_TypedArray.js"
 import { TypedArray, defaults } from "./0ptr_TypedArray.js"
 
 COUNT_OF_HEADERS            = 8
@@ -11,7 +12,7 @@ Object.defineProperties DataView::,
     littleEndian        : value :
         new defaults.Uint8Array(defaults.Uint32Array.of(0x01).buffer)[0]
 
-Object.defineProperties URL,
+Object.defineProperties URL, 
 
     createWorkerURL     : value : ->
 
@@ -23,7 +24,7 @@ Object.defineProperties URL,
         this.createObjectURL new Blob parts,
         { type: "application/javascript" }
 
-Object.defineProperties self.SharedArrayBuffer::,
+Object.defineProperties self. SharedArrayBuffer::,
 
     scope           : value : new class ScopeChannel extends BroadcastChannel
 
@@ -321,45 +322,6 @@ Object.defineProperty   self, "Worker", value :
 
             @onerror = -> !console.error ...arguments
 
-class CallResolv extends Number
-    call : []
-    stack : []
-
-Object.defineProperty   self, "ResolveCall", value : ->
-    try throw stack = new Error().stack
-    
-    call = stack.toString().split(/\n| at /).slice(3).filter(isNaN).reverse().map( ( text, i, lines ) ->
-        [ line, col ]   = text.replace(/\)/g, '').split(':').slice(-2).map(Number);
-        urlEnd          = text.lastIndexOf( [ line, col ].join(':') ) - 1;
-        urlBegin        = text.lastIndexOf( ' ' ) + 1;
-        call            = text.substring( 0, urlBegin ).trim() || null;
-        isAnonymous     = call is null;
-        name            = call?.toString().split(" ", 2).at(-1) or "";
-        isConstructor   = call?.toString().startsWith("new");
-        prototype       = call and self[ name ];
-        url             = text.substring( Math.max(urlBegin, text.indexOf("(")+1), urlEnd );
-        file            = url.split(/\//g).at(-1);
-        basename        = file.split(".").slice(0, 1).join(".");
-        extension       = file.substr( basename.length + 1 );
-        scheme          = url.split(/\:/, 1).at(0);
-        hostname        = url.split(/\/\//, 2).at(-1).split(/\//, 1).at(0);
-        fullpath        = url.split( hostname, 2 ).at(-1);
-        path            = fullpath.split(/\//).slice(0, -1).join("/");
-        urlid           = scheme.startsWith('http') and url.split("").map( (c) -> c.charCodeAt() ).reduce( (a, b) -> a + b || 0 ) || 0;
-        id              = lines.id = (lines.id or 0) + (urlid + line) + i;
-        
-        return {
-            i, id, line, urlid, col, call, name,
-            path, fullpath, hostname, prototype, isConstructor,
-            isAnonymous, text, url, scheme, file,
-            basename, extension
-        }
-    ).reverse()
-
-    Object.defineProperties new CallResolv( call[0].id ), call :
-        value : Object.defineProperties call, stack :
-            value : stack
-    
 Object.defineProperty   self, "SharedArrayBuffer", value :
 
     class SharedArrayBuffer extends defaults.SharedArrayBuffer
