@@ -30,9 +30,8 @@ export class Pointer   extends Number
         this
 
     constructor             : ->
-        new CallResolv()            
-
         unless arguments.length
+            chain = new CallResolv()            
             super memory.malloc()                
             #memory.setProtoClass this, @protoclass
 

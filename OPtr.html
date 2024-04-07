@@ -75,9 +75,19 @@
     console.log( "HPC code will run on:", {name, window, document});
 
     let now = performance.now()
-    let testArray = new Uint32Array();
+    let testArray;
+    
+    if (name === "1") {
+        testArray = new Uint32Array(8);
 
-    console.error(testArray, name)
+    }
+
+    else {
+        testArray = new Uint32Array();
+        console.log(memory.storeUint32( testArray, 1e7 * Math.random(), 2 ))
+    }
+
+    console.error(testArray, memory.loadUint32( testArray, 10 ), name)
     console.error(performance.now() - now, name )
 
 </script>

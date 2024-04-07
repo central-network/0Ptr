@@ -38,8 +38,9 @@ export var Pointer = (function() {
     }
 
     constructor() {
-      new CallResolv();
+      var chain;
       if (!arguments.length) {
+        chain = new CallResolv();
         super(memory.malloc());
       } else {
         
