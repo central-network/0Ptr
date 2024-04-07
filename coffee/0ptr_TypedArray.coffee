@@ -1,5 +1,5 @@
 import { defaults } from "./0ptr_self.js"
-import { Pointer } from "./Optr_pointer.js"
+import { Pointer } from "./0ptr_pointer.js"
 
 class TypedArray extends Pointer
 

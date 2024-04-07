@@ -6,7 +6,7 @@ import {
 
 import {
   Pointer
-} from "./Optr_pointer.js";
+} from "./0ptr_pointer.js";
 
 TypedArray = (function() {
   class TypedArray extends Pointer {
