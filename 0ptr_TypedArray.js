@@ -1,5 +1,7 @@
 var BigInt64Array, BigUint64Array, Float32Array, Float64Array, Int16Array, Int32Array, Int8Array, TypedArray, Uint16Array, Uint32Array, Uint8Array;
 
+import KEYOF from "./0ptr_keyof.js";
+
 import {
   defaults
 } from "./0ptr_self.js";
@@ -53,10 +55,27 @@ TypedArray = (function() {
 
   };
 
+  TypedArray.byteLength = 2048;
+
   Object.defineProperties(TypedArray.prototype, {
-    array: {
+    TypedArray: {
       get: function() {
-        return this.subarray();
+        return new this.realizeWith(memory, this.byteOffset, this.length);
+      }
+    },
+    byteOffset: {
+      get: function() {
+        return memory.loadUint32(this + this.constructor.HINDEX_BYTEOFFSET);
+      }
+    },
+    byteLength: {
+      get: function() {
+        return memory.loadUint32(this + this.constructor.HINDEX_BYTELENGTH);
+      }
+    },
+    length: {
+      get: function() {
+        return memory.loadUint32(this + this.constructor.HINDEX_LENGTH);
       }
     }
   });
@@ -70,8 +89,6 @@ Object.defineProperties(self, {
     value: Uint8Array = (function() {
       class Uint8Array extends TypedArray {};
 
-      Uint8Array.protoclass = Uint8Array.scopei();
-
       Uint8Array.prototype.realizeWith = defaults.Uint8Array;
 
       return Uint8Array;
@@ -81,8 +98,6 @@ Object.defineProperties(self, {
   Int8Array: {
     value: Int8Array = (function() {
       class Int8Array extends TypedArray {};
-
-      Int8Array.protoclass = Int8Array.scopei();
 
       Int8Array.prototype.realizeWith = defaults.Int8Array;
 
@@ -94,8 +109,6 @@ Object.defineProperties(self, {
     value: Int16Array = (function() {
       class Int16Array extends TypedArray {};
 
-      Int16Array.protoclass = Int16Array.scopei();
-
       Int16Array.prototype.realizeWith = defaults.Int16Array;
 
       return Int16Array;
@@ -105,8 +118,6 @@ Object.defineProperties(self, {
   Uint16Array: {
     value: Uint16Array = (function() {
       class Uint16Array extends TypedArray {};
-
-      Uint16Array.protoclass = Uint16Array.scopei();
 
       Uint16Array.prototype.realizeWith = defaults.Uint16Array;
 
@@ -118,8 +129,6 @@ Object.defineProperties(self, {
     value: Uint32Array = (function() {
       class Uint32Array extends TypedArray {};
 
-      Uint32Array.protoclass = Uint32Array.scopei();
-
       Uint32Array.prototype.realizeWith = defaults.Uint32Array;
 
       return Uint32Array;
@@ -129,8 +138,6 @@ Object.defineProperties(self, {
   Int32Array: {
     value: Int32Array = (function() {
       class Int32Array extends TypedArray {};
-
-      Int32Array.protoclass = Int32Array.scopei();
 
       Int32Array.prototype.realizeWith = defaults.Int32Array;
 
@@ -142,8 +149,6 @@ Object.defineProperties(self, {
     value: Float32Array = (function() {
       class Float32Array extends TypedArray {};
 
-      Float32Array.protoclass = Float32Array.scopei();
-
       Float32Array.prototype.realizeWith = defaults.Float32Array;
 
       return Float32Array;
@@ -153,8 +158,6 @@ Object.defineProperties(self, {
   Float64Array: {
     value: Float64Array = (function() {
       class Float64Array extends TypedArray {};
-
-      Float64Array.protoclass = Float64Array.scopei();
 
       Float64Array.prototype.realizeWith = defaults.Float64Array;
 
@@ -166,8 +169,6 @@ Object.defineProperties(self, {
     value: BigUint64Array = (function() {
       class BigUint64Array extends TypedArray {};
 
-      BigUint64Array.protoclass = BigUint64Array.scopei();
-
       BigUint64Array.prototype.realizeWith = defaults.BigUint64Array;
 
       return BigUint64Array;
@@ -177,8 +178,6 @@ Object.defineProperties(self, {
   BigInt64Array: {
     value: BigInt64Array = (function() {
       class BigInt64Array extends TypedArray {};
-
-      BigInt64Array.protoclass = BigInt64Array.scopei();
 
       BigInt64Array.prototype.realizeWith = defaults.BigInt64Array;
 

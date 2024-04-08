@@ -1,9 +1,12 @@
+import KEYOF from "./0ptr_keyof.js"
 import * as Modules from "./0ptr_TypedArray.js"
 import { TypedArray, defaults } from "./0ptr_TypedArray.js"
 
 COUNT_OF_HEADERS            = 8
 
 BYTES_OF_HEADERS            = 4 * COUNT_OF_HEADERS
+
+ALGIN_BYTELENGTH            = 8
 
 GLOBAL_LOCKINDEX            = 8 / 4
 
@@ -25,6 +28,8 @@ Object.defineProperties URL,
         { type: "application/javascript" }
 
 Object.defineProperties self. SharedArrayBuffer::,
+
+    MAX_HEADERSLENGTH       : value : COUNT_OF_HEADERS
 
     scope           : value : new class ScopeChannel extends BroadcastChannel
 
@@ -114,21 +119,35 @@ Object.defineProperties self. SharedArrayBuffer::,
         #    @notifyInt32 ptri + GLOBAL_LOCKINDEX, arguments[1]
         #, 2220
 
+    # mark          if arguments[0] 
+    # then alloc in     #? data block
+    # else alloc in #* headers
     malloc                  : value : ->
-
-        #*   headers has 4 items:
-        #* - nexti4     : memory's next index  index4(ptr) + 8 (head + data(ptr))
-        #* - byteLength : data byte [not aligned] length {it's 0 when deleted} 
-        #* - parent     : linked target index4
-        #* - prototype  : protoclass of TypedArray.......!!!Pointer!!!!
 
         unless arguments.length
             return @addUint32 1, COUNT_OF_HEADERS
 
-        else if arguments[0] > 0
-            return @addUint32 0, arguments[0]
+        unless byteLength = arguments[0]
+            return 0
 
-        throw [ "NON_SIZED_ALLOCATION" ]
+        # every allocation need to align for #! 8 bytes
+        if  mod = byteLength % ALGIN_BYTELENGTH
+            byteLength += ALGIN_BYTELENGTH - mod
+
+        return @addUint32 0, byteLength
+
+    find                    : value : ->
+        [ index = 0, value ] = arguments    
+        ( offset = COUNT_OF_HEADERS + index )
+        
+        max = @loadUint32 1
+
+        while offset < max
+            if value is @loadUint32 offset
+                return offset - index
+            offset += COUNT_OF_HEADERS
+
+        null
 
     defineProperties        : value : ->
 

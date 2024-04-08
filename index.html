@@ -21,18 +21,14 @@
     console.log( "HPC code will run on:", {name, window, document});
 
     let now = performance.now()
-    let testArray;
+    let testArray = new Uint32Array();
+    let testArray8 = new Uint8Array();
+    let testArrayf32 = new Float32Array();
     
-    if (name === "1") {
-        testArray = new Uint32Array(8);
-
-    }
-
-    else {
-        testArray = new Uint32Array();
-    }
 
     console.error(testArray, name)
+    console.error(testArrayf32, name)
+    console.error(testArray8, name)
     //console.error(performance.now() - now, name )
 
 </script>

@@ -1,4 +1,6 @@
-var BYTES_OF_HEADERS, COUNT_OF_HEADERS, GLOBAL_LOCKINDEX, ScopeChannel, SharedArrayBuffer, Worker;
+var ALGIN_BYTELENGTH, BYTES_OF_HEADERS, COUNT_OF_HEADERS, GLOBAL_LOCKINDEX, ScopeChannel, SharedArrayBuffer, Worker;
+
+import KEYOF from "./0ptr_keyof.js";
 
 import * as Modules from "./0ptr_TypedArray.js";
 
@@ -10,6 +12,8 @@ import {
 COUNT_OF_HEADERS = 8;
 
 BYTES_OF_HEADERS = 4 * COUNT_OF_HEADERS;
+
+ALGIN_BYTELENGTH = 8;
 
 GLOBAL_LOCKINDEX = 8 / 4;
 
@@ -37,6 +41,9 @@ Object.defineProperties(URL, {
 });
 
 Object.defineProperties(self.SharedArrayBuffer.prototype, {
+  MAX_HEADERSLENGTH: {
+    value: COUNT_OF_HEADERS
+  },
   scope: {
     value: new (ScopeChannel = (function() {
       class ScopeChannel extends BroadcastChannel {
@@ -166,19 +173,39 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
   //setTimeout =>
   //    @notifyInt32 ptri + GLOBAL_LOCKINDEX, arguments[1]
   //, 2220
+
+  // mark          if arguments[0] 
+  // then alloc in     #? data block
+  // else alloc in #* headers
   malloc: {
     value: function() {
-      //*   headers has 4 items:
-      //* - nexti4     : memory's next index  index4(ptr) + 8 (head + data(ptr))
-      //* - byteLength : data byte [not aligned] length {it's 0 when deleted} 
-      //* - parent     : linked target index4
-      //* - prototype  : protoclass of TypedArray.......!!!Pointer!!!!
+      var byteLength, mod;
       if (!arguments.length) {
         return this.addUint32(1, COUNT_OF_HEADERS);
-      } else if (arguments[0] > 0) {
-        return this.addUint32(0, arguments[0]);
       }
-      throw ["NON_SIZED_ALLOCATION"];
+      if (!(byteLength = arguments[0])) {
+        return 0;
+      }
+      // every allocation need to align for #! 8 bytes
+      if (mod = byteLength % ALGIN_BYTELENGTH) {
+        byteLength += ALGIN_BYTELENGTH - mod;
+      }
+      return this.addUint32(0, byteLength);
+    }
+  },
+  find: {
+    value: function() {
+      var index, max, offset, value;
+      [index = 0, value] = arguments;
+      (offset = COUNT_OF_HEADERS + index);
+      max = this.loadUint32(1);
+      while (offset < max) {
+        if (value === this.loadUint32(offset)) {
+          return offset - index;
+        }
+        offset += COUNT_OF_HEADERS;
+      }
+      return null;
     }
   },
   defineProperties: {

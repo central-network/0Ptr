@@ -1,5 +1,7 @@
 var protoclasses, weakmap;
 
+import KEYOF from "./0ptr_keyof.js";
+
 import defaults from "./0ptr_self.js";
 
 export {
@@ -20,9 +22,8 @@ export var Pointer = (function() {
       var bpe, i, ref;
       if (!weakmap.has(this.prototype)) {
         weakmap.set(this.prototype, protoclasses[i = protoclasses.length] = this.prototype);
-        Object.defineProperty(this.prototype, "protoclass", {
-          value: i
-        });
+        
+        //Object.defineProperty this::, "protoclass", { value : i }
         if (bpe = (ref = defaults[this.name]) != null ? ref.BYTES_PER_ELEMENT : void 0) {
           Object.defineProperty(this.prototype, "BYTES_PER_ELEMENT", {
             value: bpe
@@ -38,21 +39,46 @@ export var Pointer = (function() {
     }
 
     constructor() {
-      var callResolv, ptri;
+      var call, ptri;
       if (!arguments.length) {
-        callResolv = new CallResolv();
+        call = new CallResolv();
+        //?  only bridge allocates 
         if (self.isBridge) {
-          super(ptri = memory.malloc());
-          callResolv.ptri = this * 1;
-          this.callResolv = callResolv * 1;
-        } else {
-          super(callResolv.ptri);
+          super(memory.malloc()).storeHeaders(call);
         }
-      } else if (arguments[0]) {
-        super(arguments[0]);
+        //?  cpuN only re-locates
+        if (self.isCPU) {
+          super(call.ptri);
+        }
+      } else if (!(ptri = arguments[0])) {
+        /ZERO_POINTER_MUST_BE_DIFFERENT_THEN_ZERO/.throw();
       } else {
-        throw ["ZERO_POINTER_MUST_BE_DIFFERENT_THEN_ZERO"];
+        super(ptri);
       }
+    }
+
+    storeHeaders() {
+      var begin, byteLength, byteOffset, call, end, length, perElement, protoclass;
+      if (call = arguments[0]) {
+        memory.storeUint32(call + this.constructor.HINDEX_RESOLV_PTR, this);
+        memory.storeUint32(this + this.constructor.HINDEX_RESOLV_CID, call.cid);
+      }
+      protoclass = this.constructor.protoclass;
+      perElement = this.constructor.TypedArray.BYTES_PER_ELEMENT;
+      memory.storeUint32(this + this.constructor.HINDEX_PROTOCLASS, protoclass);
+      memory.storeUint32(this + this.constructor.HINDEX_RESOLV_PTR, this * 1);
+      if (byteLength = this.constructor.byteLength) {
+        byteOffset = memory.malloc(byteLength);
+        begin = byteOffset / perElement;
+        length = byteLength / perElement;
+        end = begin + length;
+        memory.storeUint32(this + this.constructor.HINDEX_BEGIN, begin);
+        memory.storeUint32(this + this.constructor.HINDEX_END, end);
+        memory.storeUint32(this + this.constructor.HINDEX_LENGTH, length);
+        memory.storeUint32(this + this.constructor.HINDEX_BYTEOFFSET, byteOffset);
+        memory.storeUint32(this + this.constructor.HINDEX_BYTELENGTH, byteLength);
+      }
+      return this;
     }
 
     usePrototype() {
@@ -74,9 +100,27 @@ export var Pointer = (function() {
 
   };
 
+  Pointer.TypedArray = Uint8Array;
+
   Pointer.byteLength = 0;
 
-  Pointer.prototype.INDEX4_RESVU32_RESOLV = 0;
+  Pointer.headersLength = 0;
+
+  Pointer.HINDEX_BEGIN = Pointer.headersLength++;
+
+  Pointer.HINDEX_END = Pointer.headersLength++;
+
+  Pointer.HINDEX_LENGTH = Pointer.headersLength++;
+
+  Pointer.HINDEX_PROTOCLASS = Pointer.headersLength++;
+
+  Pointer.HINDEX_RESOLV_CID = Pointer.headersLength++;
+
+  Pointer.HINDEX_RESOLV_PTR = Pointer.headersLength++;
+
+  Pointer.HINDEX_BYTELENGTH = Pointer.headersLength++;
+
+  Pointer.HINDEX_BYTEOFFSET = Pointer.headersLength++;
 
   return Pointer;
 
@@ -85,12 +129,9 @@ export var Pointer = (function() {
 export var CallResolv = (function() {
   class CallResolv extends Pointer {
     constructor() {
-      var e, id, offset, ptri, stack;
+      var cid, e, ptri, stack;
       if (arguments.length) {
-        if (!(ptri = arguments[0])) {
-          return void 0;
-        }
-        return super(ptri);
+        return super(arguments[0]);
       } else {
         try {
           throw new Error();
@@ -99,32 +140,21 @@ export var CallResolv = (function() {
           stack = e.stack;
         }
       }
-      id = CallResolv.parse(stack).at(-1).id;
-      if (self.isCPU) {
-        offset = 4;
-        while (true) {
-          if (id === memory.loadUint32(offset)) {
-            return super(offset - 4);
-          }
-          offset += 8;
-          if (offset > 100) {
-            break;
-          }
-        }
+      if (!(cid = CallResolv.parse(stack).at(-1).cid)) {
+        /CID_MUST_BE_A_NUMBER/.throw(cid);
       }
-      super(memory.malloc());
-      this.id = id;
+      if (self.isBridge) {
+        ptri = memory.malloc();
+        memory.storeUint32(ptri + Pointer.HINDEX_RESOLV_CID, cid);
+      } else if (!(ptri = memory.find(Pointer.HINDEX_RESOLV_CID, cid))) {
+        /CPU_COULND_FIND_POINTER_FOR_CID/.throw(cid);
+      }
+      super(ptri);
     }
 
-    //Object.defineProperties this,
-    //    id : value : calls.at(-1).id
-    //    class : value : calls.find( (c) -> c.isConstructor ).prototype
-    //    chain : value : Object.assign calls, { stack }
-
-    //console.log "\x1b[1m\x1b[95mnew\x1b[0m \x1b[1m\x1b[93m#{@class.name}()\x1b[0m","<--", this
     static parse() {
       return `${arguments[0]}`.split(/\n| at /).slice(3).filter(isNaN).reverse().map(function(text, i, lines) {
-        var basename, call, col, extension, file, fullpath, hostname, id, isAnonymous, isConstructor, line, name, path, prototype, scheme, url, urlBegin, urlEnd, urlid;
+        var basename, call, cid, col, extension, file, fullpath, hostname, isAnonymous, isConstructor, line, name, path, prototype, scheme, url, urlBegin, urlEnd, urlid;
         [line, col] = text.replace(/\)/g, '').split(':').slice(-2).map(Number);
         urlEnd = text.lastIndexOf([line, col].join(':')) - 1;
         urlBegin = text.lastIndexOf(' ') + 1;
@@ -146,8 +176,8 @@ export var CallResolv = (function() {
         }).reduce(function(a, b) {
           return a + b || 0;
         }) || 0;
-        id = lines.id = (lines.id || 0) + (urlid + line) + i;
-        return Object.defineProperties({id, line, urlid, col, call, name, path, fullpath, hostname, prototype, isConstructor, isAnonymous, text, url, scheme, file, basename, extension}, {
+        cid = lines.cid = (lines.cid || 0) + (urlid + line) + i;
+        return Object.defineProperties({cid, line, urlid, col, call, name, path, fullpath, hostname, prototype, isConstructor, isAnonymous, text, url, scheme, file, basename, extension}, {
           stackLine: {
             value: text
           }
@@ -157,119 +187,64 @@ export var CallResolv = (function() {
 
   };
 
-  CallResolv.prototype.INDEX4_RESVU32_ID = 0;
+  CallResolv.byteLength = 4096;
 
-  CallResolv.prototype.INDEX4_RESVU32_PTRI = 1;
+  CallResolv.prototype.HINDEX_RESOLV_CID = CallResolv.HINDEX_RESOLV_CID;
+
+  CallResolv.prototype.INDEX4_RESVU32_PTRI = CallResolv.INDEX4_RESVU32_PTRI;
 
   return CallResolv;
 
 }).call(this);
 
 Object.defineProperties(CallResolv.prototype, {
-  id: {
-    get: function() {
-      return memory.loadUint32(this + this.INDEX4_RESVU32_ID + 4);
-    },
-    set: function() {
-      return memory.storeUint32(this + this.INDEX4_RESVU32_ID + 4, arguments[0]);
-    }
-  },
   ptri: {
     get: function() {
-      return memory.loadUint32(this + this.INDEX4_RESVU32_PTRI + 4);
-    },
-    set: function() {
-      return memory.storeUint32(this + this.INDEX4_RESVU32_PTRI + 4, arguments[0]);
+      return memory.loadUint32(this + this.constructor.HINDEX_RESOLV_PTR);
+    }
+  },
+  cid: {
+    get: function() {
+      return memory.loadUint32(this + this.constructor.HINDEX_RESOLV_CID);
+    }
+  }
+});
+
+Object.defineProperties(Pointer, {
+  protoclass: {
+    get: function() {
+      return this.scopei();
     }
   }
 });
 
 Object.defineProperties(Pointer.prototype, {
-  callResolv: {
+  CallResolv: {
     get: function() {
-      return new CallResolv(memory.loadUint32(this + this.INDEX4_RESVU32_RESOLV + 4));
+      var cid, ptri;
+      if (!(cid = memory.loadUint32(this + Pointer.HINDEX_RESOLV_CID))) {
+        return "NOCID";
+      }
+      if (!(ptri = memory.find(Pointer.HINDEX_RESOLV_CID, cid))) {
+        return "NOPTRI";
+      }
+      return new CallResolv(ptri);
+    }
+  }
+});
+
+Object.defineProperties(Pointer.prototype, {
+  protoclass: {
+    get: function() {
+      return memory.loadUint32(this + this.constructor.HINDEX_PROTOCLASS);
     },
     set: function() {
-      return memory.storeUint32(this + this.INDEX4_RESVU32_RESOLV + 4, arguments[0]);
+      return memory.storeUint32(this + this.constructor.HINDEX_PROTOCLASS, arguments[0]);
     }
   },
   headers: {
     get: function() {
       return memory.subarrayUint32(this, this + 8);
-    }
-  },
-  scope: {
-    get: function() {
-      return memory.scope;
-    }
-  },
-  findAllChilds: {
-    value: function(protoclass) {
-      var childs, hindex, length, offset, parent, pclass, stride;
-      offset = hindex = Pointer.prototype.HINDEX_PARENT;
-      pclass = Pointer.prototype.HINDEX_PROTOCLASS - hindex;
-      stride = Pointer.ITEMS_PER_POINTER;
-      length = Pointer.length;
-      parent = this * 1;
-      childs = [];
-      if (protoclass) {
-        protoclass = this.scope.has(protoclass.prototype);
-      }
-      while (length > (offset += stride)) {
-        if (parent === memory.loadUint32(offset)) {
-          if (protoclass && protoclass - memory.loadUint32(offset + pclass)) {
-            continue;
-          }
-          childs.push(new Pointer(offset - hindex));
-        }
-      }
-      return childs;
-    }
-  },
-  [Symbol.iterator]: {
-    value: function() {
-      return {
-        next: this.iterator()
-      };
-    }
-  },
-  [Symbol.pointer]: {
-    get: function() {
-      var TypedArray, begin, byteFinish, byteLength, byteOffset, constructor, end, headersBegin, headersEnd, headersLength, length, parent, protoclass, prototype, ref;
-      protoclass = this.loadHeader(this.HINDEX_PROTOCLASS);
-      prototype = this.scope.get(protoclass);
-      constructor = prototype.constructor;
-      TypedArray = (ref = constructor.TypedArray) != null ? ref : Uint8Array;
-      parent = Number.prototype.toPointer.call(this.loadHeader(this.HINDEX_PARENT));
-      begin = this.loadHeader(this.HINDEX_BEGIN);
-      end = this.loadHeader(this.HINDEX_END);
-      length = this.loadHeader(this.HINDEX_LENGTH);
-      byteOffset = this.loadHeader(this.HINDEX_BYTEOFFSET);
-      byteLength = this.loadHeader(this.HINDEX_BYTELENGTH);
-      byteFinish = this.loadHeader(this.HINDEX_BYTEFINISH);
-      headersBegin = this * 1;
-      headersLength = Pointer.ITEMS_PER_POINTER;
-      headersEnd = headersBegin + headersLength;
-      return {
-        //array           = memory[ TypedArray.subarray ]( begin, end )
-        //byteArray       = memory.subarrayUint8( byteOffset, byteFinish )
-        //headers         = memory.subarrayUint32( headersBegin, headersEnd )
-        scope: prototype.scope,
-        parent,
-        children: this.findAllChilds(),
-        byteOffset,
-        byteLength,
-        byteFinish,
-        headersBegin,
-        headersLength,
-        headersEnd,
-        begin,
-        end,
-        length,
-        protoclass,
-        prototype,
-        constructor
-      };
     }
   }
 });
