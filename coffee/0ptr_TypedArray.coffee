@@ -51,7 +51,7 @@ class TypedArray extends Pointer
         
     Object.defineProperties this::,
 
-        TypedArray  : get : ->
+        buffer      : get : ->
             new @realizeWith memory, @byteOffset, @length
 
         byteOffset  : get : ->
@@ -62,7 +62,6 @@ class TypedArray extends Pointer
 
         length      : get : ->
             memory.loadUint32 this + @constructor.HINDEX_LENGTH
-
 
 Object.defineProperties self,
 

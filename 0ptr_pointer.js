@@ -48,7 +48,7 @@ export var Pointer = (function() {
         }
         //?  cpuN only re-locates
         if (self.isCPU) {
-          super(call.ptri);
+          super(memory.loadUint32(call + Pointer.HINDEX_RESOLV_PTR));
         }
       } else if (!(ptri = arguments[0])) {
         /ZERO_POINTER_MUST_BE_DIFFERENT_THEN_ZERO/.throw();
@@ -78,6 +78,17 @@ export var Pointer = (function() {
         memory.storeUint32(this + this.constructor.HINDEX_BYTELENGTH, byteLength);
       }
       return this;
+    }
+
+    callResolv() {
+      var cid, ptri;
+      if (!(cid = memory.loadUint32(this + Pointer.HINDEX_RESOLV_CID))) {
+        return;
+      }
+      if (!(ptri = memory.find(Pointer.HINDEX_RESOLV_CID, Number(cid)))) {
+        return;
+      }
+      return new CallResolv(ptri);
     }
 
     usePrototype() {
@@ -128,7 +139,7 @@ export var Pointer = (function() {
 export var CallResolv = (function() {
   class CallResolv extends Pointer {
     constructor() {
-      var cid, e, ptri, stack;
+      var call, cid, e, stack;
       if (arguments.length) {
         return super(arguments[0]);
       } else {
@@ -143,12 +154,13 @@ export var CallResolv = (function() {
         /CID_MUST_BE_A_NUMBER/.throw(cid);
       }
       if (self.isBridge) {
-        ptri = memory.malloc();
-        memory.storeUint32(ptri + Pointer.HINDEX_RESOLV_CID, cid);
-      } else if (!(ptri = memory.find(Pointer.HINDEX_RESOLV_CID, cid))) {
+        call = memory.malloc();
+        memory.storeUint32(call + Pointer.HINDEX_RESOLV_CID, cid);
+        memory.storeUint32(call + Pointer.HINDEX_PROTOCLASS, CallResolv.protoclass);
+      } else if (!(call = memory.find(Pointer.HINDEX_RESOLV_CID, cid))) {
         /CPU_COULND_FIND_POINTER_FOR_CID/.throw(cid);
       }
-      super(ptri);
+      super(call);
     }
 
     static parse() {
@@ -188,10 +200,6 @@ export var CallResolv = (function() {
 
   CallResolv.byteLength = 4096;
 
-  CallResolv.prototype.HINDEX_RESOLV_CID = CallResolv.HINDEX_RESOLV_CID;
-
-  CallResolv.prototype.INDEX4_RESVU32_PTRI = CallResolv.INDEX4_RESVU32_PTRI;
-
   return CallResolv;
 
 }).call(this);
@@ -199,12 +207,12 @@ export var CallResolv = (function() {
 Object.defineProperties(CallResolv.prototype, {
   ptri: {
     get: function() {
-      return memory.loadUint32(this + this.constructor.HINDEX_RESOLV_PTR);
+      return memory.loadUint32(this + Pointer.HINDEX_RESOLV_PTR);
     }
   },
   cid: {
     get: function() {
-      return memory.loadUint32(this + this.constructor.HINDEX_RESOLV_CID);
+      return memory.loadUint32(this + Pointer.HINDEX_RESOLV_CID);
     }
   }
 });
@@ -218,32 +226,16 @@ Object.defineProperties(Pointer, {
 });
 
 Object.defineProperties(Pointer.prototype, {
-  CallResolv: {
+  [Symbol.pointer]: {
     get: function() {
-      var cid, ptri;
-      if (!(cid = memory.loadUint32(this + Pointer.HINDEX_RESOLV_CID))) {
-        return "NOCID";
-      }
-      if (!(ptri = memory.find(Pointer.HINDEX_RESOLV_CID, cid))) {
-        return "NOPTRI";
-      }
-      return new CallResolv(ptri);
-    }
-  }
-});
-
-Object.defineProperties(Pointer.prototype, {
-  protoclass: {
-    get: function() {
-      return memory.loadUint32(this + this.constructor.HINDEX_PROTOCLASS);
-    },
-    set: function() {
-      return memory.storeUint32(this + this.constructor.HINDEX_PROTOCLASS, arguments[0]);
-    }
-  },
-  headers: {
-    get: function() {
-      return memory.subarrayUint32(this, this + 8);
+      return {
+        protoclass: memory.loadUint32(this + Pointer.HINDEX_PROTOCLASS),
+        instanceof: this.realizeWith,
+        memory: memory,
+        TypedArray: this.buffer.slice().buffer,
+        byteLength: this.constructor.byteLength,
+        headers: memory.subarrayUint32(this, this + 8)
+      };
     }
   }
 });

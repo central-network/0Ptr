@@ -58,7 +58,7 @@ TypedArray = (function() {
   TypedArray.byteLength = 2048;
 
   Object.defineProperties(TypedArray.prototype, {
-    TypedArray: {
+    buffer: {
       get: function() {
         return new this.realizeWith(memory, this.byteOffset, this.length);
       }

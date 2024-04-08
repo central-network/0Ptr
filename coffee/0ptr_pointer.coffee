@@ -63,7 +63,7 @@ export class Pointer   extends Number
 
             #?  cpuN only re-locates
             if  self.isCPU
-                super call . ptri
+                super memory.loadUint32 call + Pointer.HINDEX_RESOLV_PTR
 
         else unless ptri = arguments[0]
             /ZERO_POINTER_MUST_BE_DIFFERENT_THEN_ZERO/.throw()
@@ -98,6 +98,11 @@ export class Pointer   extends Number
 
         this
 
+    callResolv              : ->
+        return unless cid  = memory.loadUint32 this + Pointer.HINDEX_RESOLV_CID
+        return unless ptri = memory.find Pointer.HINDEX_RESOLV_CID , Number cid
+
+        new CallResolv ptri
 
     usePrototype            : ->
         return this unless @constructor is Pointer
@@ -118,10 +123,6 @@ export class CallResolv extends Pointer
 
     @byteLength             : 4096
 
-    HINDEX_RESOLV_CID       : @HINDEX_RESOLV_CID
-    
-    INDEX4_RESVU32_PTRI     : @INDEX4_RESVU32_PTRI
-
     constructor             : ->
 
         if  arguments.length
@@ -135,15 +136,15 @@ export class CallResolv extends Pointer
             /CID_MUST_BE_A_NUMBER/.throw cid
 
         if  self.isBridge
-            
-            ptri = memory.malloc()
-            
-            memory.storeUint32 ptri + Pointer.HINDEX_RESOLV_CID , cid
+            call = memory.malloc()
 
-        else unless ptri = memory.find Pointer.HINDEX_RESOLV_CID, cid
+            memory.storeUint32 call + Pointer.HINDEX_RESOLV_CID , cid
+            memory.storeUint32 call + Pointer.HINDEX_PROTOCLASS , CallResolv.protoclass
+
+        else unless call = memory.find Pointer.HINDEX_RESOLV_CID, cid
             /CPU_COULND_FIND_POINTER_FOR_CID/.throw cid
 
-        super ptri
+        super call
 
     @parse                  : ->
         "#{arguments[0]}".split(/\n| at /).slice(3).filter(isNaN).reverse().map( ( text, i, lines ) ->
@@ -179,8 +180,8 @@ export class CallResolv extends Pointer
 
 Object.defineProperties CallResolv::,
 
-    ptri            : get : -> memory.loadUint32 this + @constructor.HINDEX_RESOLV_PTR
-    cid             : get : -> memory.loadUint32 this + @constructor.HINDEX_RESOLV_CID
+    ptri            : get : -> memory.loadUint32 this + Pointer.HINDEX_RESOLV_PTR
+    cid             : get : -> memory.loadUint32 this + Pointer.HINDEX_RESOLV_CID
 
 Object.defineProperties Pointer,
 
@@ -188,17 +189,16 @@ Object.defineProperties Pointer,
 
 Object.defineProperties Pointer::,
 
-    CallResolv      : get : ->
-        return "NOCID"  unless cid  = memory.loadUint32 this + Pointer.HINDEX_RESOLV_CID
-        return "NOPTRI" unless ptri = memory.find Pointer.HINDEX_RESOLV_CID, cid
+    [ Symbol.pointer ]      : get : ->
 
-        new CallResolv ptri
+        protoclass  : memory.loadUint32 this + Pointer.HINDEX_PROTOCLASS
 
-Object.defineProperties Pointer::,
+        instanceof  : @realizeWith
 
-    protoclass              :
-        get : -> memory.loadUint32  this + @constructor.HINDEX_PROTOCLASS
-        set : -> memory.storeUint32 this + @constructor.HINDEX_PROTOCLASS, arguments[0]
+        memory      : memory
 
-    headers                 : get : ->
-        memory.subarrayUint32 this, this + 8
+        TypedArray  : @buffer.slice().buffer
+
+        byteLength  : @constructor.byteLength
+
+        headers     : memory.subarrayUint32 this, this + 8
