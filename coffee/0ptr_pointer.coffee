@@ -89,11 +89,10 @@ export class Pointer   extends Number
 
             begin = byteOffset / perElement
             length = byteLength / perElement
-            end = begin + length
 
             memory.storeUint32 this + @constructor.HINDEX_BEGIN      , begin
-            memory.storeUint32 this + @constructor.HINDEX_END        , end
             memory.storeUint32 this + @constructor.HINDEX_LENGTH     , length
+            memory.storeUint32 this + @constructor.HINDEX_END        , begin + length
             memory.storeUint32 this + @constructor.HINDEX_BYTEOFFSET , byteOffset
             memory.storeUint32 this + @constructor.HINDEX_BYTELENGTH , byteLength
 

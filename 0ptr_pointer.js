@@ -58,7 +58,7 @@ export var Pointer = (function() {
     }
 
     storeHeaders() {
-      var begin, byteLength, byteOffset, call, end, length, perElement, protoclass;
+      var begin, byteLength, byteOffset, call, length, perElement, protoclass;
       if (call = arguments[0]) {
         memory.storeUint32(call + this.constructor.HINDEX_RESOLV_PTR, this);
         memory.storeUint32(this + this.constructor.HINDEX_RESOLV_CID, call.cid);
@@ -71,10 +71,9 @@ export var Pointer = (function() {
         byteOffset = memory.malloc(byteLength);
         begin = byteOffset / perElement;
         length = byteLength / perElement;
-        end = begin + length;
         memory.storeUint32(this + this.constructor.HINDEX_BEGIN, begin);
-        memory.storeUint32(this + this.constructor.HINDEX_END, end);
         memory.storeUint32(this + this.constructor.HINDEX_LENGTH, length);
+        memory.storeUint32(this + this.constructor.HINDEX_END, begin + length);
         memory.storeUint32(this + this.constructor.HINDEX_BYTEOFFSET, byteOffset);
         memory.storeUint32(this + this.constructor.HINDEX_BYTELENGTH, byteLength);
       }
