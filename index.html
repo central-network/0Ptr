@@ -25,15 +25,14 @@
     let testArray8 = new Uint8Array();
 
 
-
-    
     let testArrayf32 = new Float32Array();
     
 
-    console.error(testArray, name)
-    console.error(testArrayf32, name)
-    console.error(testArray8, name)
-    //console.error(performance.now() - now, name )
+    console.group(name)
+        console.log("\t", testArrayf32)
+        console.log("\t", testArray)
+        console.log("\t", testArray8)
+    console.groupEnd(name)
 
 </script>
 </body>
