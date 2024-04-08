@@ -31,6 +31,8 @@ export class Pointer   extends Number
     @HINDEX_BYTELENGTH      : @headersLength++
     
     @HINDEX_BYTEOFFSET      : @headersLength++
+
+    @HINDEX_LOOP_INDEX      : @headersLength++
     
     @scopei                 : ->
         if !weakmap.has this:: 
@@ -131,6 +133,8 @@ export class CallResolv extends Pointer
         else
             try throw new Error()
             catch e then stack = e.stack
+
+        console.log name, CallResolv.parse(stack)
             
         unless cid = CallResolv.parse(stack).at(-1).cid
             /CID_MUST_BE_A_NUMBER/.throw cid
@@ -189,11 +193,16 @@ Object.defineProperties Pointer,
 
 Object.defineProperties Pointer::,
 
+    next            :
+        get         : ->
+            memory.addUint32 this + Pointer.HINDEX_LOOP_INDEX, 1
+
+        set         : ->
+            memory.storeUint32 this + Pointer.HINDEX_LOOP_INDEX, arguments[0]
+
     [ Symbol.pointer ]      : get : ->
 
         protoclass  : memory.loadUint32 this + Pointer.HINDEX_PROTOCLASS
-
-        instanceof  : @realizeWith
 
         memory      : memory
 
@@ -201,4 +210,5 @@ Object.defineProperties Pointer::,
 
         byteLength  : @constructor.byteLength
 
-        headers     : memory.subarrayUint32 this, this + 8
+        headers     : memory.subarrayUint32 +this, this + memory.COUNT_OF_HEADERS
+

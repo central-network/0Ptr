@@ -1,4 +1,4 @@
-var BigInt64Array, BigUint64Array, Float32Array, Float64Array, Int16Array, Int32Array, Int8Array, TypedArray, Uint16Array, Uint32Array, Uint8Array;
+var BigInt64Array, BigUint64Array, Float32Array, Float64Array, Int16Array, Int32Array, Int8Array, TypedArray, Uint16Array, Uint32Array, Uint8Array, n, object;
 
 import KEYOF from "./0ptr_keyof.js";
 
@@ -55,7 +55,7 @@ TypedArray = (function() {
 
   };
 
-  TypedArray.byteLength = 2048;
+  TypedArray.byteLength = 12;
 
   Object.defineProperties(TypedArray.prototype, {
     buffer: {
@@ -86,106 +86,98 @@ TypedArray = (function() {
 
 Object.defineProperties(self, {
   Uint8Array: {
-    value: Uint8Array = (function() {
-      class Uint8Array extends TypedArray {};
-
-      Uint8Array.prototype.realizeWith = defaults.Uint8Array;
-
-      return Uint8Array;
-
-    }).call(this)
+    value: (Uint8Array = class Uint8Array extends TypedArray {})
   },
   Int8Array: {
-    value: Int8Array = (function() {
-      class Int8Array extends TypedArray {};
-
-      Int8Array.prototype.realizeWith = defaults.Int8Array;
-
-      return Int8Array;
-
-    }).call(this)
+    value: (Int8Array = class Int8Array extends TypedArray {})
   },
   Int16Array: {
-    value: Int16Array = (function() {
-      class Int16Array extends TypedArray {};
-
-      Int16Array.prototype.realizeWith = defaults.Int16Array;
-
-      return Int16Array;
-
-    }).call(this)
+    value: (Int16Array = class Int16Array extends TypedArray {})
   },
   Uint16Array: {
-    value: Uint16Array = (function() {
-      class Uint16Array extends TypedArray {};
-
-      Uint16Array.prototype.realizeWith = defaults.Uint16Array;
-
-      return Uint16Array;
-
-    }).call(this)
+    value: (Uint16Array = class Uint16Array extends TypedArray {})
   },
   Uint32Array: {
-    value: Uint32Array = (function() {
-      class Uint32Array extends TypedArray {};
-
-      Uint32Array.prototype.realizeWith = defaults.Uint32Array;
-
-      return Uint32Array;
-
-    }).call(this)
+    value: (Uint32Array = class Uint32Array extends TypedArray {})
   },
   Int32Array: {
-    value: Int32Array = (function() {
-      class Int32Array extends TypedArray {};
-
-      Int32Array.prototype.realizeWith = defaults.Int32Array;
-
-      return Int32Array;
-
-    }).call(this)
+    value: (Int32Array = class Int32Array extends TypedArray {})
   },
   Float32Array: {
-    value: Float32Array = (function() {
-      class Float32Array extends TypedArray {};
-
-      Float32Array.prototype.realizeWith = defaults.Float32Array;
-
-      return Float32Array;
-
-    }).call(this)
+    value: (Float32Array = class Float32Array extends TypedArray {})
   },
   Float64Array: {
-    value: Float64Array = (function() {
-      class Float64Array extends TypedArray {};
-
-      Float64Array.prototype.realizeWith = defaults.Float64Array;
-
-      return Float64Array;
-
-    }).call(this)
+    value: (Float64Array = class Float64Array extends TypedArray {})
   },
   BigUint64Array: {
-    value: BigUint64Array = (function() {
-      class BigUint64Array extends TypedArray {};
-
-      BigUint64Array.prototype.realizeWith = defaults.BigUint64Array;
-
-      return BigUint64Array;
-
-    }).call(this)
+    value: (BigUint64Array = class BigUint64Array extends TypedArray {})
   },
   BigInt64Array: {
-    value: BigInt64Array = (function() {
-      class BigInt64Array extends TypedArray {};
-
-      BigInt64Array.prototype.realizeWith = defaults.BigInt64Array;
-
-      return BigInt64Array;
-
-    }).call(this)
+    value: (BigInt64Array = class BigInt64Array extends TypedArray {})
   }
 });
+
+for (n in defaults) {
+  object = defaults[n];
+  if (!object.BYTES_PER_ELEMENT) {
+    continue;
+  }
+  (function() {
+    return Object.defineProperties(self[this.name].prototype, {
+      realizeWith: {
+        value: this
+      },
+      BYTES_PER_ELEMENT: {
+        value: this.BYTES_PER_ELEMENT
+      },
+      [Symbol.toPrimitive]: {
+        value: function() {
+          switch (arguments[0]) {
+            case "number":
+          }
+        }
+      },
+      [Symbol.iterator]: {
+        value: function() {
+          var length;
+          if (self.isCPU) {
+            //? if cpu reaches before bridge?
+            memory.lock(3);
+          }
+          //? this settlement cpu's + bridge
+          length = this.length;
+          if (self.isBridge) {
+            //? this settlement only bridge
+            this.next = 0;
+            //? all cpu's start calculate
+            memory.unlock(3);
+            //? bridge stay still
+            memory.lock(4);
+          }
+          return {
+            next: (function() {
+              var next;
+              if (length > (next = this.next)) {
+                return {
+                  done: false,
+                  value: next
+                };
+              } else {
+                if (self.isCPU) {
+                  memory.unlock(4);
+                }
+                return {
+                  done: true,
+                  value: this
+                };
+              }
+            }).bind(this)
+          };
+        }
+      }
+    });
+  }).call(object);
+}
 
 export {
   TypedArray as default,

@@ -2,13 +2,14 @@ import KEYOF from "./0ptr_keyof.js"
 import * as Modules from "./0ptr_TypedArray.js"
 import { TypedArray, defaults } from "./0ptr_TypedArray.js"
 
-COUNT_OF_HEADERS            = 8
+COUNT_OF_HEADERS            = 16
 
 BYTES_OF_HEADERS            = 4 * COUNT_OF_HEADERS
 
 ALGIN_BYTELENGTH            = 8
 
-GLOBAL_LOCKINDEX            = 8 / 4
+GLOBAL_LOCKINDEX            = 2
+
 
 Object.defineProperties DataView::,
 
@@ -27,9 +28,13 @@ Object.defineProperties URL,
         this.createObjectURL new Blob parts,
         { type: "application/javascript" }
 
+Object.defineProperties self, delay :
+    value : -> new Promise ( done ) =>
+        setTimeout done, arguments[0] or 1000
+
 Object.defineProperties self. SharedArrayBuffer::,
 
-    MAX_HEADERSLENGTH       : value : COUNT_OF_HEADERS
+    COUNT_OF_HEADERS        : value : COUNT_OF_HEADERS
 
     scope           : value : new class ScopeChannel extends BroadcastChannel
 
@@ -108,11 +113,11 @@ Object.defineProperties self. SharedArrayBuffer::,
             new defaults.Uint8Array( buffer ), offset
         ) ; this
 
-    lock                    : value : ( ptri = 0 ) ->
-        @waitInt32 ptri + GLOBAL_LOCKINDEX, arguments[1]
+    lock                    : value : ( ptri = GLOBAL_LOCKINDEX ) ->
+        @waitInt32 ptri, arguments[1]
 
-    unlock                  : value : ( ptri = 0 ) ->
-        return @notifyInt32 ptri + GLOBAL_LOCKINDEX, arguments[1]
+    unlock                  : value : ( ptri = GLOBAL_LOCKINDEX ) ->
+        return @notifyInt32 ptri, arguments[1]
 
         #console.warn name, "unlocking:", {ptri}
         #setTimeout =>
@@ -363,7 +368,7 @@ Object.defineProperty   self, "SharedArrayBuffer", value :
             if  arguments[0] instanceof SharedArrayBuffer
                 return arguments[0].defineProperties()
 
-            byteLength = SharedArrayBuffer::BEGIN * 8
+            byteLength = SharedArrayBuffer::BEGIN * COUNT_OF_HEADERS
             options = maxByteLength : SharedArrayBuffer::MAX_BYTELENGTH
 
             #? new SharedArrayBuffer()

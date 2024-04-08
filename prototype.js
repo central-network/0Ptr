@@ -9,13 +9,13 @@ import {
   defaults
 } from "./0ptr_TypedArray.js";
 
-COUNT_OF_HEADERS = 8;
+COUNT_OF_HEADERS = 16;
 
 BYTES_OF_HEADERS = 4 * COUNT_OF_HEADERS;
 
 ALGIN_BYTELENGTH = 8;
 
-GLOBAL_LOCKINDEX = 8 / 4;
+GLOBAL_LOCKINDEX = 2;
 
 Object.defineProperties(DataView.prototype, {
   littleEndian: {
@@ -40,8 +40,18 @@ Object.defineProperties(URL, {
   }
 });
 
+Object.defineProperties(self, {
+  delay: {
+    value: function() {
+      return new Promise((done) => {
+        return setTimeout(done, arguments[0] || 1000);
+      });
+    }
+  }
+});
+
 Object.defineProperties(self.SharedArrayBuffer.prototype, {
-  MAX_HEADERSLENGTH: {
+  COUNT_OF_HEADERS: {
     value: COUNT_OF_HEADERS
   },
   scope: {
@@ -160,13 +170,13 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
     }
   },
   lock: {
-    value: function(ptri = 0) {
-      return this.waitInt32(ptri + GLOBAL_LOCKINDEX, arguments[1]);
+    value: function(ptri = GLOBAL_LOCKINDEX) {
+      return this.waitInt32(ptri, arguments[1]);
     }
   },
   unlock: {
-    value: function(ptri = 0) {
-      return this.notifyInt32(ptri + GLOBAL_LOCKINDEX, arguments[1]);
+    value: function(ptri = GLOBAL_LOCKINDEX) {
+      return this.notifyInt32(ptri, arguments[1]);
     }
   },
   //console.warn name, "unlocking:", {ptri}
@@ -407,7 +417,7 @@ Object.defineProperty(self, "SharedArrayBuffer", {
         if (arguments[0] instanceof SharedArrayBuffer) {
           return arguments[0].defineProperties();
         }
-        byteLength = SharedArrayBuffer.prototype.BEGIN * 8;
+        byteLength = SharedArrayBuffer.prototype.BEGIN * COUNT_OF_HEADERS;
         options = {
           maxByteLength: SharedArrayBuffer.prototype.MAX_BYTELENGTH
         };

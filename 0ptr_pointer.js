@@ -132,6 +132,8 @@ export var Pointer = (function() {
 
   Pointer.HINDEX_BYTEOFFSET = Pointer.headersLength++;
 
+  Pointer.HINDEX_LOOP_INDEX = Pointer.headersLength++;
+
   return Pointer;
 
 }).call(this);
@@ -150,6 +152,7 @@ export var CallResolv = (function() {
           stack = e.stack;
         }
       }
+      console.log(name, CallResolv.parse(stack));
       if (!(cid = CallResolv.parse(stack).at(-1).cid)) {
         /CID_MUST_BE_A_NUMBER/.throw(cid);
       }
@@ -226,15 +229,22 @@ Object.defineProperties(Pointer, {
 });
 
 Object.defineProperties(Pointer.prototype, {
+  next: {
+    get: function() {
+      return memory.addUint32(this + Pointer.HINDEX_LOOP_INDEX, 1);
+    },
+    set: function() {
+      return memory.storeUint32(this + Pointer.HINDEX_LOOP_INDEX, arguments[0]);
+    }
+  },
   [Symbol.pointer]: {
     get: function() {
       return {
         protoclass: memory.loadUint32(this + Pointer.HINDEX_PROTOCLASS),
-        instanceof: this.realizeWith,
         memory: memory,
         TypedArray: this.buffer.slice().buffer,
         byteLength: this.constructor.byteLength,
-        headers: memory.subarrayUint32(this, this + 8)
+        headers: memory.subarrayUint32(+this, this + memory.COUNT_OF_HEADERS)
       };
     }
   }

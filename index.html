@@ -21,18 +21,16 @@
     console.log( "HPC code will run on:", {name, window, document});
 
     let now = performance.now()
-    let testArray = new Uint32Array();
     let testArray8 = new Uint8Array();
 
+    console.log(name, "\t", testArray8)
 
-    let testArrayf32 = new Float32Array();
-    
+    for ( let i of testArray8) {
+        console.log( name, i )        
+    }
 
-    console.group(name)
-        console.log("\t", testArrayf32)
-        console.log("\t", testArray)
-        console.log("\t", testArray8)
-    console.groupEnd(name)
+    console.log(name, "\t", "iteration done")
+
 
 </script>
 </body>

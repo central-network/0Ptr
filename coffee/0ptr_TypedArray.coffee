@@ -4,7 +4,7 @@ import { Pointer } from "./0ptr_pointer.js"
 
 class TypedArray extends Pointer
 
-    @byteLength : 2048
+    @byteLength : 12
 
     solve       : ->
         [ buffer, byteOffset, length ] = arguments
@@ -65,36 +65,70 @@ class TypedArray extends Pointer
 
 Object.defineProperties self,
 
-    Uint8Array      : value : class Uint8Array      extends TypedArray
-        realizeWith : defaults.Uint8Array
+    Uint8Array      : value : ( class Uint8Array      extends TypedArray )
+            
+    Int8Array       : value : ( class Int8Array       extends TypedArray )
 
-    Int8Array       : value : class Int8Array       extends TypedArray
-        realizeWith : defaults.Int8Array
+    Int16Array      : value : ( class Int16Array      extends TypedArray )
 
-    Int16Array      : value : class Int16Array      extends TypedArray
-        realizeWith : defaults.Int16Array
+    Uint16Array     : value : ( class Uint16Array     extends TypedArray )
 
-    Uint16Array     : value : class Uint16Array     extends TypedArray
-        realizeWith : defaults.Uint16Array
+    Uint32Array     : value : ( class Uint32Array     extends TypedArray )
 
-    Uint32Array     : value : class Uint32Array     extends TypedArray
-        realizeWith : defaults.Uint32Array
+    Int32Array      : value : ( class Int32Array      extends TypedArray )
 
-    Int32Array      : value : class Int32Array      extends TypedArray
-        realizeWith : defaults.Int32Array
+    Float32Array    : value : ( class Float32Array    extends TypedArray )
 
-    Float32Array    : value : class Float32Array    extends TypedArray
-        realizeWith : defaults.Float32Array
+    Float64Array    : value : ( class Float64Array    extends TypedArray )
 
-    Float64Array    : value : class Float64Array    extends TypedArray
-        realizeWith : defaults.Float64Array
+    BigUint64Array  : value : ( class BigUint64Array  extends TypedArray )
 
-    BigUint64Array  : value : class BigUint64Array  extends TypedArray
-        realizeWith : defaults.BigUint64Array
+    BigInt64Array   : value : ( class BigInt64Array   extends TypedArray )
 
-    BigInt64Array   : value : class BigInt64Array   extends TypedArray
-        realizeWith : defaults.BigInt64Array
+for n, object of defaults
 
+    continue unless object.BYTES_PER_ELEMENT
+    
+    ( -> Object.defineProperties self[ @name ]::,
+    
+        realizeWith             : value : this
+
+        BYTES_PER_ELEMENT       : value : @BYTES_PER_ELEMENT
+        
+        [ Symbol.toPrimitive ]  : value : ->
+            switch arguments[0]
+                when "number" then 
+
+        [ Symbol.iterator ]     : value : ->
+
+            if  self.isCPU
+
+                #? if cpu reaches before bridge?
+                memory.lock 3
+
+            #? this settlement cpu's + bridge
+            length = @length
+
+            if  self.isBridge
+                #? this settlement only bridge
+                @next = 0
+
+                #? all cpu's start calculate
+                memory.unlock 3
+
+                #? bridge stay still
+                memory.lock 4
+
+            next : ->
+                if  length > next = @next
+                    return { done: off, value: next }
+
+                else
+                    memory.unlock 4 if self.isCPU
+                    return { done: yes, value: this }
+            .bind @
+
+    ).call( object )
 
 export {
     TypedArray as default,

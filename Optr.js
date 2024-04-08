@@ -59,14 +59,14 @@ addEventListener("message", function({data}) {
 
 addEventListener("load", function() {
   var cpuURL;
-  cpuURL = URL.createWorkerURL(`self.isCPU = true; import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; addEventListener( 'message', function ({ data }){ self.memory = data.memory.defineProperties(); self.postMessage(0); memory.lock(1); console.error('cpu unlocked', name ); /* user code evaulating: */${script} });`);
-  self.bridge = new Worker(URL.createWorkerURL(`self.isBridge = true; import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; self.memory = new SharedArrayBuffer(); self.postMessage({ memory: self.memory, name }); memory.lock(); console.warn( 'bridge unlocked:', name ); /* user code evaulating: */${script}`));
+  cpuURL = URL.createWorkerURL(`self.isCPU = true; import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; addEventListener( 'message', function ({ data }){ self.memory = data.memory.defineProperties(); self.postMessage(0); memory.lock(3); console.error('cpu unlocked', name ); /* user code evaulating: */${script} });`);
+  self.bridge = new Worker(URL.createWorkerURL(`self.isBridge = true; import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; self.memory = new SharedArrayBuffer(); self.postMessage({ memory: self.memory, name }); memory.lock(4); console.warn( 'bridge unlocked:', name ); /* user code evaulating: */${script}`));
   return bridge.addEventListener("message", function({data}) {
     var cpu, cpuCount, threads, waiting;
     self.memory = data.memory.defineProperties();
     console.warn('bridge ready:', data.name);
     cpuCount = Math.max(2, ((typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 2) - 2);
-    cpuCount = 2;
+    //cpuCount = 2
     waiting = cpuCount;
     threads = [];
     while (cpuCount--) {
@@ -79,9 +79,9 @@ addEventListener("load", function() {
           return;
         }
         requestIdleCallback(function() {
-          return memory.unlock(1);
+          return memory.unlock(3);
         });
-        return memory.unlock();
+        return memory.unlock(4);
       };
       cpu.postMessage({
         memory: self.memory

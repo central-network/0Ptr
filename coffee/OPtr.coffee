@@ -51,7 +51,7 @@ addEventListener "load", ->
         addEventListener( 'message', function ({ data }){
             self.memory = data.memory.defineProperties();                        
             self.postMessage(0);
-            memory.lock(1);
+            memory.lock(3);
             console.error('cpu unlocked', name );
             /* user code evaulating: */#{script}                        
         });
@@ -66,7 +66,7 @@ addEventListener "load", ->
         self.memory = new SharedArrayBuffer();
         self.postMessage({ memory: self.memory, name });
 
-        memory.lock();
+        memory.lock(4);
         console.warn( 'bridge unlocked:', name );
         
         /* user code evaulating: */#{script}
@@ -81,7 +81,7 @@ addEventListener "load", ->
             2, ( navigator?.hardwareConcurrency or 2 ) - 2
         )
 
-        cpuCount = 2
+        #cpuCount = 2
 
         waiting = cpuCount
         threads = []
@@ -95,8 +95,8 @@ addEventListener "load", ->
                 return if --waiting
 
                 requestIdleCallback ->
-                    memory.unlock(1)
-                memory.unlock()
+                    memory.unlock(3)
+                memory.unlock(4)
                                                                      
             cpu . postMessage({ memory: self.memory });
 
