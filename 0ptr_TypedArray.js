@@ -57,6 +57,8 @@ TypedArray = (function() {
 
   TypedArray.byteLength = 12;
 
+  TypedArray.prototype.proxyOnCPU = true;
+
   Object.defineProperties(TypedArray.prototype, {
     buffer: {
       get: function() {
@@ -129,13 +131,6 @@ for (n in defaults) {
       },
       BYTES_PER_ELEMENT: {
         value: this.BYTES_PER_ELEMENT
-      },
-      [Symbol.toPrimitive]: {
-        value: function() {
-          switch (arguments[0]) {
-            case "number":
-          }
-        }
       },
       [Symbol.iterator]: {
         value: function() {

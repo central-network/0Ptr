@@ -6,6 +6,8 @@ class TypedArray extends Pointer
 
     @byteLength : 12
 
+    proxyOnCPU  : on
+
     solve       : ->
         [ buffer, byteOffset, length ] = arguments
 
@@ -52,7 +54,7 @@ class TypedArray extends Pointer
     Object.defineProperties this::,
 
         buffer      : get : ->
-            new @realizeWith memory, @byteOffset, @length
+            new this.realizeWith memory, @byteOffset, @length
 
         byteOffset  : get : ->
             memory.loadUint32 this + @constructor.HINDEX_BYTEOFFSET
@@ -94,10 +96,6 @@ for n, object of defaults
         realizeWith             : value : this
 
         BYTES_PER_ELEMENT       : value : @BYTES_PER_ELEMENT
-        
-        [ Symbol.toPrimitive ]  : value : ->
-            switch arguments[0]
-                when "number" then 
 
         [ Symbol.iterator ]     : value : ->
 

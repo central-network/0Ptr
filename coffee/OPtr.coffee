@@ -4,9 +4,7 @@ unless SharedArrayBuffer?
     throw /SHARED_ARRAY_BUFFER_NOT_AVAILABLE/
 
 import "./prototype.js"
-import { Pointer, Scope } from "./0ptr_pointer.js"
 
-scope = new Scope( self )
 basepath = location.href.replace('/index.html', '')
 
 for script in document.scripts
@@ -14,7 +12,7 @@ for script in document.scripts
         break if script = "#{script.text}"
 unless script then throw "?CODE?"
 
-onrequest   = ( i, e ) -> 
+onrequest   = ( i, e ) ->
     { func , args , lock } = e.data
 
     ( root = self )
@@ -81,7 +79,7 @@ addEventListener "load", ->
             2, ( navigator?.hardwareConcurrency or 2 ) - 2
         )
 
-        #cpuCount = 2
+        cpuCount = 2
 
         waiting = cpuCount
         threads = []

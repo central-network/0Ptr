@@ -18,18 +18,18 @@
 <canvas id="viewport"></canvas>
 <script src="Optr.js" type="module">
 
-    console.log( "HPC code will run on:", {name, window, document});
+    console.log( "HPC code will run on:", {name, memory, document});
 
     let now = performance.now()
     let testArray8 = new Uint8Array();
 
     console.log(name, "\t", testArray8)
 
-    for ( let i of testArray8) {
-        console.log( name, i )        
-    }
+    //for ( let i of testArray8) {
+    //    console.log( name, i, testArray8[i] )        
+    //}
 
-    console.log(name, "\t", "iteration done")
+    //console.log(name, "\t", "get", testArray8[0])
 
 
 </script>

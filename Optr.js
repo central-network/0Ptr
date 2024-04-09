@@ -1,4 +1,4 @@
-var basepath, j, len, onrequest, ref, scope, script;
+var basepath, j, len, onrequest, ref, script;
 
 self.isWindow = Boolean(typeof document !== "undefined" && document !== null);
 
@@ -7,13 +7,6 @@ if (typeof SharedArrayBuffer === "undefined" || SharedArrayBuffer === null) {
 }
 
 import "./prototype.js";
-
-import {
-  Pointer,
-  Scope
-} from "./0ptr_pointer.js";
-
-scope = new Scope(self);
 
 basepath = location.href.replace('/index.html', '');
 
@@ -66,7 +59,7 @@ addEventListener("load", function() {
     self.memory = data.memory.defineProperties();
     console.warn('bridge ready:', data.name);
     cpuCount = Math.max(2, ((typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 2) - 2);
-    //cpuCount = 2
+    cpuCount = 2;
     waiting = cpuCount;
     threads = [];
     while (cpuCount--) {

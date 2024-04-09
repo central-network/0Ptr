@@ -11,6 +11,27 @@ ALGIN_BYTELENGTH            = 8
 GLOBAL_LOCKINDEX            = 2
 
 
+HEADERS_HINDEX              = 0
+
+HINDEX_BEGIN                = HEADERS_HINDEX++
+    
+HINDEX_END                  = HEADERS_HINDEX++
+
+HINDEX_LENGTH               = HEADERS_HINDEX++
+
+HINDEX_PROTOCLASS           = HEADERS_HINDEX++
+
+HINDEX_RESOLV_CID           = HEADERS_HINDEX++
+
+HINDEX_RESOLV_PTR           = HEADERS_HINDEX++
+
+HINDEX_BYTELENGTH           = HEADERS_HINDEX++
+
+HINDEX_BYTEOFFSET           = HEADERS_HINDEX++
+
+HINDEX_ITERATOR_I           = HEADERS_HINDEX++
+
+
 Object.defineProperties DataView::,
 
     littleEndian        : value :
@@ -132,24 +153,64 @@ Object.defineProperties self. SharedArrayBuffer::,
         unless arguments.length
             return @addUint32 1, COUNT_OF_HEADERS
 
-        unless byteLength = arguments[0]
-            return 0
+        if  ptri = parseInt ptr = arguments[0]            
+            Ptri = ptr.constructor
 
-        # every allocation need to align for #! 8 bytes
-        if  mod = byteLength % ALGIN_BYTELENGTH
-            byteLength += ALGIN_BYTELENGTH - mod
+            if  byteLength = Ptri.byteLength
 
-        return @addUint32 0, byteLength
+                if  mod = byteLength % ALGIN_BYTELENGTH # align 8 bytes
+                    byteLength += ALGIN_BYTELENGTH - mod
+
+                byteOffset = @addUint32 0, byteLength
+                perElement = Ptri.TypedArray.BYTES_PER_ELEMENT
+
+                begin = byteOffset / perElement
+                length = byteLength / perElement
+
+                @storeUint32 ptri + HINDEX_BEGIN      , begin
+                @storeUint32 ptri + HINDEX_LENGTH     , length
+                @storeUint32 ptri + HINDEX_END        , begin + length
+                @storeUint32 ptri + HINDEX_BYTEOFFSET , byteOffset
+                @storeUint32 ptri + HINDEX_BYTELENGTH , byteLength
+                @storeUint32 ptri + HINDEX_PROTOCLASS , @scope.store Ptri::
+                
+        this
+
+    storeResolv             : value : ( call , ptri ) ->
+        @storeUint32 parseInt(ptri) + HINDEX_RESOLV_CID , call 
+
+    loadResolv              : value : ( call ) ->
+        @find HINDEX_RESOLV_CID, call
+
+    resolvCall              : value : ->
+        try throw new Error()
+        catch e then stack = e.stack
+        
+        call = null
+        "#{stack}".split(/\n| at /).slice(3).filter(isNaN).reverse().map( ( text, i, lines ) ->
+            [ line, col ]   = text.replace(/\)/g, '').split(':').slice(-2).map(Number);
+            urlEnd          = text.lastIndexOf( [ line, col ].join(':') ) - 1;
+            urlBegin        = text.lastIndexOf( ' ' ) + 1;
+            url             = text.substring( Math.max(urlBegin, text.indexOf("(")+1), urlEnd );
+            scheme          = url.split(/\:/, 1).at(0);
+            
+            # todo make it faster
+            urlid           = scheme.startsWith('http') and url.split("").map( (c) -> c.charCodeAt() ).reduce( (a, b) -> a + b || 0 ) || 0;
+            call            = lines.call = (lines.call or 0) + (urlid + line) + i;
+        )
+
+        return call        
 
     find                    : value : ->
         [ index = 0, value ] = arguments    
         ( offset = COUNT_OF_HEADERS + index )
         
         max = @loadUint32 1
+        value = parseInt value
 
         while offset < max
-            if value is @loadUint32 offset
-                return offset - index
+            if  value is @loadUint32 offset
+                return offset - index                
             offset += COUNT_OF_HEADERS
 
         null
