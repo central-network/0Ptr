@@ -38,10 +38,18 @@ addEventListener "message", ({ data }) ->
     #* at this point, memory is initialized
     console.warn "[#{self.constructor.name}]", performance.now(2), "memory is initialized", buffer
 
+
+cpuCount = Math.max( 
+    2, ( navigator?.hardwareConcurrency or 2 ) - 2
+)
+
+#cpuCount = 2
+    
 addEventListener "load", ->
 
     cpuURL = URL.createWorkerURL "
         self.isCPU = true;
+        self.cpuCount = #{cpuCount};
 
         import '#{basepath}/prototype.js';
         import '#{basepath}/0ptr_window.js';
@@ -57,6 +65,7 @@ addEventListener "load", ->
 
     self.bridge = new Worker URL.createWorkerURL "
         self.isBridge = true;
+        self.cpuCount = #{cpuCount};
 
         import '#{basepath}/prototype.js';
         import '#{basepath}/0ptr_window.js';
@@ -75,24 +84,22 @@ addEventListener "load", ->
         self.memory = data.memory.defineProperties();
         console.warn( 'bridge ready:', data.name );
 
-        cpuCount = Math.max( 
-            2, ( navigator?.hardwareConcurrency or 2 ) - 2
-        )
-
 
         waiting = cpuCount
+        forking = cpuCount 
         threads = []
 
-        while cpuCount--
+        while forking--
             
-            cpu = new Worker cpuURL, "cpu" + cpuCount
+            cpu = new Worker cpuURL, "cpu" + forking
 
             cpu . onmessage = ({ data: i }) ->
                 threads.push this
-                return if --waiting
 
+                return if --waiting
                 requestIdleCallback ->
                     memory.unlock(3)
+
                 memory.unlock(4)
                                                                      
             cpu . postMessage({ memory: self.memory });

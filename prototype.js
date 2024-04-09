@@ -217,9 +217,9 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
         Ptri = ptr.constructor;
         if (byteLength = Ptri.byteLength) {
           if (mod = byteLength % ALGIN_BYTELENGTH) { // align 8 bytes
-            byteLength += ALGIN_BYTELENGTH - mod;
+            mod = ALGIN_BYTELENGTH - mod;
           }
-          byteOffset = this.addUint32(0, byteLength);
+          byteOffset = this.addUint32(0, byteLength + mod);
           perElement = Ptri.TypedArray.BYTES_PER_ELEMENT;
           begin = byteOffset / perElement;
           length = byteLength / perElement;

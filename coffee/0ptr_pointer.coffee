@@ -55,6 +55,7 @@ export class Pointer   extends Number
 
         length = memory.loadUint32 ptri + HINDEX_LENGTH
         begin = memory.loadUint32 ptri + HINDEX_BEGIN
+        max = length - 1
         byteOffset = memory.loadUint32 ptri + HINDEX_BYTEOFFSET
 
         array = new @constructor.TypedArray(
@@ -63,7 +64,7 @@ export class Pointer   extends Number
 
         valueOf = -> ptri
 
-        get : ( ref, key ) ->
+        get : ( ref, key, pxy ) ->
             #console.log name, "proxy get:", { key }
 
             if  key is Symbol.toPrimitive
@@ -77,13 +78,15 @@ export class Pointer   extends Number
                 when "valueOf" then return valueOf
                 #todo "next" then return ...
 
-            Reflect.get arguments...
+            Reflect.get ref, key, pxy
             
         set : ( ref, key, val ) ->
-            #console.log name, "proxy set:", { key, val }, array[key]
+            #console.log name, "proxy set:", { key, val }
 
             unless isNaN key
                 array[ key ] = val
+                unless key - max
+                    memory.unlock 7
                 return key
 
             Reflect.set arguments...
@@ -92,19 +95,28 @@ export class Pointer   extends Number
             console.log name, "proxy has:", { ref, key }
             Reflect.has arguments...
 
-        ownKeys : ( ref ) ->
-            console.log name, "proxy ownKeys:", { ref }
-            Reflect.ownKeys arguments...
+        ownKeys : ( ref, pxy ) ->
+            res = Reflect.ownKeys array, pxy
+            #console.log name, "proxy ownKeys:", { ref }, res
 
-        getPrototypeOf : ( ref ) ->
-            console.log name, "proxy getPrototypeOf:", { ref }
-            Reflect.getPrototypeOf arguments...
+            cpuCount = self.cpuCount
+            cpuIndex = self.name[3] * 1
+            keyCount = res.length
 
-        getOwnPropertyDescriptor : ( ref, key ) ->
-            res = Reflect.getOwnPropertyDescriptor arguments...
-            console.log name, "proxy getOwnPropertyDescriptor:", { ref, key, res }
-            res
+            perCount = Math.ceil keyCount / cpuCount
+            cpuBegin = cpuIndex * perCount
+            cpuEnd   = Math.min keyCount, cpuBegin + perCount
 
+            res.slice cpuBegin, cpuEnd
+
+        getPrototypeOf : ( ref, pxy ) ->
+            #console.log name, "proxy getPrototypeOf:", { ref }
+            Reflect.getPrototypeOf array, pxy
+
+        getOwnPropertyDescriptor : ( ref, key, pxy ) ->
+            #console.log name, "proxy getOwnPropertyDescriptor:", { key }
+            Reflect.getOwnPropertyDescriptor array, key, pxy
+            
 Object.defineProperties Pointer::,
 
     array                   :

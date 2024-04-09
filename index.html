@@ -18,23 +18,58 @@
 <canvas id="viewport"></canvas>
 <script src="Optr.js" type="module">
 
-    console.log( "HPC code will run on:", {name, memory, document});
+    //console.log( "HPC code will run on:", {name, memory, document});
 
-    let now = performance.now()
+    let now;
+    let count = 1;
     let testArray8 = new Uint8Array();
 
-    console.log(name, "\t", testArray8)
+    //console.log(name, "\t", testArray8)
+    
+    // 15x faster then inop
+    let ofop = function (c) {
+        now = performance.now()
 
-    for ( let i of testArray8) {
-        testArray8[i] = Math.floor(Math.random() * 255)
-        if (i === 232) {
-            console.warn( name, i, testArray8[i] = 0 )
+        for ( let i of testArray8) {
+            testArray8[i] = Math.floor(Math.random() * 255)
         }
-        //console.log( name, i, "val:", testArray8[i] )        
+
+        if (--c)
+            return ofop(c)
+    }
+
+    // sooo slowww we slicing keys to cpu's
+    let inop = function (c) {
+        now = performance.now()
+
+        for ( let i in testArray8) {
+            testArray8[i] = Math.floor(Math.random() * 255)
+        }
+
+        if (--c)
+            return ofop(c)
+    }
+
+    inop( count )
+
+    console.log(name, "\t", "get", testArray8)
+
+    if (self.isBridge) {
+
+        let msec = performance.now() - now;
+        let sec = parseFloat((1e-3 * msec).toFixed(2));
+        let op = (testArray8.length * count);
+        let ratio = Math.trunc( op/(msec/1e3) );
+        let iterated = count;
+
+        console.warn( name, "done:", sec, "secs", op, "ops", ratio, "op/sec", "in", iterated, "iteration" );
+
+        setTimeout(function (){
+                console.log(testArray8.array)
+        }, 100)
     }
 
     //console.log(name, "\t", "get BYTES_PER_ELEMENT:", testArray8.BYTES_PER_ELEMENT)
-    console.log(name, "\t", "get 0", testArray8)
     //console.log(name, "\t", "set 0 = 1", testArray8[0] = 1)
 
 

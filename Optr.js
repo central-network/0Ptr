@@ -1,4 +1,4 @@
-var basepath, j, len, onrequest, ref, script;
+var basepath, cpuCount, j, len, onrequest, ref, script;
 
 self.isWindow = Boolean(typeof document !== "undefined" && document !== null);
 
@@ -50,19 +50,22 @@ addEventListener("message", function({data}) {
   return console.warn(`[${self.constructor.name}]`, performance.now(2), "memory is initialized", buffer);
 });
 
+cpuCount = Math.max(2, ((typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 2) - 2);
+
+//cpuCount = 2
 addEventListener("load", function() {
   var cpuURL;
-  cpuURL = URL.createWorkerURL(`self.isCPU = true; import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; addEventListener( 'message', function ({ data }){ self.memory = data.memory.defineProperties(); self.postMessage(0); memory.lock(3); console.error('cpu unlocked', name ); /* user code evaulating: */${script} });`);
-  self.bridge = new Worker(URL.createWorkerURL(`self.isBridge = true; import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; self.memory = new SharedArrayBuffer(); self.postMessage({ memory: self.memory, name }); memory.lock(4); console.warn( 'bridge unlocked:', name ); /* user code evaulating: */${script}`));
+  cpuURL = URL.createWorkerURL(`self.isCPU = true; self.cpuCount = ${cpuCount}; import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; addEventListener( 'message', function ({ data }){ self.memory = data.memory.defineProperties(); self.postMessage(0); memory.lock(3); console.error('cpu unlocked', name ); /* user code evaulating: */${script} });`);
+  self.bridge = new Worker(URL.createWorkerURL(`self.isBridge = true; self.cpuCount = ${cpuCount}; import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; self.memory = new SharedArrayBuffer(); self.postMessage({ memory: self.memory, name }); memory.lock(4); console.warn( 'bridge unlocked:', name ); /* user code evaulating: */${script}`));
   return bridge.addEventListener("message", function({data}) {
-    var cpu, cpuCount, threads, waiting;
+    var cpu, forking, threads, waiting;
     self.memory = data.memory.defineProperties();
     console.warn('bridge ready:', data.name);
-    cpuCount = Math.max(2, ((typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 2) - 2);
     waiting = cpuCount;
+    forking = cpuCount;
     threads = [];
-    while (cpuCount--) {
-      cpu = new Worker(cpuURL, "cpu" + cpuCount);
+    while (forking--) {
+      cpu = new Worker(cpuURL, "cpu" + forking);
       cpu.onmessage = function({
           data: i
         }) {

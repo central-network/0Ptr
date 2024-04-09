@@ -15,53 +15,29 @@ isCPU = /cpu/.test(name);
 isBridge = (typeof WorkerGlobalScope !== "undefined" && WorkerGlobalScope !== null) && !isCPU;
 
 TypedArray = (function() {
-  class TypedArray extends Pointer {
-    solve() {
-      var buffer, byteOffset, length;
-      [buffer, byteOffset, length] = arguments;
-      if (!isNaN(buffer)) {
-        return this.alloc(buffer);
-      // todo clone needed
-      } else if (ArrayBuffer.isView(buffer)) {
-        return this.alloc(buffer.length);
-      } else if (Array.isArray(buffer)) {
-        return this.alloc(buffer.length);
-      } else if (buffer.byteLength) {
-        return this.alloc(buffer.byteLength / this.BYTES_PER_ELEMENT);
-      } else {
-        throw ["What is this", ...arguments];
+  class TypedArray extends Pointer {};
+
+  TypedArray.byteLength = 9392314;
+
+  Object.defineProperties(TypedArray.prototype, {
+    proxyOnCPU: {
+      value: true
+    },
+    //? in loop look enumerable and we locking then
+    lock: {
+      enumerable: true,
+      get: function() {
+        if (isBridge) {
+          return memory.lock(7);
+        }
+      },
+      set: function() {
+        if (isBridge) {
+          return memory.lock(7);
+        }
       }
     }
-
-    alloc(length) {
-      var begin, byteLength, byteOffset, end;
-      byteLength = length * this.BYTES_PER_ELEMENT;
-      byteOffset = memory.malloc(byteLength);
-      begin = byteOffset / 4;
-      end = begin + length;
-      memory.setByteLength(this, byteLength);
-      memory.setBegin(this, begin);
-      memory.setEnd(this, end);
-      return this;
-    }
-
-    static fromLength(length) {
-      return new this().alloc(length * this.prototype.BYTES_PER_ELEMENT);
-    }
-
-    subarray() {
-      var begin, end;
-      [begin = 0, end = 0] = arguments;
-      begin += memory.getBegin(this);
-      end || (end = memory.getEnd(this));
-      return memory[`subarray${this.constructor.name.replace(/Array/, "")}`](begin, end);
-    }
-
-  };
-
-  TypedArray.byteLength = 9444242;
-
-  TypedArray.prototype.proxyOnCPU = true;
+  });
 
   return TypedArray;
 

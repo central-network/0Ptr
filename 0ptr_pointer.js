@@ -51,16 +51,17 @@ export var Pointer = (function() {
     }
 
     proxyHandle(ptri) {
-      var array, begin, byteOffset, length, valueOf;
+      var array, begin, byteOffset, length, max, valueOf;
       length = memory.loadUint32(ptri + HINDEX_LENGTH);
       begin = memory.loadUint32(ptri + HINDEX_BEGIN);
+      max = length - 1;
       byteOffset = memory.loadUint32(ptri + HINDEX_BYTEOFFSET);
       array = new this.constructor.TypedArray(memory, byteOffset, length);
       valueOf = function() {
         return ptri;
       };
       return {
-        get: function(ref, key) {
+        get: function(ref, key, pxy) {
           //console.log name, "proxy get:", { key }
           if (key === Symbol.toPrimitive) {
             return function() {
@@ -79,12 +80,15 @@ export var Pointer = (function() {
               return valueOf;
           }
           //todo "next" then return ...
-          return Reflect.get(...arguments);
+          return Reflect.get(ref, key, pxy);
         },
         set: function(ref, key, val) {
-          //console.log name, "proxy set:", { key, val }, array[key]
+          //console.log name, "proxy set:", { key, val }
           if (!isNaN(key)) {
             array[key] = val;
+            if (!(key - max)) {
+              memory.unlock(7);
+            }
             return key;
           }
           return Reflect.set(...arguments);
@@ -93,19 +97,25 @@ export var Pointer = (function() {
           console.log(name, "proxy has:", {ref, key});
           return Reflect.has(...arguments);
         },
-        ownKeys: function(ref) {
-          console.log(name, "proxy ownKeys:", {ref});
-          return Reflect.ownKeys(...arguments);
+        ownKeys: function(ref, pxy) {
+          var cpuBegin, cpuCount, cpuEnd, cpuIndex, keyCount, perCount, res;
+          res = Reflect.ownKeys(array, pxy);
+          //console.log name, "proxy ownKeys:", { ref }, res
+          cpuCount = self.cpuCount;
+          cpuIndex = self.name[3] * 1;
+          keyCount = res.length;
+          perCount = Math.ceil(keyCount / cpuCount);
+          cpuBegin = cpuIndex * perCount;
+          cpuEnd = Math.min(keyCount, cpuBegin + perCount);
+          return res.slice(cpuBegin, cpuEnd);
         },
-        getPrototypeOf: function(ref) {
-          console.log(name, "proxy getPrototypeOf:", {ref});
-          return Reflect.getPrototypeOf(...arguments);
+        getPrototypeOf: function(ref, pxy) {
+          //console.log name, "proxy getPrototypeOf:", { ref }
+          return Reflect.getPrototypeOf(array, pxy);
         },
-        getOwnPropertyDescriptor: function(ref, key) {
-          var res;
-          res = Reflect.getOwnPropertyDescriptor(...arguments);
-          console.log(name, "proxy getOwnPropertyDescriptor:", {ref, key, res});
-          return res;
+        getOwnPropertyDescriptor: function(ref, key, pxy) {
+          //console.log name, "proxy getOwnPropertyDescriptor:", { key }
+          return Reflect.getOwnPropertyDescriptor(array, key, pxy);
         }
       };
     }

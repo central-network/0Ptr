@@ -8,53 +8,17 @@ isBridge = WorkerGlobalScope? and !isCPU
 
 class TypedArray extends Pointer
 
-    @byteLength : 9444242
+    @byteLength : 9392314
 
-    proxyOnCPU  : on
+    Object.defineProperties this::,
 
-    solve       : ->
-        [ buffer, byteOffset, length ] = arguments
+        proxyOnCPU  : value : on
 
-        unless isNaN buffer
-            @alloc buffer
-
-        # todo clone needed
-        else if ArrayBuffer.isView buffer
-            @alloc buffer.length
-
-        else if Array.isArray buffer
-            @alloc buffer.length
-
-        else if buffer.byteLength
-            @alloc buffer.byteLength / @BYTES_PER_ELEMENT
-
-        else throw [ "What is this", arguments... ]
-
-    alloc       : ( length ) ->
-
-        byteLength = length * @BYTES_PER_ELEMENT
-        byteOffset = memory.malloc byteLength
-
-        begin = byteOffset / 4
-        end = begin + length
-
-        memory.setByteLength this, byteLength
-        memory.setBegin this, begin
-        memory.setEnd this, end
-
-        this
-
-    @fromLength : ( length ) ->
-        new this().alloc length * this::BYTES_PER_ELEMENT
-        
-    subarray    : ->
-        [ begin = 0, end = 0 ] = arguments
-
-        begin += memory.getBegin this
-        end or= memory.getEnd this
-
-        memory[ "subarray#{@constructor.name.replace(/Array/, "")}" ] begin, end
-        
+        #? in loop look enumerable and we locking then
+        lock        :
+            enumerable : on
+            get : -> memory.lock 7 if isBridge
+            set : -> memory.lock 7 if isBridge
 
 Object.defineProperties self,
 
