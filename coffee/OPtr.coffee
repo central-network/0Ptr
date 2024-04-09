@@ -8,8 +8,10 @@ memory      = null
 i32         = null
 lock        = new Int32Array new SharedArrayBuffer 4
 now         = Date.now()
+self.cpus   =
+cpus        = []
 
-console.log { name, isWindow, isCPU, isProcessor }
+console.log { name, isWindow, isCPU, isProcessor, self }
 
 if  isWindow then do ->
     script  = window.document.scripts.namedItem( "0ptr" ).text
@@ -33,7 +35,7 @@ if  isWindow then do ->
 
     processor = worker "processor"
 
-    processor.cpus = []
+    i = 0
 
     processor.setup = ( processorInfo ) ->
         Object.assign this , processorInfo
@@ -43,17 +45,23 @@ if  isWindow then do ->
 
         @unlock = -> Atomics.notify processorInfo.lock
 
-        @cpus.push @fork(0)
-        @cpus.push @fork(1)
-        @cpus.push @fork(2)
+        cpus.push @fork(i++)
+        cpus.push @fork(i++)
+        cpus.push @fork(i++)
+        cpus.push @fork(i++)
+        cpus.push @fork(i++)
+        cpus.push @fork(i++)
+
+
+        i--
 
     processor.cpuReady = ( cpuinfo ) ->
         console.log "cpu ready", cpuinfo
-        if  cpuinfo.name is "cpu2"
+        if  cpuinfo.name is "cpu" + i
 
-            for cpu in @cpus
+            for cpu in cpus
                 cpu.postMessage ready : { on: on }
-                
+
             @postMessage ready : { on: on }
             console.log "run code"
 
@@ -92,7 +100,6 @@ if  isWindow then do ->
 if  isProcessor then do ->
     console.error "self is now processor", { self }
 
-    cpus = []
     memory = new SharedArrayBuffer 1e7
     i32 = new Int32Array memory
 
@@ -118,8 +125,8 @@ if  isProcessor then do ->
 if  isCPU then do ->
     console.error "self is now cpu", { self }
 
+    cpus.push self
     postMessage setup : { name, lock, uuid, now }
-
     addEventListener "message", ({ data, ports }) ->
         for req, data of data then switch req
             when "processorInfo"

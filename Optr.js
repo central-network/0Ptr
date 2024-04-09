@@ -1,4 +1,4 @@
-var document, i32, isCPU, isProcessor, isWindow, lock, memory, name, now, uuid;
+var cpus, document, i32, isCPU, isProcessor, isWindow, lock, memory, name, now, uuid;
 
 name = self.name != null ? self.name : self.name = "window";
 
@@ -20,11 +20,13 @@ lock = new Int32Array(new SharedArrayBuffer(4));
 
 now = Date.now();
 
-console.log({name, isWindow, isCPU, isProcessor});
+self.cpus = cpus = [];
+
+console.log({name, isWindow, isCPU, isProcessor, self});
 
 if (isWindow) {
   (async function() {
-    var processor, script, source, worker;
+    var i, processor, script, source, worker;
     script = window.document.scripts.namedItem("0ptr").text;
     source = (await ((await fetch(import.meta.url))).text());
     worker = function() {
@@ -47,7 +49,7 @@ if (isWindow) {
       return thread;
     };
     processor = worker("processor");
-    processor.cpus = [];
+    i = 0;
     processor.setup = function(processorInfo) {
       Object.assign(this, processorInfo);
       i32 = new Int32Array(processorInfo.memory);
@@ -55,17 +57,20 @@ if (isWindow) {
       this.unlock = function() {
         return Atomics.notify(processorInfo.lock);
       };
-      this.cpus.push(this.fork(0));
-      this.cpus.push(this.fork(1));
-      return this.cpus.push(this.fork(2));
+      cpus.push(this.fork(i++));
+      cpus.push(this.fork(i++));
+      cpus.push(this.fork(i++));
+      cpus.push(this.fork(i++));
+      cpus.push(this.fork(i++));
+      cpus.push(this.fork(i++));
+      return i--;
     };
     processor.cpuReady = function(cpuinfo) {
-      var cpu, j, len, ref;
+      var cpu, j, len;
       console.log("cpu ready", cpuinfo);
-      if (cpuinfo.name === "cpu2") {
-        ref = this.cpus;
-        for (j = 0, len = ref.length; j < len; j++) {
-          cpu = ref[j];
+      if (cpuinfo.name === "cpu" + i) {
+        for (j = 0, len = cpus.length; j < len; j++) {
+          cpu = cpus[j];
           cpu.postMessage({
             ready: {
               on: true
@@ -115,9 +120,7 @@ if (isWindow) {
 
 if (isProcessor) {
   (function() {
-    var cpus;
     console.error("self is now processor", {self});
-    cpus = [];
     memory = new SharedArrayBuffer(1e7);
     i32 = new Int32Array(memory);
     postMessage({
@@ -152,6 +155,7 @@ if (isProcessor) {
 if (isCPU) {
   (function() {
     console.error("self is now cpu", {self});
+    cpus.push(self);
     postMessage({
       setup: {name, lock, uuid, now}
     });
