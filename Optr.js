@@ -1,89 +1,105 @@
-var basepath, cpuCount, j, len, onrequest, ref, script;
+var document, isCPU, isProcessor, isWindow, lock, memory, name, now, uuid;
 
-self.isWindow = Boolean(typeof document !== "undefined" && document !== null);
+name = self.name != null ? self.name : self.name = "window";
 
-if (typeof SharedArrayBuffer === "undefined" || SharedArrayBuffer === null) {
-  throw /SHARED_ARRAY_BUFFER_NOT_AVAILABLE/;
-}
+isCPU = /cpu/i.test(name);
 
-import "./prototype.js";
+isWindow = typeof window !== "undefined";
 
-basepath = location.href.replace('/index.html', '');
+isProcessor = !isCPU && !isWindow;
 
-ref = document.scripts;
-for (j = 0, len = ref.length; j < len; j++) {
-  script = ref[j];
-  if (import.meta.url === script.src) {
-    if (script = `${script.text}`) {
-      break;
-    }
-  }
-}
+document = document != null ? document : new Proxy({}, {});
 
-if (!script) {
-  throw "?CODE?";
-}
+uuid = crypto.randomUUID();
 
-onrequest = function(i, e) {
-  var args, call, func, k, len1, lock, prop, root;
-  ({func, args, lock} = e.data);
-  (root = self);
-  for (k = 0, len1 = func.length; k < len1; k++) {
-    prop = func[k];
-    root = root[prop];
-  }
-  func = root.bind(self[func[0]]);
-  call = func(...args);
-  Atomics.add(this, 0, 1);
-  Atomics.store(this, i, 10000 * Math.random());
-  return Atomics.notify(this, i, 1);
-};
+memory = null;
 
-addEventListener("message", function({data}) {
-  var buffer;
-  console.log(2, data);
-  //? window gets message that means some remote
-  //? controller connected to this device
-  //? so, we need to do what we do 
-  buffer = new SharedArrayBuffer(data);
-  //* at this point, memory is initialized
-  return console.warn(`[${self.constructor.name}]`, performance.now(2), "memory is initialized", buffer);
-});
+lock = new Int32Array(new SharedArrayBuffer(4));
 
-cpuCount = Math.max(2, ((typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 2) - 2);
+now = Date.now();
 
-//cpuCount = 2
-addEventListener("load", function() {
-  var cpuURL;
-  cpuURL = URL.createWorkerURL(`self.isCPU = true; self.cpuCount = ${cpuCount}; import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; addEventListener( 'message', function ({ data }){ self.memory = data.memory.defineProperties(); self.postMessage(0); memory.lock(3); console.error('cpu unlocked', name ); /* user code evaulating: */${script} });`);
-  self.bridge = new Worker(URL.createWorkerURL(`self.isBridge = true; self.cpuCount = ${cpuCount}; import '${basepath}/prototype.js'; import '${basepath}/0ptr_window.js'; self.memory = new SharedArrayBuffer(); self.postMessage({ memory: self.memory, name }); memory.lock(4); console.warn( 'bridge unlocked:', name ); /* user code evaulating: */${script}`));
-  return bridge.addEventListener("message", function({data}) {
-    var cpu, forking, threads, waiting;
-    self.memory = data.memory.defineProperties();
-    console.warn('bridge ready:', data.name);
-    waiting = cpuCount;
-    forking = cpuCount;
-    threads = [];
-    while (forking--) {
-      cpu = new Worker(cpuURL, "cpu" + forking);
-      cpu.onmessage = function({
-          data: i
-        }) {
-        threads.push(this);
-        if (--waiting) {
-          return;
-        }
-        requestIdleCallback(function() {
-          return memory.unlock(3);
-        });
-        return memory.unlock(4);
-      };
-      cpu.postMessage({
-        memory: self.memory
+console.log({name, isWindow, isCPU, isProcessor});
+
+if (isWindow) {
+  (async function() {
+    var processor, script, source, worker;
+    script = window.document.scripts.namedItem("0ptr").text;
+    source = (await ((await fetch(import.meta.url))).text());
+    worker = function() {
+      var thread;
+      thread = new Worker(URL.createObjectURL(new Blob([source, script], {
+        type: "application/javascript"
+      })), {
+        type: "module",
+        name: arguments[0]
       });
-    }
-    return self.onclick = function() {
-      return console.log(threads);
+      thread.onerror = thread.onmessageerror = console.error;
+      thread.onmessage = function({data, ports}) {
+        var request;
+        for (request in data) {
+          data = data[request];
+          this[request](data);
+        }
+        return this;
+      };
+      return thread;
     };
-  });
-});
+    processor = worker("processor");
+    processor.setup = function(info) {
+      Object.assign(this, info);
+      console.warn("window setting up processor", this);
+      this.unlock = function() {
+        return Atomics.notify(info.lock);
+      };
+      this.fork();
+      this.fork();
+      return this.fork();
+    };
+    return processor.fork = function(count) {
+      var cpu;
+      cpu = worker("cpu");
+      processor = this;
+      return cpu.setup = function(info) {
+        Object.assign(this, info);
+        console.warn("window setting up cpu", this);
+        this.unlock = function() {
+          return Atomics.notify(info.lock);
+        };
+        processor.postMessage({
+          cpu: info
+        });
+        return processor.unlock();
+      };
+    };
+  })();
+}
+
+if (isProcessor) {
+  (function() {
+    var buffer;
+    console.error("self is now processor", {self});
+    buffer = new SharedArrayBuffer(1e7);
+    memory = new Uint8Array(buffer);
+    postMessage({
+      setup: {name, memory, uuid, lock, now}
+    });
+    addEventListener("message", function({data, ports}) {
+      console.log("processor got message", data);
+      return Atomics.notify(data.cpu.lock);
+    });
+    return Atomics.wait(lock);
+  })();
+}
+
+if (isCPU) {
+  (function() {
+    console.error("self is now cpu", {self});
+    postMessage({
+      setup: {name, lock, uuid, now}
+    });
+    addEventListener("message", function({data, ports}) {
+      return console.log("cpu got message", data);
+    });
+    return Atomics.wait(lock);
+  })();
+}

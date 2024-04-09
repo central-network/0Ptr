@@ -1,107 +1,81 @@
-self.isWindow = Boolean document?;
+name        = self.name ?= "window"
+isCPU       = /cpu/i.test name
+isWindow    = typeof window isnt "undefined"
+isProcessor = !isCPU and !isWindow
+document    = document ? new Proxy {}, {}
+uuid        = crypto.randomUUID()
+memory      = null
+lock        = new Int32Array new SharedArrayBuffer 4
+now         = Date.now()
 
-unless SharedArrayBuffer?
-    throw /SHARED_ARRAY_BUFFER_NOT_AVAILABLE/
+console.log { name, isWindow, isCPU, isProcessor }
 
-import "./prototype.js"
+if  isWindow then do ->
+    script  = window.document.scripts.namedItem( "0ptr" ).text
+    source  = await (await fetch( `import.meta.url` )).text()
+    worker  = ->
+        thread = new Worker(
+            URL.createObjectURL new Blob(
+                [ source , script ],
+                { type : "application/javascript" }
+            )
+            { type: "module", name : arguments[0] }
+        )
 
-basepath = location.href.replace('/index.html', '')
+        thread . onerror         =
+        thread . onmessageerror  = console.error
+        thread . onmessage = ({ data , ports }) ->
+            for request , data of data
+                this[ request ] data
+            this
+        thread
 
-for script in document.scripts
-    if `import.meta.url` is script.src
-        break if script = "#{script.text}"
-unless script then throw "?CODE?"
+    processor = worker "processor"
 
-onrequest   = ( i, e ) ->
-    { func , args , lock } = e.data
+    processor.setup = ( info ) ->
+        Object.assign this , info
+        console.warn "window setting up processor", @       
 
-    ( root = self )
+        @unlock = -> Atomics.notify info.lock
 
-    for prop in func
-        root = root[ prop ]
+        @fork()
+        @fork()
+        @fork()
 
-    func = root.bind self[ func[ 0 ] ] 
-    call = func( ...args )
-
-    Atomics.add this, 0 , 1
-    Atomics.store this, i , 10000 * Math.random()
-    Atomics.notify this, i, 1
-
-addEventListener "message", ({ data }) ->
-    console.log 2, data
-
-    #? window gets message that means some remote
-    #? controller connected to this device
-    #? so, we need to do what we do 
-    buffer = new SharedArrayBuffer data
-
-    #* at this point, memory is initialized
-    console.warn "[#{self.constructor.name}]", performance.now(2), "memory is initialized", buffer
-
-
-cpuCount = Math.max( 
-    2, ( navigator?.hardwareConcurrency or 2 ) - 2
-)
-
-#cpuCount = 2
-    
-addEventListener "load", ->
-
-    cpuURL = URL.createWorkerURL "
-        self.isCPU = true;
-        self.cpuCount = #{cpuCount};
-
-        import '#{basepath}/prototype.js';
-        import '#{basepath}/0ptr_window.js';
-
-        addEventListener( 'message', function ({ data }){
-            self.memory = data.memory.defineProperties();                        
-            self.postMessage(0);
-            memory.lock(3);
-            console.error('cpu unlocked', name );
-            /* user code evaulating: */#{script}                        
-        });
-    "
-
-    self.bridge = new Worker URL.createWorkerURL "
-        self.isBridge = true;
-        self.cpuCount = #{cpuCount};
-
-        import '#{basepath}/prototype.js';
-        import '#{basepath}/0ptr_window.js';
-                
-        self.memory = new SharedArrayBuffer();
-        self.postMessage({ memory: self.memory, name });
-
-        memory.lock(4);
-        console.warn( 'bridge unlocked:', name );
+    processor.fork = ( count ) ->
         
-        /* user code evaulating: */#{script}
-    "
+        cpu = worker "cpu"
+        processor = this
 
-    bridge.addEventListener "message", ({ data }) ->
-
-        self.memory = data.memory.defineProperties();
-        console.warn( 'bridge ready:', data.name );
-
-
-        waiting = cpuCount
-        forking = cpuCount 
-        threads = []
-
-        while forking--
+        cpu.setup = ( info ) ->
+            Object.assign this , info
+            console.warn "window setting up cpu", @       
+            @unlock = -> Atomics.notify info.lock
             
-            cpu = new Worker cpuURL, "cpu" + forking
+            processor.postMessage cpu : info
+            processor.unlock()
+            
+    
+if  isProcessor then do ->
+    console.error "self is now processor", { self }
 
-            cpu . onmessage = ({ data: i }) ->
-                threads.push this
+    buffer = new SharedArrayBuffer 1e7
+    memory = new Uint8Array buffer
 
-                return if --waiting
-                requestIdleCallback ->
-                    memory.unlock(3)
+    postMessage setup : { name, memory, uuid, lock, now }
 
-                memory.unlock(4)
-                                                                     
-            cpu . postMessage({ memory: self.memory });
+    addEventListener "message", ({ data, ports }) ->
+        console.log "processor got message", data
+        Atomics.notify data.cpu.lock
 
-        self.onclick = -> console.log threads
+    Atomics.wait lock
+
+
+if  isCPU then do ->
+    console.error "self is now cpu", { self }
+    postMessage setup : { name, lock, uuid, now }
+
+    addEventListener "message", ({ data, ports }) ->
+        console.log "cpu got message", data
+
+    Atomics.wait lock
