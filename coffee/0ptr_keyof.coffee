@@ -1,6 +1,7 @@
 import defaults from "./0ptr_self.js"
 
 exports     = new defaults.Object
+
 TypedArray  = Object.getPrototypeOf defaults.Uint8Array
 
 Object.defineProperty defaults.String   , "charCodeOf",

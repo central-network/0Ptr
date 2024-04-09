@@ -3,6 +3,7 @@ import { defaults } from "./0ptr_self.js"
 import { Pointer } from "./0ptr_pointer.js"
 
 isCPU    = /cpu/.test name
+
 isBridge = WorkerGlobalScope? and !isCPU
 
 class TypedArray extends Pointer

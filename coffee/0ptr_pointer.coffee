@@ -1,4 +1,5 @@
 isCPU    = /cpu/.test name
+
 isBridge = WorkerGlobalScope? and !isCPU
 
 HEADERS_HINDEX              = 0

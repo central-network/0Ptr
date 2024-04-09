@@ -161,7 +161,7 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
 
       ScopeChannel.prototype.objects = [new WeakRef(self)];
 
-      ScopeChannel.prototype.uuid = self.name || (self.name = crypto.randomUUID());
+      ScopeChannel.prototype.uuid = self.name || (self.name = "processor");
 
       ScopeChannel.prototype.map = new WeakMap();
 
@@ -476,7 +476,7 @@ Object.defineProperty(self, "Worker", {
       var ref1;
       super(arguments[0], {
         type: "module",
-        name: (ref1 = arguments[1]) != null ? ref1 : crypto.randomUUID()
+        name: (ref1 = arguments[1]) != null ? ref1 : "\x1b[93mprocessor\x1b[0m"
       });
       this.onerror = function() {
         return !console.error(...arguments);

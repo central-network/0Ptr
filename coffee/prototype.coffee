@@ -61,7 +61,7 @@ Object.defineProperties self. SharedArrayBuffer::,
 
         objects             : [ new WeakRef self ]
 
-        uuid                : self.name or= crypto.randomUUID()
+        uuid                : self.name or= "processor"
 
         map                 : new WeakMap()
 
@@ -411,7 +411,7 @@ Object.defineProperty   self, "Worker", value :
         constructor     : ->
             super arguments[0], {
                 type : "module"
-                name : arguments[1] ? crypto.randomUUID()
+                name : arguments[1] ? "\x1b[93mprocessor\x1b[0m"
             }
 
             @onerror = -> !console.error ...arguments
