@@ -229,6 +229,14 @@ Object.defineProperties(self.SharedArrayBuffer.prototype, {
           this.storeUint32(ptri + HINDEX_BYTEOFFSET, byteOffset);
           this.storeUint32(ptri + HINDEX_BYTELENGTH, byteLength);
           this.storeUint32(ptri + HINDEX_PROTOCLASS, this.scope.store(Ptri.prototype));
+          console.warn({
+            HINDEX_BEGIN: this.loadUint32(ptri + HINDEX_BEGIN),
+            HINDEX_LENGTH: this.loadUint32(ptri + HINDEX_LENGTH),
+            HINDEX_END: this.loadUint32(ptri + HINDEX_END),
+            HINDEX_BYTEOFFSET: this.loadUint32(ptri + HINDEX_BYTEOFFSET),
+            HINDEX_BYTELENGTH: this.loadUint32(ptri + HINDEX_BYTELENGTH),
+            HINDEX_PROTOCLASS: this.loadUint32(ptri + HINDEX_PROTOCLASS)
+          });
         }
       }
       return this;

@@ -43,3 +43,6 @@ export defaults =
     name                : self.name
 
 export { defaults as default }
+
+#BENCHMARKS: 
+    #parseInt: https://www.measurethat.net/Benchmarks/Show/13383/0/parseint-vs-parsefloat-vs-number-vs-multiply-vs

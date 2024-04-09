@@ -1,4 +1,4 @@
-var BigInt64Array, BigUint64Array, Float32Array, Float64Array, Int16Array, Int32Array, Int8Array, TypedArray, Uint16Array, Uint32Array, Uint8Array, n, object;
+var BigInt64Array, BigUint64Array, Float32Array, Float64Array, Int16Array, Int32Array, Int8Array, TypedArray, Uint16Array, Uint32Array, Uint8Array, isBridge, isCPU, n, object;
 
 import KEYOF from "./0ptr_keyof.js";
 
@@ -9,6 +9,10 @@ import {
 import {
   Pointer
 } from "./0ptr_pointer.js";
+
+isCPU = /cpu/.test(name);
+
+isBridge = (typeof WorkerGlobalScope !== "undefined" && WorkerGlobalScope !== null) && !isCPU;
 
 TypedArray = (function() {
   class TypedArray extends Pointer {
@@ -55,32 +59,9 @@ TypedArray = (function() {
 
   };
 
-  TypedArray.byteLength = 12;
+  TypedArray.byteLength = 9444242;
 
   TypedArray.prototype.proxyOnCPU = true;
-
-  Object.defineProperties(TypedArray.prototype, {
-    buffer: {
-      get: function() {
-        return new this.realizeWith(memory, this.byteOffset, this.length);
-      }
-    },
-    byteOffset: {
-      get: function() {
-        return memory.loadUint32(this + this.constructor.HINDEX_BYTEOFFSET);
-      }
-    },
-    byteLength: {
-      get: function() {
-        return memory.loadUint32(this + this.constructor.HINDEX_BYTELENGTH);
-      }
-    },
-    length: {
-      get: function() {
-        return memory.loadUint32(this + this.constructor.HINDEX_LENGTH);
-      }
-    }
-  });
 
   return TypedArray;
 
@@ -134,37 +115,34 @@ for (n in defaults) {
       },
       [Symbol.iterator]: {
         value: function() {
-          var length;
-          if (self.isCPU) {
+          var done, length;
+          if (isCPU && !memory.loadUint32(7)) {
             //? if cpu reaches before bridge?
-            memory.lock(3);
+            memory.lock(7);
           }
           //? this settlement cpu's + bridge
           length = this.length;
-          if (self.isBridge) {
+          done = true;
+          if (isBridge) {
             //? this settlement only bridge
-            this.next = 0;
+            this.iterate(0);
             //? all cpu's start calculate
-            memory.unlock(3);
+            memory.storeUint32(7, 1);
+            memory.unlock(7);
             //? bridge stay still
-            memory.lock(4);
+            memory.lock(6);
           }
           return {
             next: (function() {
-              var next;
-              if (length > (next = this.next)) {
-                return {
-                  done: false,
-                  value: next
-                };
+              var value;
+              if (isBridge) {
+                return {done};
+              }
+              if (length > (value = this.iterate())) {
+                return {value};
               } else {
-                if (self.isCPU) {
-                  memory.unlock(4);
-                }
-                return {
-                  done: true,
-                  value: this
-                };
+                memory.unlock(6);
+                return {done};
               }
             }).bind(this)
           };

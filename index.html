@@ -25,11 +25,17 @@
 
     console.log(name, "\t", testArray8)
 
-    //for ( let i of testArray8) {
-    //    console.log( name, i, testArray8[i] )        
-    //}
+    for ( let i of testArray8) {
+        testArray8[i] = Math.floor(Math.random() * 255)
+        if (i === 232) {
+            console.warn( name, i, testArray8[i] = 0 )
+        }
+        //console.log( name, i, "val:", testArray8[i] )        
+    }
 
-    //console.log(name, "\t", "get", testArray8[0])
+    //console.log(name, "\t", "get BYTES_PER_ELEMENT:", testArray8.BYTES_PER_ELEMENT)
+    console.log(name, "\t", "get 0", testArray8)
+    //console.log(name, "\t", "set 0 = 1", testArray8[0] = 1)
 
 
 </script>

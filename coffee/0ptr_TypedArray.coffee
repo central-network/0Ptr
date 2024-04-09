@@ -2,9 +2,12 @@ import KEYOF from "./0ptr_keyof.js"
 import { defaults } from "./0ptr_self.js"
 import { Pointer } from "./0ptr_pointer.js"
 
+isCPU    = /cpu/.test name
+isBridge = WorkerGlobalScope? and !isCPU
+
 class TypedArray extends Pointer
 
-    @byteLength : 12
+    @byteLength : 9444242
 
     proxyOnCPU  : on
 
@@ -51,19 +54,6 @@ class TypedArray extends Pointer
 
         memory[ "subarray#{@constructor.name.replace(/Array/, "")}" ] begin, end
         
-    Object.defineProperties this::,
-
-        buffer      : get : ->
-            new this.realizeWith memory, @byteOffset, @length
-
-        byteOffset  : get : ->
-            memory.loadUint32 this + @constructor.HINDEX_BYTEOFFSET
-
-        byteLength  : get : ->
-            memory.loadUint32 this + @constructor.HINDEX_BYTELENGTH
-
-        length      : get : ->
-            memory.loadUint32 this + @constructor.HINDEX_LENGTH
 
 Object.defineProperties self,
 
@@ -99,31 +89,37 @@ for n, object of defaults
 
         [ Symbol.iterator ]     : value : ->
 
-            if  self.isCPU
-
+            if  isCPU and !memory.loadUint32 7
                 #? if cpu reaches before bridge?
-                memory.lock 3
+                memory.lock 7
 
             #? this settlement cpu's + bridge
             length = @length
+            done = yes
 
-            if  self.isBridge
+            if  isBridge
                 #? this settlement only bridge
-                @next = 0
+                @iterate 0
 
                 #? all cpu's start calculate
-                memory.unlock 3
+                memory.storeUint32 7, 1
+                memory.unlock 7
 
                 #? bridge stay still
-                memory.lock 4
+                memory.lock 6
 
             next : ->
-                if  length > next = @next
-                    return { done: off, value: next }
+
+                if  isBridge
+                    return { done }
+
+                if  length > value = @iterate()
+                    return { value }
 
                 else
-                    memory.unlock 4 if self.isCPU
-                    return { done: yes, value: this }
+                    memory.unlock 6
+                    return { done }
+
             .bind @
 
     ).call( object )

@@ -173,6 +173,15 @@ Object.defineProperties self. SharedArrayBuffer::,
                 @storeUint32 ptri + HINDEX_BYTEOFFSET , byteOffset
                 @storeUint32 ptri + HINDEX_BYTELENGTH , byteLength
                 @storeUint32 ptri + HINDEX_PROTOCLASS , @scope.store Ptri::
+
+                console.warn {
+                    HINDEX_BEGIN: @loadUint32 ptri + HINDEX_BEGIN
+                    HINDEX_LENGTH: @loadUint32 ptri + HINDEX_LENGTH
+                    HINDEX_END: @loadUint32 ptri + HINDEX_END
+                    HINDEX_BYTEOFFSET: @loadUint32 ptri + HINDEX_BYTEOFFSET
+                    HINDEX_BYTELENGTH: @loadUint32 ptri + HINDEX_BYTELENGTH
+                    HINDEX_PROTOCLASS: @loadUint32 ptri + HINDEX_PROTOCLASS 
+                }
                 
         this
 
