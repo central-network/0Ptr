@@ -5,7 +5,7 @@ do  self.init   = ->
     CONST       =
         BUFFER_TEST_START_LENGTH    : 1e6
         BUFFER_TEST_STEP_DIVIDER    : 1e1
-        INITIAL_BYTELENGTH          : 64
+        INITIAL_BYTELENGTH          : 6e4
         BYTES_PER_ELEMENT           : 4
         HEADERS_LENGTH              : 16
         HEADERS_BYTE_LENGTH         : 4 * 16
@@ -48,9 +48,10 @@ do  self.init   = ->
         cColon  = "\:".charCodeAt()
         
         cCount  = 2
-        discard = off
+        discard = on
         lasti = length
         sum = 0
+        vals = []
 
         while length--
             switch stack.charCodeAt length
@@ -60,11 +61,13 @@ do  self.init   = ->
                 when cColon
                     unless discard
                         val = stack.substring length + 1, lasti
+                        vals.push val
                         sum = sum + parseInt val
 
                     lasti   = length
                     discard = on unless --cCount
 
+        #console.warn vals
         return sum
 
     randomUUID  = ->
@@ -92,13 +95,17 @@ do  self.init   = ->
         dvw = new self.DataView buffer
 
         lockIndex           = if isBridge then 2 else 3
+        unlockIndex         = if isThread then 2 else 3
+
         malloc              = Atomics.add.bind Atomics, u32, 0
-        lock                = -> Atomics.wait i32, lockIndex
+        lock                = ( i = lockIndex ) ->
+            console.log "locking", name, i
+            Atomics.wait i32, i
         unlockBridge        = -> Atomics.notify i32, 2
         unlockThreads       = -> Atomics.notify i32, 3
-        unlock              = ->
-            Atomics.notify i32, 2
-            Atomics.notify i32, 3
+        unlock              = ( i = unlockIndex, count ) ->
+            console.log "unlocking from", name, i
+            Atomics.notify i32, i, count 
 
         addUint32           = Atomics.add.bind Atomics, u32
         andUint32           = Atomics.and.bind Atomics, u32
@@ -174,6 +181,49 @@ do  self.init   = ->
 
         buffer
 
+    defineTypedArrays = ->
+
+        Object.defineProperties Object.getPrototypeOf( self.Uint8Array )::,
+
+            id          :
+                get     : -> resolvs.get this
+                set     : -> resolvs.set this, arguments[0]
+
+        class Uint8Array  extends self.Uint8Array
+            constructor : ( argv, byteOffset, length ) ->
+                id = resolvCall()
+                argc = arguments.length
+
+                if  argc is 3
+                    1 # slicing
+
+                else if argc is 2
+                    2 # slicing
+
+                else if argc is 1
+
+                    if  Number.isInteger argv
+                        # alloc byte length
+                        if  isBridge
+                            byteOffset = malloc argv 
+                            super buffer, byteOffset, argv
+                            
+                            storeUint32 id + 1, argv
+                            storeUint32 id, byteOffset 
+                            unlock id
+
+                        else
+                            lock id
+                            length = loadUint32 id + 1
+                            byteOffset = loadUint32 id
+                            super buffer, byteOffset, length
+
+                    else if ArrayBuffer.isView argv
+                        # alloc byte length
+                        1
+
+                this.id = id
+
     if  isWindow
 
         sharedHandler   =
@@ -182,8 +232,9 @@ do  self.init   = ->
                 Object.assign @info, data ; this
                 unless workers.some (w) -> !w.info.uuid
                     #console.log "unlock time..."
+                    #unlock()
                     unlockBridge()
-                    #unlockThreads()
+                    unlockThreads()
                 
         bridgeHandler   =
             hello       : ->
@@ -221,7 +272,7 @@ do  self.init   = ->
                 catch then maxByteLength /= CONST.BUFFER_TEST_STEP_DIVIDER
             
             initMemory buffer
-            malloc CONST.INITIAL_BYTELENGTH
+            malloc 64
 
         createWorker    = ( name, onmessage ) ->
             worker = new Worker( blobURL, { name } )
@@ -333,24 +384,6 @@ do  self.init   = ->
 
     if  isBridge
 
-        defineTypedArrays = ->
-
-            Object.defineProperties Object.getPrototypeOf( self.Uint8Array )::,
-
-                id          :
-                    get     : -> resolvs.get this
-                    set     : -> resolvs.set this, arguments[0]
-
-            class Uint32Array extends self.Uint32Array
-                constructor : ->
-                    super arguments...
-                        .id = resolvCall()
-
-            class Uint8Array  extends self.Uint8Array
-                constructor : ->
-                    super arguments...
-                        .id = resolvCall()
-
         addEventListener "message", (e) ->
 
             for req, data of e.data then switch req
@@ -436,7 +469,6 @@ do  self.init   = ->
     if  isThread
 
         addEventListener "message", (e) ->
-
             for req, data of e.data then switch req
                 when "setup"
                     uuid = randomUUID()
@@ -444,7 +476,7 @@ do  self.init   = ->
                     blobURL = data.blobURL
 
                     initMemory buffer
-
+                    defineTypedArrays()
 
                     postMessage register : {
                         selfName, isBridge, isThread, threadId,
@@ -453,8 +485,6 @@ do  self.init   = ->
 
                     lock()
                     onready()
-
-                    unlockBridge()
 
 
 

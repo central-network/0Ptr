@@ -5,7 +5,7 @@ self.name = "window";
   CONST = {
     BUFFER_TEST_START_LENGTH: 1e6,
     BUFFER_TEST_STEP_DIVIDER: 1e1,
-    INITIAL_BYTELENGTH: 64,
+    INITIAL_BYTELENGTH: 6e4,
     BYTES_PER_ELEMENT: 4,
     HEADERS_LENGTH: 16,
     HEADERS_BYTE_LENGTH: 4 * 16
@@ -25,7 +25,7 @@ self.name = "window";
   workers = new self.Array();
   littleEnd = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0];
   resolvCall = function() {
-    var cBrace, cBreak, cColon, cCount, discard, e, lasti, length, stack, sum, val;
+    var cBrace, cBreak, cColon, cCount, discard, e, lasti, length, stack, sum, val, vals;
     Error.captureStackTrace(e = {});
     stack = e.stack.toString();
     length = stack.length;
@@ -33,9 +33,10 @@ self.name = "window";
     cBrace = "\)".charCodeAt();
     cColon = "\:".charCodeAt();
     cCount = 2;
-    discard = false;
+    discard = true;
     lasti = length;
     sum = 0;
+    vals = [];
     while (length--) {
       switch (stack.charCodeAt(length)) {
         case cBreak:
@@ -47,6 +48,7 @@ self.name = "window";
         case cColon:
           if (!discard) {
             val = stack.substring(length + 1, lasti);
+            vals.push(val);
             sum = sum + parseInt(val);
           }
           lasti = length;
@@ -55,13 +57,14 @@ self.name = "window";
           }
       }
     }
+    //console.warn vals
     return sum;
   };
   randomUUID = function() {
     return (typeof crypto !== "undefined" && crypto !== null ? crypto.randomUUID() : void 0) || btoa(new Date().toISOString()).toLowerCase().split("").toSpliced(8, 0, "-").toSpliced(13, 0, "-").toSpliced(18, 0, "-").toSpliced(24, 0, "-").join("").substring(0, 36).trim().padEnd(36, String.fromCharCode(50 + Math.random() * 40));
   };
   initMemory = function() {
-    var lockIndex;
+    var lockIndex, unlockIndex;
     u64 = new self.BigUint64Array(buffer);
     i64 = new self.BigInt64Array(buffer);
     f32 = new self.Float32Array(buffer);
@@ -75,9 +78,11 @@ self.name = "window";
     si8 = new self.Int8Array(buffer);
     dvw = new self.DataView(buffer);
     lockIndex = isBridge ? 2 : 3;
+    unlockIndex = isThread ? 2 : 3;
     malloc = Atomics.add.bind(Atomics, u32, 0);
-    lock = function() {
-      return Atomics.wait(i32, lockIndex);
+    lock = function(i = lockIndex) {
+      console.log("locking", name, i);
+      return Atomics.wait(i32, i);
     };
     unlockBridge = function() {
       return Atomics.notify(i32, 2);
@@ -85,9 +90,9 @@ self.name = "window";
     unlockThreads = function() {
       return Atomics.notify(i32, 3);
     };
-    unlock = function() {
-      Atomics.notify(i32, 2);
-      return Atomics.notify(i32, 3);
+    unlock = function(i = unlockIndex, count) {
+      console.log("unlocking from", name, i);
+      return Atomics.notify(i32, i, count);
     };
     addUint32 = Atomics.add.bind(Atomics, u32);
     andUint32 = Atomics.and.bind(Atomics, u32);
@@ -181,6 +186,51 @@ self.name = "window";
     };
     return buffer;
   };
+  defineTypedArrays = function() {
+    Object.defineProperties(Object.getPrototypeOf(self.Uint8Array).prototype, {
+      id: {
+        get: function() {
+          return resolvs.get(this);
+        },
+        set: function() {
+          return resolvs.set(this, arguments[0]);
+        }
+      }
+    });
+    return Uint8Array = class Uint8Array extends self.Uint8Array {
+      constructor(argv, byteOffset, length) {
+        var argc, id;
+        id = resolvCall();
+        argc = arguments.length;
+        if (argc === 3) {
+          1; // slicing
+        } else if (argc === 2) {
+          2; // slicing
+        } else if (argc === 1) {
+          if (Number.isInteger(argv)) {
+            // alloc byte length
+            if (isBridge) {
+              byteOffset = malloc(argv);
+              super(buffer, byteOffset, argv);
+              storeUint32(id + 1, argv);
+              storeUint32(id, byteOffset);
+              unlock(id);
+            } else {
+              lock(id);
+              length = loadUint32(id + 1);
+              byteOffset = loadUint32(id);
+              super(buffer, byteOffset, length);
+            }
+          } else if (ArrayBuffer.isView(argv)) {
+            // alloc byte length
+            1;
+          }
+        }
+        this.id = id;
+      }
+
+    };
+  };
   if (isWindow) {
     sharedHandler = {
       register: function(data) {
@@ -191,11 +241,12 @@ self.name = "window";
           return !w.info.uuid;
         })) {
           //console.log "unlock time..."
-          return unlockBridge();
+          //unlock()
+          unlockBridge();
+          return unlockThreads();
         }
       }
     };
-    //unlockThreads()
     bridgeHandler = {
       hello: function() {}
     };
@@ -238,7 +289,7 @@ self.name = "window";
         }
       }
       initMemory(buffer);
-      return malloc(CONST.INITIAL_BYTELENGTH);
+      return malloc(64);
     };
     createWorker = function(name, onmessage) {
       var worker;
@@ -289,31 +340,6 @@ self.name = "window";
     });
   }
   if (isBridge) {
-    defineTypedArrays = function() {
-      var Uint32Array;
-      Object.defineProperties(Object.getPrototypeOf(self.Uint8Array).prototype, {
-        id: {
-          get: function() {
-            return resolvs.get(this);
-          },
-          set: function() {
-            return resolvs.set(this, arguments[0]);
-          }
-        }
-      });
-      Uint32Array = class Uint32Array extends self.Uint32Array {
-        constructor() {
-          super(...arguments).id = resolvCall();
-        }
-
-      };
-      return Uint8Array = class Uint8Array extends self.Uint8Array {
-        constructor() {
-          super(...arguments).id = resolvCall();
-        }
-
-      };
-    };
     addEventListener("message", function(e) {
       var data, ref, req, results, uuid;
       ref = e.data;
@@ -353,12 +379,12 @@ self.name = "window";
             buffer = data.buffer;
             blobURL = data.blobURL;
             initMemory(buffer);
+            defineTypedArrays();
             postMessage({
               register: {selfName, isBridge, isThread, threadId, now, pnow, uuid, state}
             });
             lock();
-            onready();
-            results.push(unlockBridge());
+            results.push(onready());
             break;
           default:
             results.push(void 0);
