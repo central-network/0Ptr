@@ -1,144 +1,241 @@
-name        = self.name ?= "window"
-isCPU       = /cpu/i.test name
-isWindow    = typeof window isnt "undefined"
-isProcessor = !isCPU and !isWindow
-document    = document ? new Proxy {}, {}
-uuid        = crypto.randomUUID()
-memory      = null
-i32         = null
-lock        = new Int32Array new SharedArrayBuffer 4
-now         = Date.now()
-self.cpus   =
-cpus        = []
+window? and do -> postMessage(0)
 
-console.log { name, isWindow, isCPU, isProcessor, self }
+self.onmessage  = ->
+    selfName    = self.name
+    isWindow    = document?
+    isWorker    = !isWindow
+    isBridge    = /bridge/i.test selfName  
+    isCPU       = selfName.startsWith /cpu/.source
+    isGPU       = selfName.startsWith /gpu/.source
+    amiPU       = /pu/i.test selfName.substring 1, 3
+    puid        = amiPU and parseInt selfName.match /\d+/
+    now         = Date.now()
+    pnow        = performance.now()
+    source      = do ->
+        return  unless document?
+            
+        __user = "self.onready = function () {" +
+            [ ...document.scripts ].find( (d) => d.text and d.src ).text + 
+        "}};"
 
-if  isWindow then do ->
-    script  = window.document.scripts.namedItem( "0ptr" ).text
-    source  = await (await fetch( `import.meta.url` )).text()
-    worker  = ->
-        thread = new Worker(
-            URL.createObjectURL new Blob(
-                [ source , "const onready = function () {#{script}};" ],
-                { type : "application/javascript" }
-            )
-            { type: "module", name : arguments[0] }
+        __0ptr = "self.onmessage = " + self.onmessage.toString().split(
+            new RegExp( 'return 0x' + 57005.toString(16) + ';' )
+        )[0]
+
+        URL.createObjectURL new Blob [
+            __0ptr, __user
+        ], { type: "application/javascript" }
+
+    randomUUID  = ->
+        crypto?.randomUUID() or btoa(
+            new Date().toISOString()
         )
+        .toLowerCase().split("")
+        .toSpliced(8,0,"-").toSpliced(13,0,"-")
+        .toSpliced(18,0,"-").toSpliced(24,0,"-")
+        .join("").substring(0, 36).trim()
+        .padEnd(36, String.fromCharCode(50 + Math.random() * 40 ))
+    forkWorker  = ->
 
-        thread . onerror         =
-        thread . onmessageerror  = console.error
-        thread . onmessage = ({ data , ports }) ->
-            for request , data of data
-                this[ request ] data
-            this
-        thread
+    uuid        = randomUUID()
+    CONST       =
+        BUFFER_TEST_START_LENGTH    : 1e6
+        BUFFER_TEST_STEP_DIVIDER    : 1e1
+        BUFFER_BYTEOFFSET           : 64
+        BYTES_PER_ELEMENT           : 4
+        HEADERS_LENGTH              : 16
+        HEADERS_BYTE_LENGTH         : 4 * 16
+    buffer      = isWindow and do ->
+        Buffer  = SharedArrayBuffer ? ArrayBuffer
+        buffer  = !maxByteLength =
+            CONST.BUFFER_TEST_START_LENGTH
 
-    processor = worker "processor"
-
-    i = 0
-
-    processor.setup = ( processorInfo ) ->
-        Object.assign this , processorInfo
-        i32 = new Int32Array processorInfo.memory
-
-        console.warn "window setting up processor", @       
-
-        @unlock = -> Atomics.notify processorInfo.lock
-
-        cpus.push @fork(i++)
-        cpus.push @fork(i++)
-        cpus.push @fork(i++)
-        cpus.push @fork(i++)
-        cpus.push @fork(i++)
-        cpus.push @fork(i++)
-
-
-        i--
-
-    processor.cpuReady = ( cpuinfo ) ->
-        console.log "cpu ready", cpuinfo
-        if  cpuinfo.name is "cpu" + i
-
-            for cpu in cpus
-                cpu.postMessage ready : { on: on }
-
-            @postMessage ready : { on: on }
-            console.log "run code"
-
-
-
-    processor.fork = ( i ) ->
+        while  !buffer
+            try buffer = new Buffer CONST.BUFFER_BYTEOFFSET, { maxByteLength }
+            catch then maxByteLength /= CONST.BUFFER_TEST_STEP_DIVIDER
         
-        cpu = worker "cpu" + i
+        buffer
 
-        processor = this
-
-        cpu.ready = ( cpuinfo ) ->
-            console.log "cpu is ready", cpuinfo
-            processor.cpuReady cpuinfo
-
-        cpu.setup = ( cpuinfo ) ->
-            Object.assign this , cpuinfo
-            console.warn "window setting up cpu", @       
-            @unlock = -> Atomics.notify cpuinfo.lock
-            
-            processor.postMessage cpu : cpuinfo
-            
-            @postMessage processorInfo : {
-                name : processor.name
-                memory : processor.memory
-                uuid : processor.uuid
-                lock : processor.lock
-                now : processor.now
-            }
-
-            processor.unlock()
-
-        cpu
-            
-    
-if  isProcessor then do ->
-    console.error "self is now processor", { self }
-
-    memory = new SharedArrayBuffer 1e7
-    i32 = new Int32Array memory
-
-    postMessage setup : { name, memory, uuid, lock, now }
-
-    addEventListener "message", ({ data, ports }) ->
-        console.log "processor got message", data
-
-        for req, data of data then switch req
-            when "cpu"
-                cpus.push data
-                Atomics.notify data.lock
-                console.log cpus
-
-            when "ready"
-                onready.call( this )
-                Atomics.notify i32
-        
-
-    Atomics.wait lock
+    @this       = {
+        selfName, isWindow, isWorker,
+        isBridge, isCPU, isGPU, puid, uuid,
+        source, buffer
+    }
 
 
-if  isCPU then do ->
-    console.error "self is now cpu", { self }
 
-    cpus.push self
-    postMessage setup : { name, lock, uuid, now }
-    addEventListener "message", ({ data, ports }) ->
-        for req, data of data then switch req
-            when "processorInfo"
-                @processor = data
-                memory = data.memory
-                postMessage ready : {
-                    name
-                }
-                i32 = new Int32Array memory                
 
-            when "ready"
-                Atomics.wait i32
-                onready.call( this )
 
-    Atomics.wait lock
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if  isWindow
+        console.warn w = new Worker( source, { name } )
+        w.postMessage 0
+        console.log "hello from window"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if  isWorker
+        console.log "hello from worker"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    return 0xdead;

@@ -1,188 +1,66 @@
-var cpus, document, i32, isCPU, isProcessor, isWindow, lock, memory, name, now, uuid;
+(typeof window !== "undefined" && window !== null) && (function() {
+  return postMessage(0);
+})();
 
-name = self.name != null ? self.name : self.name = "window";
-
-isCPU = /cpu/i.test(name);
-
-isWindow = typeof window !== "undefined";
-
-isProcessor = !isCPU && !isWindow;
-
-document = document != null ? document : new Proxy({}, {});
-
-uuid = crypto.randomUUID();
-
-memory = null;
-
-i32 = null;
-
-lock = new Int32Array(new SharedArrayBuffer(4));
-
-now = Date.now();
-
-self.cpus = cpus = [];
-
-console.log({name, isWindow, isCPU, isProcessor, self});
-
-if (isWindow) {
-  (async function() {
-    var i, processor, script, source, worker;
-    script = window.document.scripts.namedItem("0ptr").text;
-    source = (await ((await fetch(import.meta.url))).text());
-    worker = function() {
-      var thread;
-      thread = new Worker(URL.createObjectURL(new Blob([source, `const onready = function () {${script}};`], {
-        type: "application/javascript"
-      })), {
-        type: "module",
-        name: arguments[0]
-      });
-      thread.onerror = thread.onmessageerror = console.error;
-      thread.onmessage = function({data, ports}) {
-        var request;
-        for (request in data) {
-          data = data[request];
-          this[request](data);
-        }
-        return this;
-      };
-      return thread;
-    };
-    processor = worker("processor");
-    i = 0;
-    processor.setup = function(processorInfo) {
-      Object.assign(this, processorInfo);
-      i32 = new Int32Array(processorInfo.memory);
-      console.warn("window setting up processor", this);
-      this.unlock = function() {
-        return Atomics.notify(processorInfo.lock);
-      };
-      cpus.push(this.fork(i++));
-      cpus.push(this.fork(i++));
-      cpus.push(this.fork(i++));
-      cpus.push(this.fork(i++));
-      cpus.push(this.fork(i++));
-      cpus.push(this.fork(i++));
-      return i--;
-    };
-    processor.cpuReady = function(cpuinfo) {
-      var cpu, j, len;
-      console.log("cpu ready", cpuinfo);
-      if (cpuinfo.name === "cpu" + i) {
-        for (j = 0, len = cpus.length; j < len; j++) {
-          cpu = cpus[j];
-          cpu.postMessage({
-            ready: {
-              on: true
-            }
-          });
-        }
-        this.postMessage({
-          ready: {
-            on: true
-          }
-        });
-        return console.log("run code");
-      }
-    };
-    return processor.fork = function(i) {
-      var cpu;
-      cpu = worker("cpu" + i);
-      processor = this;
-      cpu.ready = function(cpuinfo) {
-        console.log("cpu is ready", cpuinfo);
-        return processor.cpuReady(cpuinfo);
-      };
-      cpu.setup = function(cpuinfo) {
-        Object.assign(this, cpuinfo);
-        console.warn("window setting up cpu", this);
-        this.unlock = function() {
-          return Atomics.notify(cpuinfo.lock);
-        };
-        processor.postMessage({
-          cpu: cpuinfo
-        });
-        this.postMessage({
-          processorInfo: {
-            name: processor.name,
-            memory: processor.memory,
-            uuid: processor.uuid,
-            lock: processor.lock,
-            now: processor.now
-          }
-        });
-        return processor.unlock();
-      };
-      return cpu;
-    };
+self.onmessage = function() {
+  var CONST, amiPU, buffer, forkWorker, isBridge, isCPU, isGPU, isWindow, isWorker, now, pnow, puid, randomUUID, selfName, source, uuid, w;
+  selfName = self.name;
+  isWindow = typeof document !== "undefined" && document !== null;
+  isWorker = !isWindow;
+  isBridge = /bridge/i.test(selfName);
+  isCPU = selfName.startsWith(/cpu/.source);
+  isGPU = selfName.startsWith(/gpu/.source);
+  amiPU = /pu/i.test(selfName.substring(1, 3));
+  puid = amiPU && parseInt(selfName.match(/\d+/));
+  now = Date.now();
+  pnow = performance.now();
+  source = (function() {
+    var __0ptr, __user;
+    if (typeof document === "undefined" || document === null) {
+      return;
+    }
+    __user = "self.onready = function () {" + [...document.scripts].find((d) => {
+      return d.text && d.src;
+    }).text + "}};";
+    __0ptr = "self.onmessage = " + self.onmessage.toString().split(new RegExp('return 0x' + 57005..toString(16) + ';'))[0];
+    return URL.createObjectURL(new Blob([__0ptr, __user], {
+      type: "application/javascript"
+    }));
   })();
-}
-
-if (isProcessor) {
-  (function() {
-    console.error("self is now processor", {self});
-    memory = new SharedArrayBuffer(1e7);
-    i32 = new Int32Array(memory);
-    postMessage({
-      setup: {name, memory, uuid, lock, now}
-    });
-    addEventListener("message", function({data, ports}) {
-      var req, results;
-      console.log("processor got message", data);
-      results = [];
-      for (req in data) {
-        data = data[req];
-        switch (req) {
-          case "cpu":
-            cpus.push(data);
-            Atomics.notify(data.lock);
-            results.push(console.log(cpus));
-            break;
-          case "ready":
-            onready.call(this);
-            results.push(Atomics.notify(i32));
-            break;
-          default:
-            results.push(void 0);
-        }
+  randomUUID = function() {
+    return (typeof crypto !== "undefined" && crypto !== null ? crypto.randomUUID() : void 0) || btoa(new Date().toISOString()).toLowerCase().split("").toSpliced(8, 0, "-").toSpliced(13, 0, "-").toSpliced(18, 0, "-").toSpliced(24, 0, "-").join("").substring(0, 36).trim().padEnd(36, String.fromCharCode(50 + Math.random() * 40));
+  };
+  forkWorker = function() {};
+  uuid = randomUUID();
+  CONST = {
+    BUFFER_TEST_START_LENGTH: 1e6,
+    BUFFER_TEST_STEP_DIVIDER: 1e1,
+    BUFFER_BYTEOFFSET: 64,
+    BYTES_PER_ELEMENT: 4,
+    HEADERS_LENGTH: 16,
+    HEADERS_BYTE_LENGTH: 4 * 16
+  };
+  buffer = isWindow && (function() {
+    var Buffer, maxByteLength;
+    Buffer = typeof SharedArrayBuffer !== "undefined" && SharedArrayBuffer !== null ? SharedArrayBuffer : ArrayBuffer;
+    buffer = !(maxByteLength = CONST.BUFFER_TEST_START_LENGTH);
+    while (!buffer) {
+      try {
+        buffer = new Buffer(CONST.BUFFER_BYTEOFFSET, {maxByteLength});
+      } catch (error) {
+        maxByteLength /= CONST.BUFFER_TEST_STEP_DIVIDER;
       }
-      return results;
-    });
-    return Atomics.wait(lock);
+    }
+    return buffer;
   })();
-}
-
-if (isCPU) {
-  (function() {
-    console.error("self is now cpu", {self});
-    cpus.push(self);
-    postMessage({
-      setup: {name, lock, uuid, now}
-    });
-    addEventListener("message", function({data, ports}) {
-      var req, results;
-      results = [];
-      for (req in data) {
-        data = data[req];
-        switch (req) {
-          case "processorInfo":
-            this.processor = data;
-            memory = data.memory;
-            postMessage({
-              ready: {name}
-            });
-            results.push(i32 = new Int32Array(memory));
-            break;
-          case "ready":
-            Atomics.wait(i32);
-            results.push(onready.call(this));
-            break;
-          default:
-            results.push(void 0);
-        }
-      }
-      return results;
-    });
-    return Atomics.wait(lock);
-  })();
-}
+  this.this = {selfName, isWindow, isWorker, isBridge, isCPU, isGPU, puid, uuid, source, buffer};
+  if (isWindow) {
+    console.warn(w = new Worker(source, {name}));
+    w.postMessage(0);
+    console.log("hello from window");
+  }
+  if (isWorker) {
+    console.log("hello from worker");
+  }
+  return 0xdead;
+};
