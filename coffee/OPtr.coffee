@@ -11,7 +11,7 @@ do  self.init   = ->
         HEADERS_BYTE_LENGTH         : 4 * 16
 
     [
-        blobURL, malloc, littleEnd, lock, unlock,
+        blobURL, malloc, littleEnd, lock, unlock, unlockThreads, unlockBridge,
         dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16,
         andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32
         andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16
@@ -71,9 +71,17 @@ do  self.init   = ->
         si8 = new Int8Array buffer
         dvw = new DataView buffer
 
+        lockIndex           = if isBridge then 2 else 3
+
         malloc              = Atomics.add.bind Atomics, u32, 0
-        lock                = -> Atomics.wait i32, 1
-        unlock              = -> Atomics.notify i32, 1
+        lock                = -> Atomics.wait i32, lockIndex
+
+        unlock              = ->
+            Atomics.notify i32, 2
+            Atomics.notify i32, 3
+
+        unlockBridge        = -> Atomics.notify i32, 2
+        unlockThreads       = -> Atomics.notify i32, 3
 
         addUint32           = Atomics.add.bind Atomics, u32
         andUint32           = Atomics.and.bind Atomics, u32
@@ -157,7 +165,7 @@ do  self.init   = ->
                 Object.assign @info, data ; this
                 unless workers.some (w) -> !w.info.uuid
                     #console.log "unlock time..."
-                    unlock()
+                    unlockThreads()
                 
         bridgeHandler   =
             hello       : ->
@@ -433,6 +441,10 @@ do  self.init   = ->
 
                     lock()
                     onready()
+
+                    setTimeout =>
+                        unlockBridge()
+                    , 2000
 
 
 
