@@ -1,16 +1,21 @@
 self.name = "window";
 
 (self.init = function() {
-  var CONST, Uint8Array, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, buffer, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffer, createThreads, createWorker, cu8, defineTypedArrays, dvw, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, malloc, now, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, pnow, randomUUID, resolvCall, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, state, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, threadHandler, threadId, threadmessage, u16, u32, u64, ui8, unlock, unlockBridge, unlockThreads, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
+  var CONST, Uint8Array, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, buffer, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffer, createThreads, createWorker, cu8, defineTypedArrays, dvw, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, findPtri, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, header, i16, i32, i64, initMemory, isBridge, isThread, isWindow, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, malloc, now, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, palloc, pnow, randomUUID, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, state, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, threadHandler, threadId, threadmessage, u16, u32, u64, ui8, unlock, unlockBridge, unlockThreads, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
   CONST = {
-    BUFFER_TEST_START_LENGTH: 1e6,
+    BUFFER_TEST_START_LENGTH: 1e20,
     BUFFER_TEST_STEP_DIVIDER: 1e1,
     INITIAL_BYTELENGTH: 6e4,
     BYTES_PER_ELEMENT: 4,
+    RESERVED_BYTELENGTH: 64,
+    ALLOCATION_BYTEOFFSET: 100000 * 16 * 4,
     HEADERS_LENGTH: 16,
-    HEADERS_BYTE_LENGTH: 4 * 16
+    HEADERS_BYTE_LENGTH: 4 * 16,
+    HINDEX_BYTEOFFSET: 0,
+    HINDEX_LENGTH: 1,
+    HINDEX_RESOLV_ID: 2
   };
-  [blobURL, malloc, littleEnd, lock, unlock, unlockThreads, unlockBridge, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, Uint8Array] = [];
+  [blobURL, palloc, malloc, header, littleEnd, lock, unlock, unlockThreads, unlockBridge, findPtri, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, Uint8Array] = [];
   bc = new BroadcastChannel("0ptr");
   selfName = self.name;
   isWindow = typeof document !== "undefined" && document !== null;
@@ -63,6 +68,24 @@ self.name = "window";
   randomUUID = function() {
     return (typeof crypto !== "undefined" && crypto !== null ? crypto.randomUUID() : void 0) || btoa(new Date().toISOString()).toLowerCase().split("").toSpliced(8, 0, "-").toSpliced(13, 0, "-").toSpliced(18, 0, "-").toSpliced(24, 0, "-").join("").substring(0, 36).trim().padEnd(36, String.fromCharCode(50 + Math.random() * 40));
   };
+  resolvFind = function(value, stride = 0) {
+    var diff, hlen, i, offset;
+    hlen = CONST.HEADERS_LENGTH;
+    offset = CONST.HEADERS_LENGTH;
+    i = 0;
+    while (true) {
+      i = header.indexOf(value, offset);
+      if (i === -1) {
+        break;
+      }
+      diff = i - stride;
+      if (!(diff % hlen)) {
+        return diff;
+      }
+      offset = i + 1;
+    }
+    return -1;
+  };
   initMemory = function() {
     var lockIndex, unlockIndex;
     u64 = new self.BigUint64Array(buffer);
@@ -80,9 +103,11 @@ self.name = "window";
     lockIndex = isBridge ? 2 : 3;
     unlockIndex = isThread ? 2 : 3;
     malloc = Atomics.add.bind(Atomics, u32, 0);
-    lock = function(i = lockIndex) {
-      console.log("locking", name, i);
-      return Atomics.wait(i32, i);
+    palloc = Atomics.add.bind(Atomics, u32, 1, CONST.HEADERS_LENGTH);
+    header = u32.subarray(0, CONST.ALLOCATION_BYTEOFFSET / 4);
+    lock = function(i = lockIndex, value, timeout = 1000) {
+      //console.log "locking", name, i
+      return Atomics.wait(i32, i, value, timeout);
     };
     unlockBridge = function() {
       return Atomics.notify(i32, 2);
@@ -90,8 +115,7 @@ self.name = "window";
     unlockThreads = function() {
       return Atomics.notify(i32, 3);
     };
-    unlock = function(i = unlockIndex, count) {
-      console.log("unlocking from", name, i);
+    unlock = function(i = unlockIndex, count = 100) {
       return Atomics.notify(i32, i, count);
     };
     addUint32 = Atomics.add.bind(Atomics, u32);
@@ -199,7 +223,7 @@ self.name = "window";
     });
     return Uint8Array = class Uint8Array extends self.Uint8Array {
       constructor(argv, byteOffset, length) {
-        var argc, id;
+        var argc, id, ptri;
         id = resolvCall();
         argc = arguments.length;
         if (argc === 3) {
@@ -211,14 +235,19 @@ self.name = "window";
             // alloc byte length
             if (isBridge) {
               byteOffset = malloc(argv);
+              ptri = palloc();
+              storeUint32(ptri + CONST.HINDEX_LENGTH, argv);
+              storeUint32(ptri + CONST.HINDEX_BYTEOFFSET, byteOffset);
+              storeUint32(ptri + CONST.HINDEX_RESOLV_ID, id);
               super(buffer, byteOffset, argv);
-              storeUint32(id + 1, argv);
-              storeUint32(id, byteOffset);
-              unlock(id);
+              unlockThreads();
             } else {
-              lock(id);
-              length = loadUint32(id + 1);
-              byteOffset = loadUint32(id);
+              if (0 > (ptri = resolvFind(id, CONST.HINDEX_RESOLV_ID))) {
+                lock();
+                ptri = resolvFind(id, CONST.HINDEX_RESOLV_ID);
+              }
+              byteOffset = loadUint32(ptri + CONST.HINDEX_BYTEOFFSET);
+              length = loadUint32(ptri + CONST.HINDEX_LENGTH);
               super(buffer, byteOffset, length);
             }
           } else if (ArrayBuffer.isView(argv)) {
@@ -243,7 +272,7 @@ self.name = "window";
           //console.log "unlock time..."
           //unlock()
           unlockBridge();
-          return unlockThreads();
+          return queueMicrotask(unlockThreads);
         }
       }
     };
@@ -283,13 +312,15 @@ self.name = "window";
       buffer = !(maxByteLength = CONST.BUFFER_TEST_START_LENGTH);
       while (!buffer) {
         try {
-          buffer = new Buffer(CONST.INITIAL_BYTELENGTH, {maxByteLength});
+          buffer = new Buffer(0, {maxByteLength});
         } catch (error) {
           maxByteLength /= CONST.BUFFER_TEST_STEP_DIVIDER;
         }
       }
+      buffer.grow(maxByteLength);
       initMemory(buffer);
-      return malloc(64);
+      orUint32(1, CONST.HEADERS_LENGTH);
+      return orUint32(0, CONST.ALLOCATION_BYTEOFFSET);
     };
     createWorker = function(name, onmessage) {
       var worker;

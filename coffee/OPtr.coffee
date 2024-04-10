@@ -3,15 +3,21 @@ self.name = "window"
 do  self.init   = ->
 
     CONST       =
-        BUFFER_TEST_START_LENGTH    : 1e6
+        BUFFER_TEST_START_LENGTH    : 1e20
         BUFFER_TEST_STEP_DIVIDER    : 1e1
         INITIAL_BYTELENGTH          : 6e4
         BYTES_PER_ELEMENT           : 4
+        RESERVED_BYTELENGTH         : 64
+        ALLOCATION_BYTEOFFSET       : 100000 * 16 * 4
         HEADERS_LENGTH              : 16
         HEADERS_BYTE_LENGTH         : 4 * 16
+        
+        HINDEX_BYTEOFFSET           : 0
+        HINDEX_LENGTH               : 1
+        HINDEX_RESOLV_ID            : 2
 
     [
-        blobURL, malloc, littleEnd, lock, unlock, unlockThreads, unlockBridge,
+        blobURL, palloc, malloc, header, littleEnd, lock, unlock, unlockThreads, unlockBridge, findPtri,
         dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16,
         andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32
         andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16
@@ -80,6 +86,23 @@ do  self.init   = ->
         .join("").substring(0, 36).trim()
         .padEnd(36, String.fromCharCode(50 + Math.random() * 40 ))
 
+    resolvFind = ( value, stride = 0 ) ->
+        hlen = CONST.HEADERS_LENGTH 
+        offset = CONST.HEADERS_LENGTH 
+        i = 0
+
+        loop
+            i = header.indexOf value, offset
+
+            break if i is -1
+            diff = i - stride
+
+            unless diff % hlen
+                return diff
+
+            offset = i + 1
+        -1
+
     initMemory  = ->
         u64 = new self.BigUint64Array buffer
         i64 = new self.BigInt64Array buffer
@@ -98,13 +121,16 @@ do  self.init   = ->
         unlockIndex         = if isThread then 2 else 3
 
         malloc              = Atomics.add.bind Atomics, u32, 0
-        lock                = ( i = lockIndex ) ->
-            console.log "locking", name, i
-            Atomics.wait i32, i
+        palloc              = Atomics.add.bind Atomics, u32, 1, CONST.HEADERS_LENGTH
+        header              = u32.subarray 0, CONST.ALLOCATION_BYTEOFFSET/4
+
+        lock                = ( i = lockIndex, value, timeout = 1000 ) ->
+            #console.log "locking", name, i
+            Atomics.wait i32, i, value, timeout
+
         unlockBridge        = -> Atomics.notify i32, 2
         unlockThreads       = -> Atomics.notify i32, 3
-        unlock              = ( i = unlockIndex, count ) ->
-            console.log "unlocking from", name, i
+        unlock              = ( i = unlockIndex, count = 100 ) ->
             Atomics.notify i32, i, count 
 
         addUint32           = Atomics.add.bind Atomics, u32
@@ -205,17 +231,26 @@ do  self.init   = ->
                     if  Number.isInteger argv
                         # alloc byte length
                         if  isBridge
-                            byteOffset = malloc argv 
+
+                            byteOffset = malloc argv                             
+                            ptri = palloc()
+
+                            storeUint32 ptri + CONST.HINDEX_LENGTH     , argv
+                            storeUint32 ptri + CONST.HINDEX_BYTEOFFSET , byteOffset
+                            storeUint32 ptri + CONST.HINDEX_RESOLV_ID  , id
+
                             super buffer, byteOffset, argv
-                            
-                            storeUint32 id + 1, argv
-                            storeUint32 id, byteOffset 
-                            unlock id
+
+                            unlockThreads()
 
                         else
-                            lock id
-                            length = loadUint32 id + 1
-                            byteOffset = loadUint32 id
+                            if  0 > ptri = resolvFind id, CONST.HINDEX_RESOLV_ID
+                                lock()
+                                ptri = resolvFind id, CONST.HINDEX_RESOLV_ID
+
+                            byteOffset  = loadUint32 ptri + CONST.HINDEX_BYTEOFFSET
+                            length      = loadUint32 ptri + CONST.HINDEX_LENGTH
+
                             super buffer, byteOffset, length
 
                     else if ArrayBuffer.isView argv
@@ -234,7 +269,7 @@ do  self.init   = ->
                     #console.log "unlock time..."
                     #unlock()
                     unlockBridge()
-                    unlockThreads()
+                    queueMicrotask unlockThreads
                 
         bridgeHandler   =
             hello       : ->
@@ -268,11 +303,14 @@ do  self.init   = ->
                 CONST.BUFFER_TEST_START_LENGTH
 
             while  !buffer
-                try buffer = new Buffer CONST.INITIAL_BYTELENGTH, { maxByteLength }
+                try buffer = new Buffer 0, { maxByteLength }
                 catch then maxByteLength /= CONST.BUFFER_TEST_STEP_DIVIDER
             
+            buffer.grow maxByteLength
             initMemory buffer
-            malloc 64
+
+            orUint32 1, CONST.HEADERS_LENGTH
+            orUint32 0, CONST.ALLOCATION_BYTEOFFSET
 
         createWorker    = ( name, onmessage ) ->
             worker = new Worker( blobURL, { name } )
