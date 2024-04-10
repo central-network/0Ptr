@@ -53,7 +53,6 @@ do  self.init   = ->
         .padEnd(36, String.fromCharCode(50 + Math.random() * 40 ))
 
     initMemory  = ->
-        console.log name, "initilaizing malloc", buffer
         u32 = new Uint32Array buffer
         i32 = new Int32Array buffer
         dw = new DataView buffer
@@ -75,8 +74,6 @@ do  self.init   = ->
 
     if  isWindow
 
-        console.log "hello from window"        
-
         sharedHandler   =
             register    : ( data ) ->
                 console.warn "registering worker:", data
@@ -90,7 +87,6 @@ do  self.init   = ->
         
         bridgemessage   = ({ data }) ->
             for request, data of data
-                console.log "bridge message:", request, data
                 handler =
                     bridgeHandler[ request ] or
                     sharedHandler[ request ] or throw [
@@ -101,8 +97,6 @@ do  self.init   = ->
 
         threadmessage   = ({ data }) ->
             for request, data of data
-                console.log "thread message:", request, data
-
                 handler =
                     threadHandler[ request ] or
                     sharedHandler[ request ] or throw [
@@ -160,9 +154,10 @@ do  self.init   = ->
 
         queueMicrotask  ->
             listenEvents()
-            createBuffer()
-            createBlobURL()
-            createThreads()
+            
+        createBuffer()
+        createBlobURL()
+        createThreads()
 
         
 
@@ -235,7 +230,6 @@ do  self.init   = ->
 
 
     if  isBridge
-        console.log "hello from bridge"
 
         defineTypedArrays = ->
 
@@ -262,8 +256,6 @@ do  self.init   = ->
                         super arguments...
                             .resolvedAt = resolvCall()
 
-            console.log "defining properties"
-
 
         addEventListener "message", (e) ->
 
@@ -276,18 +268,10 @@ do  self.init   = ->
                     initMemory buffer
                     defineTypedArrays()
 
-                    console.log { buffer, self }
-
                     postMessage register : {
                         selfName, isBridge, isThread, threadId,
                         now, pnow, uuid, state
                     }
-
-                    malloc 22
-
-                    onready()
-
-
 
 
 
@@ -352,7 +336,6 @@ do  self.init   = ->
 
 
     if  isThread
-        console.log "hello from thread", { threadId }
 
         addEventListener "message", (e) ->
 
@@ -363,8 +346,6 @@ do  self.init   = ->
                     blobURL = data.blobURL
 
                     initMemory buffer
-
-                    console.log { buffer, self }
 
                     postMessage register : {
                         selfName, isBridge, isThread, threadId,

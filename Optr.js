@@ -42,7 +42,6 @@ self.name = "window";
   };
   initMemory = function() {
     var lock, sliceUint32, subUint32, subarrayUint32, unlock;
-    console.log(name, "initilaizing malloc", buffer);
     u32 = new Uint32Array(buffer);
     i32 = new Int32Array(buffer);
     dw = new DataView(buffer);
@@ -64,7 +63,6 @@ self.name = "window";
     return buffer;
   };
   if (isWindow) {
-    console.log("hello from window");
     sharedHandler = {
       register: function(data) {
         console.warn("registering worker:", data);
@@ -83,7 +81,6 @@ self.name = "window";
       results = [];
       for (request in data) {
         data = data[request];
-        console.log("bridge message:", request, data);
         handler = bridgeHandler[request] || sharedHandler[request] || (function() {
           throw [/NO_HANDLER_FOR_BRIDGE/, request, data];
         })();
@@ -96,7 +93,6 @@ self.name = "window";
       results = [];
       for (request in data) {
         data = data[request];
-        console.log("thread message:", request, data);
         handler = threadHandler[request] || sharedHandler[request] || (function() {
           throw [/NO_HANDLER_FOR_THREAD/, request, data];
         })();
@@ -160,14 +156,13 @@ self.name = "window";
       };
     };
     queueMicrotask(function() {
-      listenEvents();
-      createBuffer();
-      createBlobURL();
-      return createThreads();
+      return listenEvents();
     });
+    createBuffer();
+    createBlobURL();
+    createThreads();
   }
   if (isBridge) {
-    console.log("hello from bridge");
     defineTypedArrays = function() {
       var Uint32Array, Uint8Array;
       Object.defineProperties(Object.getPrototypeOf(self.Uint8Array).prototype, {
@@ -186,7 +181,7 @@ self.name = "window";
           }
         }
       });
-      Object.defineProperties(self, {
+      return Object.defineProperties(self, {
         Uint32Array: Uint32Array = class Uint32Array extends self.Uint32Array {
           constructor() {
             super(...arguments).resolvedAt = resolvCall();
@@ -200,7 +195,6 @@ self.name = "window";
 
         }
       });
-      return console.log("defining properties");
     };
     addEventListener("message", function(e) {
       var data, ref, req, results, uuid;
@@ -215,12 +209,9 @@ self.name = "window";
             blobURL = data.blobURL;
             initMemory(buffer);
             defineTypedArrays();
-            console.log({buffer, self});
-            postMessage({
+            results.push(postMessage({
               register: {selfName, isBridge, isThread, threadId, now, pnow, uuid, state}
-            });
-            malloc(22);
-            results.push(onready());
+            }));
             break;
           default:
             results.push(void 0);
@@ -230,7 +221,6 @@ self.name = "window";
     });
   }
   if (isThread) {
-    console.log("hello from thread", {threadId});
     addEventListener("message", function(e) {
       var data, ref, req, results, uuid;
       ref = e.data;
@@ -243,7 +233,6 @@ self.name = "window";
             buffer = data.buffer;
             blobURL = data.blobURL;
             initMemory(buffer);
-            console.log({buffer, self});
             results.push(postMessage({
               register: {selfName, isBridge, isThread, threadId, now, pnow, uuid, state}
             }));
