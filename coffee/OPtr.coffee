@@ -11,7 +11,7 @@ do  self.init   = ->
         HEADERS_BYTE_LENGTH         : 4 * 16
 
     [
-        blobURL, malloc, littleEnd,
+        blobURL, malloc, littleEnd, lock, unlock,
         dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16,
         andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32
         andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16
@@ -72,8 +72,8 @@ do  self.init   = ->
         dvw = new DataView buffer
 
         malloc              = Atomics.add.bind Atomics, u32, 0
-        lock                = Atomics.wait.bind Atomics, i32
-        unlock              = Atomics.notify.bind Atomics, i32
+        lock                = -> Atomics.wait i32, 1
+        unlock              = -> Atomics.notify i32, 1
 
         addUint32           = Atomics.add.bind Atomics, u32
         andUint32           = Atomics.and.bind Atomics, u32
@@ -153,8 +153,11 @@ do  self.init   = ->
 
         sharedHandler   =
             register    : ( data ) ->
-                console.warn "registering worker:", data
+                #console.warn "registering worker:", data
                 Object.assign @info, data ; this
+                unless workers.some (w) -> !w.info.uuid
+                    #console.log "unlock time..."
+                    unlock()
                 
         bridgeHandler   =
             hello       : ->
@@ -208,7 +211,7 @@ do  self.init   = ->
             bridge = createWorker "bridge", bridgemessage
             bridge . postMessage setup : { blobURL, buffer }
     
-            for i in [ 0 ... 2 ]
+            for i in [ 0 ... navigator.hardwareConcurrency-2 ]
                 thread = createWorker "thread" + i, threadmessage
                 thread . postMessage setup : { blobURL, buffer }
 
@@ -231,10 +234,9 @@ do  self.init   = ->
 
         queueMicrotask  ->
             listenEvents()
-            
-        createBuffer()
-        createBlobURL()
-        createThreads()
+            createBuffer()
+            createBlobURL()
+            createThreads()
 
 
 
@@ -330,7 +332,6 @@ do  self.init   = ->
                         super arguments...
                             .resolvedAt = resolvCall()
 
-
         addEventListener "message", (e) ->
 
             for req, data of e.data then switch req
@@ -346,6 +347,10 @@ do  self.init   = ->
                         selfName, isBridge, isThread, threadId,
                         now, pnow, uuid, state
                     }
+
+                    lock()
+                    onready()
+                    
 
 
 
@@ -425,6 +430,9 @@ do  self.init   = ->
                         selfName, isBridge, isThread, threadId,
                         now, pnow, uuid, state
                     }
+
+                    lock()
+                    onready()
 
 
 
