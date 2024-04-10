@@ -12,9 +12,9 @@ self.onmessage  = ->
     now         = Date.now()
     pnow        = performance.now()
     source      = do ->
-        return  unless document?
+        return unless isWindow
             
-        __user = "self.onready = function () {" +
+        __user = "self.onready = function ( document ) {" +
             [ ...document.scripts ].find( (d) => d.text and d.src ).text + 
         "}};"
 
@@ -26,6 +26,18 @@ self.onmessage  = ->
             __0ptr, __user
         ], { type: "application/javascript" }
 
+    resolvedId  = ->
+        #
+            #console.warn "Error:\n\t  at #{stack.substring(begin + 9, last)}"
+            #parseInt( stack.substring column + 1, last ) +
+        Error   . captureStackTrace @
+        stack   = @stack.toString()
+        begin   = stack.indexOf "onready"
+        last    = stack.indexOf ")", begin
+        column  = stack.lastIndexOf ":", last   
+        line    = stack.lastIndexOf ":", column - 1
+        parseInt  stack.substring line + 1 , column 
+
     randomUUID  = ->
         crypto?.randomUUID() or btoa(
             new Date().toISOString()
@@ -36,6 +48,7 @@ self.onmessage  = ->
         .join("").substring(0, 36).trim()
         .padEnd(36, String.fromCharCode(50 + Math.random() * 40 ))
     forkWorker  = ->
+        new Worker( source, { name } )
 
     uuid        = randomUUID()
     CONST       =
@@ -62,6 +75,17 @@ self.onmessage  = ->
         source, buffer
     }
 
+    Object.defineProperties self,
+        Uint32Array : class Uint32Array extends self.Uint32Array
+            constructor : ->
+                console.log "resolvedId Uint32Array:", resolvedId()
+                super arguments...
+
+        Uint8Array  : class Uint8Array extends self.Uint8Array
+            constructor : ->
+                console.log "resolvedId Uint8Array:", resolvedId()
+                super arguments...
+
 
 
 
@@ -85,10 +109,10 @@ self.onmessage  = ->
 
 
     if  isWindow
-        console.warn w = new Worker( source, { name } )
-        w.postMessage 0
-        console.log "hello from window"
+        forkWorker().postMessage 0
 
+        console.log "hello from window"
+        console.log Error.captureStackTrace(this) or @stack
 
 
 
@@ -164,6 +188,7 @@ self.onmessage  = ->
 
     if  isWorker
         console.log "hello from worker"
+        setTimeout -> self.onready()
 
 
 
