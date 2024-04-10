@@ -18,7 +18,9 @@ do  self.init   = ->
         andUint8 , orUint8 , xorUint8 , subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8
         andInt32 , orInt32 , xorInt32 , subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32
         andInt16 , orInt16 , xorInt16 , subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16
-        andInt8  , orInt8  , xorInt8  , subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8
+        andInt8  , orInt8  , xorInt8  , subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8,
+
+        Uint8Array
     ] = []
 
     bc          = new BroadcastChannel "0ptr"
@@ -32,20 +34,38 @@ do  self.init   = ->
     state       = 0
     buffer      = null
     resolvs     = new WeakMap()
-    workers     = new Array()
-    littleEnd   = new Uint8Array(Uint32Array.of(0x01).buffer)[0]
+    workers     = new self.Array()
+    littleEnd   = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0]
 
     resolvCall  = ->
-        #
-            #console.warn "Error:\n\t  at #{stack.substring(begin + 9, last)}"
-            #parseInt( stack.substring column + 1, last ) +
-        Error   . captureStackTrace @
-        stack   = @stack.toString()
-        begin   = stack.indexOf "onready"
-        last    = stack.indexOf ")", begin
-        column  = stack.lastIndexOf ":", last   
-        line    = stack.lastIndexOf ":", column - 1
-        parseInt  stack.substring line + 1 , column 
+        error   = {}
+        Error   . captureStackTrace error
+        stack   = error.stack.toString()
+        length  = stack.length
+
+        cBreak  = "\n".charCodeAt()
+        cBrace  = "\)".charCodeAt()
+        cColon  = "\:".charCodeAt()
+        
+        cCount  = 2
+        discard = off
+        lasti = length
+        sum = 0
+
+        while length--
+            switch stack.charCodeAt length
+
+                when cBreak then discard = !cCount = 2
+                when cBrace then lasti = length
+                when cColon
+                    unless discard
+                        val = stack.substring length + 1, lasti
+                        sum = sum + parseInt val
+
+                    lasti   = length
+                    discard = on unless --cCount
+
+        return sum
 
     randomUUID  = ->
         crypto?.randomUUID() or btoa(
@@ -58,30 +78,27 @@ do  self.init   = ->
         .padEnd(36, String.fromCharCode(50 + Math.random() * 40 ))
 
     initMemory  = ->
-        u64 = new BigUint64Array buffer
-        i64 = new BigInt64Array buffer
-        f32 = new Float32Array buffer
-        f64 = new Float64Array buffer
-        i32 = new Int32Array buffer
-        u32 = new Uint32Array buffer
-        i16 = new Int16Array buffer
-        u16 = new Uint16Array buffer
-        ui8 = new Uint8Array buffer
-        cu8 = new Uint8ClampedArray buffer
-        si8 = new Int8Array buffer
-        dvw = new DataView buffer
+        u64 = new self.BigUint64Array buffer
+        i64 = new self.BigInt64Array buffer
+        f32 = new self.Float32Array buffer
+        f64 = new self.Float64Array buffer
+        i32 = new self.Int32Array buffer
+        u32 = new self.Uint32Array buffer
+        i16 = new self.Int16Array buffer
+        u16 = new self.Uint16Array buffer
+        ui8 = new self.Uint8Array buffer
+        cu8 = new self.Uint8ClampedArray buffer
+        si8 = new self.Int8Array buffer
+        dvw = new self.DataView buffer
 
         lockIndex           = if isBridge then 2 else 3
-
         malloc              = Atomics.add.bind Atomics, u32, 0
         lock                = -> Atomics.wait i32, lockIndex
-
+        unlockBridge        = -> Atomics.notify i32, 2
+        unlockThreads       = -> Atomics.notify i32, 3
         unlock              = ->
             Atomics.notify i32, 2
             Atomics.notify i32, 3
-
-        unlockBridge        = -> Atomics.notify i32, 2
-        unlockThreads       = -> Atomics.notify i32, 3
 
         addUint32           = Atomics.add.bind Atomics, u32
         andUint32           = Atomics.and.bind Atomics, u32
@@ -165,7 +182,8 @@ do  self.init   = ->
                 Object.assign @info, data ; this
                 unless workers.some (w) -> !w.info.uuid
                     #console.log "unlock time..."
-                    unlockThreads()
+                    unlockBridge()
+                    #unlockThreads()
                 
         bridgeHandler   =
             hello       : ->
@@ -319,26 +337,19 @@ do  self.init   = ->
 
             Object.defineProperties Object.getPrototypeOf( self.Uint8Array )::,
 
-                resolvedAt  :
+                id          :
                     get     : -> resolvs.get this
                     set     : -> resolvs.set this, arguments[0]
 
-                resolvLine  :
-                    get     : ->
-                        console.warn "Error:\n\tat #{blobURL}:#{@resolvedAt}"
-                        return "look at console ->"
+            class Uint32Array extends self.Uint32Array
+                constructor : ->
+                    super arguments...
+                        .id = resolvCall()
 
-            Object.defineProperties self,
-
-                Uint32Array : class Uint32Array extends self.Uint32Array
-                    constructor : ->
-                        super arguments...
-                            .resolvedAt = resolvCall()
-
-                Uint8Array  : class Uint8Array  extends self.Uint8Array
-                    constructor : ->
-                        super arguments...
-                            .resolvedAt = resolvCall()
+            class Uint8Array  extends self.Uint8Array
+                constructor : ->
+                    super arguments...
+                        .id = resolvCall()
 
         addEventListener "message", (e) ->
 
@@ -434,6 +445,7 @@ do  self.init   = ->
 
                     initMemory buffer
 
+
                     postMessage register : {
                         selfName, isBridge, isThread, threadId,
                         now, pnow, uuid, state
@@ -442,9 +454,7 @@ do  self.init   = ->
                     lock()
                     onready()
 
-                    setTimeout =>
-                        unlockBridge()
-                    , 2000
+                    unlockBridge()
 
 
 

@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var CONST, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, buffer, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffer, createThreads, createWorker, cu8, defineTypedArrays, dvw, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, malloc, now, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, pnow, randomUUID, resolvCall, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, state, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, threadHandler, threadId, threadmessage, u16, u32, u64, ui8, unlock, unlockBridge, unlockThreads, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
+  var CONST, Uint8Array, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, buffer, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffer, createThreads, createWorker, cu8, defineTypedArrays, dvw, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, malloc, now, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, pnow, randomUUID, resolvCall, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, state, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, threadHandler, threadId, threadmessage, u16, u32, u64, ui8, unlock, unlockBridge, unlockThreads, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
   CONST = {
     BUFFER_TEST_START_LENGTH: 1e6,
     BUFFER_TEST_STEP_DIVIDER: 1e1,
@@ -10,7 +10,7 @@ self.name = "window";
     HEADERS_LENGTH: 16,
     HEADERS_BYTE_LENGTH: 4 * 16
   };
-  [blobURL, malloc, littleEnd, lock, unlock, unlockThreads, unlockBridge, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8] = [];
+  [blobURL, malloc, littleEnd, lock, unlock, unlockThreads, unlockBridge, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, Uint8Array] = [];
   bc = new BroadcastChannel("0ptr");
   selfName = self.name;
   isWindow = typeof document !== "undefined" && document !== null;
@@ -22,51 +22,72 @@ self.name = "window";
   state = 0;
   buffer = null;
   resolvs = new WeakMap();
-  workers = new Array();
-  littleEnd = new Uint8Array(Uint32Array.of(0x01).buffer)[0];
+  workers = new self.Array();
+  littleEnd = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0];
   resolvCall = function() {
-    var begin, column, last, line, stack;
-    
-    //console.warn "Error:\n\t  at #{stack.substring(begin + 9, last)}"
-    //parseInt( stack.substring column + 1, last ) +
-    Error.captureStackTrace(this);
-    stack = this.stack.toString();
-    begin = stack.indexOf("onready");
-    last = stack.indexOf(")", begin);
-    column = stack.lastIndexOf(":", last);
-    line = stack.lastIndexOf(":", column - 1);
-    return parseInt(stack.substring(line + 1, column));
+    var cBrace, cBreak, cColon, cCount, discard, error, lasti, length, stack, sum, val;
+    error = {};
+    Error.captureStackTrace(error);
+    stack = error.stack.toString();
+    length = stack.length;
+    cBreak = "\n".charCodeAt();
+    cBrace = "\)".charCodeAt();
+    cColon = "\:".charCodeAt();
+    cCount = 2;
+    discard = false;
+    lasti = length;
+    sum = 0;
+    while (length--) {
+      switch (stack.charCodeAt(length)) {
+        case cBreak:
+          discard = !(cCount = 2);
+          break;
+        case cBrace:
+          lasti = length;
+          break;
+        case cColon:
+          if (!discard) {
+            val = stack.substring(length + 1, lasti);
+            sum = sum + parseInt(val);
+          }
+          lasti = length;
+          if (!--cCount) {
+            discard = true;
+          }
+      }
+    }
+    return sum;
   };
   randomUUID = function() {
     return (typeof crypto !== "undefined" && crypto !== null ? crypto.randomUUID() : void 0) || btoa(new Date().toISOString()).toLowerCase().split("").toSpliced(8, 0, "-").toSpliced(13, 0, "-").toSpliced(18, 0, "-").toSpliced(24, 0, "-").join("").substring(0, 36).trim().padEnd(36, String.fromCharCode(50 + Math.random() * 40));
   };
   initMemory = function() {
     var lockIndex;
-    u64 = new BigUint64Array(buffer);
-    i64 = new BigInt64Array(buffer);
-    f32 = new Float32Array(buffer);
-    f64 = new Float64Array(buffer);
-    i32 = new Int32Array(buffer);
-    u32 = new Uint32Array(buffer);
-    i16 = new Int16Array(buffer);
-    u16 = new Uint16Array(buffer);
-    ui8 = new Uint8Array(buffer);
-    cu8 = new Uint8ClampedArray(buffer);
-    si8 = new Int8Array(buffer);
-    dvw = new DataView(buffer);
+    u64 = new self.BigUint64Array(buffer);
+    i64 = new self.BigInt64Array(buffer);
+    f32 = new self.Float32Array(buffer);
+    f64 = new self.Float64Array(buffer);
+    i32 = new self.Int32Array(buffer);
+    u32 = new self.Uint32Array(buffer);
+    i16 = new self.Int16Array(buffer);
+    u16 = new self.Uint16Array(buffer);
+    ui8 = new self.Uint8Array(buffer);
+    cu8 = new self.Uint8ClampedArray(buffer);
+    si8 = new self.Int8Array(buffer);
+    dvw = new self.DataView(buffer);
     lockIndex = isBridge ? 2 : 3;
     malloc = Atomics.add.bind(Atomics, u32, 0);
     lock = function() {
       return Atomics.wait(i32, lockIndex);
     };
-    unlock = function() {
-      Atomics.notify(i32, 2);
-      return Atomics.notify(i32, 3);
-    };
     unlockBridge = function() {
       return Atomics.notify(i32, 2);
     };
     unlockThreads = function() {
+      return Atomics.notify(i32, 3);
+    };
+    unlock = function() {
+      Atomics.notify(i32, 2);
       return Atomics.notify(i32, 3);
     };
     addUint32 = Atomics.add.bind(Atomics, u32);
@@ -171,10 +192,11 @@ self.name = "window";
           return !w.info.uuid;
         })) {
           //console.log "unlock time..."
-          return unlockThreads();
+          return unlockBridge();
         }
       }
     };
+    //unlockThreads()
     bridgeHandler = {
       hello: function() {}
     };
@@ -212,7 +234,7 @@ self.name = "window";
       while (!buffer) {
         try {
           buffer = new Buffer(CONST.INITIAL_BYTELENGTH, {maxByteLength});
-        } catch (error) {
+        } catch (error1) {
           maxByteLength /= CONST.BUFFER_TEST_STEP_DIVIDER;
         }
       }
@@ -269,37 +291,29 @@ self.name = "window";
   }
   if (isBridge) {
     defineTypedArrays = function() {
-      var Uint32Array, Uint8Array;
+      var Uint32Array;
       Object.defineProperties(Object.getPrototypeOf(self.Uint8Array).prototype, {
-        resolvedAt: {
+        id: {
           get: function() {
             return resolvs.get(this);
           },
           set: function() {
             return resolvs.set(this, arguments[0]);
           }
-        },
-        resolvLine: {
-          get: function() {
-            console.warn(`Error:\n\tat ${blobURL}:${this.resolvedAt}`);
-            return "look at console ->";
-          }
         }
       });
-      return Object.defineProperties(self, {
-        Uint32Array: Uint32Array = class Uint32Array extends self.Uint32Array {
-          constructor() {
-            super(...arguments).resolvedAt = resolvCall();
-          }
-
-        },
-        Uint8Array: Uint8Array = class Uint8Array extends self.Uint8Array {
-          constructor() {
-            super(...arguments).resolvedAt = resolvCall();
-          }
-
+      Uint32Array = class Uint32Array extends self.Uint32Array {
+        constructor() {
+          super(...arguments).id = resolvCall();
         }
-      });
+
+      };
+      return Uint8Array = class Uint8Array extends self.Uint8Array {
+        constructor() {
+          super(...arguments).id = resolvCall();
+        }
+
+      };
     };
     addEventListener("message", function(e) {
       var data, ref, req, results, uuid;
@@ -345,9 +359,7 @@ self.name = "window";
             });
             lock();
             onready();
-            results.push(setTimeout(() => {
-              return unlockBridge();
-            }, 2000));
+            results.push(unlockBridge());
             break;
           default:
             results.push(void 0);
