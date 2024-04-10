@@ -2,8 +2,9 @@
   return postMessage(0);
 })();
 
-self.onmessage = function() {
-  var CONST, Uint32Array, Uint8Array, amiPU, buffer, forkWorker, isBridge, isCPU, isGPU, isWindow, isWorker, now, pnow, puid, randomUUID, resolvedId, selfName, source, uuid;
+self.onmessage = function(e) {
+  var CONST, Uint32Array, Uint8Array, amiPU, blobURL, buffer, forkWorker, isBridge, isCPU, isGPU, isWindow, isWorker, now, pnow, puid, randomUUID, resolvedId, resolvs, selfName, source, uuid;
+  blobURL = e.data;
   selfName = self.name;
   isWindow = typeof document !== "undefined" && document !== null;
   isWorker = !isWindow;
@@ -69,24 +70,39 @@ self.onmessage = function() {
     return buffer;
   })();
   this.this = {selfName, isWindow, isWorker, isBridge, isCPU, isGPU, puid, uuid, source, buffer};
+  resolvs = new WeakMap();
+  Object.defineProperties(Object.getPrototypeOf(self.Uint8Array).prototype, {
+    resolvedId: {
+      get: function() {
+        return resolvs.get(this);
+      },
+      set: function() {
+        return resolvs.set(this, arguments[0]);
+      }
+    },
+    resolvedAt: {
+      get: function() {
+        console.warn(`Error:\n\tat ${blobURL}:${this.resolvedId}`);
+        return "look at console ->";
+      }
+    }
+  });
   Object.defineProperties(self, {
     Uint32Array: Uint32Array = class Uint32Array extends self.Uint32Array {
       constructor() {
-        console.log("resolvedId Uint32Array:", resolvedId());
-        super(...arguments);
+        super(...arguments).resolvedId = resolvedId();
       }
 
     },
     Uint8Array: Uint8Array = class Uint8Array extends self.Uint8Array {
       constructor() {
-        console.log("resolvedId Uint8Array:", resolvedId());
-        super(...arguments);
+        super(...arguments).resolvedId = resolvedId();
       }
 
     }
   });
   if (isWindow) {
-    forkWorker().postMessage(0);
+    forkWorker().postMessage(source.toString());
     console.log("hello from window");
     console.log(Error.captureStackTrace(this) || this.stack);
   }

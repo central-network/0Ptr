@@ -1,6 +1,8 @@
 window? and do -> postMessage(0)
 
-self.onmessage  = ->
+self.onmessage  = ( e ) ->
+
+    blobURL     = e.data
     selfName    = self.name
     isWindow    = document?
     isWorker    = !isWindow
@@ -75,21 +77,28 @@ self.onmessage  = ->
         source, buffer
     }
 
+    resolvs = new WeakMap()
+
+    Object.defineProperties Object.getPrototypeOf( self.Uint8Array )::,
+        resolvedId  :
+            get     : -> resolvs.get this
+            set     : -> resolvs.set this, arguments[0]
+
+        resolvedAt  :
+            get     : ->
+                console.warn "Error:\n\tat #{blobURL}:#{@resolvedId}"
+                "look at console ->"
+
     Object.defineProperties self,
         Uint32Array : class Uint32Array extends self.Uint32Array
             constructor : ->
-                console.log "resolvedId Uint32Array:", resolvedId()
                 super arguments...
+                    .resolvedId = resolvedId()
 
         Uint8Array  : class Uint8Array extends self.Uint8Array
             constructor : ->
-                console.log "resolvedId Uint8Array:", resolvedId()
                 super arguments...
-
-
-
-
-
+                    .resolvedId = resolvedId()
 
 
 
@@ -109,7 +118,7 @@ self.onmessage  = ->
 
 
     if  isWindow
-        forkWorker().postMessage 0
+        forkWorker().postMessage source.toString()
 
         console.log "hello from window"
         console.log Error.captureStackTrace(this) or @stack
