@@ -38,9 +38,9 @@ do  self.init   = ->
     littleEnd   = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0]
 
     resolvCall  = ->
-        error   = {}
-        Error   . captureStackTrace error
-        stack   = error.stack.toString()
+        Error.captureStackTrace e = {}
+        
+        stack   = e.stack.toString()
         length  = stack.length
 
         cBreak  = "\n".charCodeAt()

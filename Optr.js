@@ -25,10 +25,9 @@ self.name = "window";
   workers = new self.Array();
   littleEnd = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0];
   resolvCall = function() {
-    var cBrace, cBreak, cColon, cCount, discard, error, lasti, length, stack, sum, val;
-    error = {};
-    Error.captureStackTrace(error);
-    stack = error.stack.toString();
+    var cBrace, cBreak, cColon, cCount, discard, e, lasti, length, stack, sum, val;
+    Error.captureStackTrace(e = {});
+    stack = e.stack.toString();
     length = stack.length;
     cBreak = "\n".charCodeAt();
     cBrace = "\)".charCodeAt();
@@ -234,7 +233,7 @@ self.name = "window";
       while (!buffer) {
         try {
           buffer = new Buffer(CONST.INITIAL_BYTELENGTH, {maxByteLength});
-        } catch (error1) {
+        } catch (error) {
           maxByteLength /= CONST.BUFFER_TEST_STEP_DIVIDER;
         }
       }
