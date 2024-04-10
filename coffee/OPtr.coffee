@@ -1,34 +1,36 @@
-window? and do -> postMessage(0)
+self.name = "window"
 
-self.onmessage  = ( e ) ->
+do  self.init   = ->
 
-    blobURL     = e.data
+    CONST       =
+        BUFFER_TEST_START_LENGTH    : 1e6
+        BUFFER_TEST_STEP_DIVIDER    : 1e1
+        INITIAL_BYTELENGTH          : 64
+        BYTES_PER_ELEMENT           : 4
+        HEADERS_LENGTH              : 16
+        HEADERS_BYTE_LENGTH         : 4 * 16
+
+    [
+        blobURL, malloc, littleEnd,
+        dw, i8, ui8, i8,  i32, u32, f32,
+        addUint32, loadUint32, storeUint32, getUint32, setUint32
+    ] = []
+
+    bc          = new BroadcastChannel "0ptr"
     selfName    = self.name
     isWindow    = document?
-    isWorker    = !isWindow
     isBridge    = /bridge/i.test selfName  
-    isCPU       = selfName.startsWith /cpu/.source
-    isGPU       = selfName.startsWith /gpu/.source
-    amiPU       = /pu/i.test selfName.substring 1, 3
-    puid        = amiPU and parseInt selfName.match /\d+/
+    isThread    = /thread/i.test selfName
+    threadId    = isThread and parseInt selfName.match /\d+/
     now         = Date.now()
     pnow        = performance.now()
-    source      = do ->
-        return unless isWindow
-            
-        __user = "self.onready = function ( document ) {" +
-            [ ...document.scripts ].find( (d) => d.text and d.src ).text + 
-        "}};"
+    state       = 0
+    buffer      = null
+    resolvs     = new WeakMap()
+    workers     = new Array()
+    littleEnd   = new Uint8Array(Uint32Array.of(0x01).buffer)[0]
 
-        __0ptr = "self.onmessage = " + self.onmessage.toString().split(
-            new RegExp( 'return 0x' + 57005.toString(16) + ';' )
-        )[0]
-
-        URL.createObjectURL new Blob [
-            __0ptr, __user
-        ], { type: "application/javascript" }
-
-    resolvedId  = ->
+    resolvCall  = ->
         #
             #console.warn "Error:\n\t  at #{stack.substring(begin + 9, last)}"
             #parseInt( stack.substring column + 1, last ) +
@@ -49,95 +51,120 @@ self.onmessage  = ( e ) ->
         .toSpliced(18,0,"-").toSpliced(24,0,"-")
         .join("").substring(0, 36).trim()
         .padEnd(36, String.fromCharCode(50 + Math.random() * 40 ))
-    forkWorker  = ->
-        new Worker( source, { name } )
 
-    uuid        = randomUUID()
-    CONST       =
-        BUFFER_TEST_START_LENGTH    : 1e6
-        BUFFER_TEST_STEP_DIVIDER    : 1e1
-        BUFFER_BYTEOFFSET           : 64
-        BYTES_PER_ELEMENT           : 4
-        HEADERS_LENGTH              : 16
-        HEADERS_BYTE_LENGTH         : 4 * 16
-    buffer      = isWindow and do ->
-        Buffer  = SharedArrayBuffer ? ArrayBuffer
-        buffer  = !maxByteLength =
-            CONST.BUFFER_TEST_START_LENGTH
+    initMemory  = ->
+        console.log name, "initilaizing malloc", buffer
+        u32 = new Uint32Array buffer
+        i32 = new Int32Array buffer
+        dw = new DataView buffer
 
-        while  !buffer
-            try buffer = new Buffer CONST.BUFFER_BYTEOFFSET, { maxByteLength }
-            catch then maxByteLength /= CONST.BUFFER_TEST_STEP_DIVIDER
-        
+        malloc              = Atomics.add.bind Atomics, u32, 0
+        lock                = Atomics.wait.bind Atomics, i32
+        unlock              = Atomics.notify.bind Atomics, i32
+
+        addUint32           = Atomics.add.bind Atomics, u32
+        subUint32           = Atomics.sub.bind Atomics, u32
+        loadUint32          = Atomics.load.bind Atomics, u32
+        storeUint32         = Atomics.store.bind Atomics, u32
+        getUint32           = ( o ) -> dw.getUint32 o, littleEnd
+        setUint32           = ( o, v ) -> dw.setUint32 o, v, littleEnd
+        subarrayUint32      = u32.subarray.bind u32
+        sliceUint32         = u32.slice.bind u32
+
         buffer
 
-    @this       = {
-        selfName, isWindow, isWorker,
-        isBridge, isCPU, isGPU, puid, uuid,
-        source, buffer
-    }
-
-    resolvs = new WeakMap()
-
-    Object.defineProperties Object.getPrototypeOf( self.Uint8Array )::,
-        resolvedId  :
-            get     : -> resolvs.get this
-            set     : -> resolvs.set this, arguments[0]
-
-        resolvedAt  :
-            get     : ->
-                console.warn "Error:\n\tat #{blobURL}:#{@resolvedId}"
-                "look at console ->"
-
-    Object.defineProperties self,
-        Uint32Array : class Uint32Array extends self.Uint32Array
-            constructor : ->
-                super arguments...
-                    .resolvedId = resolvedId()
-
-        Uint8Array  : class Uint8Array extends self.Uint8Array
-            constructor : ->
-                super arguments...
-                    .resolvedId = resolvedId()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     if  isWindow
-        forkWorker().postMessage source.toString()
 
-        console.log "hello from window"
-        console.log Error.captureStackTrace(this) or @stack
+        console.log "hello from window"        
 
+        sharedHandler   =
+            register    : ( data ) ->
+                console.warn "registering worker:", data
+                Object.assign @info, data ; this
+                
+        bridgeHandler   =
+            hello       : ->
+        
+        threadHandler   =
+            hello       : ->
+        
+        bridgemessage   = ({ data }) ->
+            for request, data of data
+                console.log "bridge message:", request, data
+                handler =
+                    bridgeHandler[ request ] or
+                    sharedHandler[ request ] or throw [
+                        /NO_HANDLER_FOR_BRIDGE/, request, data
+                    ]
 
+                handler.call this, data
 
+        threadmessage   = ({ data }) ->
+            for request, data of data
+                console.log "thread message:", request, data
 
+                handler =
+                    threadHandler[ request ] or
+                    sharedHandler[ request ] or throw [
+                        /NO_HANDLER_FOR_THREAD/, request, data
+                    ]
 
+                handler.call this, data
 
+        createBuffer    = ->
+            Buffer  = SharedArrayBuffer ? ArrayBuffer
+            buffer  = !maxByteLength =
+                CONST.BUFFER_TEST_START_LENGTH
 
+            while  !buffer
+                try buffer = new Buffer CONST.INITIAL_BYTELENGTH, { maxByteLength }
+                catch then maxByteLength /= CONST.BUFFER_TEST_STEP_DIVIDER
+            
+            initMemory buffer
+            malloc CONST.INITIAL_BYTELENGTH
 
+        createWorker    = ( name, onmessage ) ->
+            worker = new Worker( blobURL, { name } )
+            worker . info = {}
+            worker . onerror = 
+            worker . onmessageerror = console.error
+            worker . onmessage = onmessage.bind worker
+            workers[ workers . length ] =
+                worker
+        
+        createThreads   = ->
 
+            bridge = createWorker "bridge", bridgemessage
+            bridge . postMessage setup : { blobURL, buffer }
+    
+            for i in [ 0 ... 2 ]
+                thread = createWorker "thread" + i, threadmessage
+                thread . postMessage setup : { blobURL, buffer }
 
+        createBlobURL   = ->
+            __user = "\nconst onready = function ( document ) {\n\t" +
+                "#{[ ...document.scripts ].find( (d) => d.text and d.src ).text.trim()}\n" + 
+            "};\n"
 
+            __0ptr = "(" + "#{self.init}".split("return " + "0xdead;")[0]
 
+            blobURL = URL.createObjectURL new Blob [
+                __0ptr, __user, "}).call(self);"
+            ], { type: "application/javascript" }
 
+            delete self.init
 
+        listenEvents    = ->
+            window.onclick = ->
+                console.table workers.map (w) -> w.info
 
+        queueMicrotask  ->
+            listenEvents()
+            createBuffer()
+            createBlobURL()
+            createThreads()
 
+        
 
 
 
@@ -195,12 +222,154 @@ self.onmessage  = ( e ) ->
 
 
 
-    if  isWorker
-        console.log "hello from worker"
-        setTimeout -> self.onready()
 
 
 
+
+
+
+
+
+
+
+
+
+    if  isBridge
+        console.log "hello from bridge"
+
+        defineTypedArrays = ->
+
+            Object.defineProperties Object.getPrototypeOf( self.Uint8Array )::,
+
+                resolvedAt  :
+                    get     : -> resolvs.get this
+                    set     : -> resolvs.set this, arguments[0]
+
+                resolvLine  :
+                    get     : ->
+                        console.warn "Error:\n\tat #{blobURL}:#{@resolvedAt}"
+                        return "look at console ->"
+
+            Object.defineProperties self,
+
+                Uint32Array : class Uint32Array extends self.Uint32Array
+                    constructor : ->
+                        super arguments...
+                            .resolvedAt = resolvCall()
+
+                Uint8Array  : class Uint8Array  extends self.Uint8Array
+                    constructor : ->
+                        super arguments...
+                            .resolvedAt = resolvCall()
+
+            console.log "defining properties"
+
+
+        addEventListener "message", (e) ->
+
+            for req, data of e.data then switch req
+                when "setup"
+                    uuid = randomUUID()
+                    buffer = data.buffer
+                    blobURL = data.blobURL
+
+                    initMemory buffer
+                    defineTypedArrays()
+
+                    console.log { buffer, self }
+
+                    postMessage register : {
+                        selfName, isBridge, isThread, threadId,
+                        now, pnow, uuid, state
+                    }
+
+                    malloc 22
+
+                    onready()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if  isThread
+        console.log "hello from thread", { threadId }
+
+        addEventListener "message", (e) ->
+
+            for req, data of e.data then switch req
+                when "setup"
+                    uuid = randomUUID()
+                    buffer = data.buffer
+                    blobURL = data.blobURL
+
+                    initMemory buffer
+
+                    console.log { buffer, self }
+
+                    postMessage register : {
+                        selfName, isBridge, isThread, threadId,
+                        now, pnow, uuid, state
+                    }
 
 
 
