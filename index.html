@@ -24,9 +24,27 @@
         return parts.join(".");
     }
     
-    let a = new Uint8Array(414241200);
-    let v = new Uint8Array(52412);
-    console.warn( name, "\t--> HPC code running...",  {a, v} );
+    new Uint8Array(Math.floor(Math.random() * 100));
+    new Uint8Array(Math.floor(Math.random() * 100));
+    new Uint8Array(11);
+    let a = new Uint8Array(42);
+    //let v = new Uint8Array(52412);
+
+    for ( let i of a ) {
+        a[i] = Math.random() * 0xff;
+    }
+
+    let v = new Uint8Array( a, 12 );
+
+    let c = v.subarray(2, 4);
+    let d = v.slice(2, 4);
+
+    log( "c:", c);
+    log( "d:", d);
+    console.warn( name, "\t--> HPC code running...",  {a, v, c, d} );
+
+    /*
+    BENCHMARK 3.186.470.769 ops/sec
 
     let t0;
     if ( isBridge ) {
@@ -34,7 +52,7 @@
     }
 
     let retry = 3;
-    let tried = 0;
+    let tried = 1;
 
     while ( retry-- ) {
         for ( let i of a ) {
@@ -60,6 +78,8 @@
 
         console.log( a )
     }
+
+    */
 
 
 </script>
