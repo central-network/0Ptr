@@ -17,12 +17,51 @@
 <body>
 <canvas id="viewport"></canvas>
 <script src="Optr.js">
+
+    function numberWithCommas(x) {
+        var parts = x.toString().split(".");
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        return parts.join(".");
+    }
     
-    let a = new Uint8Array(12);
+    let a = new Uint8Array(414241200);
     let v = new Uint8Array(52412);
     console.warn( name, "\t--> HPC code running...",  {a, v} );
 
-    //console.log( a )
+    let t0;
+    if ( isBridge ) {
+        t0 = performance.now();
+    }
+
+    let retry = 3;
+    let tried = 0;
+
+    while ( retry-- ) {
+        for ( let i of a ) {
+            a[i] = Math.random() * 0xff
+        }
+        tried++;
+    }
+
+    if ( isBridge ) {
+        let msecs = performance.now() - t0; 
+        let count = a.length;
+        let ops = tried * count;
+        let secs = (msecs / 1000).toFixed(2) * 1;
+        let ratio = Math.trunc(ops / secs);
+
+        let nice = numberWithCommas(ratio);
+
+
+
+        console.table({
+            nice, msecs, tried, count, ops, secs, ratio
+        })
+
+        console.log( a )
+    }
+
+
 </script>
 <script>
         /*

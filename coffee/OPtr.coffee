@@ -16,6 +16,8 @@ do  self.init   = ->
     HINDEX_BYTELENGTH           = HEADERS_LENGTH_OFFSET++
     HINDEX_RESOLV_ID            = HEADERS_LENGTH_OFFSET++
     HINDEX_LOCKFREE             = HEADERS_LENGTH_OFFSET++
+    HINDEX_ITERINDEX            = HEADERS_LENGTH_OFFSET++
+    HINDEX_ITERLENGTH           = HEADERS_LENGTH_OFFSET++
 
     BUFFER_TEST_START_LENGTH    = Math.pow (navigator?.deviceMemory or 1)+1, 11
     BUFFER_TEST_STEP_DIVIDER    = 1e1
@@ -26,7 +28,8 @@ do  self.init   = ->
     HEADERS_LENGTH              = 16
     HEADERS_BYTE_LENGTH         = 4 * 16
     MAX_PTR_COUNT               = 1e5
-    MAX_THREAD_COUNT            = -2 + navigator?.hardwareConcurrency or 3
+    MAX_THREAD_COUNT            = 3 + navigator?.hardwareConcurrency or 3
+    ITERATION_PER_THREAD        = 1000000
 
     EVENT_READY                 = new (class EVENT_READY extends Number)(
         number( /EVENT_READY/.source )
@@ -247,7 +250,42 @@ do  self.init   = ->
                 get     : -> resolvs.get this
                 set     : -> resolvs.set this, arguments[0]
 
+
+            [ Symbol.iterator ] : value : ->
+
+                ptri = resolvs.get this
+                length = -1 + Atomics.load p32, ptri + HINDEX_LENGTH
+                begin = Atomics.load p32, ptri + HINDEX_BEGIN
+
+                if  isBridge
+                    Atomics.wait p32, 4
+                    return next : -> done: on
+
+                index = 0
+                iterate = 0
+                total = 0
+
+                next : ->
+
+                    if !iterate
+                        iterate = ITERATION_PER_THREAD
+                        index = Atomics.add p32, ptri + HINDEX_ITERINDEX, iterate
+                        total += iterate
+
+                    if  index > length
+                        log { total }
+
+                        Atomics.wait p32, 3, 0, 100
+                        Atomics.notify p32, 4, 1
+                        return done: yes
+
+                    #log { index, length }
+
+                    iterate--
+                    value : begin + index++    
+
         class Uint8Array  extends self.Uint8Array
+
             constructor : ( argv, byteOffset, length ) ->
                 ptri = resolvCall()
                 argc = arguments.length
@@ -270,6 +308,7 @@ do  self.init   = ->
 
                         if  isBridge
 
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
                             length      = argv
                             byteLength  = argv
                             byteOffset  = malloc argv, 1
@@ -282,14 +321,13 @@ do  self.init   = ->
                             Atomics.store p32, ptri + HINDEX_BYTELENGTH, byteLength
                             Atomics.store p32, ptri + HINDEX_BEGIN, begin
                             Atomics.store p32, ptri + HINDEX_END, end
-                            Atomics.store p32, ptri + HINDEX_LOCKFREE, 1
                             
                             super objbuf, byteOffset, length
 
+                            Atomics.store p32, ptri + HINDEX_LOCKFREE, 1
                             Atomics.notify p32, 3, MAX_THREAD_COUNT
                             
                         else
-
                             length      = Atomics.load p32, ptri + HINDEX_LENGTH
                             byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
@@ -303,7 +341,8 @@ do  self.init   = ->
                         # alloc byte length
                         1
 
-                this.ptri = ptri
+                #this.ptri = ptri
+                resolvs.set this, ptri
 
     if  isWindow
 

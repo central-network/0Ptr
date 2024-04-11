@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, EVENT_READY, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_RESOLV_ID, INITIAL_BYTELENGTH, MAX_PTR_COUNT, MAX_THREAD_COUNT, RESERVED_BYTELENGTH, Uint8Array, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, buffer, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createThreads, createWorker, cu8, defineTypedArrays, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, palloc, pnow, ptrbuf, randomUUID, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, state, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, threadHandler, threadId, threadmessage, u16, u32, u64, ui8, unlock, unlockBridge, unlockThreads, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
+  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, EVENT_READY, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_ITERINDEX, HINDEX_ITERLENGTH, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_RESOLV_ID, INITIAL_BYTELENGTH, ITERATION_PER_THREAD, MAX_PTR_COUNT, MAX_THREAD_COUNT, RESERVED_BYTELENGTH, Uint8Array, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, buffer, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createThreads, createWorker, cu8, defineTypedArrays, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, palloc, pnow, ptrbuf, randomUUID, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, state, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, threadHandler, threadId, threadmessage, u16, u32, u64, ui8, unlock, unlockBridge, unlockThreads, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
   log = function() {
     return console.log(name, ...arguments);
   };
@@ -24,6 +24,8 @@ self.name = "window";
   HINDEX_BYTELENGTH = HEADERS_LENGTH_OFFSET++;
   HINDEX_RESOLV_ID = HEADERS_LENGTH_OFFSET++;
   HINDEX_LOCKFREE = HEADERS_LENGTH_OFFSET++;
+  HINDEX_ITERINDEX = HEADERS_LENGTH_OFFSET++;
+  HINDEX_ITERLENGTH = HEADERS_LENGTH_OFFSET++;
   BUFFER_TEST_START_LENGTH = Math.pow(((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 1) + 1, 11);
   BUFFER_TEST_STEP_DIVIDER = 1e1;
   INITIAL_BYTELENGTH = 6e4;
@@ -33,7 +35,8 @@ self.name = "window";
   HEADERS_LENGTH = 16;
   HEADERS_BYTE_LENGTH = 4 * 16;
   MAX_PTR_COUNT = 1e5;
-  MAX_THREAD_COUNT = -2 + (typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 3;
+  MAX_THREAD_COUNT = 3 + (typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 3;
+  ITERATION_PER_THREAD = 1000000;
   EVENT_READY = new (EVENT_READY = class EVENT_READY extends Number {})(number(/EVENT_READY/.source));
   if (HEADERS_LENGTH_OFFSET >= HEADERS_LENGTH) {
     throw /MAX_HEADERS_LENGTH_EXCEED/;
@@ -248,6 +251,49 @@ self.name = "window";
         set: function() {
           return resolvs.set(this, arguments[0]);
         }
+      },
+      [Symbol.iterator]: {
+        value: function() {
+          var begin, index, iterate, length, ptri, total;
+          ptri = resolvs.get(this);
+          length = -1 + Atomics.load(p32, ptri + HINDEX_LENGTH);
+          begin = Atomics.load(p32, ptri + HINDEX_BEGIN);
+          if (isBridge) {
+            Atomics.wait(p32, 4);
+            return {
+              next: function() {
+                return {
+                  done: true
+                };
+              }
+            };
+          }
+          index = 0;
+          iterate = 0;
+          total = 0;
+          return {
+            next: function() {
+              if (!iterate) {
+                iterate = ITERATION_PER_THREAD;
+                index = Atomics.add(p32, ptri + HINDEX_ITERINDEX, iterate);
+                total += iterate;
+              }
+              if (index > length) {
+                log({total});
+                Atomics.wait(p32, 3, 0, 100);
+                Atomics.notify(p32, 4, 1);
+                return {
+                  done: true
+                };
+              }
+              //log { index, length }
+              iterate--;
+              return {
+                value: begin + index++
+              };
+            }
+          };
+        }
       }
     });
     return Uint8Array = class Uint8Array extends self.Uint8Array {
@@ -270,6 +316,7 @@ self.name = "window";
           // new TypedArray( 24 );
           if (Number.isInteger(argv)) {
             if (isBridge) {
+              //Atomics.wait p32, 4, 0, 2240; #testing locks
               length = argv;
               byteLength = argv;
               byteOffset = malloc(argv, 1);
@@ -280,8 +327,8 @@ self.name = "window";
               Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
               Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
               Atomics.store(p32, ptri + HINDEX_END, end);
-              Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
               super(objbuf, byteOffset, length);
+              Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
               Atomics.notify(p32, 3, MAX_THREAD_COUNT);
             } else {
               length = Atomics.load(p32, ptri + HINDEX_LENGTH);
@@ -297,7 +344,8 @@ self.name = "window";
             1;
           }
         }
-        this.ptri = ptri;
+        //this.ptri = ptri
+        resolvs.set(this, ptri);
       }
 
     };
