@@ -249,13 +249,20 @@ self.name = "window";
         var argc, begin, byteLength, end, ptri;
         ptri = resolvCall();
         argc = arguments.length;
+        // new TypedArray( buffer, 1221, 4 );
         if (argc === 3) {
           1; // slicing
+        
+        // new TypedArray( buffer, 36 );
         } else if (argc === 2) {
           2; // slicing
+        
+        // new TypedArray( 24 );
+        // new TypedArray( buffer );
+        // new TypedArray( [ 2, 4, 1 ] );
         } else if (argc === 1) {
+          // new TypedArray( 24 );
           if (Number.isInteger(argv)) {
-            // alloc byte length
             if (isBridge) {
               length = argv;
               byteLength = argv;
@@ -268,12 +275,18 @@ self.name = "window";
               Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
               Atomics.store(p32, ptri + HINDEX_END, end);
               super(objbuf, byteOffset, length);
-              Atomics.notify(p32, 3);
+              Atomics.notify(p32, 3, MAX_THREAD_COUNT);
+              Atomics.store(p32, 3, 1);
             } else {
+              Atomics.wait(p32, 3, 0);
               length = Atomics.load(p32, ptri + HINDEX_LENGTH);
               byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
+              if (!length) {
+                throw [/WHERE_IS_MY_MIND/, {ptri, length, byteOffset, name}];
+              }
               super(objbuf, byteOffset, length);
             }
+          // new TypedArray( new TypedArray(?) );
           } else if (ArrayBuffer.isView(argv)) {
             // alloc byte length
             1;
