@@ -246,7 +246,7 @@ self.name = "window";
     });
     return Uint8Array = class Uint8Array extends self.Uint8Array {
       constructor(argv, byteOffset, length) {
-        var argc, begin, byteLength, end, ptri;
+        var argc, begin, byteLength, end, lopi, ptri;
         ptri = resolvCall();
         argc = arguments.length;
         // new TypedArray( buffer, 1221, 4 );
@@ -275,12 +275,26 @@ self.name = "window";
               Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
               Atomics.store(p32, ptri + HINDEX_END, end);
               super(objbuf, byteOffset, length);
-              Atomics.notify(p32, 3, MAX_THREAD_COUNT);
-              Atomics.store(p32, 3, 1);
+              queueMicrotask(function() {
+                Atomics.notify(p32, 3, MAX_THREAD_COUNT);
+                return Atomics.store(p32, 3, 1);
+              });
             } else {
-              Atomics.wait(p32, 3, 0);
-              length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-              byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
+              lopi = 0;
+              while (true) {
+                if (lopi) {
+                  log("loop", lopi);
+                }
+                Atomics.wait(p32, 3, 0, 100);
+                length = Atomics.load(p32, ptri + HINDEX_LENGTH);
+                byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
+                if (length) {
+                  break;
+                }
+                if (lopi++ > 100) {
+                  break;
+                }
+              }
               if (!length) {
                 throw [/WHERE_IS_MY_MIND/, {ptri, length, byteOffset, name}];
               }
