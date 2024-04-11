@@ -15,8 +15,7 @@ do  self.init   = ->
     HINDEX_LENGTH               = HEADERS_LENGTH_OFFSET++
     HINDEX_BYTELENGTH           = HEADERS_LENGTH_OFFSET++
     HINDEX_RESOLV_ID            = HEADERS_LENGTH_OFFSET++
-    HINDEX_THREAD_LOCK          = HEADERS_LENGTH_OFFSET++
-    HINDEX_BRIDGE_LOCK          = HEADERS_LENGTH_OFFSET++
+    HINDEX_LOCKFREE             = HEADERS_LENGTH_OFFSET++
 
     BUFFER_TEST_START_LENGTH    = Math.pow (navigator?.deviceMemory or 1)+1, 11
     BUFFER_TEST_STEP_DIVIDER    = 1e1
@@ -67,21 +66,29 @@ do  self.init   = ->
     workers     = new self.Array()
     littleEnd   = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0]
 
-    resolvFind  = ( id ) ->
+    resolvFind  = ( id, retry = 0 ) ->
         i = HINDEX_RESOLV_ID + Atomics.load p32, 1
+        ptri = 0 #log { id, retry }
 
         while i > 0
-            if id is Atomics.load p32, i
-                return i - HINDEX_RESOLV_ID
+            if  id is Atomics.load p32, i
+                ptri = i - HINDEX_RESOLV_ID
+                break
             i -= HEADERS_LENGTH
 
-        if  isBridge
-            ptri = Atomics.add p32, 1, HEADERS_LENGTH
-            Atomics.store p32, ptri + HINDEX_RESOLV_ID, id
+        if  isBridge            
+            if !ptri 
+                ptri = Atomics.add p32, 1, HEADERS_LENGTH
+                Atomics.store p32, ptri + HINDEX_RESOLV_ID, id
             return ptri
 
-        Atomics.wait p32, 3
-        resolvFind id
+        if !ptri or !Atomics.load p32, ptri + HINDEX_LOCKFREE
+            Atomics.wait p32, 3, 0, 40
+            if  retry > 100
+                throw /TOO_MANY_TRIED_TO_FIND/
+            return resolvFind id, ++retry
+
+        return ptri
 
     resolvCall  = ->
         Error.captureStackTrace e = {}
@@ -142,9 +149,6 @@ do  self.init   = ->
         cu8 = new self.Uint8ClampedArray objbuf
         si8 = new self.Int8Array objbuf
         dvw = new self.DataView objbuf
-
-        lockIndex           = if isBridge then 2 else 3
-        unlockIndex         = if isThread then 2 else 3
 
         p32 = new Int32Array ptrbuf
 
@@ -265,36 +269,29 @@ do  self.init   = ->
                     if  Number.isInteger argv
 
                         if  isBridge
+
                             length      = argv
                             byteLength  = argv
                             byteOffset  = malloc argv, 1
                             
                             begin       = byteOffset / 1
                             end         = begin + length
-                            
+
                             Atomics.store p32, ptri + HINDEX_LENGTH, length
                             Atomics.store p32, ptri + HINDEX_BYTEOFFSET, byteOffset
                             Atomics.store p32, ptri + HINDEX_BYTELENGTH, byteLength
                             Atomics.store p32, ptri + HINDEX_BEGIN, begin
                             Atomics.store p32, ptri + HINDEX_END, end
-
+                            Atomics.store p32, ptri + HINDEX_LOCKFREE, 1
+                            
                             super objbuf, byteOffset, length
 
-                            queueMicrotask ->
-                                Atomics.notify p32, 3, MAX_THREAD_COUNT
-                                Atomics.store p32, 3, 1
-
+                            Atomics.notify p32, 3, MAX_THREAD_COUNT
+                            
                         else
-                            lopi = 0
-                            loop
-                                log "loop", lopi if lopi
-                                Atomics.wait p32, 3, 0, 1000
 
-                                length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                                byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                                break if length
-                                break if lopi++ > 100
+                            length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                            byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
                             unless length
                                 throw [ /WHERE_IS_MY_MIND/, { ptri, length, byteOffset, name } ]
