@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, EVENT_READY, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_ITERINDEX, HINDEX_ITERLENGTH, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_RESOLV_ID, INITIAL_BYTELENGTH, ITERATION_PER_THREAD, MAX_PTR_COUNT, MAX_THREAD_COUNT, RESERVED_BYTELENGTH, Uint8Array, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, buffer, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createThreads, createWorker, cu8, defineTypedArrays, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, palloc, pnow, ptrbuf, randomUUID, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, state, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, threadHandler, threadId, threadmessage, u16, u32, u64, ui8, unlock, unlockBridge, unlockThreads, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
+  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, EVENT_READY, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_ITERINDEX, HINDEX_ITERLENGTH, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_RESOLV_ID, INITIAL_BYTELENGTH, ITERATION_PER_THREAD, MAX_PTR_COUNT, MAX_THREAD_COUNT, RESERVED_BYTELENGTH, TypedArray, Uint8Array, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, buffer, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createThreads, createWorker, cu8, defineTypedArrays, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, palloc, pnow, ptrbuf, randomUUID, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, state, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, threadHandler, threadId, threadmessage, u16, u32, u64, ui8, unlock, unlockBridge, unlockThreads, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
   log = function() {
     return console.log(name, ...arguments);
   };
@@ -55,6 +55,7 @@ self.name = "window";
   resolvs = new WeakMap();
   workers = new self.Array();
   littleEnd = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0];
+  TypedArray = Object.getPrototypeOf(self.Uint8Array);
   resolvFind = function(id, retry = 0) {
     var i, ptri;
     i = HINDEX_RESOLV_ID + Atomics.load(p32, 1);
@@ -243,24 +244,15 @@ self.name = "window";
     return 0;
   };
   defineTypedArrays = function() {
-    Object.defineProperties(Object.getPrototypeOf(self.Uint8Array).prototype, {
-      ptri: {
-        get: function() {
-          return resolvs.get(this);
-        },
-        set: function() {
-          return resolvs.set(this, arguments[0]);
-        }
-      },
-      //part of this
+    Object.defineProperties(TypedArray.prototype, {
       subarray: {
+        //part of this
         value: function(begin = 0, end = this.length) {
           return new this.constructor(this.buffer, this.byteOffset + this.BYTES_PER_ELEMENT * begin, end - begin);
         }
       },
-      
-      //copy to new
       slice: {
+        //copy to new
         value: function(begin = 0, end = this.length) {
           return new this.constructor(this, this.BYTES_PER_ELEMENT * begin, end - begin);
         }
@@ -299,7 +291,6 @@ self.name = "window";
                   done: true
                 };
               }
-              //log { index, length }
               iterate--;
               return {
                 value: index++ // + begin    
@@ -315,10 +306,13 @@ self.name = "window";
         ptri = resolvCall();
         argc = arguments.length;
         BPEl = 1;
+        // just for good visuality of code 
+        if (!argc) {
+          throw /NEED_ARGUMENTS_FOR_CONSTRUCT/;
         // new TypedArray( 24 );
         // new TypedArray( buffer );
         // new TypedArray( [ 2, 4, 1 ] );
-        if (argc === 1) {
+        } else if (argc === 1) {
           // new TypedArray( 24 );
           if (Number.isInteger(argv)) {
             if (isBridge) {

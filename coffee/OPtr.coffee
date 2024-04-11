@@ -68,6 +68,7 @@ do  self.init   = ->
     resolvs     = new WeakMap()
     workers     = new self.Array()
     littleEnd   = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0]
+    TypedArray  = Object.getPrototypeOf self.Uint8Array 
 
     resolvFind  = ( id, retry = 0 ) ->
         i = HINDEX_RESOLV_ID + Atomics.load p32, 1
@@ -244,14 +245,10 @@ do  self.init   = ->
 
     defineTypedArrays = ->
 
-        Object.defineProperties Object.getPrototypeOf( self.Uint8Array )::,
-
-            ptri        :
-                get     : -> resolvs.get this
-                set     : -> resolvs.set this, arguments[0]
-
-            #part of this
-            subarray    :
+        Object.defineProperties TypedArray::,
+            
+            subarray            :
+                #part of this
                 value   : ( begin = 0, end = @length ) ->
                     new @constructor(
                         @buffer, 
@@ -259,8 +256,8 @@ do  self.init   = ->
                         end - begin
                     )
                     
-            #copy to new
-            slice       :
+            slice               :
+                #copy to new
                 value   : ( begin = 0, end = @length ) ->
                     new @constructor(
                         this,
@@ -268,52 +265,53 @@ do  self.init   = ->
                         end - begin
                     )
 
+            [ Symbol.iterator ] :
+                value : ->
+                    ptri = resolvs.get this
+                    length = -1 + Atomics.load p32, ptri + HINDEX_LENGTH
+                    begin = Atomics.load p32, ptri + HINDEX_BEGIN
 
-            [ Symbol.iterator ] : value : ->
+                    if  isBridge
+                        Atomics.wait p32, 4
+                        return next : -> done: on
 
-                ptri = resolvs.get this
-                length = -1 + Atomics.load p32, ptri + HINDEX_LENGTH
-                begin = Atomics.load p32, ptri + HINDEX_BEGIN
+                    index = 0
+                    iterate = 0
+                    total = 0
 
-                if  isBridge
-                    Atomics.wait p32, 4
-                    return next : -> done: on
+                    next : ->
 
-                index = 0
-                iterate = 0
-                total = 0
+                        if !iterate
+                            iterate = ITERATION_PER_THREAD
+                            index = Atomics.add p32, ptri + HINDEX_ITERINDEX, iterate
+                            total += iterate
 
-                next : ->
+                        if  index > length
+                            log { total }
 
-                    if !iterate
-                        iterate = ITERATION_PER_THREAD
-                        index = Atomics.add p32, ptri + HINDEX_ITERINDEX, iterate
-                        total += iterate
+                            Atomics.wait p32, 3, 0, 100
+                            Atomics.notify p32, 4, 1
+                            return done: yes
 
-                    if  index > length
-                        log { total }
+                        iterate--
+                        value : index++ # + begin    
 
-                        Atomics.wait p32, 3, 0, 100
-                        Atomics.notify p32, 4, 1
-                        return done: yes
+        class Uint8Array        extends self.Uint8Array
 
-                    #log { index, length }
-
-                    iterate--
-                    value : index++ # + begin    
-
-        class Uint8Array  extends self.Uint8Array
-
-            constructor : ( argv, byteOffset, length ) ->
+            constructor         : ( argv, byteOffset, length ) ->
 
                 ptri = resolvCall()
                 argc = arguments.length                
                 BPEl = 1
 
+                # just for good visuality of code 
+                unless argc
+                    throw /NEED_ARGUMENTS_FOR_CONSTRUCT/
+
                 # new TypedArray( 24 );
                 # new TypedArray( buffer );
                 # new TypedArray( [ 2, 4, 1 ] );
-                if argc is 1
+                else if argc is 1
 
                     # new TypedArray( 24 );
                     if Number.isInteger argv
@@ -611,6 +609,27 @@ do  self.init   = ->
                 # WeakMap -> {TypedArray} => ptri
                 resolvs.set this, ptri
 
+
+
+
+
+
+                
+
+
+
+
+                
+
+
+
+
+                
+
+
+
+
+                
     if  isWindow
 
         sharedHandler   =
