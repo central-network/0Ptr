@@ -1,21 +1,45 @@
 self.name = "window";
 
 (self.init = function() {
-  var CONST, Uint8Array, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, buffer, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffer, createThreads, createWorker, cu8, defineTypedArrays, dvw, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, findPtri, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, header, i16, i32, i64, initMemory, isBridge, isThread, isWindow, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, malloc, now, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, palloc, pnow, randomUUID, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, state, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, threadHandler, threadId, threadmessage, u16, u32, u64, ui8, unlock, unlockBridge, unlockThreads, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
-  CONST = {
-    BUFFER_TEST_START_LENGTH: 1e20,
-    BUFFER_TEST_STEP_DIVIDER: 1e1,
-    INITIAL_BYTELENGTH: 6e4,
-    BYTES_PER_ELEMENT: 4,
-    RESERVED_BYTELENGTH: 64,
-    ALLOCATION_BYTEOFFSET: 100000 * 16 * 4,
-    HEADERS_LENGTH: 16,
-    HEADERS_BYTE_LENGTH: 4 * 16,
-    HINDEX_BYTEOFFSET: 0,
-    HINDEX_LENGTH: 1,
-    HINDEX_RESOLV_ID: 2
+  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, EVENT_READY, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BRIDGE_LOCK, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_LENGTH, HINDEX_RESOLV_ID, HINDEX_THREAD_LOCK, INITIAL_BYTELENGTH, MAX_PTR_COUNT, MAX_THREAD_COUNT, RESERVED_BYTELENGTH, Uint8Array, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, buffer, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createThreads, createWorker, cu8, defineTypedArrays, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, palloc, pnow, ptrbuf, randomUUID, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, state, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, threadHandler, threadId, threadmessage, u16, u32, u64, ui8, unlock, unlockBridge, unlockThreads, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
+  log = function() {
+    return console.log(name, ...arguments);
   };
-  [blobURL, palloc, malloc, header, littleEnd, lock, unlock, unlockThreads, unlockBridge, findPtri, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, Uint8Array] = [];
+  warn = function() {
+    return console.warn(name, ...arguments);
+  };
+  error = function() {
+    return console.error(name, ...arguments);
+  };
+  number = function() {
+    return arguments[0].split("").reduce(function(a, b) {
+      return b.charCodeAt() + ((typeof a.charCodeAt === "function" ? a.charCodeAt() : void 0) || a);
+    });
+  };
+  HEADERS_LENGTH_OFFSET = 1;
+  HINDEX_BEGIN = HEADERS_LENGTH_OFFSET++;
+  HINDEX_END = HEADERS_LENGTH_OFFSET++;
+  HINDEX_BYTEOFFSET = HEADERS_LENGTH_OFFSET++;
+  HINDEX_LENGTH = HEADERS_LENGTH_OFFSET++;
+  HINDEX_BYTELENGTH = HEADERS_LENGTH_OFFSET++;
+  HINDEX_RESOLV_ID = HEADERS_LENGTH_OFFSET++;
+  HINDEX_THREAD_LOCK = HEADERS_LENGTH_OFFSET++;
+  HINDEX_BRIDGE_LOCK = HEADERS_LENGTH_OFFSET++;
+  BUFFER_TEST_START_LENGTH = Math.pow(((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 1) + 1, 11);
+  BUFFER_TEST_STEP_DIVIDER = 1e1;
+  INITIAL_BYTELENGTH = 6e4;
+  BYTES_PER_ELEMENT = 4;
+  RESERVED_BYTELENGTH = 64;
+  ALLOCATION_BYTEOFFSET = 100000 * 16 * 4;
+  HEADERS_LENGTH = 16;
+  HEADERS_BYTE_LENGTH = 4 * 16;
+  MAX_PTR_COUNT = 1e5;
+  MAX_THREAD_COUNT = -2 + (typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 3;
+  EVENT_READY = new (EVENT_READY = class EVENT_READY extends Number {})(number(/EVENT_READY/.source));
+  if (HEADERS_LENGTH_OFFSET >= HEADERS_LENGTH) {
+    throw /MAX_HEADERS_LENGTH_EXCEED/;
+  }
+  [blobURL, buffer, objbuf, ptrbuf, palloc, malloc, littleEnd, lock, unlock, unlockThreads, unlockBridge, p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, Uint8Array] = [];
   bc = new BroadcastChannel("0ptr");
   selfName = self.name;
   isWindow = typeof document !== "undefined" && document !== null;
@@ -29,8 +53,25 @@ self.name = "window";
   resolvs = new WeakMap();
   workers = new self.Array();
   littleEnd = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0];
+  resolvFind = function(id) {
+    var i, ptri;
+    i = HINDEX_RESOLV_ID + Atomics.load(p32, 1);
+    while (i > 0) {
+      if (id === Atomics.load(p32, i)) {
+        return i - HINDEX_RESOLV_ID;
+      }
+      i -= HEADERS_LENGTH;
+    }
+    if (isBridge) {
+      ptri = Atomics.add(p32, 1, HEADERS_LENGTH);
+      Atomics.store(p32, ptri + HINDEX_RESOLV_ID, id);
+      return ptri;
+    }
+    Atomics.wait(p32, 3);
+    return resolvFind(id);
+  };
   resolvCall = function() {
-    var cBrace, cBreak, cColon, cCount, discard, e, lasti, length, stack, sum, val, vals;
+    var cBrace, cBreak, cColon, cCount, call, discard, e, lasti, length, stack, vals;
     Error.captureStackTrace(e = {});
     stack = e.stack.toString();
     length = stack.length;
@@ -40,7 +81,7 @@ self.name = "window";
     cCount = 2;
     discard = true;
     lasti = length;
-    sum = 0;
+    call = 0;
     vals = [];
     while (length--) {
       switch (stack.charCodeAt(length)) {
@@ -52,167 +93,149 @@ self.name = "window";
           break;
         case cColon:
           if (!discard) {
-            val = stack.substring(length + 1, lasti);
-            vals.push(val);
-            sum = sum + parseInt(val);
+            call += vals[vals.length] = parseInt(stack.substring(length + 1, lasti));
           }
-          lasti = length;
           if (!--cCount) {
             discard = true;
           }
+          lasti = length;
       }
     }
-    //console.warn vals
-    return sum;
+    return resolvFind(call);
   };
   randomUUID = function() {
     return (typeof crypto !== "undefined" && crypto !== null ? crypto.randomUUID() : void 0) || btoa(new Date().toISOString()).toLowerCase().split("").toSpliced(8, 0, "-").toSpliced(13, 0, "-").toSpliced(18, 0, "-").toSpliced(24, 0, "-").join("").substring(0, 36).trim().padEnd(36, String.fromCharCode(50 + Math.random() * 40));
   };
-  resolvFind = function(value, stride = 0) {
-    var diff, hlen, i, offset;
-    hlen = CONST.HEADERS_LENGTH;
-    offset = CONST.HEADERS_LENGTH;
-    i = 0;
-    while (true) {
-      i = header.indexOf(value, offset);
-      if (i === -1) {
-        break;
-      }
-      diff = i - stride;
-      if (!(diff % hlen)) {
-        return diff;
-      }
-      offset = i + 1;
-    }
-    return -1;
-  };
-  initMemory = function() {
+  initMemory = function(buffers) {
     var lockIndex, unlockIndex;
-    u64 = new self.BigUint64Array(buffer);
-    i64 = new self.BigInt64Array(buffer);
-    f32 = new self.Float32Array(buffer);
-    f64 = new self.Float64Array(buffer);
-    i32 = new self.Int32Array(buffer);
-    u32 = new self.Uint32Array(buffer);
-    i16 = new self.Int16Array(buffer);
-    u16 = new self.Uint16Array(buffer);
-    ui8 = new self.Uint8Array(buffer);
-    cu8 = new self.Uint8ClampedArray(buffer);
-    si8 = new self.Int8Array(buffer);
-    dvw = new self.DataView(buffer);
+    objbuf = buffers.objbuf;
+    ptrbuf = buffers.ptrbuf;
+    u64 = new self.BigUint64Array(objbuf);
+    i64 = new self.BigInt64Array(objbuf);
+    f32 = new self.Float32Array(objbuf);
+    f64 = new self.Float64Array(objbuf);
+    i32 = new self.Int32Array(objbuf);
+    u32 = new self.Uint32Array(objbuf);
+    i16 = new self.Int16Array(objbuf);
+    u16 = new self.Uint16Array(objbuf);
+    ui8 = new self.Uint8Array(objbuf);
+    cu8 = new self.Uint8ClampedArray(objbuf);
+    si8 = new self.Int8Array(objbuf);
+    dvw = new self.DataView(objbuf);
     lockIndex = isBridge ? 2 : 3;
     unlockIndex = isThread ? 2 : 3;
-    malloc = Atomics.add.bind(Atomics, u32, 0);
-    palloc = Atomics.add.bind(Atomics, u32, 1, CONST.HEADERS_LENGTH);
-    header = u32.subarray(0, CONST.ALLOCATION_BYTEOFFSET / 4);
-    lock = function(i = lockIndex, value, timeout = 1000) {
-      //console.log "locking", name, i
-      return Atomics.wait(i32, i, value, timeout);
+    p32 = new Int32Array(ptrbuf);
+    malloc = function(byteLength = 0, alignBytes = 1) {
+      var byteOffset, mod;
+      if (byteLength > 0) {
+        if (alignBytes > 1) {
+          if (mod = this.byteLength % alignBytes) {
+            Atomics.add(p32, 0, alignBytes - mod);
+          }
+        }
+        byteOffset = Atomics.add(p32, 0, byteLength);
+        objbuf.grow(byteOffset + byteLength);
+        return byteOffset;
+      }
+      return this.byteLength;
     };
-    unlockBridge = function() {
-      return Atomics.notify(i32, 2);
-    };
-    unlockThreads = function() {
-      return Atomics.notify(i32, 3);
-    };
-    unlock = function(i = unlockIndex, count = 100) {
-      return Atomics.notify(i32, i, count);
-    };
-    addUint32 = Atomics.add.bind(Atomics, u32);
-    andUint32 = Atomics.and.bind(Atomics, u32);
-    orUint32 = Atomics.or.bind(Atomics, u32);
-    xorUint32 = Atomics.xor.bind(Atomics, u32);
-    subUint32 = Atomics.sub.bind(Atomics, u32);
-    loadUint32 = Atomics.load.bind(Atomics, u32);
-    storeUint32 = Atomics.store.bind(Atomics, u32);
-    exchangeUint32 = Atomics.exchange.bind(Atomics, u32);
-    compareUint32 = Atomics.compareExchange.bind(Atomics, u32);
-    getUint32 = function(o) {
-      return dvw.getUint32(o, littleEnd);
-    };
-    setUint32 = function(o, v) {
-      return dvw.setUint32(o, v, littleEnd);
-    };
-    addUint16 = Atomics.add.bind(Atomics, u16);
-    andUint16 = Atomics.and.bind(Atomics, u16);
-    orUint16 = Atomics.or.bind(Atomics, u16);
-    xorUint16 = Atomics.xor.bind(Atomics, u16);
-    subUint16 = Atomics.sub.bind(Atomics, u16);
-    loadUint16 = Atomics.load.bind(Atomics, u16);
-    storeUint16 = Atomics.store.bind(Atomics, u16);
-    exchangeUint16 = Atomics.exchange.bind(Atomics, u16);
-    compareUint16 = Atomics.compareExchange.bind(Atomics, u16);
-    getUint16 = function(o) {
-      return dvw.getUint16(o, littleEnd);
-    };
-    setUint16 = function(o, v) {
-      return dvw.setUint16(o, v, littleEnd);
-    };
-    addUint8 = Atomics.add.bind(Atomics, ui8);
-    andUint8 = Atomics.and.bind(Atomics, ui8);
-    orUint8 = Atomics.or.bind(Atomics, ui8);
-    xorUint8 = Atomics.xor.bind(Atomics, ui8);
-    subUint8 = Atomics.sub.bind(Atomics, ui8);
-    loadUint8 = Atomics.load.bind(Atomics, ui8);
-    storeUint8 = Atomics.store.bind(Atomics, ui8);
-    exchangeUint8 = Atomics.exchange.bind(Atomics, ui8);
-    compareUint8 = Atomics.compareExchange.bind(Atomics, ui8);
-    getUint8 = function(o) {
-      return dvw.getUint8(o, littleEnd);
-    };
-    setUint8 = function(o, v) {
-      return dvw.setUint8(o, v, littleEnd);
-    };
-    addInt32 = Atomics.add.bind(Atomics, u32);
-    andInt32 = Atomics.and.bind(Atomics, u32);
-    orInt32 = Atomics.or.bind(Atomics, u32);
-    xorInt32 = Atomics.xor.bind(Atomics, u32);
-    subInt32 = Atomics.sub.bind(Atomics, u32);
-    loadInt32 = Atomics.load.bind(Atomics, u32);
-    storeInt32 = Atomics.store.bind(Atomics, u32);
-    exchangeInt32 = Atomics.exchange.bind(Atomics, u32);
-    compareInt32 = Atomics.compareExchange.bind(Atomics, u32);
-    getInt32 = function(o) {
-      return dvw.getInt32(o, littleEnd);
-    };
-    setInt32 = function(o, v) {
-      return dvw.setInt32(o, v, littleEnd);
-    };
-    addInt16 = Atomics.add.bind(Atomics, u16);
-    andInt16 = Atomics.and.bind(Atomics, u16);
-    orInt16 = Atomics.or.bind(Atomics, u16);
-    xorInt16 = Atomics.xor.bind(Atomics, u16);
-    subInt16 = Atomics.sub.bind(Atomics, u16);
-    loadInt16 = Atomics.load.bind(Atomics, u16);
-    storeInt16 = Atomics.store.bind(Atomics, u16);
-    exchangeInt16 = Atomics.exchange.bind(Atomics, u16);
-    compareInt16 = Atomics.compareExchange.bind(Atomics, u16);
-    getInt16 = function(o) {
-      return dvw.getInt16(o, littleEnd);
-    };
-    setInt16 = function(o, v) {
-      return dvw.setInt16(o, v, littleEnd);
-    };
-    addInt8 = Atomics.add.bind(Atomics, si8);
-    andInt8 = Atomics.and.bind(Atomics, si8);
-    orInt8 = Atomics.or.bind(Atomics, si8);
-    xorInt8 = Atomics.xor.bind(Atomics, si8);
-    subInt8 = Atomics.sub.bind(Atomics, si8);
-    loadInt8 = Atomics.load.bind(Atomics, si8);
-    storeInt8 = Atomics.store.bind(Atomics, si8);
-    exchangeInt8 = Atomics.exchange.bind(Atomics, si8);
-    compareInt8 = Atomics.compareExchange.bind(Atomics, si8);
-    getInt8 = function(o) {
-      return dvw.getInt8(o, littleEnd);
-    };
-    setInt8 = function(o, v) {
-      return dvw.setInt8(o, v, littleEnd);
-    };
-    return buffer;
+    (function() {
+      addUint32 = Atomics.add.bind(Atomics, u32);
+      andUint32 = Atomics.and.bind(Atomics, u32);
+      orUint32 = Atomics.or.bind(Atomics, u32);
+      xorUint32 = Atomics.xor.bind(Atomics, u32);
+      subUint32 = Atomics.sub.bind(Atomics, u32);
+      loadUint32 = Atomics.load.bind(Atomics, u32);
+      storeUint32 = Atomics.store.bind(Atomics, u32);
+      exchangeUint32 = Atomics.exchange.bind(Atomics, u32);
+      compareUint32 = Atomics.compareExchange.bind(Atomics, u32);
+      getUint32 = function(o) {
+        return dvw.getUint32(o, littleEnd);
+      };
+      setUint32 = function(o, v) {
+        return dvw.setUint32(o, v, littleEnd);
+      };
+      addUint16 = Atomics.add.bind(Atomics, u16);
+      andUint16 = Atomics.and.bind(Atomics, u16);
+      orUint16 = Atomics.or.bind(Atomics, u16);
+      xorUint16 = Atomics.xor.bind(Atomics, u16);
+      subUint16 = Atomics.sub.bind(Atomics, u16);
+      loadUint16 = Atomics.load.bind(Atomics, u16);
+      storeUint16 = Atomics.store.bind(Atomics, u16);
+      exchangeUint16 = Atomics.exchange.bind(Atomics, u16);
+      compareUint16 = Atomics.compareExchange.bind(Atomics, u16);
+      getUint16 = function(o) {
+        return dvw.getUint16(o, littleEnd);
+      };
+      setUint16 = function(o, v) {
+        return dvw.setUint16(o, v, littleEnd);
+      };
+      addUint8 = Atomics.add.bind(Atomics, ui8);
+      andUint8 = Atomics.and.bind(Atomics, ui8);
+      orUint8 = Atomics.or.bind(Atomics, ui8);
+      xorUint8 = Atomics.xor.bind(Atomics, ui8);
+      subUint8 = Atomics.sub.bind(Atomics, ui8);
+      loadUint8 = Atomics.load.bind(Atomics, ui8);
+      storeUint8 = Atomics.store.bind(Atomics, ui8);
+      exchangeUint8 = Atomics.exchange.bind(Atomics, ui8);
+      compareUint8 = Atomics.compareExchange.bind(Atomics, ui8);
+      getUint8 = function(o) {
+        return dvw.getUint8(o, littleEnd);
+      };
+      setUint8 = function(o, v) {
+        return dvw.setUint8(o, v, littleEnd);
+      };
+      addInt32 = Atomics.add.bind(Atomics, u32);
+      andInt32 = Atomics.and.bind(Atomics, u32);
+      orInt32 = Atomics.or.bind(Atomics, u32);
+      xorInt32 = Atomics.xor.bind(Atomics, u32);
+      subInt32 = Atomics.sub.bind(Atomics, u32);
+      loadInt32 = Atomics.load.bind(Atomics, u32);
+      storeInt32 = Atomics.store.bind(Atomics, u32);
+      exchangeInt32 = Atomics.exchange.bind(Atomics, u32);
+      compareInt32 = Atomics.compareExchange.bind(Atomics, u32);
+      getInt32 = function(o) {
+        return dvw.getInt32(o, littleEnd);
+      };
+      setInt32 = function(o, v) {
+        return dvw.setInt32(o, v, littleEnd);
+      };
+      addInt16 = Atomics.add.bind(Atomics, u16);
+      andInt16 = Atomics.and.bind(Atomics, u16);
+      orInt16 = Atomics.or.bind(Atomics, u16);
+      xorInt16 = Atomics.xor.bind(Atomics, u16);
+      subInt16 = Atomics.sub.bind(Atomics, u16);
+      loadInt16 = Atomics.load.bind(Atomics, u16);
+      storeInt16 = Atomics.store.bind(Atomics, u16);
+      exchangeInt16 = Atomics.exchange.bind(Atomics, u16);
+      compareInt16 = Atomics.compareExchange.bind(Atomics, u16);
+      getInt16 = function(o) {
+        return dvw.getInt16(o, littleEnd);
+      };
+      setInt16 = function(o, v) {
+        return dvw.setInt16(o, v, littleEnd);
+      };
+      addInt8 = Atomics.add.bind(Atomics, si8);
+      andInt8 = Atomics.and.bind(Atomics, si8);
+      orInt8 = Atomics.or.bind(Atomics, si8);
+      xorInt8 = Atomics.xor.bind(Atomics, si8);
+      subInt8 = Atomics.sub.bind(Atomics, si8);
+      loadInt8 = Atomics.load.bind(Atomics, si8);
+      storeInt8 = Atomics.store.bind(Atomics, si8);
+      exchangeInt8 = Atomics.exchange.bind(Atomics, si8);
+      compareInt8 = Atomics.compareExchange.bind(Atomics, si8);
+      getInt8 = function(o) {
+        return dvw.getInt8(o, littleEnd);
+      };
+      return setInt8 = function(o, v) {
+        return dvw.setInt8(o, v, littleEnd);
+      };
+    })();
+    return 0;
   };
   defineTypedArrays = function() {
     Object.defineProperties(Object.getPrototypeOf(self.Uint8Array).prototype, {
-      id: {
+      ptri: {
         get: function() {
           return resolvs.get(this);
         },
@@ -223,8 +246,8 @@ self.name = "window";
     });
     return Uint8Array = class Uint8Array extends self.Uint8Array {
       constructor(argv, byteOffset, length) {
-        var argc, id, ptri;
-        id = resolvCall();
+        var argc, begin, byteLength, end, ptri;
+        ptri = resolvCall();
         argc = arguments.length;
         if (argc === 3) {
           1; // slicing
@@ -234,28 +257,29 @@ self.name = "window";
           if (Number.isInteger(argv)) {
             // alloc byte length
             if (isBridge) {
-              byteOffset = malloc(argv);
-              ptri = palloc();
-              storeUint32(ptri + CONST.HINDEX_LENGTH, argv);
-              storeUint32(ptri + CONST.HINDEX_BYTEOFFSET, byteOffset);
-              storeUint32(ptri + CONST.HINDEX_RESOLV_ID, id);
-              super(buffer, byteOffset, argv);
-              unlockThreads();
+              length = argv;
+              byteLength = argv;
+              byteOffset = malloc(argv, 1);
+              begin = byteOffset / 1;
+              end = begin + length;
+              Atomics.store(p32, ptri + HINDEX_LENGTH, length);
+              Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
+              Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
+              Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
+              Atomics.store(p32, ptri + HINDEX_END, end);
+              super(objbuf, byteOffset, length);
+              Atomics.notify(p32, 3);
             } else {
-              if (0 > (ptri = resolvFind(id, CONST.HINDEX_RESOLV_ID))) {
-                lock();
-                ptri = resolvFind(id, CONST.HINDEX_RESOLV_ID);
-              }
-              byteOffset = loadUint32(ptri + CONST.HINDEX_BYTEOFFSET);
-              length = loadUint32(ptri + CONST.HINDEX_LENGTH);
-              super(buffer, byteOffset, length);
+              length = Atomics.load(p32, ptri + HINDEX_LENGTH);
+              byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
+              super(objbuf, byteOffset, length);
             }
           } else if (ArrayBuffer.isView(argv)) {
             // alloc byte length
             1;
           }
         }
-        this.id = id;
+        this.ptri = ptri;
       }
 
     };
@@ -263,16 +287,14 @@ self.name = "window";
   if (isWindow) {
     sharedHandler = {
       register: function(data) {
-        //console.warn "registering worker:", data
+        warn("registering worker:", data);
         Object.assign(this.info, data);
         this;
         if (!workers.some(function(w) {
           return !w.info.uuid;
         })) {
-          //console.log "unlock time..."
-          //unlock()
-          unlockBridge();
-          return queueMicrotask(unlockThreads);
+          log("says it's onready time...", EVENT_READY);
+          return bc.postMessage(EVENT_READY);
         }
       }
     };
@@ -306,21 +328,22 @@ self.name = "window";
       }
       return results;
     };
-    createBuffer = function() {
+    createBuffers = function() {
       var Buffer, maxByteLength;
       Buffer = typeof SharedArrayBuffer !== "undefined" && SharedArrayBuffer !== null ? SharedArrayBuffer : ArrayBuffer;
-      buffer = !(maxByteLength = CONST.BUFFER_TEST_START_LENGTH);
+      buffer = !(maxByteLength = BUFFER_TEST_START_LENGTH);
       while (!buffer) {
         try {
           buffer = new Buffer(0, {maxByteLength});
-        } catch (error) {
-          maxByteLength /= CONST.BUFFER_TEST_STEP_DIVIDER;
+        } catch (error1) {
+          maxByteLength /= BUFFER_TEST_STEP_DIVIDER;
         }
       }
-      buffer.grow(maxByteLength);
-      initMemory(buffer);
-      orUint32(1, CONST.HEADERS_LENGTH);
-      return orUint32(0, CONST.ALLOCATION_BYTEOFFSET);
+      initMemory({
+        objbuf: buffer,
+        ptrbuf: new Buffer(Math.min(MAX_PTR_COUNT * BYTES_PER_ELEMENT, maxByteLength), {maxByteLength})
+      });
+      return Atomics.store(p32, 1, HEADERS_LENGTH);
     };
     createWorker = function(name, onmessage) {
       var worker;
@@ -334,13 +357,13 @@ self.name = "window";
       var bridge, i, j, ref, results, thread;
       bridge = createWorker("bridge", bridgemessage);
       bridge.postMessage({
-        setup: {blobURL, buffer}
+        setup: {blobURL, objbuf, ptrbuf}
       });
       results = [];
-      for (i = j = 0, ref = navigator.hardwareConcurrency - 2; (0 <= ref ? j < ref : j > ref); i = 0 <= ref ? ++j : --j) {
+      for (i = j = 0, ref = MAX_THREAD_COUNT; (0 <= ref ? j < ref : j > ref); i = 0 <= ref ? ++j : --j) {
         thread = createWorker("thread" + i, threadmessage);
         results.push(thread.postMessage({
-          setup: {blobURL, buffer}
+          setup: {blobURL, objbuf, ptrbuf}
         }));
       }
       return results;
@@ -358,14 +381,18 @@ self.name = "window";
     };
     listenEvents = function() {
       return window.onclick = function() {
-        return console.table(workers.map(function(w) {
+        console.table(workers.map(function(w) {
           return w.info;
         }));
+        console.warn("");
+        console.log(objbuf);
+        console.log(ptrbuf);
+        return console.log(p32);
       };
     };
     queueMicrotask(function() {
       listenEvents();
-      createBuffer();
+      createBuffers();
       createBlobURL();
       return createThreads();
     });
@@ -380,15 +407,12 @@ self.name = "window";
         switch (req) {
           case "setup":
             uuid = randomUUID();
-            buffer = data.buffer;
             blobURL = data.blobURL;
-            initMemory(buffer);
+            initMemory(data);
             defineTypedArrays();
-            postMessage({
+            results.push(postMessage({
               register: {selfName, isBridge, isThread, threadId, now, pnow, uuid, state}
-            });
-            lock();
-            results.push(onready());
+            }));
             break;
           default:
             results.push(void 0);
@@ -407,15 +431,12 @@ self.name = "window";
         switch (req) {
           case "setup":
             uuid = randomUUID();
-            buffer = data.buffer;
             blobURL = data.blobURL;
-            initMemory(buffer);
+            initMemory(data);
             defineTypedArrays();
-            postMessage({
+            results.push(postMessage({
               register: {selfName, isBridge, isThread, threadId, now, pnow, uuid, state}
-            });
-            lock();
-            results.push(onready());
+            }));
             break;
           default:
             results.push(void 0);
@@ -424,5 +445,12 @@ self.name = "window";
       return results;
     });
   }
+  bc.onmessage = function(e) {
+    return {
+      [EVENT_READY]: function() {
+        return onready();
+      }
+    }[e.data]();
+  };
   return 0xdead;
 })();
