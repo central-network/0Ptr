@@ -38,7 +38,7 @@
 
     while ( retry-- ) {
         for ( let i of a ) {
-            a[i] = Math.random() * 0xff
+            a[i] = 1
         }
         tried++;
     }
@@ -50,7 +50,7 @@
         let secs = (msecs / 1000).toFixed(2) * 1;
         let ratio = Math.trunc(ops / secs);
 
-        let nice = numberWithCommas(ratio);
+        let nice = numberWithCommas(ratio) + " ops/sec";
 
 
 
