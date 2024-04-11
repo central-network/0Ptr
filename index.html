@@ -27,7 +27,7 @@
     new Uint8Array(Math.floor(Math.random() * 100));
     new Uint8Array(Math.floor(Math.random() * 100));
     new Uint8Array(11);
-    let a = new Uint8Array(42);
+    let a = new Uint8Array(24);
     //let v = new Uint8Array(52412);
 
     for ( let i of a ) {
@@ -35,13 +35,16 @@
     }
 
     let v = new Uint8Array( a, 12 );
+    let z = new Uint8Array( v );
+    let q = new Uint8Array( [ 2, 4, 221, 15 ] );
 
     let c = v.subarray(2, 4);
     let d = v.slice(2, 4);
 
     log( "c:", c);
     log( "d:", d);
-    console.warn( name, "\t--> HPC code running...",  {a, v, c, d} );
+    
+    console.warn( name, "\t--> HPC code running...",  {a, v, c, d, z, q} );
 
     /*
     BENCHMARK 3.186.470.769 ops/sec
