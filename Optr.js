@@ -285,7 +285,7 @@ self.name = "window";
                 if (lopi) {
                   log("loop", lopi);
                 }
-                Atomics.wait(p32, 3, 0, 100);
+                Atomics.wait(p32, 3, 0, 1000);
                 length = Atomics.load(p32, ptri + HINDEX_LENGTH);
                 byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
                 if (length) {

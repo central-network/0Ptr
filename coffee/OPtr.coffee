@@ -279,6 +279,7 @@ do  self.init   = ->
                             Atomics.store p32, ptri + HINDEX_END, end
 
                             super objbuf, byteOffset, length
+
                             queueMicrotask ->
                                 Atomics.notify p32, 3, MAX_THREAD_COUNT
                                 Atomics.store p32, 3, 1
@@ -287,7 +288,7 @@ do  self.init   = ->
                             lopi = 0
                             loop
                                 log "loop", lopi if lopi
-                                Atomics.wait p32, 3, 0, 100
+                                Atomics.wait p32, 3, 0, 1000
 
                                 length      = Atomics.load p32, ptri + HINDEX_LENGTH
                                 byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
