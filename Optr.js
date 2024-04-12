@@ -1616,17 +1616,16 @@ self.name = "window";
 
       render(handler) {
         var commit;
-        if (!isBridge) {
-          return;
+        if (isBridge) {
+          (commit = () => {
+            handler.call(this);
+            postMessage({
+              render: this.transferToImageBitmap()
+            });
+            return requestAnimationFrame(commit);
+          })();
         }
-        commit = () => {
-          handler.call(this);
-          postMessage({
-            render: this.transferToImageBitmap()
-          });
-          return requestAnimationFrame(commit);
-        };
-        return commit();
+        return this;
       }
 
       constructor(width, height) {

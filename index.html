@@ -48,8 +48,6 @@
     //console.warn( name, "\t--> HPC code running...",  {a} );
 
     const offscreen = new OffscreenCanvas(256, 256);
-    log( offscreen );
-    
     const gl = offscreen.getContext("webgl2");
 
     let red = 0, green = 0.5 , blue= 0.3, sign = 1, factor = 0.01;
@@ -69,7 +67,7 @@
 
     });
   
-    log( gl )
+    log({ offscreen, gl });
 
 
     /*

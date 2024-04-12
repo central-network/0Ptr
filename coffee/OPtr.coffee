@@ -1985,14 +1985,13 @@ do  self.init   = ->
                 return context
 
             render      : ( handler ) ->
-                return unless isBridge
-                
-                commit = =>
+                if  isBridge then do commit = =>
+                    
                     handler.call this
                     postMessage render : @transferToImageBitmap()
                     requestAnimationFrame commit
 
-                commit()
+                return this
 
             constructor : ( width, height ) ->
                 ptri = resolvCall()
@@ -2012,7 +2011,7 @@ do  self.init   = ->
 
     if  isWindow
 
-        canvas = document.getElementById("viewport")
+        canvas  = document.getElementById("viewport")
         context = canvas.getContext("bitmaprenderer")
 
         sharedHandler   =
