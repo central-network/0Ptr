@@ -64,7 +64,7 @@
 
     while ( retry-- ) {
         for ( let i of a ) {
-            a[i] = 1
+            a[i] = Math.floor(Math.random() * 0xff)
         }
         tried++;
     }

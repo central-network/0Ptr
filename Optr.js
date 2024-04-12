@@ -248,7 +248,7 @@ self.name = "window";
     return 0;
   };
   defineTypedArrays = function() {
-    var Int8Array;
+    var Int8Array, Uint8ClampedArray;
     Object.defineProperties(TypedArray, {
       from: {
         value: function() {
@@ -449,7 +449,120 @@ self.name = "window";
       }
 
     };
-    return Int8Array = class Int8Array extends self.Int8Array {
+    Int8Array = class Int8Array extends self.Int8Array {
+      constructor(arg0, byteOffset, length) {
+        var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
+        ptri = resolvCall();
+        argc = arguments.length;
+        bpel = 1;
+        if (isThread) {
+          length = Atomics.load(p32, ptri + HINDEX_LENGTH);
+          byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
+          super(objbuf, byteOffset, length);
+        } else if (isBridge) {
+          if (argc === 1) {
+            // new TypedArray( 24 );
+            // new TypedArray( buffer );
+            // new TypedArray( [ 2, 4, 1 ] );
+            if (Number.isInteger(arg0)) {
+              // new TypedArray( 24 );
+
+              //Atomics.wait p32, 4, 0, 2240; #testing locks
+              length = arg0;
+              byteLength = length * bpel;
+              byteOffset = malloc(byteLength, bpel);
+            } else if (ArrayBuffer.isView(arg0)) {
+              // new TypedArray( new TypedArray(?) );
+
+              //Atomics.wait p32, 4, 0, 2240; #testing locks
+              byteLength = arg0.byteLength;
+              length = arg0.byteLength / bpel;
+              byteOffset = malloc(byteLength, bpel);
+              if (arg0.buffer === objbuf) {
+                ui8.copyWithin(byteOffset, arg0.byteOffset, arg0.byteOffset + byteLength);
+              } else {
+                ui8.set(arg0, byteOffset);
+              }
+            } else if (Array.isArray) {
+              // new TypedArray( [ 2, 4, 1 ] )
+
+              //Atomics.wait p32, 4, 0, 2240; #testing locks
+              length = arg0.length;
+              byteLength = length * bpel;
+              byteOffset = malloc(byteLength, bpel);
+              ui8.set(arg0, byteOffset);
+            }
+          } else if (argc === 3) {
+            // new TypedArray( buffer, 1221, 4 );
+            // new TypedArray( new TypedArra( 2 ), 36, 2 );
+            if (ArrayBuffer.isView(arg0)) {
+              // new TypedArray( new TypedArra( 2 ), 36, 2 );
+              copyStart = arg0.byteOffset + byteOffset;
+              copyEnd = copyStart + length * bpel;
+              byteLength = length * bpel;
+              byteOffset = malloc(byteLength, bpel);
+              if (arg0.buffer === objbuf) {
+                ui8.copyWithin(byteOffset, copyStart, copyEnd);
+              } else {
+                ui8.set(new self.Uint8Array(arg0.buffer, copyStart, length), byteOffset);
+              }
+            } else if (arg0.byteLength) {
+              // new TypedArray( buffer, 36, 2 );
+              arg0Offset = byteOffset;
+              byteLength = length * bpel;
+              if (arg0 !== objbuf) {
+                byteOffset = malloc(byteLength, bpel);
+                ui8.set(new self.Uint8Array(arg0, arg0Offset, byteLength), byteOffset);
+              }
+            }
+          } else if (argc === 2) {
+            // new TypedArray( buffer, 36 );
+            // new TypedArray( new TypedArra( 2 ), 36 );
+            if (ArrayBuffer.isView(arg0)) {
+              // new TypedArray( new TypedArra( 2 ), 36 );
+              arg0Length = arg0.length;
+              arg0ByteLength = arg0.BYTES_PER_ELEMENT * arg0Length;
+              copyStart = arg0.byteOffset + byteOffset;
+              copyEnd = copyStart + arg0ByteLength;
+              nextByteLength = arg0ByteLength - byteOffset;
+              byteLength = nextByteLength;
+              length = byteLength / bpel;
+              byteOffset = malloc(byteLength, bpel);
+              if (arg0.buffer === objbuf) {
+                ui8.copyWithin(byteOffset, copyStart, copyEnd);
+              } else {
+                ui8.set(arg0, byteOffset);
+              }
+            } else if (arg0.byteLength) {
+              // new TypedArray( buffer, 36 );
+              arg0Offset = byteOffset;
+              byteLength = arg0.byteLength - byteOffset;
+              length = byteLength / bpel;
+              if (arg0 !== objbuf) {
+                byteOffset = malloc(byteLength, bpel);
+              }
+              if (arg0 !== objbuf) {
+                ui8.set(new self.Uint8Array(arg0, arg0Offset), byteOffset);
+              }
+            }
+          }
+          super(objbuf, byteOffset, length);
+          begin = byteOffset / bpel;
+          end = begin + length;
+          Atomics.store(p32, ptri + HINDEX_LENGTH, length);
+          Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
+          Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
+          Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
+          Atomics.store(p32, ptri + HINDEX_END, end);
+          Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
+          Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
+        }
+        // WeakMap -> {TypedArray} => ptri
+        resolvs.set(this, ptri);
+      }
+
+    };
+    return Uint8ClampedArray = class Uint8ClampedArray extends self.Uint8ClampedArray {
       constructor(arg0, byteOffset, length) {
         var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
         ptri = resolvCall();
