@@ -49,7 +49,7 @@
     */
    
     new Uint8Array(52412);
-    let a = new Int8Array(242231221);
+    let a = new Int8Array(342231221);
 
     console.warn( name, "\t--> HPC code running...",  {a} );
 
@@ -59,13 +59,14 @@
         t0 = performance.now();
     }
 
-    let retry = 4;
+    let retry = 10;
     let tried = 1;
 
 
     while ( retry-- ) {
         for ( let i of a ) {
-            a[i] = Math.random() * 0xff
+            a[i] = 1
+            //a[i] = Math.random() * 0xff
             //a[i] = BigInt( Math.trunc(Math.random() * 0xffffffff) )
         }
         tried++;
