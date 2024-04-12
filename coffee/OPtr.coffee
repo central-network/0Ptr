@@ -16,6 +16,7 @@ do  self.init   = ->
     HINDEX_BYTELENGTH           = HEADERS_LENGTH_OFFSET++
     HINDEX_RESOLV_ID            = HEADERS_LENGTH_OFFSET++
     HINDEX_LOCKFREE             = HEADERS_LENGTH_OFFSET++
+    HINDEX_WAITCOUNT            = HEADERS_LENGTH_OFFSET++
     HINDEX_ITERINDEX            = HEADERS_LENGTH_OFFSET++
     HINDEX_ITERLENGTH           = HEADERS_LENGTH_OFFSET++
 
@@ -72,7 +73,8 @@ do  self.init   = ->
 
     resolvFind  = ( id, retry = 0 ) ->
         i = HINDEX_RESOLV_ID + Atomics.load p32, 1
-        ptri = 0 #log { id, retry }
+        ptri = 0
+        #log { id, retry }
 
         while i > 0
             if  id is Atomics.load p32, i
@@ -80,17 +82,21 @@ do  self.init   = ->
                 break
             i -= HEADERS_LENGTH
 
-        if  isBridge            
-            if !ptri 
+        if !ptri
+            if  isBridge 
                 ptri = Atomics.add p32, 1, HEADERS_LENGTH
                 Atomics.store p32, ptri + HINDEX_RESOLV_ID, id
-            return ptri
+                return ptri
 
-        if !ptri or !Atomics.load p32, ptri + HINDEX_LOCKFREE
-            Atomics.wait p32, 3, 0, 40
+            Atomics.wait p32, 3, 0, 20
+
             if  retry > 100
                 throw /TOO_MANY_TRIED_TO_FIND/
             return resolvFind id, ++retry
+
+        else if isBridge then return ptri
+        
+        else Atomics.wait p32, ptri + HINDEX_LOCKFREE
 
         return ptri
 
@@ -246,7 +252,7 @@ do  self.init   = ->
     defineTypedArrays = ->
 
         Object.defineProperties TypedArray,
-        
+
             from               :
                 value  : ->
                     array = new this arguments[0].length
@@ -297,7 +303,7 @@ do  self.init   = ->
                     )
 
             [ Symbol.iterator ] :
-                value : ->
+                value   : ->
                     ptri = resolvs.get this
                     length = -1 + Atomics.load p32, ptri + HINDEX_LENGTH
                     begin = Atomics.load p32, ptri + HINDEX_BEGIN
@@ -327,316 +333,308 @@ do  self.init   = ->
 
         class Uint8Array        extends self.Uint8Array
 
-            constructor         : ( argv, byteOffset, length ) ->
+            constructor         : ( arg0, byteOffset, length ) ->
 
                 ptri = resolvCall()
                 argc = arguments.length                
-                BPEl = 1
+                bpel = 1
 
-                # just for good visuality of code 
-                unless argc
-                    throw /NEED_ARGUMENTS_FOR_CONSTRUCT/
+                if  isThread
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
-                # new TypedArray( 24 );
-                # new TypedArray( buffer );
-                # new TypedArray( [ 2, 4, 1 ] );
-                else if argc is 1
+                    super objbuf, byteOffset, length
+            
+                else if isBridge
 
-                    # new TypedArray( 24 );
-                    if Number.isInteger argv
+                    if      argc is 1
+                        # new TypedArray( 24 );
+                        # new TypedArray( buffer );
+                        # new TypedArray( [ 2, 4, 1 ] );
 
-                        if  isBridge
-
-                            #Atomics.wait p32, 4, 0, 2240; #testing locks
-                            byteLength  = argv
-                            length      = argv / 1
-                            byteOffset  = malloc byteLength, 1
-                            
-                            begin       = byteOffset / 1
-                            end         = begin + length
-
-                            Atomics.store p32, ptri + HINDEX_LENGTH, length
-                            Atomics.store p32, ptri + HINDEX_BYTEOFFSET, byteOffset
-                            Atomics.store p32, ptri + HINDEX_BYTELENGTH, byteLength
-                            Atomics.store p32, ptri + HINDEX_BEGIN, begin
-                            Atomics.store p32, ptri + HINDEX_END, end
-                            
-                            super objbuf, byteOffset, length
-
-                            Atomics.store p32, ptri + HINDEX_LOCKFREE, 1
-                            Atomics.notify p32, 3, MAX_THREAD_COUNT
-                            
-                        else
-                            length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                            byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                            unless length
-                                throw [ /WHERE_IS_MY_MIND/, { ptri, length, byteOffset, name } ]
-
-                            super objbuf, byteOffset, length
-
-                    # new TypedArray( new TypedArray(?) );
-                    else if ArrayBuffer.isView argv
-
-                        # alloc byte length
-                        if  isBridge
+                        if Number.isInteger arg0
+                            # new TypedArray( 24 );
 
                             #Atomics.wait p32, 4, 0, 2240; #testing locks
-                            byteLength  = argv.byteLength
-                            length      = argv.byteLength / 1
-                            byteOffset  = malloc byteLength, 1
-                            
-                            begin       = byteOffset / 1
-                            end         = begin + length
+                            length      = arg0
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
 
-                            Atomics.store p32, ptri + HINDEX_LENGTH, length
-                            Atomics.store p32, ptri + HINDEX_BYTEOFFSET, byteOffset
-                            Atomics.store p32, ptri + HINDEX_BYTELENGTH, byteLength
-                            Atomics.store p32, ptri + HINDEX_BEGIN, begin
-                            Atomics.store p32, ptri + HINDEX_END, end
-                            
-                            super objbuf, byteOffset, length
+                        else if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArray(?) );
 
-                            if  argv.buffer is this.buffer
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            byteLength  = arg0.byteLength
+                            length      = arg0.byteLength / bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            if  arg0.buffer is objbuf
                                 ui8.copyWithin( byteOffset,
-                                    argv.byteOffset, 
-                                    argv.byteOffset + byteLength
+                                    arg0.byteOffset, 
+                                    arg0.byteOffset + byteLength
                                 )
                             else
-                                ui8.set argv, byteOffset                            
+                                ui8.set arg0, byteOffset                            
 
-                            Atomics.store p32, ptri + HINDEX_LOCKFREE, 1
-                            Atomics.notify p32, 3, MAX_THREAD_COUNT
-                            
-                        else
-                            length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                            byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                            unless length
-                                throw [ /WHERE_IS_MY_MIND/, { ptri, length, byteOffset, name } ]
-
-                            super objbuf, byteOffset, length
-
-                    # new TypedArray( [ 2, 4, 1 ] )
-                    else if Array.isArray
-
-                        if  isBridge
+                        else if Array.isArray
+                            # new TypedArray( [ 2, 4, 1 ] )
 
                             #Atomics.wait p32, 4, 0, 2240; #testing locks
-                            length      = argv.length
-                            byteLength  = length * BPEl
-                            byteOffset  = malloc byteLength, BPEl
+                            length      = arg0.length
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
                             
-                            begin       = byteOffset / BPEl
-                            end         = begin + length
-
-                            Atomics.store p32, ptri + HINDEX_LENGTH, length
-                            Atomics.store p32, ptri + HINDEX_BYTEOFFSET, byteOffset
-                            Atomics.store p32, ptri + HINDEX_BYTELENGTH, byteLength
-                            Atomics.store p32, ptri + HINDEX_BEGIN, begin
-                            Atomics.store p32, ptri + HINDEX_END, end
+                            ui8.set arg0, byteOffset                            
                             
-                            super objbuf, byteOffset, length
-                            ui8.set argv, byteOffset                            
+                    else if argc is 3
+                        # new TypedArray( buffer, 1221, 4 );
+                        # new TypedArray( new TypedArra( 2 ), 36, 2 );
 
-                            Atomics.store p32, ptri + HINDEX_LOCKFREE, 1
-                            Atomics.notify p32, 3, MAX_THREAD_COUNT
-                            
-                        else
-                            length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                            byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36, 2 );
 
-                            unless length
-                                throw [ /WHERE_IS_MY_MIND/, { ptri, length, byteOffset, name } ]
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + length * bpel
 
-                            super objbuf, byteOffset, length
+                            byteLength      = length * bpel
+                            byteOffset      = malloc byteLength, bpel
 
-                    # error
-                    else throw /NON_ACCEPTABLE_SOURCE/
-
-                # new TypedArray( buffer, 1221, 4 );
-                # new TypedArray( new TypedArra( 2 ), 36, 2 );
-                else if argc is 3
-
-                    # new TypedArray( new TypedArra( 2 ), 36, 2 );
-                    if ArrayBuffer.isView argv
-
-                        if  isBridge
-                            copyStart       = argv.byteOffset + byteOffset
-                            copyEnd         = copyStart + length * BPEl
-
-                            byteLength      = length * BPEl
-                            byteOffset      = malloc byteLength, BPEl
-
-                            begin           = byteOffset / BPEl
-                            end             = begin + length
-
-                            Atomics.store p32, ptri + HINDEX_LENGTH, length
-                            Atomics.store p32, ptri + HINDEX_BYTEOFFSET, byteOffset
-                            Atomics.store p32, ptri + HINDEX_BYTELENGTH, byteLength
-                            Atomics.store p32, ptri + HINDEX_BEGIN, begin
-                            Atomics.store p32, ptri + HINDEX_END, end
-                            
-                            super objbuf, byteOffset, length
-
-                            if  argv.buffer is this.buffer
+                            if  arg0.buffer is objbuf
                                 ui8.copyWithin(
                                     byteOffset, copyStart, copyEnd
                                 )
+
                             else
                                 ui8.set new self.Uint8Array(
-                                    argv.buffer, copyStart, length 
+                                    arg0.buffer, copyStart, length 
                                 ), byteOffset
 
-    
-                            Atomics.store p32, ptri + HINDEX_LOCKFREE, 1
-                            Atomics.notify p32, 3, MAX_THREAD_COUNT
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36, 2 );
 
-                        else
-                            length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                            byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+                            arg0Offset  = byteOffset
+                            byteLength  = length * bpel
 
-                            unless length
-                                throw [ /WHERE_IS_MY_MIND/, { ptri, length, byteOffset, name } ]
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
 
-                            super objbuf, byteOffset, length
+                                ui8.set new self.Uint8Array(
+                                    arg0, arg0Offset, byteLength
+                                ), byteOffset
 
-                    # new TypedArray( buffer, 36, 2 );
-                    else if argv.byteLength
+                    else if argc is 2
+                        # new TypedArray( buffer, 36 );
+                        # new TypedArray( new TypedArra( 2 ), 36 );
 
-                        if  isBridge
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36 );
 
-                            argvOffset  = byteOffset
-                            byteLength  = length * BPEl
+                            arg0Length      = arg0.length
+                            arg0ByteLength  = arg0.BYTES_PER_ELEMENT * arg0Length
 
-                            if  argv isnt objbuf
-                                byteOffset = malloc byteLength, BPEl
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + arg0ByteLength
 
-                            begin       = byteOffset / BPEl
-                            end         = begin + length
-
-                            Atomics.store p32, ptri + HINDEX_LENGTH, length
-                            Atomics.store p32, ptri + HINDEX_BYTEOFFSET, byteOffset
-                            Atomics.store p32, ptri + HINDEX_BYTELENGTH, byteLength
-                            Atomics.store p32, ptri + HINDEX_BEGIN, begin
-                            Atomics.store p32, ptri + HINDEX_END, end
-                            
-                            super objbuf, byteOffset, length
-                            
-                            if  argv isnt objbuf
-                                ui8.set new self.Uint8Array( argv, argvOffset, byteLength ), byteOffset
-
-                            Atomics.store p32, ptri + HINDEX_LOCKFREE, 1
-                            Atomics.notify p32, 3, MAX_THREAD_COUNT
-                            
-                        else
-                            length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                            byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                            unless length
-                                throw [ /WHERE_IS_MY_MIND/, { ptri, length, byteOffset, name } ]
-
-                            super objbuf, byteOffset, length
-
-                    # error
-                    else throw /NON_ACCEPTABLE_SOURCE/
-
-                # new TypedArray( buffer, 36 );
-                # new TypedArray( new TypedArra( 2 ), 36 );
-                else if argc is 2
-
-                    # new TypedArray( new TypedArra( 2 ), 36 );
-                    if ArrayBuffer.isView argv
-
-                        if  isBridge
-
-                            argvLength      = argv.length
-                            argvByteOffset  = argv.byteOffset
-                            argvByteLength  = argv.BYTES_PER_ELEMENT * argvLength
-
-                            copyStart       = argv.byteOffset + byteOffset
-                            copyEnd         = copyStart + argvByteLength
-
-                            nextByteOffset  = argvByteOffset + byteOffset
-                            nextByteLength  = argvByteLength - byteOffset
-                            nextLength      = nextByteLength / BPEl
+                            nextByteLength  = arg0ByteLength - byteOffset
 
                             byteLength      = nextByteLength
-                            length          = byteLength / BPEl
-                            byteOffset      = malloc byteLength, BPEl
+                            length          = byteLength / bpel
+                            byteOffset      = malloc byteLength, bpel
 
-                            begin           = byteOffset / BPEl
-                            end             = begin + length
-
-                            Atomics.store p32, ptri + HINDEX_LENGTH, length
-                            Atomics.store p32, ptri + HINDEX_BYTEOFFSET, byteOffset
-                            Atomics.store p32, ptri + HINDEX_BYTELENGTH, byteLength
-                            Atomics.store p32, ptri + HINDEX_BEGIN, begin
-                            Atomics.store p32, ptri + HINDEX_END, end
-                            
-                            super objbuf, byteOffset, length
-
-                            if  argv.buffer is this.buffer
+                            if  arg0.buffer is objbuf
                                 ui8.copyWithin byteOffset, copyStart, copyEnd
 
                             else
-                                ui8.set argv, byteOffset
+                                ui8.set arg0, byteOffset
     
-                            Atomics.store p32, ptri + HINDEX_LOCKFREE, 1
-                            Atomics.notify p32, 3, MAX_THREAD_COUNT
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36 );
 
-                        else
-                            length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                            byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+                            arg0Offset  = byteOffset
+                            byteLength  = arg0.byteLength - byteOffset
+                            length      = byteLength / bpel
 
-                            unless length
-                                throw [ /WHERE_IS_MY_MIND/, { ptri, length, byteOffset, name } ]
-
-                            super objbuf, byteOffset, length
-
-                    # new TypedArray( buffer, 36 );
-                    else if argv.byteLength
-
-                        if  isBridge
-
-                            argvOffset  = byteOffset
-                            byteLength  = argv.byteLength - byteOffset
-                            length      = byteLength / BPEl
-
-                            if  argv isnt objbuf
-                                byteOffset = malloc byteLength, 1
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
                             
-                            begin       = byteOffset / 1
-                            end         = begin + length
+                            if  arg0 isnt objbuf
+                                ui8.set new self.Uint8Array( arg0, arg0Offset ), byteOffset
 
-                            Atomics.store p32, ptri + HINDEX_LENGTH, length
-                            Atomics.store p32, ptri + HINDEX_BYTEOFFSET, byteOffset
-                            Atomics.store p32, ptri + HINDEX_BYTELENGTH, byteLength
-                            Atomics.store p32, ptri + HINDEX_BEGIN, begin
-                            Atomics.store p32, ptri + HINDEX_END, end
-                            
-                            super objbuf, byteOffset, length
-                            
-                            if  argv isnt objbuf
-                                ui8.set new self.Uint8Array( argv, argvOffset ), byteOffset
+                    super objbuf, byteOffset, length
 
-                            Atomics.store p32, ptri + HINDEX_LOCKFREE, 1
-                            Atomics.notify p32, 3, MAX_THREAD_COUNT
-                            
-                        else
-                            length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                            byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+                    begin       = byteOffset / bpel
+                    end         = begin + length
 
-                            unless length
-                                throw [ /WHERE_IS_MY_MIND/, { ptri, length, byteOffset, name } ]
+                    Atomics.store  p32, ptri + HINDEX_LENGTH, length
+                    Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
+                    Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
+                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
+                    Atomics.store  p32, ptri + HINDEX_END, end
 
-                            super objbuf, byteOffset, length
+                    Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
+                    Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
-                    # error
-                    else throw /NON_ACCEPTABLE_SOURCE/
-                                        
                 # WeakMap -> {TypedArray} => ptri
                 resolvs.set this, ptri
+
+
+        class Int8Array         extends self.Int8Array
+
+            constructor         : ( arg0, byteOffset, length ) ->
+
+                ptri = resolvCall()
+                argc = arguments.length                
+                bpel = 1
+
+                if  isThread
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    super objbuf, byteOffset, length
+            
+                else if isBridge
+
+                    if      argc is 1
+                        # new TypedArray( 24 );
+                        # new TypedArray( buffer );
+                        # new TypedArray( [ 2, 4, 1 ] );
+
+                        if Number.isInteger arg0
+                            # new TypedArray( 24 );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+
+                        else if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArray(?) );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            byteLength  = arg0.byteLength
+                            length      = arg0.byteLength / bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin( byteOffset,
+                                    arg0.byteOffset, 
+                                    arg0.byteOffset + byteLength
+                                )
+                            else
+                                ui8.set arg0, byteOffset                            
+
+                        else if Array.isArray
+                            # new TypedArray( [ 2, 4, 1 ] )
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0.length
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            ui8.set arg0, byteOffset                            
+                            
+                    else if argc is 3
+                        # new TypedArray( buffer, 1221, 4 );
+                        # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + length * bpel
+
+                            byteLength      = length * bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin(
+                                    byteOffset, copyStart, copyEnd
+                                )
+
+                            else
+                                ui8.set new self.Uint8Array(
+                                    arg0.buffer, copyStart, length 
+                                ), byteOffset
+
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36, 2 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = length * bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+
+                                ui8.set new self.Uint8Array(
+                                    arg0, arg0Offset, byteLength
+                                ), byteOffset
+
+                    else if argc is 2
+                        # new TypedArray( buffer, 36 );
+                        # new TypedArray( new TypedArra( 2 ), 36 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36 );
+
+                            arg0Length      = arg0.length
+                            arg0ByteLength  = arg0.BYTES_PER_ELEMENT * arg0Length
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + arg0ByteLength
+
+                            nextByteLength  = arg0ByteLength - byteOffset
+
+                            byteLength      = nextByteLength
+                            length          = byteLength / bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin byteOffset, copyStart, copyEnd
+
+                            else
+                                ui8.set arg0, byteOffset
+    
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = arg0.byteLength - byteOffset
+                            length      = byteLength / bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+                            
+                            if  arg0 isnt objbuf
+                                ui8.set new self.Uint8Array( arg0, arg0Offset ), byteOffset
+
+                    super objbuf, byteOffset, length
+
+                    begin       = byteOffset / bpel
+                    end         = begin + length
+
+                    Atomics.store  p32, ptri + HINDEX_LENGTH, length
+                    Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
+                    Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
+                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
+                    Atomics.store  p32, ptri + HINDEX_END, end
+
+                    Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
+                    Atomics.notify p32, ptri + HINDEX_LOCKFREE
+
+                # WeakMap -> {TypedArray} => ptri
+                resolvs.set this, ptri
+
+
+
+
+                
+
+
+
+
+                
+
+
 
 
 
