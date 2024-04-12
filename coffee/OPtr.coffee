@@ -143,6 +143,7 @@ do  self.init   = ->
         .padEnd(36, String.fromCharCode(50 + Math.random() * 40 ))
 
     initMemory  = ( buffers ) ->
+
         objbuf = buffers.objbuf
         ptrbuf = buffers.ptrbuf
 
@@ -248,7 +249,7 @@ do  self.init   = ->
 
         0
 
-    defineTypedArrays = ->
+    regenerate  = ->
 
         Object.defineProperties TypedArray,
 
@@ -2114,7 +2115,7 @@ do  self.init   = ->
                     blobURL = data.blobURL
 
                     initMemory data
-                    defineTypedArrays()
+                    regenerate()
 
                     postMessage register : {
                         selfName, isBridge, isThread, threadId,
@@ -2191,12 +2192,19 @@ do  self.init   = ->
                     blobURL = data.blobURL
 
                     initMemory data
-                    defineTypedArrays()
+                    regenerate()
 
                     postMessage register : {
                         selfName, isBridge, isThread, threadId,
                         now, pnow, uuid
                     }
+
+
+
+
+
+
+
 
     bc.onmessage = ( e ) -> {
         [ EVENT_READY ] : -> onready()
