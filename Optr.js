@@ -35,7 +35,7 @@ self.name = "window";
   HEADERS_LENGTH = 16;
   HEADERS_BYTE_LENGTH = 4 * 16;
   MAX_PTR_COUNT = 1e5;
-  MAX_THREAD_COUNT = -6 + (typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 3;
+  MAX_THREAD_COUNT = 3 + (typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 3;
   ITERATION_PER_THREAD = 1000000;
   EVENT_READY = new (EVENT_READY = class EVENT_READY extends Number {})(number(/EVENT_READY/.source));
   if (HEADERS_LENGTH_OFFSET >= HEADERS_LENGTH) {
@@ -52,7 +52,7 @@ self.name = "window";
   pnow = performance.now();
   state = 0;
   buffer = null;
-  resolvs = new WeakMap();
+  resolvs = new Map();
   workers = new self.Array();
   littleEnd = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0];
   TypedArray = Object.getPrototypeOf(self.Uint8Array);
@@ -244,23 +244,239 @@ self.name = "window";
     return 0;
   };
   defineTypedArrays = function() {
-    Object.defineProperties(TypedArray.prototype, {
-      subarray: {
-        //part of this
-        value: function(begin = 0, end = this.length) {
+    var HyperThreadTypedArray;
+    return HyperThreadTypedArray = (function() {
+      class HyperThreadTypedArray extends Number {
+        constructor(bPel, ptri, argc, argv, byteOffset, length) {
+          var argvByteLength, argvByteOffset, argvLength, argvOffset, array, begin, byteLength, copyEnd, copyStart, end, nextByteLength, nextByteOffset, nextLength;
+          
+          // just for good visuality of code 
+          if (!argc) {
+            throw /NEED_ARGUMENTS_FOR_CONSTRUCT/;
+          } else if (isBridge) {
+            
+            // new TypedArray( 24 );
+            // new TypedArray( buffer );
+            // new TypedArray( [ 2, 4, 1 ] );                    
+            if (argc === 1) {
+              // new TypedArray( 24 );
+              if (Number.isInteger(argv)) {
+                //Atomics.wait p32, 4, 0, 2240; #testing locks
+                byteLength = argv;
+                length = argv / bPel;
+                byteOffset = malloc(byteLength, bPel);
+                begin = byteOffset / bPel;
+                end = begin + length;
+                Atomics.store(p32, ptri + HINDEX_LENGTH, length);
+                Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
+                Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
+                Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
+                Atomics.store(p32, ptri + HINDEX_END, end);
+                Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
+                Atomics.notify(p32, 3, MAX_THREAD_COUNT);
+              // new TypedArray( new TypedArray(?) );
+              } else if (ArrayBuffer.isView(argv)) {
+                //Atomics.wait p32, 4, 0, 2240; #testing locks
+                byteLength = argv.byteLength;
+                length = argv.byteLength / bPel;
+                byteOffset = malloc(byteLength, bPel);
+                begin = byteOffset / bPel;
+                end = begin + length;
+                Atomics.store(p32, ptri + HINDEX_LENGTH, length);
+                Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
+                Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
+                Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
+                Atomics.store(p32, ptri + HINDEX_END, end);
+                if (argv.buffer === objbuf) {
+                  ui8.copyWithin(byteOffset, argv.byteOffset, argv.byteOffset + byteLength);
+                } else {
+                  ui8.set(argv, byteOffset);
+                }
+                Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
+                Atomics.notify(p32, 3, MAX_THREAD_COUNT);
+              // new TypedArray( [ 2, 4, 1 ] )
+              } else if (Array.isArray) {
+                //Atomics.wait p32, 4, 0, 2240; #testing locks
+                length = argv.length;
+                byteLength = length * bPel;
+                byteOffset = malloc(byteLength, bPel);
+                begin = byteOffset / bPel;
+                end = begin + length;
+                Atomics.store(p32, ptri + HINDEX_LENGTH, length);
+                Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
+                Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
+                Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
+                Atomics.store(p32, ptri + HINDEX_END, end);
+                ui8.set(argv, byteOffset);
+                Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
+                Atomics.notify(p32, 3, MAX_THREAD_COUNT);
+              } else {
+                
+                // error
+                throw /NON_ACCEPTABLE_SOURCE/;
+              }
+            // new TypedArray( buffer, 1221, 4 );
+            // new TypedArray( new TypedArra( 2 ), 36, 2 );
+            } else if (argc === 3) {
+              // new TypedArray( new TypedArra( 2 ), 36, 2 );
+              if (ArrayBuffer.isView(argv)) {
+                copyStart = argv.byteOffset + byteOffset;
+                copyEnd = copyStart + length * bPel;
+                byteLength = length * bPel;
+                byteOffset = malloc(byteLength, bPel);
+                begin = byteOffset / bPel;
+                end = begin + length;
+                Atomics.store(p32, ptri + HINDEX_LENGTH, length);
+                Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
+                Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
+                Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
+                Atomics.store(p32, ptri + HINDEX_END, end);
+                if (argv.buffer === objbuf) {
+                  ui8.copyWithin(byteOffset, copyStart, copyEnd);
+                } else {
+                  ui8.set(new self.Uint8Array(argv.buffer, copyStart, length), byteOffset);
+                }
+                Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
+                Atomics.notify(p32, 3, MAX_THREAD_COUNT);
+              // new TypedArray( buffer, 36, 2 );
+              } else if (argv.byteLength) {
+                argvOffset = byteOffset;
+                byteLength = length * bPel;
+                if (argv !== objbuf) {
+                  byteOffset = malloc(byteLength, bPel);
+                }
+                begin = byteOffset / bPel;
+                end = begin + length;
+                Atomics.store(p32, ptri + HINDEX_LENGTH, length);
+                Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
+                Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
+                Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
+                Atomics.store(p32, ptri + HINDEX_END, end);
+                if (argv !== objbuf) {
+                  ui8.set(new self.Uint8Array(argv, argvOffset, byteLength), byteOffset);
+                }
+                Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
+                Atomics.notify(p32, 3, MAX_THREAD_COUNT);
+              } else {
+                // error
+                throw /NON_ACCEPTABLE_SOURCE/;
+              }
+            // new TypedArray( buffer, 36 );
+            // new TypedArray( new TypedArra( 2 ), 36 );
+            } else if (argc === 2) {
+              // new TypedArray( new TypedArra( 2 ), 36 );
+              if (ArrayBuffer.isView(argv)) {
+                argvLength = argv.length;
+                argvByteOffset = argv.byteOffset;
+                argvByteLength = argv.BYTES_PER_ELEMENT * argvLength;
+                copyStart = argv.byteOffset + byteOffset;
+                copyEnd = copyStart + argvByteLength;
+                nextByteOffset = argvByteOffset + byteOffset;
+                nextByteLength = argvByteLength - byteOffset;
+                nextLength = nextByteLength / bPel;
+                byteLength = nextByteLength;
+                length = byteLength / bPel;
+                byteOffset = malloc(byteLength, bPel);
+                begin = byteOffset / bPel;
+                end = begin + length;
+                Atomics.store(p32, ptri + HINDEX_LENGTH, length);
+                Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
+                Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
+                Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
+                Atomics.store(p32, ptri + HINDEX_END, end);
+                if (argv.buffer === objbuf) {
+                  ui8.copyWithin(byteOffset, copyStart, copyEnd);
+                } else {
+                  ui8.set(argv, byteOffset);
+                }
+                Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
+                Atomics.notify(p32, 3, MAX_THREAD_COUNT);
+              // new TypedArray( buffer, 36 );
+              } else if (argv.byteLength) {
+                argvOffset = byteOffset;
+                byteLength = argv.byteLength - byteOffset;
+                length = byteLength / bPel;
+                if (argv !== objbuf) {
+                  byteOffset = malloc(byteLength, bPel);
+                }
+                begin = byteOffset / bPel;
+                end = begin + length;
+                Atomics.store(p32, ptri + HINDEX_LENGTH, length);
+                Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
+                Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
+                Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
+                Atomics.store(p32, ptri + HINDEX_END, end);
+                if (argv !== objbuf) {
+                  ui8.set(new self.Uint8Array(argv, argvOffset), byteOffset);
+                }
+                Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
+                Atomics.notify(p32, 3, MAX_THREAD_COUNT);
+              } else {
+                // error
+                throw /NON_ACCEPTABLE_SOURCE/;
+              }
+            }
+          }
+          super(ptri);
+          resolvs.set(this, ptri);
+          array = this.array;
+          return new Proxy(this, {
+            get: function(obj, key, pxy) {
+              if (key === Symbol.toPrimitive) {
+                return function() {
+                  return ptri;
+                };
+              }
+              return Reflect.get(obj, key, pxy);
+            },
+            set: function(obj, key, val, pxy) {
+              if (!isNaN(key)) {
+                return array[key] = val;
+              }
+              return Reflect.set(obj, key, val, pxy);
+            }
+          });
+        }
+
+        static from() {
+          var array, i;
+          array = new this(arguments[0].length);
+          if (isBridge) {
+            for (i in array) {
+              array[i] = arguments[0][i];
+            }
+            Atomics.notify(p32, 3, 1, MAX_THREAD_COUNT);
+          } else {
+            Atomics.wait(p32, 3);
+          }
+          return array;
+        }
+
+        static of() {
+          var array, i;
+          array = new this(arguments.length);
+          if (isBridge) {
+            for (i in array) {
+              array[i] = arguments[i];
+            }
+            Atomics.notify(p32, 3, 1, MAX_THREAD_COUNT);
+          } else {
+            Atomics.wait(p32, 3);
+          }
+          return array;
+        }
+
+        subarray(begin = 0, end = this.length) {
           return new this.constructor(this.buffer, this.byteOffset + this.BYTES_PER_ELEMENT * begin, end - begin);
         }
-      },
-      slice: {
-        //copy to new
-        value: function(begin = 0, end = this.length) {
+
+        slice(begin = 0, end = this.length) {
           return new this.constructor(this, this.BYTES_PER_ELEMENT * begin, end - begin);
         }
-      },
-      [Symbol.iterator]: {
-        value: function() {
+
+        [Symbol.iterator]() {
           var begin, index, iterate, length, ptri, total;
-          ptri = resolvs.get(this);
+          ptri = this.ptri;
           length = -1 + Atomics.load(p32, ptri + HINDEX_LENGTH);
           begin = Atomics.load(p32, ptri + HINDEX_BEGIN);
           if (isBridge) {
@@ -284,8 +500,6 @@ self.name = "window";
                 total += iterate;
               }
               if (index > length) {
-                log({total});
-                Atomics.wait(p32, 3, 0, 100);
                 Atomics.notify(p32, 4, 1);
                 return {
                   done: true
@@ -298,254 +512,71 @@ self.name = "window";
             }
           };
         }
-      }
-    });
-    return Uint8Array = class Uint8Array extends self.Uint8Array {
-      constructor(argv, byteOffset, length) {
-        var BPEl, argc, argvByteLength, argvByteOffset, argvLength, argvOffset, begin, byteLength, copyEnd, copyStart, end, nextByteLength, nextByteOffset, nextLength, ptri;
-        ptri = resolvCall();
-        argc = arguments.length;
-        BPEl = 1;
-        // just for good visuality of code 
-        if (!argc) {
-          throw /NEED_ARGUMENTS_FOR_CONSTRUCT/;
-        // new TypedArray( 24 );
-        // new TypedArray( buffer );
-        // new TypedArray( [ 2, 4, 1 ] );
-        } else if (argc === 1) {
-          // new TypedArray( 24 );
-          if (Number.isInteger(argv)) {
-            if (isBridge) {
-              //Atomics.wait p32, 4, 0, 2240; #testing locks
-              byteLength = argv;
-              length = argv / 1;
-              byteOffset = malloc(byteLength, 1);
-              begin = byteOffset / 1;
-              end = begin + length;
-              Atomics.store(p32, ptri + HINDEX_LENGTH, length);
-              Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
-              Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-              Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-              Atomics.store(p32, ptri + HINDEX_END, end);
-              super(objbuf, byteOffset, length);
-              Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
-              Atomics.notify(p32, 3, MAX_THREAD_COUNT);
-            } else {
-              length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-              byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-              if (!length) {
-                throw [/WHERE_IS_MY_MIND/, {ptri, length, byteOffset, name}];
-              }
-              super(objbuf, byteOffset, length);
-            }
-          // new TypedArray( new TypedArray(?) );
-          } else if (ArrayBuffer.isView(argv)) {
-            // alloc byte length
-            if (isBridge) {
-              //Atomics.wait p32, 4, 0, 2240; #testing locks
-              byteLength = argv.byteLength;
-              length = argv.byteLength / 1;
-              byteOffset = malloc(byteLength, 1);
-              begin = byteOffset / 1;
-              end = begin + length;
-              Atomics.store(p32, ptri + HINDEX_LENGTH, length);
-              Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
-              Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-              Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-              Atomics.store(p32, ptri + HINDEX_END, end);
-              super(objbuf, byteOffset, length);
-              if (argv.buffer === this.buffer) {
-                ui8.copyWithin(byteOffset, argv.byteOffset, argv.byteOffset + byteLength);
-              } else {
-                ui8.set(argv, byteOffset);
-              }
-              Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
-              Atomics.notify(p32, 3, MAX_THREAD_COUNT);
-            } else {
-              length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-              byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-              if (!length) {
-                throw [/WHERE_IS_MY_MIND/, {ptri, length, byteOffset, name}];
-              }
-              super(objbuf, byteOffset, length);
-            }
-          // new TypedArray( [ 2, 4, 1 ] )
-          } else if (Array.isArray) {
-            if (isBridge) {
-              //Atomics.wait p32, 4, 0, 2240; #testing locks
-              length = argv.length;
-              byteLength = length * BPEl;
-              byteOffset = malloc(byteLength, BPEl);
-              begin = byteOffset / BPEl;
-              end = begin + length;
-              Atomics.store(p32, ptri + HINDEX_LENGTH, length);
-              Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
-              Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-              Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-              Atomics.store(p32, ptri + HINDEX_END, end);
-              super(objbuf, byteOffset, length);
-              ui8.set(argv, byteOffset);
-              Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
-              Atomics.notify(p32, 3, MAX_THREAD_COUNT);
-            } else {
-              length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-              byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-              if (!length) {
-                throw [/WHERE_IS_MY_MIND/, {ptri, length, byteOffset, name}];
-              }
-              super(objbuf, byteOffset, length);
-            }
-          } else {
-            // error
-            throw /NON_ACCEPTABLE_SOURCE/;
+
+        [Symbol.toPrimitive]() {
+          return resolvs.get(this);
+        }
+
+      };
+
+      Object.defineProperties(HyperThreadTypedArray.prototype, {
+        buffer: {
+          value: objbuf
+        },
+        ptri: {
+          get: function() {
+            return parseInt(this);
           }
-        // new TypedArray( buffer, 1221, 4 );
-        // new TypedArray( new TypedArra( 2 ), 36, 2 );
-        } else if (argc === 3) {
-          // new TypedArray( new TypedArra( 2 ), 36, 2 );
-          if (ArrayBuffer.isView(argv)) {
-            if (isBridge) {
-              copyStart = argv.byteOffset + byteOffset;
-              copyEnd = copyStart + length * BPEl;
-              byteLength = length * BPEl;
-              byteOffset = malloc(byteLength, BPEl);
-              begin = byteOffset / BPEl;
-              end = begin + length;
-              Atomics.store(p32, ptri + HINDEX_LENGTH, length);
-              Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
-              Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-              Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-              Atomics.store(p32, ptri + HINDEX_END, end);
-              super(objbuf, byteOffset, length);
-              if (argv.buffer === this.buffer) {
-                ui8.copyWithin(byteOffset, copyStart, copyEnd);
-              } else {
-                ui8.set(new self.Uint8Array(argv.buffer, copyStart, length), byteOffset);
-              }
-              Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
-              Atomics.notify(p32, 3, MAX_THREAD_COUNT);
-            } else {
-              length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-              byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-              if (!length) {
-                throw [/WHERE_IS_MY_MIND/, {ptri, length, byteOffset, name}];
-              }
-              super(objbuf, byteOffset, length);
-            }
-          // new TypedArray( buffer, 36, 2 );
-          } else if (argv.byteLength) {
-            if (isBridge) {
-              argvOffset = byteOffset;
-              byteLength = length * BPEl;
-              if (argv !== objbuf) {
-                byteOffset = malloc(byteLength, BPEl);
-              }
-              begin = byteOffset / BPEl;
-              end = begin + length;
-              Atomics.store(p32, ptri + HINDEX_LENGTH, length);
-              Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
-              Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-              Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-              Atomics.store(p32, ptri + HINDEX_END, end);
-              super(objbuf, byteOffset, length);
-              if (argv !== objbuf) {
-                ui8.set(new self.Uint8Array(argv, argvOffset, byteLength), byteOffset);
-              }
-              Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
-              Atomics.notify(p32, 3, MAX_THREAD_COUNT);
-            } else {
-              length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-              byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-              if (!length) {
-                throw [/WHERE_IS_MY_MIND/, {ptri, length, byteOffset, name}];
-              }
-              super(objbuf, byteOffset, length);
-            }
-          } else {
-            // error
-            throw /NON_ACCEPTABLE_SOURCE/;
+        },
+        array: {
+          get: function() {
+            return new this.TypedArray(objbuf, this.byteOffset, this.length);
           }
-        // new TypedArray( buffer, 36 );
-        // new TypedArray( new TypedArra( 2 ), 36 );
-        } else if (argc === 2) {
-          // new TypedArray( new TypedArra( 2 ), 36 );
-          if (ArrayBuffer.isView(argv)) {
-            if (isBridge) {
-              argvLength = argv.length;
-              argvByteOffset = argv.byteOffset;
-              argvByteLength = argv.BYTES_PER_ELEMENT * argvLength;
-              copyStart = argv.byteOffset + byteOffset;
-              copyEnd = copyStart + argvByteLength;
-              nextByteOffset = argvByteOffset + byteOffset;
-              nextByteLength = argvByteLength - byteOffset;
-              nextLength = nextByteLength / BPEl;
-              byteLength = nextByteLength;
-              length = byteLength / BPEl;
-              byteOffset = malloc(byteLength, BPEl);
-              begin = byteOffset / BPEl;
-              end = begin + length;
-              Atomics.store(p32, ptri + HINDEX_LENGTH, length);
-              Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
-              Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-              Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-              Atomics.store(p32, ptri + HINDEX_END, end);
-              super(objbuf, byteOffset, length);
-              if (argv.buffer === this.buffer) {
-                ui8.copyWithin(byteOffset, copyStart, copyEnd);
-              } else {
-                ui8.set(argv, byteOffset);
-              }
-              Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
-              Atomics.notify(p32, 3, MAX_THREAD_COUNT);
-            } else {
-              length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-              byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-              if (!length) {
-                throw [/WHERE_IS_MY_MIND/, {ptri, length, byteOffset, name}];
-              }
-              super(objbuf, byteOffset, length);
-            }
-          // new TypedArray( buffer, 36 );
-          } else if (argv.byteLength) {
-            if (isBridge) {
-              argvOffset = byteOffset;
-              byteLength = argv.byteLength - byteOffset;
-              length = byteLength / BPEl;
-              if (argv !== objbuf) {
-                byteOffset = malloc(byteLength, 1);
-              }
-              begin = byteOffset / 1;
-              end = begin + length;
-              Atomics.store(p32, ptri + HINDEX_LENGTH, length);
-              Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
-              Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-              Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-              Atomics.store(p32, ptri + HINDEX_END, end);
-              super(objbuf, byteOffset, length);
-              if (argv !== objbuf) {
-                ui8.set(new self.Uint8Array(argv, argvOffset), byteOffset);
-              }
-              Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
-              Atomics.notify(p32, 3, MAX_THREAD_COUNT);
-            } else {
-              length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-              byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-              if (!length) {
-                throw [/WHERE_IS_MY_MIND/, {ptri, length, byteOffset, name}];
-              }
-              super(objbuf, byteOffset, length);
-            }
-          } else {
-            // error
-            throw /NON_ACCEPTABLE_SOURCE/;
+        },
+        byteOffset: {
+          get: function() {
+            return Atomics.load(p32, HINDEX_BYTEOFFSET + this.ptri);
+          }
+        },
+        byteLength: {
+          get: function() {
+            return Atomics.load(p32, HINDEX_BYTELENGTH + this.ptri);
+          }
+        },
+        length: {
+          get: function() {
+            return Atomics.load(p32, HINDEX_LENGTH + this.ptri);
           }
         }
-        
-        // WeakMap -> {TypedArray} => ptri
-        resolvs.set(this, ptri);
-      }
+      });
 
-    };
+      Uint8Array = (function() {
+        class Uint8Array extends HyperThreadTypedArray {
+          constructor(buffer, byteOffset, length) {
+            var argc, ptri;
+            ptri = resolvCall();
+            argc = arguments.length;
+            super(1, ptri, argc, buffer, byteOffset, length);
+          }
+
+        };
+
+        Object.defineProperties(Uint8Array.prototype, {
+          TypedArray: {
+            value: self.Uint8Array
+          },
+          BYTES_PER_ELEMENT: {
+            value: 1
+          }
+        });
+
+        return Uint8Array;
+
+      }).call(this);
+
+      return HyperThreadTypedArray;
+
+    }).call(this);
   };
   if (isWindow) {
     sharedHandler = {

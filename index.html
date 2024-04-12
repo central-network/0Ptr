@@ -24,30 +24,14 @@
         return parts.join(".");
     }
     
-    new Uint8Array(Math.floor(Math.random() * 100));
-    new Uint8Array(Math.floor(Math.random() * 100));
-    new Uint8Array(11);
-    let a = new Uint8Array(24);
-    //let v = new Uint8Array(52412);
-
-    for ( let i of a ) {
-        a[i] = Math.random() * 0xff;
-    }
-
-    let v = new Uint8Array( a, 12 );
-    let z = new Uint8Array( v );
-    let q = new Uint8Array( [ 2, 4, 221, 15 ] );
-
-    let c = v.subarray(2, 4);
-    let d = v.slice(2, 4);
-
-    log( "c:", c);
-    log( "d:", d);
+    let d = new Uint8Array(42);
     
-    console.warn( name, "\t--> HPC code running...",  {a, v, c, d, z, q} );
+    
+    let a = new Uint8Array(99999999);
+    
+    console.warn( name, "\t--> HPC code running...",  a );
 
-    /*
-    BENCHMARK 3.186.470.769 ops/sec
+    //BENCHMARK 3.186.470.769 ops/sec
 
     let t0;
     if ( isBridge ) {
@@ -73,16 +57,12 @@
 
         let nice = numberWithCommas(ratio) + " ops/sec";
 
-
-
         console.table({
             nice, msecs, tried, count, ops, secs, ratio
         })
 
         console.log( a )
     }
-
-    */
 
 
 </script>
