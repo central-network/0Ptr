@@ -15,19 +15,26 @@
 
         body::after {
             content: attr(title);
-            transform: rotateZ(-90deg);
-            position: absolute;
-            inset: auto;
+            transform: translate(-70px, -100px) rotateZ(-90deg);
+            position: fixed;
+            left: 0;
+            bottom: 0;
             color: rgb(169, 229, 19);
             font-family: Georgia, 'Times New Roman', Times, serif;
-            font-size: 28px;
+            font-size: 18px;
             white-space: nowrap;
+        }
+
+        canvas {
+            display: block;
+            margin: 20px auto;
         }
     </style>
 
 </head>
 <body title="10.888.857.031 ops/sec">    
-<canvas id="viewport"></canvas>
+<canvas id="viewport" width="256" height="256" ></canvas>
+
 <script src="Optr.js">
 
     function numberWithCommas(x) {
@@ -38,15 +45,33 @@
 
    
     //let a = new Uint8Array(24);
-
     //console.warn( name, "\t--> HPC code running...",  {a} );
 
     const offscreen = new OffscreenCanvas(256, 256);
     log( offscreen );
     
-    const gl = offscreen.getContext("webgl");
+    const gl = offscreen.getContext("webgl2");
+
+    let red = 0, green = 0.5 , blue= 0.3, sign = 1, factor = 0.01;
+
+    offscreen.render(function (){
+
+        red += (factor * sign);
+        green += (factor * sign);
+        blue += (factor * sign); 
+
+        if ( red > 1 || red < 0 ) { sign *= -1; }
+        if ( green > 1 || green < 0 ) { sign *= -1; }
+        if ( blue > 1 || blue < 0 ) { sign *= -1; }
+
+        gl.clearColor( red, green, blue, 1 );
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+    });
+  
     log( gl )
-    
+
+
     /*
 
     let t0;

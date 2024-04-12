@@ -45,7 +45,8 @@ do  self.init   = ->
 
     [
         blobURL,
-        objbuf, ptrbuf, unlock,
+        objbuf, ptrbuf, 
+        lock, unlock,
         malloc, littleEnd,
         p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16,
 
@@ -169,6 +170,13 @@ do  self.init   = ->
 
         p32 = new self.Int32Array ptrbuf
 
+        lock                = ( ptri ) ->
+            if  ptri
+                Atomics.wait p32, ptri + HINDEX_LOCKFREE
+
+            else
+                Atomics.wait p32 , if isThread then 4 else 3
+                
         unlock              = ( ptri ) ->
             if  ptri
                 Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
@@ -1953,17 +1961,21 @@ do  self.init   = ->
 
         class OffscreenCanvas   extends self.OffscreenCanvas
 
-            this.Proxy  =
+            this.Proxy  = ( ptri ) ->
 
-                get     : ->
-                    Reflect.get arguments...
+                get     : ( ctx, key, pxy ) -> switch key
+
+                    when "clearColor", "clear"
+                        -> lock ptri
+
+                    else Reflect.get arguments...
 
             getContext  : ->
                 ptri = resolvCall()
                 
                 if  isThread
                     context = new Proxy GLContext::,
-                        OffscreenCanvas.Proxy
+                        OffscreenCanvas.Proxy( ptri )
 
                 else
                     context = super arguments...
@@ -1972,13 +1984,22 @@ do  self.init   = ->
                 resolvs.set context, ptri
                 return context
 
+            render      : ( handler ) ->
+                return unless isBridge
+                
+                commit = =>
+                    handler.call this
+                    postMessage render : @transferToImageBitmap()
+                    requestAnimationFrame commit
+
+                commit()
 
             constructor : ( width, height ) ->
                 ptri = resolvCall()
 
                 if  isThread
                     canvas = new Proxy OffscreenCanvas::,
-                        OffscreenCanvas.Proxy
+                        OffscreenCanvas.Proxy( ptri )
 
                 else
                     canvas = super arguments...
@@ -1991,6 +2012,9 @@ do  self.init   = ->
 
     if  isWindow
 
+        canvas = document.getElementById("viewport")
+        context = canvas.getContext("bitmaprenderer")
+
         sharedHandler   =
             register    : ( data ) ->
                 warn "registering worker:", data
@@ -2000,7 +2024,9 @@ do  self.init   = ->
                     bc.postMessage EVENT_READY
                 
         bridgeHandler   =
-            hello       : ->
+            render      : ( imageBitmap ) ->
+                context.transferFromImageBitmap imageBitmap
+                imageBitmap.close()
         
         threadHandler   =
             hello       : ->
