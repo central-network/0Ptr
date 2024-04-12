@@ -1993,7 +1993,7 @@ do  self.init   = ->
 
                 return this
 
-            constructor : ( width, height ) ->
+            constructor : ->
                 ptri = resolvCall()
 
                 if  isThread
@@ -2008,11 +2008,10 @@ do  self.init   = ->
                 return canvas
 
                                 
-
     if  isWindow
 
-        canvas  = document.getElementById("viewport")
-        context = canvas.getContext("bitmaprenderer")
+        _canvas  = document.getElementById("viewport")
+        _context = _canvas.getContext("bitmaprenderer")
 
         sharedHandler   =
             register    : ( data ) ->
@@ -2023,8 +2022,9 @@ do  self.init   = ->
                     bc.postMessage EVENT_READY
                 
         bridgeHandler   =
+
             render      : ( imageBitmap ) ->
-                context.transferFromImageBitmap imageBitmap
+                _context.transferFromImageBitmap imageBitmap
                 imageBitmap.close()
         
         threadHandler   =
