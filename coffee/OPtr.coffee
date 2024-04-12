@@ -37,6 +37,10 @@ do  self.init   = ->
             number( /EVENT_READY/.source )
         )
 
+        DUMP_WEAKMAP                = new (class DUMP_WEAKMAP extends Number)(
+            number( /DUMP_WEAKMAP/.source )
+        )
+
         throw /MAX_HEADERS_LENGTH_EXCEED/ if HEADERS_LENGTH_OFFSET >= HEADERS_LENGTH ]
 
     [
@@ -339,7 +343,7 @@ do  self.init   = ->
                 argc = arguments.length                
                 bpel = 1
 
-                if  isThread
+                if isThread
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
@@ -2031,6 +2035,7 @@ do  self.init   = ->
                 console.log objbuf
                 console.log ptrbuf
                 console.log p32
+                bc.postMessage DUMP_WEAKMAP
 
         queueMicrotask  ->
             listenEvents()
@@ -2208,6 +2213,7 @@ do  self.init   = ->
 
     bc.onmessage = ( e ) -> {
         [ EVENT_READY ] : -> onready()
+        [ DUMP_WEAKMAP ] : -> log resolvs
     }[ e.data ]()
 
             
