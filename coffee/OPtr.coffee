@@ -2010,8 +2010,9 @@ do  self.init   = ->
                                 
     if  isWindow
 
-        _canvas  = document.getElementById("viewport")
-        _context = _canvas.getContext("bitmaprenderer")
+        bitmaprenderer  = document
+            .getElementById("bitmaprenderer")
+            .getContext("bitmaprenderer")
 
         sharedHandler   =
             register    : ( data ) ->
@@ -2024,7 +2025,7 @@ do  self.init   = ->
         bridgeHandler   =
 
             render      : ( imageBitmap ) ->
-                _context.transferFromImageBitmap imageBitmap
+                bitmaprenderer.transferFromImageBitmap imageBitmap
                 imageBitmap.close()
         
         threadHandler   =
