@@ -37,13 +37,17 @@
     }
 
    
-    new Uint8Array(52412);
-    new Float64Array(24);
-    let f = new BigUint64Array(214);
-    let a = new Uint8Array(342221221);
+    //let a = new Uint8Array(24);
 
-    console.warn( name, "\t--> HPC code running...",  {a} );
+    //console.warn( name, "\t--> HPC code running...",  {a} );
 
+    const offscreen = new OffscreenCanvas(256, 256);
+    log( offscreen );
+    
+    const gl = offscreen.getContext("webgl");
+    log( gl )
+    
+    /*
 
     let t0;
     if ( isBridge ) {
@@ -81,7 +85,7 @@
     }
 
 
-
+    */
 </script>
 <script>
         /*

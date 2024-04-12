@@ -30,7 +30,7 @@ do  self.init   = ->
         HEADERS_LENGTH              = 16
         HEADERS_BYTE_LENGTH         = 4 * 16
         MAX_PTR_COUNT               = 1e5
-        MAX_THREAD_COUNT            = 3 + navigator?.hardwareConcurrency or 3
+        MAX_THREAD_COUNT            = -6 + navigator?.hardwareConcurrency or 3
         ITERATION_PER_THREAD        = 1000000
     
         EVENT_READY                 = new (class EVENT_READY extends Number)(
@@ -45,7 +45,7 @@ do  self.init   = ->
 
     [
         blobURL,
-        objbuf, ptrbuf,
+        objbuf, ptrbuf, unlock,
         malloc, littleEnd,
         p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16,
 
@@ -55,6 +55,8 @@ do  self.init   = ->
         andInt32  , orInt32  , xorInt32  , subInt32  , addInt32  , loadInt32  , storeInt32  , getInt32  , setInt32  , exchangeInt32  , compareInt32  ,
         andInt16  , orInt16  , xorInt16  , subInt16  , addInt16  , loadInt16  , storeInt16  , getInt16  , setInt16  , exchangeInt16  , compareInt16  ,
         andInt8   , orInt8   , xorInt8   , subInt8   , addInt8   , loadInt8   , storeInt8   , getInt8   , setInt8   , exchangeInt8   , compareInt8   ,
+
+        OffscreenCanvas,
 
         Uint8Array  , Int8Array   , Uint8ClampedArray,
         Uint16Array , Int16Array  , Uint32Array  , Int32Array,
@@ -72,12 +74,13 @@ do  self.init   = ->
         resolvs     = new WeakMap()
         workers     = new self.Array()
         littleEnd   = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0]
-        TypedArray  = Object.getPrototypeOf self.Uint8Array ]
+        TypedArray  = Object.getPrototypeOf self.Uint8Array
+        GLContext   = WebGL2RenderingContext ? WebGLRenderingContext ]
 
     resolvFind  = ( id, retry = 0 ) ->
         i = HINDEX_RESOLV_ID + Atomics.load p32, 1
         ptri = 0
-        #log { id, retry }
+        #error { id, retry }
 
         while i > 0
             if  id is Atomics.load p32, i
@@ -99,7 +102,7 @@ do  self.init   = ->
 
         else if isBridge then return ptri
         
-        else Atomics.wait p32, ptri + HINDEX_LOCKFREE
+        Atomics.wait p32, ptri + HINDEX_LOCKFREE
 
         return ptri
 
@@ -165,6 +168,13 @@ do  self.init   = ->
         dvw = new self.DataView objbuf
 
         p32 = new self.Int32Array ptrbuf
+
+        unlock              = ( ptri ) ->
+            if  ptri
+                Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
+                Atomics.notify p32, ptri + HINDEX_LOCKFREE
+            Atomics.notify p32 , if isThread then 4 else 3
+
 
         malloc              = ( byteLength = 0, alignBytes = 1 ) ->
             if  byteLength > 0
@@ -1941,7 +1951,44 @@ do  self.init   = ->
                 # WeakMap -> {TypedArray} => ptri
                 resolvs.set this, ptri
 
+        class OffscreenCanvas   extends self.OffscreenCanvas
+
+            this.Proxy  =
+
+                get     : ->
+                    Reflect.get arguments...
+
+            getContext  : ->
+                ptri = resolvCall()
                 
+                if  isThread
+                    context = new Proxy GLContext::,
+                        OffscreenCanvas.Proxy
+
+                else
+                    context = super arguments...
+                    unlock ptri
+
+                resolvs.set context, ptri
+                return context
+
+
+            constructor : ( width, height ) ->
+                ptri = resolvCall()
+
+                if  isThread
+                    canvas = new Proxy OffscreenCanvas::,
+                        OffscreenCanvas.Proxy
+
+                else
+                    canvas = super arguments...
+                    unlock ptri
+
+                resolvs.set canvas, ptri
+                return canvas
+
+                                
+
     if  isWindow
 
         sharedHandler   =
