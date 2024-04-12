@@ -8,68 +8,67 @@ do  self.init   = ->
     number = -> arguments[0].split("").reduce (a,b) ->
         ( b.charCodeAt() + ( a.charCodeAt?() or a ) )
 
-    HEADERS_LENGTH_OFFSET       = 1
-    HINDEX_BEGIN                = HEADERS_LENGTH_OFFSET++
-    HINDEX_END                  = HEADERS_LENGTH_OFFSET++
-    HINDEX_BYTEOFFSET           = HEADERS_LENGTH_OFFSET++
-    HINDEX_LENGTH               = HEADERS_LENGTH_OFFSET++
-    HINDEX_BYTELENGTH           = HEADERS_LENGTH_OFFSET++
-    HINDEX_RESOLV_ID            = HEADERS_LENGTH_OFFSET++
-    HINDEX_LOCKFREE             = HEADERS_LENGTH_OFFSET++
-    HINDEX_WAITCOUNT            = HEADERS_LENGTH_OFFSET++
-    HINDEX_ITERINDEX            = HEADERS_LENGTH_OFFSET++
-    HINDEX_ITERLENGTH           = HEADERS_LENGTH_OFFSET++
+    [
+        HEADERS_LENGTH_OFFSET       = 1
+        HINDEX_BEGIN                = HEADERS_LENGTH_OFFSET++
+        HINDEX_END                  = HEADERS_LENGTH_OFFSET++
+        HINDEX_BYTEOFFSET           = HEADERS_LENGTH_OFFSET++
+        HINDEX_LENGTH               = HEADERS_LENGTH_OFFSET++
+        HINDEX_BYTELENGTH           = HEADERS_LENGTH_OFFSET++
+        HINDEX_RESOLV_ID            = HEADERS_LENGTH_OFFSET++
+        HINDEX_LOCKFREE             = HEADERS_LENGTH_OFFSET++
+        HINDEX_WAITCOUNT            = HEADERS_LENGTH_OFFSET++
+        HINDEX_ITERINDEX            = HEADERS_LENGTH_OFFSET++
+        HINDEX_ITERLENGTH           = HEADERS_LENGTH_OFFSET++
+    
+        BUFFER_TEST_START_LENGTH    = Math.pow (navigator?.deviceMemory or 1)+1, 11
+        BUFFER_TEST_STEP_DIVIDER    = 1e1
+        INITIAL_BYTELENGTH          = 6e4
+        BYTES_PER_ELEMENT           = 4
+        RESERVED_BYTELENGTH         = 64
+        ALLOCATION_BYTEOFFSET       = 100000 * 16 * 4
+        HEADERS_LENGTH              = 16
+        HEADERS_BYTE_LENGTH         = 4 * 16
+        MAX_PTR_COUNT               = 1e5
+        MAX_THREAD_COUNT            = 3 + navigator?.hardwareConcurrency or 3
+        ITERATION_PER_THREAD        = 1000000
+    
+        EVENT_READY                 = new (class EVENT_READY extends Number)(
+            number( /EVENT_READY/.source )
+        )
 
-    BUFFER_TEST_START_LENGTH    = Math.pow (navigator?.deviceMemory or 1)+1, 11
-    BUFFER_TEST_STEP_DIVIDER    = 1e1
-    INITIAL_BYTELENGTH          = 6e4
-    BYTES_PER_ELEMENT           = 4
-    RESERVED_BYTELENGTH         = 64
-    ALLOCATION_BYTEOFFSET       = 100000 * 16 * 4
-    HEADERS_LENGTH              = 16
-    HEADERS_BYTE_LENGTH         = 4 * 16
-    MAX_PTR_COUNT               = 1e5
-    MAX_THREAD_COUNT            = 3 + navigator?.hardwareConcurrency or 3
-    ITERATION_PER_THREAD        = 1000000
+        throw /MAX_HEADERS_LENGTH_EXCEED/ if HEADERS_LENGTH_OFFSET >= HEADERS_LENGTH ]
 
-    EVENT_READY                 = new (class EVENT_READY extends Number)(
-        number( /EVENT_READY/.source )
-    )
-
-    if  HEADERS_LENGTH_OFFSET >= HEADERS_LENGTH
-        throw /MAX_HEADERS_LENGTH_EXCEED/
-        
     [
         blobURL,
-        buffer, objbuf, ptrbuf,
-        palloc, malloc, littleEnd,
-        lock, unlock, unlockThreads, unlockBridge,
+        objbuf, ptrbuf,
+        malloc, littleEnd,
         p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16,
 
-        andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32
-        andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16
-        andUint8 , orUint8 , xorUint8 , subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8
-        andInt32 , orInt32 , xorInt32 , subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32
-        andInt16 , orInt16 , xorInt16 , subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16
-        andInt8  , orInt8  , xorInt8  , subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8,
+        andUint32 , orUint32 , xorUint32 , subUint32 , addUint32 , loadUint32 , storeUint32 , getUint32 , setUint32 , exchangeUint32 , compareUint32 ,
+        andUint16 , orUint16 , xorUint16 , subUint16 , addUint16 , loadUint16 , storeUint16 , getUint16 , setUint16 , exchangeUint16 , compareUint16 ,
+        andUint8  , orUint8  , xorUint8  , subUint8  , addUint8  , loadUint8  , storeUint8  , getUint8  , setUint8  , exchangeUint8  , compareUint8  ,
+        andInt32  , orInt32  , xorInt32  , subInt32  , addInt32  , loadInt32  , storeInt32  , getInt32  , setInt32  , exchangeInt32  , compareInt32  ,
+        andInt16  , orInt16  , xorInt16  , subInt16  , addInt16  , loadInt16  , storeInt16  , getInt16  , setInt16  , exchangeInt16  , compareInt16  ,
+        andInt8   , orInt8   , xorInt8   , subInt8   , addInt8   , loadInt8   , storeInt8   , getInt8   , setInt8   , exchangeInt8   , compareInt8   ,
 
-        Uint8Array
-    ] = []
+        Uint8Array  , Int8Array   , Uint8ClampedArray,
+        Uint16Array , Int16Array  , Uint32Array  , Int32Array,
+        Float32Array, Float64Array, BigInt64Array, BigUint64Array ] = []
 
-    bc          = new BroadcastChannel "0ptr"
-    selfName    = self.name
-    isWindow    = document?
-    isBridge    = /bridge/i.test selfName  
-    isThread    = /thread/i.test selfName
-    threadId    = isThread and parseInt selfName.match /\d+/
-    now         = Date.now()
-    pnow        = performance.now()
-    state       = 0
-    buffer      = null
-    resolvs     = new WeakMap()
-    workers     = new self.Array()
-    littleEnd   = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0]
-    TypedArray  = Object.getPrototypeOf self.Uint8Array 
+    [
+        bc          = new BroadcastChannel "0ptr"
+        selfName    = self.name
+        isWindow    = document?
+        isBridge    = /bridge/i.test selfName  
+        isThread    = /thread/i.test selfName
+        threadId    = isThread and parseInt selfName.match /\d+/
+        now         = Date.now()
+        pnow        = performance.now()
+        resolvs     = new WeakMap()
+        workers     = new self.Array()
+        littleEnd   = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0]
+        TypedArray  = Object.getPrototypeOf self.Uint8Array ]
 
     resolvFind  = ( id, retry = 0 ) ->
         i = HINDEX_RESOLV_ID + Atomics.load p32, 1
@@ -160,19 +159,19 @@ do  self.init   = ->
         si8 = new self.Int8Array objbuf
         dvw = new self.DataView objbuf
 
-        p32 = new Int32Array ptrbuf
+        p32 = new self.Int32Array ptrbuf
 
         malloc              = ( byteLength = 0, alignBytes = 1 ) ->
             if  byteLength > 0
                 if  alignBytes > 1
-                    if  mod = @byteLength % alignBytes
+                    if  mod = objbuf.byteLength % alignBytes
                         Atomics.add p32, 0, alignBytes - mod
 
                 byteOffset = Atomics.add p32, 0, byteLength
                 objbuf.grow byteOffset + byteLength
 
                 return byteOffset
-            return @byteLength
+            return objbuf.byteLength
 
         do ->
             addUint32           = Atomics.add.bind Atomics, u32
@@ -477,7 +476,6 @@ do  self.init   = ->
                 # WeakMap -> {TypedArray} => ptri
                 resolvs.set this, ptri
 
-
         class Int8Array         extends self.Int8Array
 
             constructor         : ( arg0, byteOffset, length ) ->
@@ -624,8 +622,6 @@ do  self.init   = ->
                 # WeakMap -> {TypedArray} => ptri
                 resolvs.set this, ptri
 
-
-        
         class Uint8ClampedArray extends self.Uint8ClampedArray
 
             constructor         : ( arg0, byteOffset, length ) ->
@@ -772,37 +768,1173 @@ do  self.init   = ->
                 # WeakMap -> {TypedArray} => ptri
                 resolvs.set this, ptri
 
+        class Uint16Array       extends self.Uint16Array
 
+            constructor         : ( arg0, byteOffset, length ) ->
 
+                ptri = resolvCall()
+                argc = arguments.length                
+                bpel = 2
 
-                
+                if  isThread
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
+                    super objbuf, byteOffset, length
+            
+                else if isBridge
 
+                    if      argc is 1
+                        # new TypedArray( 24 );
+                        # new TypedArray( buffer );
+                        # new TypedArray( [ 2, 4, 1 ] );
 
+                        if Number.isInteger arg0
+                            # new TypedArray( 24 );
 
-                
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
 
+                        else if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArray(?) );
 
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            byteLength  = arg0.byteLength
+                            length      = arg0.byteLength / bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin( byteOffset,
+                                    arg0.byteOffset, 
+                                    arg0.byteOffset + byteLength
+                                )
+                            else
+                                ui8.set arg0, byteOffset                            
 
+                        else if Array.isArray
+                            # new TypedArray( [ 2, 4, 1 ] )
 
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0.length
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            ui8.set arg0, byteOffset                            
+                            
+                    else if argc is 3
+                        # new TypedArray( buffer, 1221, 4 );
+                        # new TypedArray( new TypedArra( 2 ), 36, 2 );
 
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36, 2 );
 
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + length * bpel
 
+                            byteLength      = length * bpel
+                            byteOffset      = malloc byteLength, bpel
 
-                
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin(
+                                    byteOffset, copyStart, copyEnd
+                                )
 
+                            else
+                                ui8.set new self.Uint8Array(
+                                    arg0.buffer, copyStart, length 
+                                ), byteOffset
 
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36, 2 );
 
+                            arg0Offset  = byteOffset
+                            byteLength  = length * bpel
 
-                
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
 
+                                ui8.set new self.Uint8Array(
+                                    arg0, arg0Offset, byteLength
+                                ), byteOffset
 
+                    else if argc is 2
+                        # new TypedArray( buffer, 36 );
+                        # new TypedArray( new TypedArra( 2 ), 36 );
 
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36 );
 
-                
+                            arg0Length      = arg0.length
+                            arg0ByteLength  = arg0.BYTES_PER_ELEMENT * arg0Length
 
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + arg0ByteLength
 
+                            nextByteLength  = arg0ByteLength - byteOffset
 
+                            byteLength      = nextByteLength
+                            length          = byteLength / bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin byteOffset, copyStart, copyEnd
+
+                            else
+                                ui8.set arg0, byteOffset
+    
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = arg0.byteLength - byteOffset
+                            length      = byteLength / bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+                            
+                            if  arg0 isnt objbuf
+                                ui8.set new self.Uint8Array( arg0, arg0Offset ), byteOffset
+
+                    super objbuf, byteOffset, length
+
+                    begin       = byteOffset / bpel
+                    end         = begin + length
+
+                    Atomics.store  p32, ptri + HINDEX_LENGTH, length
+                    Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
+                    Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
+                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
+                    Atomics.store  p32, ptri + HINDEX_END, end
+
+                    Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
+                    Atomics.notify p32, ptri + HINDEX_LOCKFREE
+
+                # WeakMap -> {TypedArray} => ptri
+                resolvs.set this, ptri
+
+        class Int16Array        extends self.Int16Array
+
+            constructor         : ( arg0, byteOffset, length ) ->
+
+                ptri = resolvCall()
+                argc = arguments.length                
+                bpel = 2
+
+                if  isThread
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    super objbuf, byteOffset, length
+            
+                else if isBridge
+
+                    if      argc is 1
+                        # new TypedArray( 24 );
+                        # new TypedArray( buffer );
+                        # new TypedArray( [ 2, 4, 1 ] );
+
+                        if Number.isInteger arg0
+                            # new TypedArray( 24 );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+
+                        else if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArray(?) );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            byteLength  = arg0.byteLength
+                            length      = arg0.byteLength / bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin( byteOffset,
+                                    arg0.byteOffset, 
+                                    arg0.byteOffset + byteLength
+                                )
+                            else
+                                ui8.set arg0, byteOffset                            
+
+                        else if Array.isArray
+                            # new TypedArray( [ 2, 4, 1 ] )
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0.length
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            ui8.set arg0, byteOffset                            
+                            
+                    else if argc is 3
+                        # new TypedArray( buffer, 1221, 4 );
+                        # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + length * bpel
+
+                            byteLength      = length * bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin(
+                                    byteOffset, copyStart, copyEnd
+                                )
+
+                            else
+                                ui8.set new self.Uint8Array(
+                                    arg0.buffer, copyStart, length 
+                                ), byteOffset
+
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36, 2 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = length * bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+
+                                ui8.set new self.Uint8Array(
+                                    arg0, arg0Offset, byteLength
+                                ), byteOffset
+
+                    else if argc is 2
+                        # new TypedArray( buffer, 36 );
+                        # new TypedArray( new TypedArra( 2 ), 36 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36 );
+
+                            arg0Length      = arg0.length
+                            arg0ByteLength  = arg0.BYTES_PER_ELEMENT * arg0Length
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + arg0ByteLength
+
+                            nextByteLength  = arg0ByteLength - byteOffset
+
+                            byteLength      = nextByteLength
+                            length          = byteLength / bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin byteOffset, copyStart, copyEnd
+
+                            else
+                                ui8.set arg0, byteOffset
+    
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = arg0.byteLength - byteOffset
+                            length      = byteLength / bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+                            
+                            if  arg0 isnt objbuf
+                                ui8.set new self.Uint8Array( arg0, arg0Offset ), byteOffset
+
+                    super objbuf, byteOffset, length
+
+                    begin       = byteOffset / bpel
+                    end         = begin + length
+
+                    Atomics.store  p32, ptri + HINDEX_LENGTH, length
+                    Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
+                    Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
+                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
+                    Atomics.store  p32, ptri + HINDEX_END, end
+
+                    Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
+                    Atomics.notify p32, ptri + HINDEX_LOCKFREE
+
+                # WeakMap -> {TypedArray} => ptri
+                resolvs.set this, ptri
+
+        class Uint32Array       extends self.Uint32Array
+
+            constructor         : ( arg0, byteOffset, length ) ->
+
+                ptri = resolvCall()
+                argc = arguments.length                
+                bpel = 4
+
+                if  isThread
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    super objbuf, byteOffset, length
+            
+                else if isBridge
+
+                    if      argc is 1
+                        # new TypedArray( 24 );
+                        # new TypedArray( buffer );
+                        # new TypedArray( [ 2, 4, 1 ] );
+
+                        if Number.isInteger arg0
+                            # new TypedArray( 24 );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+
+                        else if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArray(?) );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            byteLength  = arg0.byteLength
+                            length      = arg0.byteLength / bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin( byteOffset,
+                                    arg0.byteOffset, 
+                                    arg0.byteOffset + byteLength
+                                )
+                            else
+                                ui8.set arg0, byteOffset                            
+
+                        else if Array.isArray
+                            # new TypedArray( [ 2, 4, 1 ] )
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0.length
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            ui8.set arg0, byteOffset                            
+                            
+                    else if argc is 3
+                        # new TypedArray( buffer, 1221, 4 );
+                        # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + length * bpel
+
+                            byteLength      = length * bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin(
+                                    byteOffset, copyStart, copyEnd
+                                )
+
+                            else
+                                ui8.set new self.Uint8Array(
+                                    arg0.buffer, copyStart, length 
+                                ), byteOffset
+
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36, 2 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = length * bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+
+                                ui8.set new self.Uint8Array(
+                                    arg0, arg0Offset, byteLength
+                                ), byteOffset
+
+                    else if argc is 2
+                        # new TypedArray( buffer, 36 );
+                        # new TypedArray( new TypedArra( 2 ), 36 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36 );
+
+                            arg0Length      = arg0.length
+                            arg0ByteLength  = arg0.BYTES_PER_ELEMENT * arg0Length
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + arg0ByteLength
+
+                            nextByteLength  = arg0ByteLength - byteOffset
+
+                            byteLength      = nextByteLength
+                            length          = byteLength / bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin byteOffset, copyStart, copyEnd
+
+                            else
+                                ui8.set arg0, byteOffset
+    
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = arg0.byteLength - byteOffset
+                            length      = byteLength / bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+                            
+                            if  arg0 isnt objbuf
+                                ui8.set new self.Uint8Array( arg0, arg0Offset ), byteOffset
+
+                    super objbuf, byteOffset, length
+
+                    begin       = byteOffset / bpel
+                    end         = begin + length
+
+                    Atomics.store  p32, ptri + HINDEX_LENGTH, length
+                    Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
+                    Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
+                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
+                    Atomics.store  p32, ptri + HINDEX_END, end
+
+                    Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
+                    Atomics.notify p32, ptri + HINDEX_LOCKFREE
+
+                # WeakMap -> {TypedArray} => ptri
+                resolvs.set this, ptri
+
+        class Int32Array        extends self.Int32Array
+
+            constructor         : ( arg0, byteOffset, length ) ->
+
+                ptri = resolvCall()
+                argc = arguments.length                
+                bpel = 4
+
+                if  isThread
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    super objbuf, byteOffset, length
+            
+                else if isBridge
+
+                    if      argc is 1
+                        # new TypedArray( 24 );
+                        # new TypedArray( buffer );
+                        # new TypedArray( [ 2, 4, 1 ] );
+
+                        if Number.isInteger arg0
+                            # new TypedArray( 24 );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+
+                        else if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArray(?) );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            byteLength  = arg0.byteLength
+                            length      = arg0.byteLength / bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin( byteOffset,
+                                    arg0.byteOffset, 
+                                    arg0.byteOffset + byteLength
+                                )
+                            else
+                                ui8.set arg0, byteOffset                            
+
+                        else if Array.isArray
+                            # new TypedArray( [ 2, 4, 1 ] )
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0.length
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            ui8.set arg0, byteOffset                            
+                            
+                    else if argc is 3
+                        # new TypedArray( buffer, 1221, 4 );
+                        # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + length * bpel
+
+                            byteLength      = length * bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin(
+                                    byteOffset, copyStart, copyEnd
+                                )
+
+                            else
+                                ui8.set new self.Uint8Array(
+                                    arg0.buffer, copyStart, length 
+                                ), byteOffset
+
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36, 2 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = length * bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+
+                                ui8.set new self.Uint8Array(
+                                    arg0, arg0Offset, byteLength
+                                ), byteOffset
+
+                    else if argc is 2
+                        # new TypedArray( buffer, 36 );
+                        # new TypedArray( new TypedArra( 2 ), 36 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36 );
+
+                            arg0Length      = arg0.length
+                            arg0ByteLength  = arg0.BYTES_PER_ELEMENT * arg0Length
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + arg0ByteLength
+
+                            nextByteLength  = arg0ByteLength - byteOffset
+
+                            byteLength      = nextByteLength
+                            length          = byteLength / bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin byteOffset, copyStart, copyEnd
+
+                            else
+                                ui8.set arg0, byteOffset
+    
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = arg0.byteLength - byteOffset
+                            length      = byteLength / bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+                            
+                            if  arg0 isnt objbuf
+                                ui8.set new self.Uint8Array( arg0, arg0Offset ), byteOffset
+
+                    super objbuf, byteOffset, length
+
+                    begin       = byteOffset / bpel
+                    end         = begin + length
+
+                    Atomics.store  p32, ptri + HINDEX_LENGTH, length
+                    Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
+                    Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
+                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
+                    Atomics.store  p32, ptri + HINDEX_END, end
+
+                    Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
+                    Atomics.notify p32, ptri + HINDEX_LOCKFREE
+
+                # WeakMap -> {TypedArray} => ptri
+                resolvs.set this, ptri
+
+        class Float32Array      extends self.Float32Array
+
+            constructor         : ( arg0, byteOffset, length ) ->
+
+                ptri = resolvCall()
+                argc = arguments.length                
+                bpel = 4
+
+                if  isThread
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    super objbuf, byteOffset, length
+            
+                else if isBridge
+
+                    if      argc is 1
+                        # new TypedArray( 24 );
+                        # new TypedArray( buffer );
+                        # new TypedArray( [ 2, 4, 1 ] );
+
+                        if Number.isInteger arg0
+                            # new TypedArray( 24 );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+
+                        else if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArray(?) );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            byteLength  = arg0.byteLength
+                            length      = arg0.byteLength / bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin( byteOffset,
+                                    arg0.byteOffset, 
+                                    arg0.byteOffset + byteLength
+                                )
+                            else
+                                ui8.set arg0, byteOffset                            
+
+                        else if Array.isArray
+                            # new TypedArray( [ 2, 4, 1 ] )
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0.length
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            ui8.set arg0, byteOffset                            
+                            
+                    else if argc is 3
+                        # new TypedArray( buffer, 1221, 4 );
+                        # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + length * bpel
+
+                            byteLength      = length * bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin(
+                                    byteOffset, copyStart, copyEnd
+                                )
+
+                            else
+                                ui8.set new self.Uint8Array(
+                                    arg0.buffer, copyStart, length 
+                                ), byteOffset
+
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36, 2 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = length * bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+
+                                ui8.set new self.Uint8Array(
+                                    arg0, arg0Offset, byteLength
+                                ), byteOffset
+
+                    else if argc is 2
+                        # new TypedArray( buffer, 36 );
+                        # new TypedArray( new TypedArra( 2 ), 36 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36 );
+
+                            arg0Length      = arg0.length
+                            arg0ByteLength  = arg0.BYTES_PER_ELEMENT * arg0Length
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + arg0ByteLength
+
+                            nextByteLength  = arg0ByteLength - byteOffset
+
+                            byteLength      = nextByteLength
+                            length          = byteLength / bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin byteOffset, copyStart, copyEnd
+
+                            else
+                                ui8.set arg0, byteOffset
+    
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = arg0.byteLength - byteOffset
+                            length      = byteLength / bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+                            
+                            if  arg0 isnt objbuf
+                                ui8.set new self.Uint8Array( arg0, arg0Offset ), byteOffset
+
+                    super objbuf, byteOffset, length
+
+                    begin       = byteOffset / bpel
+                    end         = begin + length
+
+                    Atomics.store  p32, ptri + HINDEX_LENGTH, length
+                    Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
+                    Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
+                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
+                    Atomics.store  p32, ptri + HINDEX_END, end
+
+                    Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
+                    Atomics.notify p32, ptri + HINDEX_LOCKFREE
+
+                # WeakMap -> {TypedArray} => ptri
+                resolvs.set this, ptri
+
+        class Float64Array      extends self.Float64Array
+
+            constructor         : ( arg0, byteOffset, length ) ->
+
+                ptri = resolvCall()
+                argc = arguments.length                
+                bpel = 8
+
+                if  isThread
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    super objbuf, byteOffset, length
+            
+                else if isBridge
+
+                    if      argc is 1
+                        # new TypedArray( 24 );
+                        # new TypedArray( buffer );
+                        # new TypedArray( [ 2, 4, 1 ] );
+
+                        if Number.isInteger arg0
+                            # new TypedArray( 24 );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+
+                        else if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArray(?) );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            byteLength  = arg0.byteLength
+                            length      = arg0.byteLength / bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin( byteOffset,
+                                    arg0.byteOffset, 
+                                    arg0.byteOffset + byteLength
+                                )
+                            else
+                                ui8.set arg0, byteOffset                            
+
+                        else if Array.isArray
+                            # new TypedArray( [ 2, 4, 1 ] )
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0.length
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            ui8.set arg0, byteOffset                            
+                            
+                    else if argc is 3
+                        # new TypedArray( buffer, 1221, 4 );
+                        # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + length * bpel
+
+                            byteLength      = length * bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin(
+                                    byteOffset, copyStart, copyEnd
+                                )
+
+                            else
+                                ui8.set new self.Uint8Array(
+                                    arg0.buffer, copyStart, length 
+                                ), byteOffset
+
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36, 2 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = length * bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+
+                                ui8.set new self.Uint8Array(
+                                    arg0, arg0Offset, byteLength
+                                ), byteOffset
+
+                    else if argc is 2
+                        # new TypedArray( buffer, 36 );
+                        # new TypedArray( new TypedArra( 2 ), 36 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36 );
+
+                            arg0Length      = arg0.length
+                            arg0ByteLength  = arg0.BYTES_PER_ELEMENT * arg0Length
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + arg0ByteLength
+
+                            nextByteLength  = arg0ByteLength - byteOffset
+
+                            byteLength      = nextByteLength
+                            length          = byteLength / bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin byteOffset, copyStart, copyEnd
+
+                            else
+                                ui8.set arg0, byteOffset
+    
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = arg0.byteLength - byteOffset
+                            length      = byteLength / bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+                            
+                            if  arg0 isnt objbuf
+                                ui8.set new self.Uint8Array( arg0, arg0Offset ), byteOffset
+
+                    super objbuf, byteOffset, length
+
+                    begin       = byteOffset / bpel
+                    end         = begin + length
+
+                    Atomics.store  p32, ptri + HINDEX_LENGTH, length
+                    Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
+                    Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
+                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
+                    Atomics.store  p32, ptri + HINDEX_END, end
+
+                    Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
+                    Atomics.notify p32, ptri + HINDEX_LOCKFREE
+
+                # WeakMap -> {TypedArray} => ptri
+                resolvs.set this, ptri
+
+        class BigInt64Array     extends self.BigInt64Array
+
+            constructor         : ( arg0, byteOffset, length ) ->
+
+                ptri = resolvCall()
+                argc = arguments.length                
+                bpel = 8
+
+                if  isThread
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    super objbuf, byteOffset, length
+            
+                else if isBridge
+
+                    if      argc is 1
+                        # new TypedArray( 24 );
+                        # new TypedArray( buffer );
+                        # new TypedArray( [ 2, 4, 1 ] );
+
+                        if Number.isInteger arg0
+                            # new TypedArray( 24 );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+
+                        else if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArray(?) );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            byteLength  = arg0.byteLength
+                            length      = arg0.byteLength / bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin( byteOffset,
+                                    arg0.byteOffset, 
+                                    arg0.byteOffset + byteLength
+                                )
+                            else
+                                ui8.set arg0, byteOffset                            
+
+                        else if Array.isArray
+                            # new TypedArray( [ 2, 4, 1 ] )
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0.length
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            ui8.set arg0, byteOffset                            
+                            
+                    else if argc is 3
+                        # new TypedArray( buffer, 1221, 4 );
+                        # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + length * bpel
+
+                            byteLength      = length * bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin(
+                                    byteOffset, copyStart, copyEnd
+                                )
+
+                            else
+                                ui8.set new self.Uint8Array(
+                                    arg0.buffer, copyStart, length 
+                                ), byteOffset
+
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36, 2 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = length * bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+
+                                ui8.set new self.Uint8Array(
+                                    arg0, arg0Offset, byteLength
+                                ), byteOffset
+
+                    else if argc is 2
+                        # new TypedArray( buffer, 36 );
+                        # new TypedArray( new TypedArra( 2 ), 36 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36 );
+
+                            arg0Length      = arg0.length
+                            arg0ByteLength  = arg0.BYTES_PER_ELEMENT * arg0Length
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + arg0ByteLength
+
+                            nextByteLength  = arg0ByteLength - byteOffset
+
+                            byteLength      = nextByteLength
+                            length          = byteLength / bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin byteOffset, copyStart, copyEnd
+
+                            else
+                                ui8.set arg0, byteOffset
+    
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = arg0.byteLength - byteOffset
+                            length      = byteLength / bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+                            
+                            if  arg0 isnt objbuf
+                                ui8.set new self.Uint8Array( arg0, arg0Offset ), byteOffset
+
+                    super objbuf, byteOffset, length
+
+                    begin       = byteOffset / bpel
+                    end         = begin + length
+
+                    Atomics.store  p32, ptri + HINDEX_LENGTH, length
+                    Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
+                    Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
+                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
+                    Atomics.store  p32, ptri + HINDEX_END, end
+
+                    Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
+                    Atomics.notify p32, ptri + HINDEX_LOCKFREE
+
+                # WeakMap -> {TypedArray} => ptri
+                resolvs.set this, ptri
+
+        class BigUint64Array    extends self.BigUint64Array
+
+            constructor         : ( arg0, byteOffset, length ) ->
+
+                ptri = resolvCall()
+                argc = arguments.length                
+                bpel = 8
+
+                if  isThread
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    super objbuf, byteOffset, length
+            
+                else if isBridge
+
+                    if      argc is 1
+                        # new TypedArray( 24 );
+                        # new TypedArray( buffer );
+                        # new TypedArray( [ 2, 4, 1 ] );
+
+                        if Number.isInteger arg0
+                            # new TypedArray( 24 );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+
+                        else if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArray(?) );
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            byteLength  = arg0.byteLength
+                            length      = arg0.byteLength / bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin( byteOffset,
+                                    arg0.byteOffset, 
+                                    arg0.byteOffset + byteLength
+                                )
+                            else
+                                ui8.set arg0, byteOffset                            
+
+                        else if Array.isArray
+                            # new TypedArray( [ 2, 4, 1 ] )
+
+                            #Atomics.wait p32, 4, 0, 2240; #testing locks
+                            length      = arg0.length
+                            byteLength  = length * bpel
+                            byteOffset  = malloc byteLength, bpel
+                            
+                            ui8.set arg0, byteOffset                            
+                            
+                    else if argc is 3
+                        # new TypedArray( buffer, 1221, 4 );
+                        # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36, 2 );
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + length * bpel
+
+                            byteLength      = length * bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin(
+                                    byteOffset, copyStart, copyEnd
+                                )
+
+                            else
+                                ui8.set new self.Uint8Array(
+                                    arg0.buffer, copyStart, length 
+                                ), byteOffset
+
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36, 2 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = length * bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+
+                                ui8.set new self.Uint8Array(
+                                    arg0, arg0Offset, byteLength
+                                ), byteOffset
+
+                    else if argc is 2
+                        # new TypedArray( buffer, 36 );
+                        # new TypedArray( new TypedArra( 2 ), 36 );
+
+                        if ArrayBuffer.isView arg0
+                            # new TypedArray( new TypedArra( 2 ), 36 );
+
+                            arg0Length      = arg0.length
+                            arg0ByteLength  = arg0.BYTES_PER_ELEMENT * arg0Length
+
+                            copyStart       = arg0.byteOffset + byteOffset
+                            copyEnd         = copyStart + arg0ByteLength
+
+                            nextByteLength  = arg0ByteLength - byteOffset
+
+                            byteLength      = nextByteLength
+                            length          = byteLength / bpel
+                            byteOffset      = malloc byteLength, bpel
+
+                            if  arg0.buffer is objbuf
+                                ui8.copyWithin byteOffset, copyStart, copyEnd
+
+                            else
+                                ui8.set arg0, byteOffset
+    
+                        else if arg0.byteLength
+                            # new TypedArray( buffer, 36 );
+
+                            arg0Offset  = byteOffset
+                            byteLength  = arg0.byteLength - byteOffset
+                            length      = byteLength / bpel
+
+                            if  arg0 isnt objbuf
+                                byteOffset = malloc byteLength, bpel
+                            
+                            if  arg0 isnt objbuf
+                                ui8.set new self.Uint8Array( arg0, arg0Offset ), byteOffset
+
+                    super objbuf, byteOffset, length
+
+                    begin       = byteOffset / bpel
+                    end         = begin + length
+
+                    Atomics.store  p32, ptri + HINDEX_LENGTH, length
+                    Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
+                    Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
+                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
+                    Atomics.store  p32, ptri + HINDEX_END, end
+
+                    Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
+                    Atomics.notify p32, ptri + HINDEX_LOCKFREE
+
+                # WeakMap -> {TypedArray} => ptri
+                resolvs.set this, ptri
 
                 
     if  isWindow
@@ -986,7 +2118,7 @@ do  self.init   = ->
 
                     postMessage register : {
                         selfName, isBridge, isThread, threadId,
-                        now, pnow, uuid, state
+                        now, pnow, uuid
                     }
 
 
@@ -1063,7 +2195,7 @@ do  self.init   = ->
 
                     postMessage register : {
                         selfName, isBridge, isThread, threadId,
-                        now, pnow, uuid, state
+                        now, pnow, uuid
                     }
 
     bc.onmessage = ( e ) -> {

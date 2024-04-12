@@ -47,7 +47,8 @@
     BENCHMARK 3.186.470.769 ops/sec
 
     */
-    
+   
+    new Uint8Array(52412);
     let a = new Int8Array(242231221);
 
     console.warn( name, "\t--> HPC code running...",  {a} );
@@ -64,7 +65,8 @@
 
     while ( retry-- ) {
         for ( let i of a ) {
-            a[i] = Math.floor(Math.random() * 0xff)
+            a[i] = Math.random() * 0xff
+            //a[i] = BigInt( Math.trunc(Math.random() * 0xffffffff) )
         }
         tried++;
     }
