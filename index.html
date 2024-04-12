@@ -43,9 +43,7 @@
         return parts.join(".");
     }
 
-   
-    //let a = new Uint8Array(24);
-    //console.warn( name, "\t--> HPC code running...",  {a} );
+    /*
 
     const offscreen = new OffscreenCanvas(256, 256);
     const gl = offscreen.getContext("webgl2");
@@ -70,8 +68,12 @@
     log({ offscreen, gl });
 
 
-    /*
+    */
 
+   
+    let a = new Uint8Array(9999999999);
+    console.warn( name, "\t--> HPC code running...",  {a} );
+   
     let t0;
     if ( isBridge ) {
         t0 = performance.now();
@@ -108,7 +110,6 @@
     }
 
 
-    */
 </script>
 <script>
         /*

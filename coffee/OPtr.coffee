@@ -30,7 +30,7 @@ do  self.init   = ->
         HEADERS_LENGTH              = 16
         HEADERS_BYTE_LENGTH         = 4 * 16
         MAX_PTR_COUNT               = 1e5
-        MAX_THREAD_COUNT            = -6 + navigator?.hardwareConcurrency or 3
+        MAX_THREAD_COUNT            = 4 + navigator?.hardwareConcurrency or 3
         ITERATION_PER_THREAD        = 1000000
     
         EVENT_READY                 = new (class EVENT_READY extends Number)(
