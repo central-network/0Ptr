@@ -8,8 +8,11 @@ do  init = ->
     POINTERS_BEGIN          = null
     ALLOCS_BEGIN            = null
 
-    isWindow = typeof self.document isnt undefined
-    isWorker = typeof DedicatedWorkerGlobalScope isnt undefined
+    INDEX_BYTELENGTH        = 0
+    INDEX_BYTEOFFSET        = 1
+
+    isWindow = typeof DedicatedWorkerGlobalScope is undefined
+    isWorker = isWindow is false
     isThread = isWorker and self.name.startsWith "thread"
     isBridge = isWorker and isThread is false
 
@@ -23,14 +26,11 @@ do  init = ->
     i32 = null
     malloc = ( ptr ) ->
         return Atomics.add i32, 1, HEAD_ELEMENTS_COUNT if !ptr
-        byteLength = ptr.constructor.byteLength
-        byteOffset = Atomics.add i32, 0, byteLength
 
-        Atomics.store pointers, ptr, byteLength
-        Atomics.store pointers, ptr, byteOffset
+        ptr.byteLength = ptr.constructor.byteLength
+        ptr.byteOffset = Atomics.add i32, 0, ptr.byteLength
 
-        byteOffset
-        
+        return ptr
 
     textDecoder = new TextDecoder()
     textEncoder = new TextEncoder()
@@ -45,7 +45,16 @@ do  init = ->
 
         define Pointer::,
             
-            pointer : get : -> pointers.subarray this, this + HEAD_ELEMENTS_COUNT
+            pointer     :
+                get : -> pointers.subarray this, this + HEAD_ELEMENTS_COUNT
+
+            byteLength  :
+                get : -> pointers[ this + INDEX_BYTELENGTH ]
+                set : -> pointers[ this + INDEX_BYTELENGTH ] = arguments[0]
+
+            byteOffset  :
+                get : -> pointers[ this + INDEX_BYTEOFFSET ]
+                set : -> pointers[ this + INDEX_BYTEOFFSET ] = arguments[0]
 
 
 
@@ -53,8 +62,17 @@ do  init = ->
 
         @byteLength : 4 * 28
         
-        
+        raise : ->
+            ptrs = [ ...document.scripts ].find( (a) -> a.text and a.src.match /ptr/i )
+            code = init.toString().replace "___EVAL"+"UATE___", ptrs.text.trim() 
+            blob = new Blob [ "(#{code}).call(self)" ], { type: "application/javascript" }
+            bUrl = URL.createObjectURL blob
+            type = ptrs.type or ""
 
+            worker = new Worker bUrl, { type }
+            worker.onerror = console.error
+            worker.onmessageerror = console.error
+            worker.postMessage initram : { buffer: core }
 
     Object.defineProperties SharedArrayBuffer,
 
@@ -64,7 +82,11 @@ do  init = ->
             v = new Uint8Array o ; v.set s
             o
 
-    addEventListener "message", ({ data, ports }) =>
+    addEventListener "ready", ( document ) ->
+        ___EVALUATE___ ; 0
+
+    addEventListener "message", ({ data, ports }) ->
+        console.warn data
         for req , detail of data
             detail . ports = ports if ports.length
             dispatchEvent new CustomEvent req , { detail }
@@ -79,29 +101,31 @@ do  init = ->
             dataOffset: Math.trunc(core.byteLength / 10)
             headOffset: CORE_INFOJSON_START + CORE_INFOJSON_LENGTH
 
-        info = textDecoder.decode new Uint8Array( buffer, CORE_INFOJSON_START, CORE_INFOJSON_LENGTH )
+        info = textDecoder.decode new Uint8Array( buffer, CORE_INFOJSON_START, CORE_INFOJSON_LENGTH ).slice()
 
         unless info.startsWith "\""
             info = generateCoreInfo()
             new Uint8Array core, CORE_INFOJSON_START, CORE_INFOJSON_LENGTH
                 .set textEncoder.encode JSON.stringify info, null, "\t"
                 
-        POINTERS_BEGIN  = info.headOffset
-        ALLOCS_BEGIN = info.dataOffset
+        POINTERS_BEGIN = info.headOffset
+        ALLOCS_BEGIN   = info.dataOffset
 
         i32      = new Int32Array  core
         pointers = new Uint32Array core, POINTERS_BEGIN, ALLOCS_BEGIN/4
         allocs   = new Uint8Array  core, ALLOCS_BEGIN
 
+        return unless isWindow
+        
         Atomics.or i32, 0, POINTERS_BEGIN
         Atomics.or i32, 1, HEAD_ELEMENTS_COUNT
 
         bridge = new Thread()
 
-        console.log bridge
+        console.log bridge.raise()
     
     
-
+    ; 0
 
 postMessage {
     initram : { buffer : new ArrayBuffer 1e7 }
