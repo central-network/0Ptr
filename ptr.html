@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta content="width=device-width, initial-scale=1" name="viewport" >
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" href="favicon.ico">
+    <script src="./coi-serviceworker.js"></script>
+    <style>
+        body, html { 
+            width: 100vw; height: 100vh; overflow: hidden;
+            margin: 0; overscroll-behavior-x: none;
+            background-color: #08203f;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: attr(title);
+            transform: translate(-70px, -100px) rotateZ(-90deg);
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            color: rgb(169, 229, 19);
+            font-family: Georgia, 'Times New Roman', Times, serif;
+            font-size: 18px;
+            white-space: nowrap;
+        }
+
+        canvas {
+            display: block;
+            margin: 20px auto;
+            outline: 1px dashed red;
+        }
+    </style>
+
+</head>
+<body title="146.853.146.838 ops/sec">    
+<canvas id="viewport" width="256" height="256" ></canvas>
+
+<script src="ptr.js">
+
+    const canvas = document.getElementById("viewport")
+
+</script>
+</body>
+</html>
