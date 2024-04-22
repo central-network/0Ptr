@@ -86,6 +86,7 @@ do  self.init   = ->
         pnow        = performance.now()
         resolvs     = new WeakMap()
         replies     = new Object()
+        objects     = new Object()
         workers     = new self.Array()
         littleEnd   = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0]
         TypedArray  = Object.getPrototypeOf self.Uint8Array
@@ -467,6 +468,35 @@ do  self.init   = ->
             storeInt32          :
                     value       : ( index, value ) ->
                         Atomics.store i32, index + @byteOffset / 4, value
+                        
+
+            addUint8            :
+                    value       : ( index, value ) ->
+                        Atomics.add ui8, index + @byteOffset, value
+            
+            addInt8             :
+                    value       : ( index, value ) ->
+                        Atomics.add si8, index + @byteOffset, value
+            
+            addUint8Clamped     :
+                    value       : ( index, value ) ->
+                        Atomics.add cu8, index + @byteOffset, value
+            
+            addUint16           :
+                    value       : ( index, value ) ->
+                        Atomics.add u16, index + @byteOffset / 2, value
+            
+            addInt16            :
+                    value       : ( index, value ) ->
+                        Atomics.add i16, index + @byteOffset / 2, value
+            
+            addUint32           :
+                    value       : ( index, value ) ->
+                        Atomics.add u32, index + @byteOffset / 4, value
+
+            addInt32            :
+                    value       : ( index, value ) ->
+                        Atomics.add i32, index + @byteOffset / 4, value
             
 
         class Uint8Array        extends self.Uint8Array
@@ -474,7 +504,6 @@ do  self.init   = ->
             constructor         : ( arg0, byteOffset, length ) ->
 
                 if  arg0 < 0
-                    warn arg0
                     ptri        = -arg0
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
@@ -2218,12 +2247,10 @@ do  self.init   = ->
 
             INDEX_IS_ACTIVE     : 0     #  8 bit        byteOffset : 0
 
-            INDEX_TYPE          : 1     #  8 bit 2nd    byteOffset : 1
+            INDEX_TYPE          : 1     # 16 bit 1nd    byteOffset : 2
             
-            INDEX_LENGTH        : 1     # 16 bit 1st    byteOffset : 2
+            INDEX_LENGTH        : 1     # 32 bit 1st    byteOffset : 4
             
-            INDEX_SCREEN_PTR    : 1     # 32 bit 2nd    byteOffset : 4
-
             OFFSET_SOURCE_BEGIN : 4 * 4
 
             COMPILE_STATUS      : WebGL2RenderingContext?.COMPILE_STATUS or 35713
@@ -2241,13 +2268,13 @@ do  self.init   = ->
                         set     : -> @storeUint8 @INDEX_IS_ACTIVE, arguments[0]
 
                 type            :
-                        get     : -> @VERTEX_SHADER + @loadUint8 @INDEX_TYPE
-                        set     : -> @storeUint8 @INDEX_TYPE, arguments[0] - @VERTEX_SHADER
+                        get     : -> @loadUint16 @INDEX_TYPE
+                        set     : -> @storeUint16 @INDEX_TYPE, arguments[0]
 
 
                 length          :
-                        get     : -> @loadUint16 @INDEX_LENGTH
-                        set     : -> @storeUint16 @INDEX_LENGTH, arguments[0]
+                        get     : -> @loadUint32 @INDEX_LENGTH
+                        set     : -> @storeUint32 @INDEX_LENGTH, arguments[0]
 
 
                 source          :
@@ -2256,7 +2283,11 @@ do  self.init   = ->
 
                         set     : ( source = @DEFAULT_SOURCE ) ->
                             @length = text.length if text = "#{source}".trim()
-                            @type = @FRAGMENT_SHADER if /gl_FragColor/.test text
+                            
+                            @type = unless text.match /gl_FragColor/
+                                @VERTEX_SHADER
+                            else @FRAGMENT_SHADER
+
                             @set textEncoder.encode( text ), @OFFSET_SOURCE_BEGIN
 
             constructor         : ->
@@ -2267,22 +2298,21 @@ do  self.init   = ->
                     super WebGLShader.byteLength
                         .source = @DEFAULT_SOURCE
 
-            compile             : ( @gl ) ->
-                shader = @gl.createShader @type
+            compile             : ( gl ) ->
+                shader = gl.createShader @type
 
-                log "@source:", @source
-                @gl.shaderSource shader, @source
-                @gl.compileShader shader
+                gl.shaderSource shader, @source
+                gl.compileShader shader
 
-                unless @gl.getShaderParameter shader, @COMPILE_STATUS
-                    info = @gl.getShaderInfoLog shader
-                    @gl.deleteShader shader
+                unless gl.getShaderParameter shader, @COMPILE_STATUS
+                    info = gl.getShaderInfoLog shader
+                    gl.deleteShader shader
                     throw "Could not compile shader: #{info}"
 
-                @shader = shader; this
+                shader
 
-            attach              : ( @program ) ->
-                @gl.attachShader @program, @shader ; this
+            attach              : ( gl, program ) ->
+                gl.attachShader program, @compile gl ; this
 
 
         class VertexShader      extends WebGLShader
@@ -2315,26 +2345,27 @@ do  self.init   = ->
             Object.defineProperties OnscreenCanvas::,
 
                 isRendering     :
-                        get     : -> loadUint8  @indexUint8(@INDEX_ISRENDERING)
-                        set     : -> storeUint8 @indexUint8(@INDEX_ISRENDERING), arguments[0]
+                        get     : -> @loadUint8 @INDEX_ISRENDERING
+                        set     : -> @storeUint8 @INDEX_ISRENDERING, arguments[0]
 
                 hasContext      :
-                        get     : -> loadUint8  @indexUint8(@INDEX_HASCONTEXT)
+                        get     : -> @loadUint8 @INDEX_HASCONTEXT
                         set     : ->
-                            if  storeUint8 @indexUint8(@INDEX_HASCONTEXT), arguments[0]
+                            if  @storeUint8 @INDEX_HASCONTEXT, arguments[0]
                                 @render() if @isRendering
 
                 frameCount      :
-                        get     : -> loadUint32 @indexUint32(@INDEX_FRAMECOUNT)
-                        set     : -> storeUint32 @indexUint32(@INDEX_FRAMECOUNT), arguments[0]
+                        get     : -> @loadUint32 @INDEX_FRAMECOUNT
+                        set     : -> @storeUint32 @INDEX_FRAMECOUNT, arguments[0]
 
                 vertexShader    :
-                        get     : -> VertexShader.at loadUint32 @indexUint32(@INDEX_VSHADER)
-                        set     : -> storeUint32 @indexUint32(@INDEX_VSHADER), resolvs.get arguments[0]
+                        get     : -> VertexShader.at @loadUint32 @INDEX_VSHADER
+                        set     : ->
+                            @storeUint32 @INDEX_VSHADER, resolvs.get arguments[0]
 
                 fragmentShader  :
-                        get     : -> FragmentShader.at loadUint32 @indexUint32(@INDEX_FSHADER)
-                        set     : -> storeUint32 @indexUint32(@INDEX_FSHADER), resolvs.get arguments[0]
+                        get     : -> FragmentShader.at @loadUint32 @INDEX_FSHADER
+                        set     : -> @storeUint32 @INDEX_FSHADER, resolvs.get arguments[0]
 
                 width           :
                         get     : -> @gl.drawingBufferWidth
@@ -2342,33 +2373,30 @@ do  self.init   = ->
                 height          :
                         get     : -> @gl.drawingBufferHeight
 
-            addFrame    : ->
-                addUint32 @indexUint32(@INDEX_FRAMECOUNT), 1
+            addFrame            : ->
+                @addUint32 @INDEX_FRAMECOUNT, 1
 
-            lostContext     : ->                
+            lostContext         : ->                
                 this.gl
                     .getExtension "WEBGL_lose_context"
                     .loseContext()
 
             reload      : ->
                 @vertexShader or= new VertexShader()
-                #@fragmentShader or= new FragmentShader()
+                @fragmentShader or= new FragmentShader()
                 
-                #@program or= @gl.createProgram()
-
-                log vertexShader: @vertexShader
+                program = @gl.createProgram()
                 
-                @vertexShader.compile( @gl )#.attach( @program )
-                #@fragmentShader.compile( @gl ).attach( @program )
+                @vertexShader.attach( @gl, program )
+                @fragmentShader.attach( @gl, program )
 
-                return
-                #@gl.linkProgram @program
+                @gl.linkProgram program
 
-                unless @gl.getProgramParameter @program, @gl.LINK_STATUS
-                    info = @gl.getProgramInfoLog @program
+                unless @gl.getProgramParameter program, @gl.LINK_STATUS
+                    info = @gl.getProgramInfoLog program
                     throw "Could not compile WebGL program. \n#{info}"
 
-                @program
+                program
                 
             setContext  : ( context ) ->
 

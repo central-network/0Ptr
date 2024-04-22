@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_ITERINDEX, HINDEX_ITERLENGTH, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_RESOLV_ID, HINDEX_WAITCOUNT, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, MAX_PTR_COUNT, MAX_THREAD_COUNT, OffscreenCanvas, OnscreenCanvas, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, WORKER_PTR, WORKER_PTR_LENGTH, WORKER_PTR_OFFSET, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
+  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_ITERINDEX, HINDEX_ITERLENGTH, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_RESOLV_ID, HINDEX_WAITCOUNT, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, MAX_PTR_COUNT, MAX_THREAD_COUNT, OffscreenCanvas, OnscreenCanvas, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, WORKER_PTR, WORKER_PTR_LENGTH, WORKER_PTR_OFFSET, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, objects, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
   log = function() {
     return console.log(name, ...arguments);
   };
@@ -56,7 +56,7 @@ self.name = "window";
     })()
   ];
   [blobURL, objbuf, ptrbuf, lock, unlock, malloc, littleEnd, p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, OnscreenCanvas, OffscreenCanvas, Uint8Array, Int8Array, Uint8ClampedArray, Uint16Array, Int16Array, Uint32Array, Int32Array, Float32Array, Float64Array, BigInt64Array, BigUint64Array] = [];
-  [bc = new BroadcastChannel("0ptr"), textEncoder = new TextEncoder(), textDecoder = new TextDecoder(), selfName = self.name, isWindow = typeof document !== "undefined" && document !== null, isBridge = /bridge/i.test(selfName), isThread = /thread/i.test(selfName), threadId = isThread && parseInt(selfName.match(/\d+/)), now = Date.now(), pnow = performance.now(), resolvs = new WeakMap(), replies = new Object(), workers = new self.Array(), littleEnd = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0], TypedArray = Object.getPrototypeOf(self.Uint8Array), GLContext = typeof WebGL2RenderingContext !== "undefined" && WebGL2RenderingContext !== null ? WebGL2RenderingContext : WebGLRenderingContext];
+  [bc = new BroadcastChannel("0ptr"), textEncoder = new TextEncoder(), textDecoder = new TextDecoder(), selfName = self.name, isWindow = typeof document !== "undefined" && document !== null, isBridge = /bridge/i.test(selfName), isThread = /thread/i.test(selfName), threadId = isThread && parseInt(selfName.match(/\d+/)), now = Date.now(), pnow = performance.now(), resolvs = new WeakMap(), replies = new Object(), objects = new Object(), workers = new self.Array(), littleEnd = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0], TypedArray = Object.getPrototypeOf(self.Uint8Array), GLContext = typeof WebGL2RenderingContext !== "undefined" && WebGL2RenderingContext !== null ? WebGL2RenderingContext : WebGLRenderingContext];
   resolvFind = function(id, retry = 0) {
     var i, ptri;
     i = HINDEX_RESOLV_ID + Atomics.load(p32, 1);
@@ -475,13 +475,47 @@ self.name = "window";
         value: function(index, value) {
           return Atomics.store(i32, index + this.byteOffset / 4, value);
         }
+      },
+      addUint8: {
+        value: function(index, value) {
+          return Atomics.add(ui8, index + this.byteOffset, value);
+        }
+      },
+      addInt8: {
+        value: function(index, value) {
+          return Atomics.add(si8, index + this.byteOffset, value);
+        }
+      },
+      addUint8Clamped: {
+        value: function(index, value) {
+          return Atomics.add(cu8, index + this.byteOffset, value);
+        }
+      },
+      addUint16: {
+        value: function(index, value) {
+          return Atomics.add(u16, index + this.byteOffset / 2, value);
+        }
+      },
+      addInt16: {
+        value: function(index, value) {
+          return Atomics.add(i16, index + this.byteOffset / 2, value);
+        }
+      },
+      addUint32: {
+        value: function(index, value) {
+          return Atomics.add(u32, index + this.byteOffset / 4, value);
+        }
+      },
+      addInt32: {
+        value: function(index, value) {
+          return Atomics.add(i32, index + this.byteOffset / 4, value);
+        }
       }
     });
     Uint8Array = class Uint8Array extends self.Uint8Array {
       constructor(arg0, byteOffset, length) {
         var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
         if (arg0 < 0) {
-          warn(arg0);
           ptri = -arg0;
           length = Atomics.load(p32, ptri + HINDEX_LENGTH);
           byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
@@ -1855,25 +1889,21 @@ self.name = "window";
           }
         }
 
-        compile(gl1) {
+        compile(gl) {
           var info, shader;
-          this.gl = gl1;
-          shader = this.gl.createShader(this.type);
-          log("@source:", this.source);
-          this.gl.shaderSource(shader, this.source);
-          this.gl.compileShader(shader);
-          if (!this.gl.getShaderParameter(shader, this.COMPILE_STATUS)) {
-            info = this.gl.getShaderInfoLog(shader);
-            this.gl.deleteShader(shader);
+          shader = gl.createShader(this.type);
+          gl.shaderSource(shader, this.source);
+          gl.compileShader(shader);
+          if (!gl.getShaderParameter(shader, this.COMPILE_STATUS)) {
+            info = gl.getShaderInfoLog(shader);
+            gl.deleteShader(shader);
             throw `Could not compile shader: ${info}`;
           }
-          this.shader = shader;
-          return this;
+          return shader;
         }
 
-        attach(program) {
-          this.program = program;
-          this.gl.attachShader(this.program, this.shader);
+        attach(gl, program) {
+          gl.attachShader(program, this.compile(gl));
           return this;
         }
 
@@ -1883,11 +1913,9 @@ self.name = "window";
 
       WebGLShader.prototype.INDEX_IS_ACTIVE = 0; //  8 bit        byteOffset : 0
 
-      WebGLShader.prototype.INDEX_TYPE = 1; //  8 bit 2nd    byteOffset : 1
+      WebGLShader.prototype.INDEX_TYPE = 1; // 16 bit 1nd    byteOffset : 2
 
-      WebGLShader.prototype.INDEX_LENGTH = 1; // 16 bit 1st    byteOffset : 2
-
-      WebGLShader.prototype.INDEX_SCREEN_PTR = 1; // 32 bit 2nd    byteOffset : 4
+      WebGLShader.prototype.INDEX_LENGTH = 1; // 32 bit 1st    byteOffset : 4
 
       WebGLShader.prototype.OFFSET_SOURCE_BEGIN = 4 * 4;
 
@@ -1910,18 +1938,18 @@ self.name = "window";
         },
         type: {
           get: function() {
-            return this.VERTEX_SHADER + this.loadUint8(this.INDEX_TYPE);
+            return this.loadUint16(this.INDEX_TYPE);
           },
           set: function() {
-            return this.storeUint8(this.INDEX_TYPE, arguments[0] - this.VERTEX_SHADER);
+            return this.storeUint16(this.INDEX_TYPE, arguments[0]);
           }
         },
         length: {
           get: function() {
-            return this.loadUint16(this.INDEX_LENGTH);
+            return this.loadUint32(this.INDEX_LENGTH);
           },
           set: function() {
-            return this.storeUint16(this.INDEX_LENGTH, arguments[0]);
+            return this.storeUint32(this.INDEX_LENGTH, arguments[0]);
           }
         },
         source: {
@@ -1933,9 +1961,7 @@ self.name = "window";
             if (text = `${source}`.trim()) {
               this.length = text.length;
             }
-            if (/gl_FragColor/.test(text)) {
-              this.type = this.FRAGMENT_SHADER;
-            }
+            this.type = !text.match(/gl_FragColor/) ? this.VERTEX_SHADER : this.FRAGMENT_SHADER;
             return this.set(textEncoder.encode(text), this.OFFSET_SOURCE_BEGIN);
           }
         }
@@ -1968,7 +1994,7 @@ self.name = "window";
     return OnscreenCanvas = (function() {
       class OnscreenCanvas extends Uint32Array {
         addFrame() {
-          return addUint32(this.indexUint32(this.INDEX_FRAMECOUNT), 1);
+          return this.addUint32(this.INDEX_FRAMECOUNT, 1);
         }
 
         lostContext() {
@@ -1976,23 +2002,18 @@ self.name = "window";
         }
 
         reload() {
-          var info;
+          var info, program;
           this.vertexShader || (this.vertexShader = new VertexShader());
-          //@fragmentShader or= new FragmentShader()
-
-          //@program or= @gl.createProgram()
-          log({
-            vertexShader: this.vertexShader
-          });
-          this.vertexShader.compile(this.gl); //.attach( @program )
-          return;
-          //@gl.linkProgram @program
-          //@fragmentShader.compile( @gl ).attach( @program )
-          if (!this.gl.getProgramParameter(this.program, this.gl.LINK_STATUS)) {
-            info = this.gl.getProgramInfoLog(this.program);
+          this.fragmentShader || (this.fragmentShader = new FragmentShader());
+          program = this.gl.createProgram();
+          this.vertexShader.attach(this.gl, program);
+          this.fragmentShader.attach(this.gl, program);
+          this.gl.linkProgram(program);
+          if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
+            info = this.gl.getProgramInfoLog(program);
             throw `Could not compile WebGL program. \n${info}`;
           }
-          return this.program;
+          return program;
         }
 
         setContext(context) {
@@ -2095,18 +2116,18 @@ self.name = "window";
       Object.defineProperties(OnscreenCanvas.prototype, {
         isRendering: {
           get: function() {
-            return loadUint8(this.indexUint8(this.INDEX_ISRENDERING));
+            return this.loadUint8(this.INDEX_ISRENDERING);
           },
           set: function() {
-            return storeUint8(this.indexUint8(this.INDEX_ISRENDERING), arguments[0]);
+            return this.storeUint8(this.INDEX_ISRENDERING, arguments[0]);
           }
         },
         hasContext: {
           get: function() {
-            return loadUint8(this.indexUint8(this.INDEX_HASCONTEXT));
+            return this.loadUint8(this.INDEX_HASCONTEXT);
           },
           set: function() {
-            if (storeUint8(this.indexUint8(this.INDEX_HASCONTEXT), arguments[0])) {
+            if (this.storeUint8(this.INDEX_HASCONTEXT, arguments[0])) {
               if (this.isRendering) {
                 return this.render();
               }
@@ -2115,26 +2136,26 @@ self.name = "window";
         },
         frameCount: {
           get: function() {
-            return loadUint32(this.indexUint32(this.INDEX_FRAMECOUNT));
+            return this.loadUint32(this.INDEX_FRAMECOUNT);
           },
           set: function() {
-            return storeUint32(this.indexUint32(this.INDEX_FRAMECOUNT), arguments[0]);
+            return this.storeUint32(this.INDEX_FRAMECOUNT, arguments[0]);
           }
         },
         vertexShader: {
           get: function() {
-            return VertexShader.at(loadUint32(this.indexUint32(this.INDEX_VSHADER)));
+            return VertexShader.at(this.loadUint32(this.INDEX_VSHADER));
           },
           set: function() {
-            return storeUint32(this.indexUint32(this.INDEX_VSHADER), resolvs.get(arguments[0]));
+            return this.storeUint32(this.INDEX_VSHADER, resolvs.get(arguments[0]));
           }
         },
         fragmentShader: {
           get: function() {
-            return FragmentShader.at(loadUint32(this.indexUint32(this.INDEX_FSHADER)));
+            return FragmentShader.at(this.loadUint32(this.INDEX_FSHADER));
           },
           set: function() {
-            return storeUint32(this.indexUint32(this.INDEX_FSHADER), resolvs.get(arguments[0]));
+            return this.storeUint32(this.INDEX_FSHADER, resolvs.get(arguments[0]));
           }
         },
         width: {
