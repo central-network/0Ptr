@@ -9,6 +9,10 @@ do  self.init   = ->
         ( b.charCodeAt() + ( a.charCodeAt?() or a ) )
 
     [
+        WORKER_PTR                  = null
+        WORKER_PTR_OFFSET           = null
+        WORKER_PTR_LENGTH           = 4 * 4096
+
         HEADERS_LENGTH_OFFSET       = 1
         HINDEX_BEGIN                = HEADERS_LENGTH_OFFSET++
         HINDEX_END                  = HEADERS_LENGTH_OFFSET++
@@ -30,9 +34,14 @@ do  self.init   = ->
         HEADERS_LENGTH              = 16
         HEADERS_BYTE_LENGTH         = 4 * 16
         MAX_PTR_COUNT               = 1e5
-        MAX_THREAD_COUNT            = 4 + navigator?.hardwareConcurrency or 3
+        MAX_THREAD_COUNT            = -4 + navigator?.hardwareConcurrency or 3
         ITERATION_PER_THREAD        = 1000000
     
+        INNER_WIDTH                 = innerWidth ? 640
+        INNER_HEIGHT                = innerHeight ? 480
+        RATIO_PIXEL                 = devicePixelRatio ? 1
+        RATIO_ASPECT                = INNER_WIDTH / INNER_HEIGHT 
+
         EVENT_READY                 = new (class EVENT_READY extends Number)(
             number( /EVENT_READY/.source )
         )
@@ -57,6 +66,7 @@ do  self.init   = ->
         andInt16  , orInt16  , xorInt16  , subInt16  , addInt16  , loadInt16  , storeInt16  , getInt16  , setInt16  , exchangeInt16  , compareInt16  ,
         andInt8   , orInt8   , xorInt8   , subInt8   , addInt8   , loadInt8   , storeInt8   , getInt8   , setInt8   , exchangeInt8   , compareInt8   ,
 
+        OnscreenCanvas,
         OffscreenCanvas,
 
         Uint8Array  , Int8Array   , Uint8ClampedArray,
@@ -65,6 +75,8 @@ do  self.init   = ->
 
     [
         bc          = new BroadcastChannel "0ptr"
+        textEncoder = new TextEncoder()
+        textDecoder = new TextDecoder()
         selfName    = self.name
         isWindow    = document?
         isBridge    = /bridge/i.test selfName  
@@ -73,6 +85,7 @@ do  self.init   = ->
         now         = Date.now()
         pnow        = performance.now()
         resolvs     = new WeakMap()
+        replies     = new Object()
         workers     = new self.Array()
         littleEnd   = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0]
         TypedArray  = Object.getPrototypeOf self.Uint8Array
@@ -97,7 +110,7 @@ do  self.init   = ->
 
             Atomics.wait p32, 3, 0, 20
 
-            if  retry > 100
+            if  retry > 400
                 throw /TOO_MANY_TRIED_TO_FIND/
             return resolvFind id, ++retry
 
@@ -191,7 +204,8 @@ do  self.init   = ->
                         Atomics.add p32, 0, alignBytes - mod
 
                 byteOffset = Atomics.add p32, 0, byteLength
-                objbuf.grow byteOffset + byteLength
+                if  byteOffset > objbuf.byteLength
+                    objbuf.grow byteOffset + 1e5
 
                 return byteOffset
             return objbuf.byteLength
@@ -269,13 +283,23 @@ do  self.init   = ->
             getInt8             = ( o ) -> dvw.getInt8 o, littleEnd
             setInt8             = ( o, v ) -> dvw.setInt8 o, v, littleEnd
 
-        0
+        WORKER_PTR          = Atomics.add p32, 1, HEADERS_LENGTH
+        WORKER_PTR_OFFSET   = malloc WORKER_PTR_LENGTH
+        WORKER_PTR_OFFSET   = malloc WORKER_PTR_LENGTH
+
+        Atomics.store  p32, WORKER_PTR + HINDEX_LENGTH, WORKER_PTR_LENGTH
+        Atomics.store  p32, WORKER_PTR + HINDEX_BYTEOFFSET, WORKER_PTR_OFFSET
+        Atomics.store  p32, WORKER_PTR + HINDEX_BYTELENGTH, WORKER_PTR_LENGTH
+        Atomics.store  p32, WORKER_PTR + HINDEX_BEGIN, WORKER_PTR_OFFSET
+        Atomics.store  p32, WORKER_PTR + HINDEX_END, WORKER_PTR_OFFSET + WORKER_PTR_LENGTH      
+        
+        ; 0
 
     regenerate  = ->
 
         Object.defineProperties TypedArray,
 
-            from               :
+            from                :
                 value  : ->
                     array = new this arguments[0].length
 
@@ -289,7 +313,7 @@ do  self.init   = ->
 
                     array
 
-            of                 :
+            of                  :
                 value : ->
                     array = new this arguments.length
 
@@ -304,7 +328,22 @@ do  self.init   = ->
 
                     array
 
+            at                  :
+                value : ( ptri ) ->
+                    return null unless ptri
+                    new this -parseInt ptri
+                    
+
         Object.defineProperties TypedArray::,
+            
+            indexUint8          :
+                    value       : -> arguments[0] + ( p32[ resolvs.get this ] + HINDEX_BYTEOFFSET ) / 1
+
+            indexUint16         :
+                    value       : -> arguments[0] + ( p32[ resolvs.get this ] + HINDEX_BYTEOFFSET ) / 2
+
+            indexUint32         :
+                    value       : -> arguments[0] + ( p32[ resolvs.get this ] + HINDEX_BYTEOFFSET ) / 4
             
             subarray            :
                 #part of this
@@ -314,6 +353,25 @@ do  self.init   = ->
                         @byteOffset + @BYTES_PER_ELEMENT * begin,
                         end - begin
                     )
+                
+            #part of this
+            sub                 :
+                value           : ( byteOffset = 0, length = @length ) ->
+                    new @constructor @buffer, @byteOffset + byteOffset, length
+
+            TypedArray          :
+                get             : ->
+                    tarray = this
+                    while !Object.hasOwn tarray, "BYTES_PER_ELEMENT" 
+                        tarray = Object.getPrototypeOf tarray
+                    self[ tarray.constructor.name ]
+
+
+            detach              :
+                value           : ( byteOffset = 0, length = @length ) ->
+                    target = new this.TypedArray length
+                    target . set @sub byteOffset , length
+                    target
                     
             slice               :
                 #copy to new
@@ -353,15 +411,81 @@ do  self.init   = ->
                         iterate--
                         value : index++ # + begin    
 
+            loadUint8           :
+                    value       : ( index ) ->
+                        Atomics.load ui8, index + @byteOffset
+            
+            loadInt8            :
+                    value       : ( index ) ->
+                        Atomics.load si8, index + @byteOffset
+            
+            loadUint8Clamped    :
+                    value       : ( index ) ->
+                        Atomics.load cu8, index + @byteOffset
+            
+            loadUint16          :
+                    value       : ( index ) ->
+                        Atomics.load u16, index + @byteOffset / 2
+            
+            loadInt16           :
+                    value       : ( index ) ->
+                        Atomics.load i16, index + @byteOffset / 2
+            
+            loadUint32          :
+                    value       : ( index ) ->
+                        Atomics.load u32, index + @byteOffset / 4
+
+            loadInt32           :
+                    value       : ( index ) ->
+                        Atomics.load i32, index + @byteOffset / 4
+            
+
+            storeUint8          :
+                    value       : ( index, value ) ->
+                        Atomics.store ui8, index + @byteOffset, value
+            
+            storeInt8           :
+                    value       : ( index, value ) ->
+                        Atomics.store si8, index + @byteOffset, value
+            
+            storeUint8Clamped   :
+                    value       : ( index, value ) ->
+                        Atomics.store cu8, index + @byteOffset, value
+            
+            storeUint16         :
+                    value       : ( index, value ) ->
+                        Atomics.store u16, index + @byteOffset / 2, value
+            
+            storeInt16          :
+                    value       : ( index, value ) ->
+                        Atomics.store i16, index + @byteOffset / 2, value
+            
+            storeUint32         :
+                    value       : ( index, value ) ->
+                        Atomics.store u32, index + @byteOffset / 4, value
+
+            storeInt32          :
+                    value       : ( index, value ) ->
+                        Atomics.store i32, index + @byteOffset / 4, value
+            
+
         class Uint8Array        extends self.Uint8Array
 
             constructor         : ( arg0, byteOffset, length ) ->
+
+                if  arg0 < 0
+                    warn arg0
+                    ptri        = -arg0
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    return super objbuf, byteOffset, length
 
                 ptri = resolvCall()
                 argc = arguments.length                
                 bpel = 1
 
-                if isThread
+                if  isThread 
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
@@ -502,6 +626,14 @@ do  self.init   = ->
         class Int8Array         extends self.Int8Array
 
             constructor         : ( arg0, byteOffset, length ) ->
+
+                if  arg0 < 0
+                    
+                    ptri        = -arg0
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    return super objbuf, byteOffset, length
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -649,6 +781,14 @@ do  self.init   = ->
 
             constructor         : ( arg0, byteOffset, length ) ->
 
+                if  arg0 < 0
+                    
+                    ptri        = -arg0
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    return super objbuf, byteOffset, length
+
                 ptri = resolvCall()
                 argc = arguments.length                
                 bpel = 1
@@ -794,6 +934,14 @@ do  self.init   = ->
         class Uint16Array       extends self.Uint16Array
 
             constructor         : ( arg0, byteOffset, length ) ->
+                
+                if  arg0 < 0
+                    
+                    ptri        = -arg0
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    return super objbuf, byteOffset, length
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -941,6 +1089,14 @@ do  self.init   = ->
 
             constructor         : ( arg0, byteOffset, length ) ->
 
+                if  arg0 < 0
+                    
+                    ptri        = -arg0
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    return super objbuf, byteOffset, length
+
                 ptri = resolvCall()
                 argc = arguments.length                
                 bpel = 2
@@ -1086,6 +1242,14 @@ do  self.init   = ->
         class Uint32Array       extends self.Uint32Array
 
             constructor         : ( arg0, byteOffset, length ) ->
+
+                if  arg0 < 0
+                    
+                    ptri        = -arg0
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    return super objbuf, byteOffset, length
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -1233,6 +1397,14 @@ do  self.init   = ->
 
             constructor         : ( arg0, byteOffset, length ) ->
 
+                if  arg0 < 0
+                    
+                    ptri        = -arg0
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    return super objbuf, byteOffset, length
+
                 ptri = resolvCall()
                 argc = arguments.length                
                 bpel = 4
@@ -1378,6 +1550,14 @@ do  self.init   = ->
         class Float32Array      extends self.Float32Array
 
             constructor         : ( arg0, byteOffset, length ) ->
+
+                if  arg0 < 0
+                    
+                    ptri        = -arg0
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    return super objbuf, byteOffset, length
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -1525,6 +1705,14 @@ do  self.init   = ->
 
             constructor         : ( arg0, byteOffset, length ) ->
 
+                if  arg0 < 0
+                    
+                    ptri        = -arg0
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    return super objbuf, byteOffset, length
+
                 ptri = resolvCall()
                 argc = arguments.length                
                 bpel = 8
@@ -1671,6 +1859,14 @@ do  self.init   = ->
 
             constructor         : ( arg0, byteOffset, length ) ->
 
+                if  arg0 < 0
+                    
+                    ptri        = -arg0
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    return super objbuf, byteOffset, length
+
                 ptri = resolvCall()
                 argc = arguments.length                
                 bpel = 8
@@ -1816,6 +2012,14 @@ do  self.init   = ->
         class BigUint64Array    extends self.BigUint64Array
 
             constructor         : ( arg0, byteOffset, length ) ->
+
+                if  arg0 < 0
+                    
+                    ptri        = -arg0
+                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+
+                    return super objbuf, byteOffset, length
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -2007,12 +2211,238 @@ do  self.init   = ->
                 resolvs.set canvas, ptri
                 return canvas
 
-                                
-    if  isWindow
 
-        bitmaprenderer  = document
-            .getElementById("bitmaprenderer")
-            .getContext("bitmaprenderer")
+        class WebGLShader       extends Uint8Array
+
+            @byteLength         : 4 * 4 + 1 * 1024 * 16
+
+            INDEX_IS_ACTIVE     : 0     #  8 bit        byteOffset : 0
+
+            INDEX_TYPE          : 1     #  8 bit 2nd    byteOffset : 1
+            
+            INDEX_LENGTH        : 1     # 16 bit 1st    byteOffset : 2
+            
+            INDEX_SCREEN_PTR    : 1     # 32 bit 2nd    byteOffset : 4
+
+            OFFSET_SOURCE_BEGIN : 4 * 4
+
+            COMPILE_STATUS      : WebGL2RenderingContext?.COMPILE_STATUS or 35713
+
+            FRAGMENT_SHADER     : WebGL2RenderingContext?.FRAGMENT_SHADER or 35632
+
+            VERTEX_SHADER       : WebGL2RenderingContext?.VERTEX_SHADER or 35633
+
+            DEFAULT_SOURCE      : ''
+
+            Object.defineProperties WebGLShader::,
+
+                isActive        :
+                        get     : -> @loadUint8 @INDEX_IS_ACTIVE
+                        set     : -> @storeUint8 @INDEX_IS_ACTIVE, arguments[0]
+
+                type            :
+                        get     : -> @VERTEX_SHADER + @loadUint8 @INDEX_TYPE
+                        set     : -> @storeUint8 @INDEX_TYPE, arguments[0] - @VERTEX_SHADER
+
+
+                length          :
+                        get     : -> @loadUint16 @INDEX_LENGTH
+                        set     : -> @storeUint16 @INDEX_LENGTH, arguments[0]
+
+
+                source          :
+                        get     : ->
+                            textDecoder.decode @detach @OFFSET_SOURCE_BEGIN
+
+                        set     : ( source = @DEFAULT_SOURCE ) ->
+                            @length = text.length if text = "#{source}".trim()
+                            @type = @FRAGMENT_SHADER if /gl_FragColor/.test text
+                            @set textEncoder.encode( text ), @OFFSET_SOURCE_BEGIN
+
+            constructor         : ->
+                if  arguments.length
+                    super ...arguments
+                
+                else
+                    super WebGLShader.byteLength
+                        .source = @DEFAULT_SOURCE
+
+            compile             : ( @gl ) ->
+                shader = @gl.createShader @type
+
+                log "@source:", @source
+                @gl.shaderSource shader, @source
+                @gl.compileShader shader
+
+                unless @gl.getShaderParameter shader, @COMPILE_STATUS
+                    info = @gl.getShaderInfoLog shader
+                    @gl.deleteShader shader
+                    throw "Could not compile shader: #{info}"
+
+                @shader = shader; this
+
+            attach              : ( @program ) ->
+                @gl.attachShader @program, @shader ; this
+
+
+        class VertexShader      extends WebGLShader
+            
+            DEFAULT_SOURCE      : ``` `
+                attribute vec4 position;
+                void main() { gl_Position = position; }
+            ` ```
+
+        class FragmentShader    extends WebGLShader
+            
+            DEFAULT_SOURCE      : ``` `
+                void main() { gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); }
+            ` ```
+
+        class OnscreenCanvas    extends Uint32Array
+    
+            @byteLength         : 4 * 4
+
+            INDEX_HASCONTEXT    : 0 * 1     # Uint8
+
+            INDEX_ISRENDERING   : 1 * 1     # Uint8
+            
+            INDEX_FRAMECOUNT    : 1 * 4     # Uint32
+
+            INDEX_VSHADER       : 2 * 4     # Uint32
+            
+            INDEX_FSHADER       : 3 * 4     # Uint32
+
+            Object.defineProperties OnscreenCanvas::,
+
+                isRendering     :
+                        get     : -> loadUint8  @indexUint8(@INDEX_ISRENDERING)
+                        set     : -> storeUint8 @indexUint8(@INDEX_ISRENDERING), arguments[0]
+
+                hasContext      :
+                        get     : -> loadUint8  @indexUint8(@INDEX_HASCONTEXT)
+                        set     : ->
+                            if  storeUint8 @indexUint8(@INDEX_HASCONTEXT), arguments[0]
+                                @render() if @isRendering
+
+                frameCount      :
+                        get     : -> loadUint32 @indexUint32(@INDEX_FRAMECOUNT)
+                        set     : -> storeUint32 @indexUint32(@INDEX_FRAMECOUNT), arguments[0]
+
+                vertexShader    :
+                        get     : -> VertexShader.at loadUint32 @indexUint32(@INDEX_VSHADER)
+                        set     : -> storeUint32 @indexUint32(@INDEX_VSHADER), resolvs.get arguments[0]
+
+                fragmentShader  :
+                        get     : -> FragmentShader.at loadUint32 @indexUint32(@INDEX_FSHADER)
+                        set     : -> storeUint32 @indexUint32(@INDEX_FSHADER), resolvs.get arguments[0]
+
+                width           :
+                        get     : -> @gl.drawingBufferWidth
+
+                height          :
+                        get     : -> @gl.drawingBufferHeight
+
+            addFrame    : ->
+                addUint32 @indexUint32(@INDEX_FRAMECOUNT), 1
+
+            lostContext     : ->                
+                this.gl
+                    .getExtension "WEBGL_lose_context"
+                    .loseContext()
+
+            reload      : ->
+                @vertexShader or= new VertexShader()
+                #@fragmentShader or= new FragmentShader()
+                
+                #@program or= @gl.createProgram()
+
+                log vertexShader: @vertexShader
+                
+                @vertexShader.compile( @gl )#.attach( @program )
+                #@fragmentShader.compile( @gl ).attach( @program )
+
+                return
+                #@gl.linkProgram @program
+
+                unless @gl.getProgramParameter @program, @gl.LINK_STATUS
+                    info = @gl.getProgramInfoLog @program
+                    throw "Could not compile WebGL program. \n#{info}"
+
+                @program
+                
+            setContext  : ( context ) ->
+
+                Object.defineProperties this,
+
+                    gl      : value : context
+
+                    canvas  : value : context.canvas
+
+                @canvas.addEventListener "webglcontextlost", =>
+                    @hasContext = 0
+                    @oncontextlost()
+                    @onwebglcontextlost()
+                    
+                @canvas.addEventListener "webglcontextrestored", =>
+                    @hasContext = 1
+                    @reload()
+                    @oncontextrestored @gl
+                    @onwebglcontextrestored @gl
+
+                @canvas.dispatchEvent new CustomEvent "webglcontextrestored"
+
+                this
+
+
+            oncontextlost           : ->
+            oncontextrestored       : ->
+            onwebglcontextlost      : ->
+            onwebglcontextrestored  : ->
+
+
+            render      : ( handler ) ->
+                return (->) if isThread
+
+                unless @isRendering
+                    @isRendering = 1
+
+                @handler = handler if handler
+                return unless @hasContext
+
+                [ gl, handler, ptri ] =
+                    [ @gl, @handler, resolvs.get this ]
+
+                if  isBridge then do commit = =>
+                    
+                    if  @hasContext
+                        handler.call this, gl, frame = @addFrame()
+
+                    requestAnimationFrame commit
+
+
+            constructor : ->
+                super( OnscreenCanvas.byteLength )
+                    .getContext "webgl2"
+
+            getContext : ( type ) ->
+                ptri = resolvCall()
+                onscreen = this
+                
+                return Object.defineProperty(
+                    onscreen, "gl", value : new Proxy {}, {}
+                ) if isThread
+
+                replies[ ptri ] = new WeakRef ( data ) =>                   
+                    @setContext data.canvas.getContext type, {
+                        powerPreference: "high-performance",
+                    }
+                    unlock data.ptri
+                    
+                postMessage onscreen : { ptri }
+                resolvs.set onscreen , ( ptri )
+                
+
+    if  isWindow
 
         sharedHandler   =
             register    : ( data ) ->
@@ -2024,10 +2454,16 @@ do  self.init   = ->
                 
         bridgeHandler   =
 
-            render      : ( imageBitmap ) ->
-                bitmaprenderer.transferFromImageBitmap imageBitmap
-                imageBitmap.close()
-        
+            render      : ( data ) ->
+                this[ data.ptri ]
+                    .transferFromImageBitmap data.imageBitmap
+
+            onscreen    : ( data ) ->                
+                canvas = createCanvas( data ).transferControlToOffscreen()
+                @postMessage onscreen : { canvas, ...data }, [ canvas ]
+
+            offscreen   : ( data ) ->
+
         threadHandler   =
             hello       : ->
         
@@ -2050,6 +2486,21 @@ do  self.init   = ->
                     ]
 
                 handler.call this, data
+
+        createCanvas    = ( data ) ->
+            {   width = INNER_WIDTH,
+                height = INNER_HEIGHT } = data
+
+            canvas                  = document.createElement "canvas"
+            canvas.ptri             = data . ptri
+            canvas.width            = RATIO_PIXEL * width
+            canvas.height           = RATIO_PIXEL * height
+            canvas.style.width      = CSS.px width
+            canvas.style.height     = CSS.px height
+            canvas.style.inset      = CSS.px 0
+            canvas.style.position   = "fixed"
+
+            document.body.appendChild canvas
 
         createBuffers   = ->
 
@@ -2109,6 +2560,35 @@ do  self.init   = ->
                 console.log ptrbuf
                 console.log p32
                 bc.postMessage DUMP_WEAKMAP
+
+            document.body.style.overscrollBehavior = "none"
+            document.body.style.height = CSS.vh 100
+            document.body.style.margin = 0
+
+            prevent = (e) ->
+                try e.preventDefault()
+                objbuf = ptrbuf = null
+                w.terminate() for w in workers
+                ; 1
+
+            window.onerror              = prevent
+            window.onunload             = prevent
+            window.onpagehide           = prevent
+            window.onbeforeunload       = prevent
+            window.onunhandledrejection = prevent
+
+            window.r = new Proxy {} , {
+                get : ->
+                    window.onerror              = 
+                    window.onunload             = 
+                    window.onpagehide           = 
+                    window.onbeforeunload       = 
+                    window.onunhandledrejection = ->
+        
+                    objbuf = ptrbuf = null
+                    w.terminate() for w in workers
+                    location.reload(true)
+            }
 
         queueMicrotask  ->
             listenEvents()
@@ -2200,12 +2680,8 @@ do  self.init   = ->
                         now, pnow, uuid
                     }
 
-
-
-
-
-
-
+                when "onscreen"
+                    replies[data.ptri].deref()( data )
 
 
 

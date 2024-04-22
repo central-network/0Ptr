@@ -25,32 +25,28 @@
             white-space: nowrap;
         }
 
-        canvas {
-            display: block;
-            margin: 20px auto;
-        }
     </style>
 
 </head>
 <body title="146.853.146.838 ops/sec">    
-<canvas id="bitmaprenderer" width="256" height="256" ></canvas>
 
 <script src="Optr.js">
 
-    function numberWithCommas(x) {
-        var parts = x.toString().split(".");
-        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-        return parts.join(".");
-    }
+    const onscreen = new OnscreenCanvas()
+    let red = 0.1, green = 0.3 , blue= 0.9, sign = 1, factor = 0.002;
 
-    /*
+    onscreen.oncontextrestored = function ( gl ){
+        gl.viewport( 0, 0, this.width, this.height );
 
-    const offscreen = new OffscreenCanvas(256, 256);
-    const gl = offscreen.getContext("webgl2");
+        log(2, this.program)
+    };
 
-    let red = 0, green = 0.5 , blue= 0.3, sign = 1, factor = 0.01;
+    if ( isBridge )
+        setTimeout(function (){
+            1
+        }, 3000)
 
-    offscreen.render(function (){
+    onscreen.render(function (gl){
 
         red += (factor * sign);
         green += (factor * sign);
@@ -64,51 +60,85 @@
         gl.clear(gl.COLOR_BUFFER_BIT);
 
     });
-  
-    log({ offscreen, gl });
 
+    log( [onscreen] )
+
+    /*
+
+
+        function numberWithCommas(x) {
+            var parts = x.toString().split(".");
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            return parts.join(".");
+        }
+
+        <canvas id="bitmaprenderer" width="256" height="256" ></canvas>
+
+
+        const offscreen = new OffscreenCanvas(256, 256);
+        const gl = offscreen.getContext("webgl2");
+
+        let red = 0, green = 0.5 , blue= 0.3, sign = 1, factor = 0.01;
+
+        offscreen.render(function (){
+
+            red += (factor * sign);
+            green += (factor * sign);
+            blue += (factor * sign); 
+
+            if ( red > 1 || red < 0 ) { sign *= -1; }
+            if ( green > 1 || green < 0 ) { sign *= -1; }
+            if ( blue > 1 || blue < 0 ) { sign *= -1; }
+
+            gl.clearColor( red, green, blue, 1 );
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+        });
+    
+        log({ offscreen, gl });
+
+
+
+    
+        let a = new Uint8Array(9999999999);
+        console.warn( name, "\t--> HPC code running...",  {a} );
+    
+        let t0;
+        if ( isBridge ) {
+            t0 = performance.now();
+        }
+
+        let retry = 20;
+        let tried = 1;
+
+
+        while ( retry-- ) {
+            for ( let i of a ) {
+                //a[i] = 0xffffff * Math.random()
+                a[i] = 1;
+                //a[i] = Math.random() * 0xff
+                //a[i] = BigInt( Math.trunc(Math.random() * 0xffffffff) )
+            }
+            tried++;
+        }
+
+        if ( isBridge ) {
+            let msecs = performance.now() - t0; 
+            let count = a.length;
+            let ops = tried * count;
+            let secs = (msecs / 1000).toFixed(2) * 1;
+            let ratio = Math.trunc(ops / secs);
+
+            let nice = numberWithCommas(ratio) + " ops/sec";
+
+            console.table({
+                nice, msecs, tried, count, ops, secs, ratio
+            })
+
+            console.log( a )
+        }
 
     */
-
-   
-    let a = new Uint8Array(9999999999);
-    console.warn( name, "\t--> HPC code running...",  {a} );
-   
-    let t0;
-    if ( isBridge ) {
-        t0 = performance.now();
-    }
-
-    let retry = 20;
-    let tried = 1;
-
-
-    while ( retry-- ) {
-        for ( let i of a ) {
-            //a[i] = 0xffffff * Math.random()
-            a[i] = 1;
-            //a[i] = Math.random() * 0xff
-            //a[i] = BigInt( Math.trunc(Math.random() * 0xffffffff) )
-        }
-        tried++;
-    }
-
-    if ( isBridge ) {
-        let msecs = performance.now() - t0; 
-        let count = a.length;
-        let ops = tried * count;
-        let secs = (msecs / 1000).toFixed(2) * 1;
-        let ratio = Math.trunc(ops / secs);
-
-        let nice = numberWithCommas(ratio) + " ops/sec";
-
-        console.table({
-            nice, msecs, tried, count, ops, secs, ratio
-        })
-
-        console.log( a )
-    }
-
 
 </script>
 <script>
