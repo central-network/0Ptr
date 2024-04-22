@@ -2241,11 +2241,25 @@ do  self.init   = ->
                 return canvas
 
 
+        class WebGLBuffer       extends Float32Array
+
+            @byteLength         : 4 * 8 + 1024 * 1024
+
+            INDEX_ISACTIVE      : 0
+
+            INDEX_TYPE          : 1
+
+            INDEX_ALLOCOFFSET   : 2
+
+            INDEX_ALLOCBEGIN    : 4
+
+            INDEX_DRAWBEGIN     : 5
+
         class WebGLShader       extends Uint8Array
 
-            @byteLength         : 4 * 4 + 1 * 1024 * 16
+            @byteLength         : 4 * 4 + 1024 * 16
 
-            INDEX_IS_ACTIVE     : 0     #  8 bit        byteOffset : 0
+            INDEX_ISACTIVE      : 0     #  8 bit        byteOffset : 0
 
             INDEX_TYPE          : 1     # 16 bit 1nd    byteOffset : 2
             
@@ -2264,8 +2278,8 @@ do  self.init   = ->
             Object.defineProperties WebGLShader::,
 
                 isActive        :
-                        get     : -> @loadUint8 @INDEX_IS_ACTIVE
-                        set     : -> @storeUint8 @INDEX_IS_ACTIVE, arguments[0]
+                        get     : -> @loadUint8 @INDEX_ISACTIVE
+                        set     : -> @storeUint8 @INDEX_ISACTIVE, arguments[0]
 
                 type            :
                         get     : -> @loadUint16 @INDEX_TYPE
@@ -2319,9 +2333,9 @@ do  self.init   = ->
             
             DEFAULT_SOURCE      : ``` `
                 attribute vec3 a_Position;
-                uniform mat4 u_Camera;
+                uniform mat4 u_ViewMatrix;
 
-                void main() { gl_Position = u_Camera * vec4(a_Position, 1.0); }
+                void main() { gl_Position = u_ViewMatrix * vec4(a_Position, 1.0); }
             ` ```
 
         class FragmentShader    extends WebGLShader
@@ -2350,7 +2364,9 @@ do  self.init   = ->
 
             INDEX_GLBUFFER_PTRI : 5
             
-            OFFSET_DRAWBEGIN    : 8 * 4
+            BYTEOFFSET_GLBUFFER : 8 * 4
+
+            ELEMENTS_PER_POINT  : 3
 
             Object.defineProperties OnscreenCanvas::,
 
@@ -2446,27 +2462,22 @@ do  self.init   = ->
                     .getExtension "WEBGL_lose_context"
                     .loseContext()
 
+            malloc              : ( pointCount = 0 ) ->
+                length      = pointCount * @ELEMENTS_PER_POINT
+                byteLength  = length * @BYTES_PER_ELEMENT
+                offset      = @addUint32 @INDEX_DRAWLENGTH, byteLength
+                byteOffset  = @byteOffset + @BYTEOFFSET_GLBUFFER + offset
+                array       = new Float32Array @buffer, byteOffset, length
 
-            malloc              : ( byteLength = 0 ) ->
-                offset = @addUint32 @INDEX_DRAWLENGTH, byteLength
+                Object.defineProperties array,
+                    upload : value : =>
+                        @glBuffer
+                        @gl.bufferData @gl.ARRAY_BUFFER, @drawBuffer, @gl.STATIC_DRAW
+                        
+                        a_Position = @gl.getAttribLocation @program, "a_Position"
+                        @gl.enableVertexAttribArray a_Position
+                        @gl.vertexAttribPointer a_Position, 3, @gl.FLOAT, off, 0, 0
 
-                @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
-                @gl.bufferData @gl.ARRAY_BUFFER, @drawBuffer, @gl.STATIC_DRAW
-                
-                new Float32Array @buffer, @OFFSET_DRAWBEGIN + offset, byteLength/4
-
-            upload      : ( data = @drawBuffer ) ->
-
-                @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
-                @gl.bufferData @gl.ARRAY_BUFFER, @drawBuffer, @gl.STATIC_DRAW
-
-                a_Position = @gl.getAttribLocation @program, "a_Position"
-                @gl.enableVertexAttribArray a_Position
-                @gl.vertexAttribPointer a_Position, 3, @gl.FLOAT, off, 0, 0
-
-                this
-
-            
 
             reload      : ->
                 program = @gl.createProgram()
@@ -2485,7 +2496,6 @@ do  self.init   = ->
                     throw "Could not compile WebGL program. \n#{info}"
 
                 @program = program
-
 
 
                 this

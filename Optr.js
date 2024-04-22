@@ -271,7 +271,7 @@ self.name = "window";
     return 0;
   };
   regenerate = function() {
-    var FragmentShader, VertexShader, WebGLShader;
+    var FragmentShader, VertexShader, WebGLBuffer, WebGLShader;
     Object.defineProperties(TypedArray, {
       from: {
         value: function() {
@@ -1879,6 +1879,24 @@ self.name = "window";
       }
 
     };
+    WebGLBuffer = (function() {
+      class WebGLBuffer extends Float32Array {};
+
+      WebGLBuffer.byteLength = 4 * 8 + 1024 * 1024;
+
+      WebGLBuffer.prototype.INDEX_ISACTIVE = 0;
+
+      WebGLBuffer.prototype.INDEX_TYPE = 1;
+
+      WebGLBuffer.prototype.INDEX_ALLOCOFFSET = 2;
+
+      WebGLBuffer.prototype.INDEX_ALLOCBEGIN = 4;
+
+      WebGLBuffer.prototype.INDEX_DRAWBEGIN = 5;
+
+      return WebGLBuffer;
+
+    }).call(this);
     WebGLShader = (function() {
       class WebGLShader extends Uint8Array {
         constructor() {
@@ -1909,9 +1927,9 @@ self.name = "window";
 
       };
 
-      WebGLShader.byteLength = 4 * 4 + 1 * 1024 * 16;
+      WebGLShader.byteLength = 4 * 4 + 1024 * 16;
 
-      WebGLShader.prototype.INDEX_IS_ACTIVE = 0; //  8 bit        byteOffset : 0
+      WebGLShader.prototype.INDEX_ISACTIVE = 0; //  8 bit        byteOffset : 0
 
       WebGLShader.prototype.INDEX_TYPE = 1; // 16 bit 1nd    byteOffset : 2
 
@@ -1930,10 +1948,10 @@ self.name = "window";
       Object.defineProperties(WebGLShader.prototype, {
         isActive: {
           get: function() {
-            return this.loadUint8(this.INDEX_IS_ACTIVE);
+            return this.loadUint8(this.INDEX_ISACTIVE);
           },
           set: function() {
-            return this.storeUint8(this.INDEX_IS_ACTIVE, arguments[0]);
+            return this.storeUint8(this.INDEX_ISACTIVE, arguments[0]);
           }
         },
         type: {
@@ -1975,9 +1993,9 @@ self.name = "window";
 
       VertexShader.prototype.DEFAULT_SOURCE =  `
                 attribute vec3 a_Position;
-                uniform mat4 u_Camera;
+                uniform mat4 u_ViewMatrix;
 
-                void main() { gl_Position = u_Camera * vec4(a_Position, 1.0); }
+                void main() { gl_Position = u_ViewMatrix * vec4(a_Position, 1.0); }
             ` ;
 
       return VertexShader;
@@ -2003,22 +2021,25 @@ self.name = "window";
           return this.gl.getExtension("WEBGL_lose_context").loseContext();
         }
 
-        malloc(byteLength = 0) {
-          var offset;
+        malloc(pointCount = 0) {
+          var array, byteLength, byteOffset, length, offset;
+          length = pointCount * this.ELEMENTS_PER_POINT;
+          byteLength = length * this.BYTES_PER_ELEMENT;
           offset = this.addUint32(this.INDEX_DRAWLENGTH, byteLength);
-          this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer);
-          this.gl.bufferData(this.gl.ARRAY_BUFFER, this.drawBuffer, this.gl.STATIC_DRAW);
-          return new Float32Array(this.buffer, this.OFFSET_DRAWBEGIN + offset, byteLength / 4);
-        }
-
-        upload(data = this.drawBuffer) {
-          var a_Position;
-          this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer);
-          this.gl.bufferData(this.gl.ARRAY_BUFFER, this.drawBuffer, this.gl.STATIC_DRAW);
-          a_Position = this.gl.getAttribLocation(this.program, "a_Position");
-          this.gl.enableVertexAttribArray(a_Position);
-          this.gl.vertexAttribPointer(a_Position, 3, this.gl.FLOAT, false, 0, 0);
-          return this;
+          byteOffset = this.byteOffset + this.BYTEOFFSET_GLBUFFER + offset;
+          array = new Float32Array(this.buffer, byteOffset, length);
+          return Object.defineProperties(array, {
+            upload: {
+              value: () => {
+                var a_Position;
+                this.glBuffer;
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, this.drawBuffer, this.gl.STATIC_DRAW);
+                a_Position = this.gl.getAttribLocation(this.program, "a_Position");
+                this.gl.enableVertexAttribArray(a_Position);
+                return this.gl.vertexAttribPointer(a_Position, 3, this.gl.FLOAT, false, 0, 0);
+              }
+            }
+          });
         }
 
         reload() {
@@ -2149,7 +2170,9 @@ self.name = "window";
 
       OnscreenCanvas.prototype.INDEX_GLBUFFER_PTRI = 5;
 
-      OnscreenCanvas.prototype.OFFSET_DRAWBEGIN = 8 * 4;
+      OnscreenCanvas.prototype.BYTEOFFSET_GLBUFFER = 8 * 4;
+
+      OnscreenCanvas.prototype.ELEMENTS_PER_POINT = 3;
 
       Object.defineProperties(OnscreenCanvas.prototype, {
         isRendering: {
