@@ -1975,7 +1975,9 @@ self.name = "window";
 
       VertexShader.prototype.DEFAULT_SOURCE =  `
                 attribute vec3 a_Position;
-                void main() { gl_Position = vec4(a_Position, 1.0); }
+                uniform mat4 u_Camera;
+
+                void main() { gl_Position = u_Camera * vec4(a_Position, 1.0); }
             ` ;
 
       return VertexShader;
@@ -2037,9 +2039,6 @@ self.name = "window";
             throw `Could not compile WebGL program. \n${info}`;
           }
           this.program = program;
-          this.glBuffer = this.gl.createBuffer();
-          this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer);
-          this.gl.bufferData(this.gl.ARRAY_BUFFER, this.drawBuffer, this.gl.STATIC_DRAW);
           return this;
         }
 
@@ -2096,7 +2095,7 @@ self.name = "window";
           if (isBridge) {
             return (commit = () => {
               var frame;
-              if (this.hasContext) {
+              if (this.hasContext && this.hasBinding) {
                 handler.call(this, gl, frame = this.addFrame());
                 this.gl.drawArrays(this.gl.POINTS, 0, this.pointCount);
               }
@@ -2136,7 +2135,9 @@ self.name = "window";
 
       OnscreenCanvas.prototype.INDEX_HASCONTEXT = 0; // Uint8
 
-      OnscreenCanvas.prototype.INDEX_ISRENDERING = 1; // Uint8
+      OnscreenCanvas.prototype.INDEX_HASBINDING = 1; // Uint8
+
+      OnscreenCanvas.prototype.INDEX_ISRENDERING = 2; // Uint8
 
       OnscreenCanvas.prototype.INDEX_FRAMECOUNT = 1; // Uint32
 
@@ -2146,6 +2147,8 @@ self.name = "window";
 
       OnscreenCanvas.prototype.INDEX_DRAWLENGTH = 4;
 
+      OnscreenCanvas.prototype.INDEX_GLBUFFER_PTRI = 5;
+
       OnscreenCanvas.prototype.OFFSET_DRAWBEGIN = 8 * 4;
 
       Object.defineProperties(OnscreenCanvas.prototype, {
@@ -2153,40 +2156,48 @@ self.name = "window";
           get: function() {
             return this.loadUint8(this.INDEX_ISRENDERING);
           },
-          set: function() {
-            return this.storeUint8(this.INDEX_ISRENDERING, arguments[0]);
+          set: function(v) {
+            return this.storeUint8(this.INDEX_ISRENDERING, v);
           }
         },
         hasContext: {
           get: function() {
             return this.loadUint8(this.INDEX_HASCONTEXT);
           },
-          set: function() {
-            return this.storeUint8(this.INDEX_HASCONTEXT, arguments[0]);
+          set: function(v) {
+            return this.storeUint8(this.INDEX_HASCONTEXT, v);
+          }
+        },
+        hasBinding: {
+          get: function() {
+            return this.loadUint8(this.INDEX_HASBINDING);
+          },
+          set: function(v) {
+            return this.storeUint8(this.INDEX_HASBINDING, v);
           }
         },
         frameCount: {
           get: function() {
             return this.loadUint32(this.INDEX_FRAMECOUNT);
           },
-          set: function() {
-            return this.storeUint32(this.INDEX_FRAMECOUNT, arguments[0]);
+          set: function(v) {
+            return this.storeUint32(this.INDEX_FRAMECOUNT, v);
           }
         },
         vertexShader: {
           get: function() {
             return VertexShader.at(this.loadUint32(this.INDEX_VSHADER));
           },
-          set: function() {
-            return this.storeUint32(this.INDEX_VSHADER, resolvs.get(arguments[0]));
+          set: function(v) {
+            return this.storeUint32(this.INDEX_VSHADER, resolvs.get(v));
           }
         },
         fragmentShader: {
           get: function() {
             return FragmentShader.at(this.loadUint32(this.INDEX_FSHADER));
           },
-          set: function() {
-            return this.storeUint32(this.INDEX_FSHADER, resolvs.get(arguments[0]));
+          set: function(v) {
+            return this.storeUint32(this.INDEX_FSHADER, resolvs.get(v));
           }
         },
         drawBuffer: {
@@ -2198,8 +2209,8 @@ self.name = "window";
           get: function() {
             return this.loadUint32(this.INDEX_DRAWLENGTH);
           },
-          set: function() {
-            return this.storeUint32(this.INDEX_DRAWLENGTH, arguments[0]);
+          set: function(v) {
+            return this.storeUint32(this.INDEX_DRAWLENGTH, v);
           }
         },
         pointCount: {
@@ -2215,6 +2226,62 @@ self.name = "window";
         height: {
           get: function() {
             return this.gl.drawingBufferHeight;
+          }
+        },
+        glBuffer: {
+          get: function() {
+            var buffer;
+            if (!(buffer = this.gl.getParameter(this.gl.ELEMENT_ARRAY_BUFFER_BINDING))) {
+              buffer = this.gl.createBuffer();
+            }
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
+            this.hasBinding = 1;
+            return buffer;
+          }
+        },
+        activeAttributes: {
+          get: function() {
+            var attrib, i, k, results, v;
+            i = this.gl.getProgramParameter(this.program, this.gl.ACTIVE_ATTRIBUTES);
+            v = Object.values(WebGL2RenderingContext);
+            k = Object.keys(WebGL2RenderingContext);
+            results = [];
+            while (i--) {
+              attrib = this.gl.getActiveAttrib(this.program, i);
+              attrib.isEnabled = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+              attrib.glBuffer = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+              attrib.vertexLocation = this.gl.getAttribLocation(this.program, attrib.name);
+              attrib.vertexSize = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_SIZE);
+              attrib.vertexType = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_TYPE);
+              attrib.vertexKind = k.at(v.indexOf(attrib.vertexType));
+              attrib.vertexIsNormalized = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_NORMALIZED);
+              attrib.vertexStride = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_STRIDE);
+              attrib.currentValue = this.gl.getVertexAttrib(i, this.gl.CURRENT_VERTEX_ATTRIB);
+              attrib.integer = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_INTEGER);
+              attrib.divisor = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_DIVISOR);
+              //ext: ANGLE_instanced_arrays
+              //   + attrib.divisorAngle = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE
+              attrib.kind = k.at(v.indexOf(attrib.type));
+              results.push(attrib);
+            }
+            return results;
+          }
+        },
+        activeUniforms: {
+          get: function() {
+            var i, k, results, uniform, v;
+            i = this.gl.getProgramParameter(this.program, this.gl.ACTIVE_UNIFORMS);
+            v = Object.values(WebGL2RenderingContext);
+            k = Object.keys(WebGL2RenderingContext);
+            results = [];
+            while (i--) {
+              uniform = this.gl.getActiveUniform(this.program, i);
+              uniform.kind = k.at(v.indexOf(uniform.type));
+              uniform.location = this.gl.getUniformLocation(this.program, uniform.name);
+              uniform.uniform = this.gl.getUniform(this.program, uniform.location);
+              results.push(uniform);
+            }
+            return results;
           }
         }
       });

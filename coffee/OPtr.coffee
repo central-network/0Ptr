@@ -2319,7 +2319,9 @@ do  self.init   = ->
             
             DEFAULT_SOURCE      : ``` `
                 attribute vec3 a_Position;
-                void main() { gl_Position = vec4(a_Position, 1.0); }
+                uniform mat4 u_Camera;
+
+                void main() { gl_Position = u_Camera * vec4(a_Position, 1.0); }
             ` ```
 
         class FragmentShader    extends WebGLShader
@@ -2334,7 +2336,9 @@ do  self.init   = ->
 
             INDEX_HASCONTEXT    : 0         # Uint8
 
-            INDEX_ISRENDERING   : 1         # Uint8
+            INDEX_HASBINDING    : 1         # Uint8
+
+            INDEX_ISRENDERING   : 2         # Uint8
             
             INDEX_FRAMECOUNT    : 1         # Uint32
 
@@ -2343,47 +2347,96 @@ do  self.init   = ->
             INDEX_FSHADER       : 3         # Uint32
 
             INDEX_DRAWLENGTH    : 4
+
+            INDEX_GLBUFFER_PTRI : 5
             
             OFFSET_DRAWBEGIN    : 8 * 4
 
             Object.defineProperties OnscreenCanvas::,
 
-                isRendering     :
-                        get     : -> @loadUint8 @INDEX_ISRENDERING
-                        set     : -> @storeUint8 @INDEX_ISRENDERING, arguments[0]
+                isRendering :
+                    get : -> @loadUint8 @INDEX_ISRENDERING
+                    set : (v) -> @storeUint8 @INDEX_ISRENDERING, v
 
-                hasContext      :
-                        get     : -> @loadUint8 @INDEX_HASCONTEXT
-                        set     : -> @storeUint8 @INDEX_HASCONTEXT, arguments[0]
-                                
+                hasContext :
+                    get : -> @loadUint8 @INDEX_HASCONTEXT
+                    set : (v) -> @storeUint8 @INDEX_HASCONTEXT, v
 
-                frameCount      :
-                        get     : -> @loadUint32 @INDEX_FRAMECOUNT
-                        set     : -> @storeUint32 @INDEX_FRAMECOUNT, arguments[0]
+                hasBinding :
+                    get : -> @loadUint8 @INDEX_HASBINDING
+                    set : (v) -> @storeUint8 @INDEX_HASBINDING, v
 
-                vertexShader    :
-                        get     : -> VertexShader.at @loadUint32 @INDEX_VSHADER
-                        set     : -> @storeUint32 @INDEX_VSHADER, resolvs.get arguments[0]
+                frameCount :
+                    get : -> @loadUint32 @INDEX_FRAMECOUNT
+                    set : (v) -> @storeUint32 @INDEX_FRAMECOUNT, v
 
-                fragmentShader  :
-                        get     : -> FragmentShader.at @loadUint32 @INDEX_FSHADER
-                        set     : -> @storeUint32 @INDEX_FSHADER, resolvs.get arguments[0]
+                vertexShader :
+                    get : -> VertexShader.at @loadUint32 @INDEX_VSHADER
+                    set : (v) -> @storeUint32 @INDEX_VSHADER, resolvs.get v
 
-                drawBuffer      :
-                        get     : -> new Float32Array @buffer, @OFFSET_DRAWBEGIN, @drawLength
+                fragmentShader :
+                    get : -> FragmentShader.at @loadUint32 @INDEX_FSHADER
+                    set : (v) -> @storeUint32 @INDEX_FSHADER, resolvs.get v
 
-                drawLength      :
-                        get     : -> @loadUint32 @INDEX_DRAWLENGTH
-                        set     : -> @storeUint32 @INDEX_DRAWLENGTH, arguments[0]
+                drawBuffer :
+                    get : -> new Float32Array @buffer, @OFFSET_DRAWBEGIN, @drawLength
 
-                pointCount      :
-                        get     : -> @drawLength / 3
+                drawLength :
+                    get : -> @loadUint32 @INDEX_DRAWLENGTH
+                    set : (v) -> @storeUint32 @INDEX_DRAWLENGTH, v
 
-                width           :
-                        get     : -> @gl.drawingBufferWidth
+                pointCount :
+                    get : -> @drawLength / 3
 
-                height          :
-                        get     : -> @gl.drawingBufferHeight
+                width :
+                    get : -> @gl.drawingBufferWidth
+
+                height :
+                    get : -> @gl.drawingBufferHeight
+
+                glBuffer : 
+                    get : ->
+                        unless buffer = @gl.getParameter( @gl.ELEMENT_ARRAY_BUFFER_BINDING )
+                            buffer = @gl.createBuffer()                        
+                        @gl.bindBuffer @gl.ARRAY_BUFFER, buffer
+                        @hasBinding = 1
+                        buffer
+
+                activeAttributes :
+                    get : ->
+                        i = @gl.getProgramParameter @program, @gl.ACTIVE_ATTRIBUTES
+                        v = Object.values WebGL2RenderingContext
+                        k = Object.keys WebGL2RenderingContext
+                        while i--
+                            attrib = @gl.getActiveAttrib @program, i
+                            attrib.isEnabled = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_ENABLED
+                            attrib.glBuffer = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING
+                            attrib.vertexLocation = @gl.getAttribLocation @program, attrib.name
+                            attrib.vertexSize = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_SIZE
+                            attrib.vertexType = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_TYPE
+                            attrib.vertexKind = k.at v.indexOf attrib.vertexType 
+                            attrib.vertexIsNormalized = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
+                            attrib.vertexStride = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_STRIDE
+                            attrib.currentValue = @gl.getVertexAttrib i, @gl.CURRENT_VERTEX_ATTRIB
+                            attrib.integer = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_INTEGER
+                            attrib.divisor = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_DIVISOR
+                            #ext: ANGLE_instanced_arrays
+                            #   + attrib.divisorAngle = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE
+                            attrib.kind = k.at v.indexOf attrib.type
+                            attrib 
+
+                activeUniforms :
+                    get : ->
+                        i = @gl.getProgramParameter @program, @gl.ACTIVE_UNIFORMS
+                        v = Object.values WebGL2RenderingContext
+                        k = Object.keys WebGL2RenderingContext
+                        while i--
+                            uniform = @gl.getActiveUniform @program, i
+                            uniform.kind = k.at v.indexOf uniform.type
+                            uniform.location = @gl.getUniformLocation @program, uniform.name
+                            uniform.uniform = @gl.getUniform @program, uniform.location
+                            uniform
+                    
 
             addFrame            : ->
                 @addUint32 @INDEX_FRAMECOUNT, 1
@@ -2392,6 +2445,7 @@ do  self.init   = ->
                 this.gl
                     .getExtension "WEBGL_lose_context"
                     .loseContext()
+
 
             malloc              : ( byteLength = 0 ) ->
                 offset = @addUint32 @INDEX_DRAWLENGTH, byteLength
@@ -2402,6 +2456,7 @@ do  self.init   = ->
                 new Float32Array @buffer, @OFFSET_DRAWBEGIN + offset, byteLength/4
 
             upload      : ( data = @drawBuffer ) ->
+
                 @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
                 @gl.bufferData @gl.ARRAY_BUFFER, @drawBuffer, @gl.STATIC_DRAW
 
@@ -2410,6 +2465,8 @@ do  self.init   = ->
                 @gl.vertexAttribPointer a_Position, 3, @gl.FLOAT, off, 0, 0
 
                 this
+
+            
 
             reload      : ->
                 program = @gl.createProgram()
@@ -2428,10 +2485,6 @@ do  self.init   = ->
                     throw "Could not compile WebGL program. \n#{info}"
 
                 @program = program
-                @glBuffer = @gl.createBuffer()
-                
-                @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
-                @gl.bufferData @gl.ARRAY_BUFFER, @drawBuffer, @gl.STATIC_DRAW
 
 
 
@@ -2482,7 +2535,7 @@ do  self.init   = ->
 
                 if  isBridge then do commit = =>
                     
-                    if  @hasContext
+                    if  @hasContext and @hasBinding
                         handler.call this, gl, frame = @addFrame()
 
                         @gl.drawArrays @gl.POINTS, 0, @pointCount
