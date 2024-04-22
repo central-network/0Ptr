@@ -26,7 +26,7 @@ do  self.init   = ->
         HINDEX_ITERLENGTH           = HEADERS_LENGTH_OFFSET++
     
         BUFFER_TEST_START_LENGTH    = Math.pow (navigator?.deviceMemory or 1)+1, 11
-        BUFFER_TEST_STEP_DIVIDER    = 1e1
+        BUFFER_TEST_STEP_DIVIDER    = 1e2
         INITIAL_BYTELENGTH          = 6e4
         BYTES_PER_ELEMENT           = 4
         RESERVED_BYTELENGTH         = 64
@@ -2318,8 +2318,8 @@ do  self.init   = ->
         class VertexShader      extends WebGLShader
             
             DEFAULT_SOURCE      : ``` `
-                attribute vec4 position;
-                void main() { gl_Position = position; }
+                attribute vec3 a_Position;
+                void main() { gl_Position = vec4(a_Position, 1.0); }
             ` ```
 
         class FragmentShader    extends WebGLShader
@@ -2330,17 +2330,21 @@ do  self.init   = ->
 
         class OnscreenCanvas    extends Uint32Array
     
-            @byteLength         : 4 * 4
+            @byteLength         : 10 * 4    + 4096 * 4096    
 
-            INDEX_HASCONTEXT    : 0 * 1     # Uint8
+            INDEX_HASCONTEXT    : 0         # Uint8
 
-            INDEX_ISRENDERING   : 1 * 1     # Uint8
+            INDEX_ISRENDERING   : 1         # Uint8
             
-            INDEX_FRAMECOUNT    : 1 * 4     # Uint32
+            INDEX_FRAMECOUNT    : 1         # Uint32
 
-            INDEX_VSHADER       : 2 * 4     # Uint32
+            INDEX_VSHADER       : 2         # Uint32
             
-            INDEX_FSHADER       : 3 * 4     # Uint32
+            INDEX_FSHADER       : 3         # Uint32
+
+            INDEX_DRAWLENGTH    : 4
+            
+            OFFSET_DRAWBEGIN    : 8 * 4
 
             Object.defineProperties OnscreenCanvas::,
 
@@ -2350,9 +2354,8 @@ do  self.init   = ->
 
                 hasContext      :
                         get     : -> @loadUint8 @INDEX_HASCONTEXT
-                        set     : ->
-                            if  @storeUint8 @INDEX_HASCONTEXT, arguments[0]
-                                @render() if @isRendering
+                        set     : -> @storeUint8 @INDEX_HASCONTEXT, arguments[0]
+                                
 
                 frameCount      :
                         get     : -> @loadUint32 @INDEX_FRAMECOUNT
@@ -2360,12 +2363,21 @@ do  self.init   = ->
 
                 vertexShader    :
                         get     : -> VertexShader.at @loadUint32 @INDEX_VSHADER
-                        set     : ->
-                            @storeUint32 @INDEX_VSHADER, resolvs.get arguments[0]
+                        set     : -> @storeUint32 @INDEX_VSHADER, resolvs.get arguments[0]
 
                 fragmentShader  :
                         get     : -> FragmentShader.at @loadUint32 @INDEX_FSHADER
                         set     : -> @storeUint32 @INDEX_FSHADER, resolvs.get arguments[0]
+
+                drawBuffer      :
+                        get     : -> new Float32Array @buffer, @OFFSET_DRAWBEGIN, @drawLength
+
+                drawLength      :
+                        get     : -> @loadUint32 @INDEX_DRAWLENGTH
+                        set     : -> @storeUint32 @INDEX_DRAWLENGTH, arguments[0]
+
+                pointCount      :
+                        get     : -> @drawLength / 3
 
                 width           :
                         get     : -> @gl.drawingBufferWidth
@@ -2381,22 +2393,49 @@ do  self.init   = ->
                     .getExtension "WEBGL_lose_context"
                     .loseContext()
 
-            reload      : ->
-                @vertexShader or= new VertexShader()
-                @fragmentShader or= new FragmentShader()
+            malloc              : ( byteLength = 0 ) ->
+                offset = @addUint32 @INDEX_DRAWLENGTH, byteLength
+
+                @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
+                @gl.bufferData @gl.ARRAY_BUFFER, @drawBuffer, @gl.STATIC_DRAW
                 
+                new Float32Array @buffer, @OFFSET_DRAWBEGIN + offset, byteLength/4
+
+            upload      : ( data = @drawBuffer ) ->
+                @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
+                @gl.bufferData @gl.ARRAY_BUFFER, @drawBuffer, @gl.STATIC_DRAW
+
+                a_Position = @gl.getAttribLocation @program, "a_Position"
+                @gl.enableVertexAttribArray a_Position
+                @gl.vertexAttribPointer a_Position, 3, @gl.FLOAT, off, 0, 0
+
+                this
+
+            reload      : ->
                 program = @gl.createProgram()
                 
-                @vertexShader.attach( @gl, program )
-                @fragmentShader.attach( @gl, program )
+                @vertexShader   = new VertexShader()    if !@vertexShader
+                @fragmentShader = new FragmentShader()  if !@fragmentShader
+                                
+                @vertexShader   . attach @gl, program
+                @fragmentShader . attach @gl, program
 
                 @gl.linkProgram program
+                @gl.useProgram program
 
                 unless @gl.getProgramParameter program, @gl.LINK_STATUS
                     info = @gl.getProgramInfoLog program
                     throw "Could not compile WebGL program. \n#{info}"
 
-                program
+                @program = program
+                @glBuffer = @gl.createBuffer()
+                
+                @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
+                @gl.bufferData @gl.ARRAY_BUFFER, @drawBuffer, @gl.STATIC_DRAW
+
+
+
+                this
                 
             setContext  : ( context ) ->
 
@@ -2416,6 +2455,7 @@ do  self.init   = ->
                     @reload()
                     @oncontextrestored @gl
                     @onwebglcontextrestored @gl
+                    @render() if @isRendering
 
                 @canvas.dispatchEvent new CustomEvent "webglcontextrestored"
 
@@ -2444,6 +2484,8 @@ do  self.init   = ->
                     
                     if  @hasContext
                         handler.call this, gl, frame = @addFrame()
+
+                        @gl.drawArrays @gl.POINTS, 0, @pointCount
 
                     requestAnimationFrame commit
 
@@ -2539,6 +2581,8 @@ do  self.init   = ->
             while  !buffer
                 try buffer = new Buffer 0, { maxByteLength }
                 catch then maxByteLength /= BUFFER_TEST_STEP_DIVIDER
+
+            buffer = new SharedArrayBuffer 1e8
 
             initMemory {
                 objbuf : buffer,

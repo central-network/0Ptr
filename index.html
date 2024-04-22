@@ -38,6 +38,17 @@
     onscreen.oncontextrestored = function ( gl ){
         gl.viewport( 0, 0, this.width, this.height );
 
+        const triangle = this.malloc( 3 * 3 * 4 );
+
+        triangle.set([
+            1, -1, 0,
+            -1, -1, 0,
+            0, 1, 0
+        ])
+
+        this.upload( triangle )
+        
+        log( triangle )
     };
 
     if ( isBridge )

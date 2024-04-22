@@ -33,7 +33,7 @@ self.name = "window";
     HINDEX_ITERLENGTH = HEADERS_LENGTH_OFFSET++,
     BUFFER_TEST_START_LENGTH = Math.pow(((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 1) + 1,
     11),
-    BUFFER_TEST_STEP_DIVIDER = 1e1,
+    BUFFER_TEST_STEP_DIVIDER = 1e2,
     INITIAL_BYTELENGTH = 6e4,
     BYTES_PER_ELEMENT = 4,
     RESERVED_BYTELENGTH = 64,
@@ -1974,8 +1974,8 @@ self.name = "window";
       class VertexShader extends WebGLShader {};
 
       VertexShader.prototype.DEFAULT_SOURCE =  `
-                attribute vec4 position;
-                void main() { gl_Position = position; }
+                attribute vec3 a_Position;
+                void main() { gl_Position = vec4(a_Position, 1.0); }
             ` ;
 
       return VertexShader;
@@ -2001,19 +2001,46 @@ self.name = "window";
           return this.gl.getExtension("WEBGL_lose_context").loseContext();
         }
 
+        malloc(byteLength = 0) {
+          var offset;
+          offset = this.addUint32(this.INDEX_DRAWLENGTH, byteLength);
+          this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer);
+          this.gl.bufferData(this.gl.ARRAY_BUFFER, this.drawBuffer, this.gl.STATIC_DRAW);
+          return new Float32Array(this.buffer, this.OFFSET_DRAWBEGIN + offset, byteLength / 4);
+        }
+
+        upload(data = this.drawBuffer) {
+          var a_Position;
+          this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer);
+          this.gl.bufferData(this.gl.ARRAY_BUFFER, this.drawBuffer, this.gl.STATIC_DRAW);
+          a_Position = this.gl.getAttribLocation(this.program, "a_Position");
+          this.gl.enableVertexAttribArray(a_Position);
+          this.gl.vertexAttribPointer(a_Position, 3, this.gl.FLOAT, false, 0, 0);
+          return this;
+        }
+
         reload() {
           var info, program;
-          this.vertexShader || (this.vertexShader = new VertexShader());
-          this.fragmentShader || (this.fragmentShader = new FragmentShader());
           program = this.gl.createProgram();
+          if (!this.vertexShader) {
+            this.vertexShader = new VertexShader();
+          }
+          if (!this.fragmentShader) {
+            this.fragmentShader = new FragmentShader();
+          }
           this.vertexShader.attach(this.gl, program);
           this.fragmentShader.attach(this.gl, program);
           this.gl.linkProgram(program);
+          this.gl.useProgram(program);
           if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
             info = this.gl.getProgramInfoLog(program);
             throw `Could not compile WebGL program. \n${info}`;
           }
-          return program;
+          this.program = program;
+          this.glBuffer = this.gl.createBuffer();
+          this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer);
+          this.gl.bufferData(this.gl.ARRAY_BUFFER, this.drawBuffer, this.gl.STATIC_DRAW);
+          return this;
         }
 
         setContext(context) {
@@ -2034,7 +2061,10 @@ self.name = "window";
             this.hasContext = 1;
             this.reload();
             this.oncontextrestored(this.gl);
-            return this.onwebglcontextrestored(this.gl);
+            this.onwebglcontextrestored(this.gl);
+            if (this.isRendering) {
+              return this.render();
+            }
           });
           this.canvas.dispatchEvent(new CustomEvent("webglcontextrestored"));
           return this;
@@ -2068,6 +2098,7 @@ self.name = "window";
               var frame;
               if (this.hasContext) {
                 handler.call(this, gl, frame = this.addFrame());
+                this.gl.drawArrays(this.gl.POINTS, 0, this.pointCount);
               }
               return requestAnimationFrame(commit);
             })();
@@ -2101,17 +2132,21 @@ self.name = "window";
 
       };
 
-      OnscreenCanvas.byteLength = 4 * 4;
+      OnscreenCanvas.byteLength = 10 * 4 + 4096 * 4096;
 
-      OnscreenCanvas.prototype.INDEX_HASCONTEXT = 0 * 1; // Uint8
+      OnscreenCanvas.prototype.INDEX_HASCONTEXT = 0; // Uint8
 
-      OnscreenCanvas.prototype.INDEX_ISRENDERING = 1 * 1; // Uint8
+      OnscreenCanvas.prototype.INDEX_ISRENDERING = 1; // Uint8
 
-      OnscreenCanvas.prototype.INDEX_FRAMECOUNT = 1 * 4; // Uint32
+      OnscreenCanvas.prototype.INDEX_FRAMECOUNT = 1; // Uint32
 
-      OnscreenCanvas.prototype.INDEX_VSHADER = 2 * 4; // Uint32
+      OnscreenCanvas.prototype.INDEX_VSHADER = 2; // Uint32
 
-      OnscreenCanvas.prototype.INDEX_FSHADER = 3 * 4; // Uint32
+      OnscreenCanvas.prototype.INDEX_FSHADER = 3; // Uint32
+
+      OnscreenCanvas.prototype.INDEX_DRAWLENGTH = 4;
+
+      OnscreenCanvas.prototype.OFFSET_DRAWBEGIN = 8 * 4;
 
       Object.defineProperties(OnscreenCanvas.prototype, {
         isRendering: {
@@ -2127,11 +2162,7 @@ self.name = "window";
             return this.loadUint8(this.INDEX_HASCONTEXT);
           },
           set: function() {
-            if (this.storeUint8(this.INDEX_HASCONTEXT, arguments[0])) {
-              if (this.isRendering) {
-                return this.render();
-              }
-            }
+            return this.storeUint8(this.INDEX_HASCONTEXT, arguments[0]);
           }
         },
         frameCount: {
@@ -2156,6 +2187,24 @@ self.name = "window";
           },
           set: function() {
             return this.storeUint32(this.INDEX_FSHADER, resolvs.get(arguments[0]));
+          }
+        },
+        drawBuffer: {
+          get: function() {
+            return new Float32Array(this.buffer, this.OFFSET_DRAWBEGIN, this.drawLength);
+          }
+        },
+        drawLength: {
+          get: function() {
+            return this.loadUint32(this.INDEX_DRAWLENGTH);
+          },
+          set: function() {
+            return this.storeUint32(this.INDEX_DRAWLENGTH, arguments[0]);
+          }
+        },
+        pointCount: {
+          get: function() {
+            return this.drawLength / 3;
           }
         },
         width: {
@@ -2252,6 +2301,7 @@ self.name = "window";
           maxByteLength /= BUFFER_TEST_STEP_DIVIDER;
         }
       }
+      buffer = new SharedArrayBuffer(1e8);
       initMemory({
         objbuf: buffer,
         ptrbuf: new Buffer(Math.min(MAX_PTR_COUNT * BYTES_PER_ELEMENT, maxByteLength), {maxByteLength})
