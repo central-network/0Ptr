@@ -35,6 +35,7 @@ do  self.init   = ->
         UI_LENGTH                   = 4 * 48
         UI_OFFSET                   = null
         LE                          = new self.Uint8Array( self.Uint16Array.of(1).buffer ).at()
+        RADIANS_PER_DEGREE          = Math.PI / 180.0
     
         INNER_WIDTH                 = innerWidth ? 640
         INNER_HEIGHT                = innerHeight ? 480
@@ -68,6 +69,7 @@ do  self.init   = ->
         UI,
         OnscreenCanvas,
         OffscreenCanvas,
+        xrSession,
 
         Uint8Array  , Int8Array   , Uint8ClampedArray,
         Uint16Array , Int16Array  , Uint32Array  , Int32Array,
@@ -287,42 +289,157 @@ do  self.init   = ->
             setInt8             = ( o, v ) -> dvw.setInt8 o, v, littleEnd
 
 
-            
         ; 0
+
+
+
+    Object.defineProperties DOMMatrix::,
+
+        new : value : ( byteOffset ) -> Object.defineProperties(
+            @constructor.fromFloat32Array( f32.detach byteOffset, 16 ),
+            index : { value : byteOffset / 4 }
+        )
+        
+        set : value : ( valueset ) ->
+            f32.set [ ...valueset ], @index
+
+            [   @m11, @m21, @m31, @m41,
+                @m12, @m22, @m32, @m42, 
+                @m13, @m23, @m33, @m43, 
+                @m14, @m24, @m34, @m44  ] = [ ...valueset ] ; @
+
+        valueOf : value : -> self.Float32Array.of(
+            @m11, @m21, @m31, @m41,
+            @m12, @m22, @m32, @m42, 
+            @m13, @m23, @m33, @m43, 
+            @m14, @m24, @m34, @m44
+        )
+
+        [ Symbol.iterator ] : value : ->
+            yield @m11; yield @m21; yield @m31; yield @m41;
+            yield @m12; yield @m22; yield @m32; yield @m42; 
+            yield @m13; yield @m23; yield @m33; yield @m43; 
+            yield @m14; yield @m24; yield @m34; yield @m44;
 
     class UI extends self.DataView
 
         lastEventCount      : 0
 
-        OFFSET_EVENT_COUNT  : 0 * 4
+        OFFSET_EVENT_TIME   : 1 * 4
 
-        OFFSET_VIEWPORT_X   : 1 * 4
+        OFFSET_EVENT_DELTA  : 2 * 4
 
-        OFFSET_VIEWPORT_Y   : 2 * 4
+        OFFSET_EVENT_COUNT  : 3 * 4
+
+        OFFSET_VIEWPORT_X   : 4 * 4
+
+        OFFSET_VIEWPORT_Y   : 5 * 4
         
-        OFFSET_WIDTH        : 3 * 4
+        OFFSET_WIDTH        : 6 * 4
 
-        OFFSET_HEIGHT       : 4 * 4
+        OFFSET_HEIGHT       : 7 * 4
         
-        OFFSET_ASPECT       : 5 * 4
+        OFFSET_ASPECT       : 8 * 4
 
-        OFFSET_FOVY         : 6 * 4
+        OFFSET_FOVY         : 9 * 4
 
-        OFFSET_NEAR         : 7 * 4
+        OFFSET_NEAR         : 10 * 4
         
-        OFFSET_FAR          : 8 * 4
+        OFFSET_FAR          : 11 * 4
 
-        OFFSET_CLIENT_X     : 9 * 4
+        OFFSET_CLIENT_X     : 12 * 4
 
-        OFFSET_CLIENT_Y     : 10 * 4
+        OFFSET_CLIENT_Y     : 13 * 4
 
-        OFFSET_MATRIX       : 11 * 4
+        OFFSET_MOVE_FORTH   : 14 * 4 + 0
+
+        OFFSET_MOVE_BACK    : 14 * 4 + 1
+
+        OFFSET_MOVE_LEFT    : 14 * 4 + 2
+
+        OFFSET_MOVE_RIGHT   : 14 * 4 + 3
+        
+        OFFSET_MOVE_SPACE   : 15 * 4 + 0
+        
+        OFFSET_MOVE_TAB     : 15 * 4 + 1
+        
+        OFFSET_MOVE_ENTER   : 15 * 4 + 2
+        
+        OFFSET_MOVE_CAPS    : 15 * 4 + 3
+        
+        OFFSET_MOVE_SHIFT   : 16 * 4 + 0
+    
+        OFFSET_MOVE_CTRL    : 16 * 4 + 1
+        
+        OFFSET_MOVE_ALT     : 16 * 4 + 2
+
+        OFFSET_MOVE_META    : 16 * 4 + 3
+
+        MOVEMENT_PER_SECOND_X   : 17
+
+        MOVEMENT_PER_SECOND_Y   : 18
+        
+        MOVEMENT_PER_SECOND_Z   : 19
+
+        ROTATION_PER_SECOND_X   : 20
+        
+        ROTATION_PER_SECOND_Y   : 21
+        
+        ROTATION_PER_SECOND_Z   : 22
+        
+        OFFSET_MATRIX       : 32 * 4
+
+        LENGTH_MATRIX       : 16
+
+        handle : (e) ->
+            @setUint32 @OFFSET_EVENT_COUNT, ++@lastEventCount, LE
+            @setFloat32 @OFFSET_EVENT_DELTA, e.timeStamp - @timeStamp, LE
+            @setFloat32 @OFFSET_EVENT_TIME, e.timeStamp, LE
+            e.preventDefault() if e.cancelable
+            ; on
+
 
         listen : ( window ) ->
             window.addEventListener "pointermove", (e) =>
                 @setFloat32 @OFFSET_CLIENT_X, e.clientX, LE 
                 @setFloat32 @OFFSET_CLIENT_Y, e.clientY, LE 
-                @setUint32 @OFFSET_EVENT_COUNT, ++@lastEventCount, LE
+                @handle e
+
+            [   left, forth, right, back,
+                space, tab, enter, caps,
+                shift, ctrl, alt, meta ] = new Array(64).fill(0)
+
+            window.addEventListener "keydown", (e) =>
+                switch e.keyCode
+                    when 65, 37 then @setUint8 @OFFSET_MOVE_LEFT, ++left 
+                    when 87, 38 then @setUint8 @OFFSET_MOVE_FORTH, ++forth
+                    when 68, 39 then @setUint8 @OFFSET_MOVE_RIGHT, ++right 
+                    when 83, 40 then @setUint8 @OFFSET_MOVE_BACK, ++back 
+                    when 32     then @setUint8 @OFFSET_MOVE_SPACE, ++space 
+                    when 9      then @setUint8 @OFFSET_MOVE_TAB, ++tab
+                    when 13     then @setUint8 @OFFSET_MOVE_ENTER, ++enter 
+                    when 20     then @setUint8 @OFFSET_MOVE_CAPS, ++caps 
+                    when 16     then @setUint8 @OFFSET_MOVE_SHIFT, ++shift 
+                    when 17     then @setUint8 @OFFSET_MOVE_CTRL, ++ctrl 
+                    when 18     then @setUint8 @OFFSET_MOVE_ALT, ++alt 
+                    when 91     then @setUint8 @OFFSET_MOVE_META, ++meta 
+                @handle e
+
+            window.addEventListener "keyup", (e) =>
+                switch e.keyCode
+                    when 65, 37 then @setUint8 @OFFSET_MOVE_LEFT, left = 0 
+                    when 87, 38 then @setUint8 @OFFSET_MOVE_FORTH, forth = 0 
+                    when 68, 39 then @setUint8 @OFFSET_MOVE_RIGHT, right = 0 
+                    when 83, 40 then @setUint8 @OFFSET_MOVE_BACK, back = 0 
+                    when 32     then @setUint8 @OFFSET_MOVE_SPACE, space = 0 
+                    when 9      then @setUint8 @OFFSET_MOVE_TAB, tab = 0 
+                    when 13     then @setUint8 @OFFSET_MOVE_ENTER, enter = 0 
+                    when 20     then @setUint8 @OFFSET_MOVE_CAPS, caps = 0 
+                    when 16     then @setUint8 @OFFSET_MOVE_SHIFT, shift = 0 
+                    when 17     then @setUint8 @OFFSET_MOVE_CTRL, ctrl = 0 
+                    when 18     then @setUint8 @OFFSET_MOVE_ALT, alt = 0 
+                    when 91     then @setUint8 @OFFSET_MOVE_META, meta = 0   
+                @handle e
 
         viewport : ( x, y, width, height ) ->
             @setFloat32 @OFFSET_VIEWPORT_X, x, LE 
@@ -333,7 +450,7 @@ do  self.init   = ->
 
             this
 
-        frustrum : ( near = @near, far = @far, right, bottom, top = @viewportY, left = @viewportX ) ->
+        frustrum : ( near = @near, far = @far, right = @width, bottom = @height, top = @viewportY, left = @viewportX ) ->
             ###
             * @param left   Number Farthest left on the x-axis
             * @param right  Number Farthest right on the x-axis
@@ -343,8 +460,6 @@ do  self.init   = ->
             * @param far    Number Distance to the far clipping plane along the -Z axis
             * @return Float32Array A perspective transformation matrix
             ###
-
-
     
             unless left then left = - (  right /= 2 )
             unless top  then  top = - ( bottom /= 2 )
@@ -358,7 +473,7 @@ do  self.init   = ->
     
             w = right - left
             h = top - bottom
-    
+
             sx = 2 * near / w
             sy = 2 * near / h
     
@@ -366,16 +481,27 @@ do  self.init   = ->
             c1 = 2 * near * far / ( near - far )
     
             tx = -near * (   left + right ) / w
-            ty = -near * ( bottom + top   ) / h
+            ty = -near * ( bottom + top   ) / h    
 
-    
             @matrix.set [
                 sx,       0,       0,      0,
                  0,      sy,       0,      0,
                  0,       0,      c2,     -1,
                 tx,      ty,      c1,      0
             ]
-    
+
+            this
+
+        setMovementsPerSecond : ( x, y, z ) ->
+            @setFloat32 @MOVEMENT_PER_SECOND_X, x, LE
+            @setFloat32 @MOVEMENT_PER_SECOND_Y, y, LE
+            @setFloat32 @MOVEMENT_PER_SECOND_Z, z, LE
+            this
+
+        setRotationsPerSecond : ( x, y, z ) ->
+            @setFloat32 @ROTATION_PER_SECOND_X, x, LE
+            @setFloat32 @ROTATION_PER_SECOND_Y, y, LE
+            @setFloat32 @ROTATION_PER_SECOND_Z, z, LE
             this
 
         perspective : ( fovy = 60, near = 0.01, far = 1000, aspect = @aspect ) ->
@@ -389,8 +515,8 @@ do  self.init   = ->
 
             @setFloat32 @OFFSET_FOVY, fovy, LE 
             @setFloat32 @OFFSET_NEAR, near, LE 
-            @setFloat32 @OFFSET_FAR, far, LE             
-    
+            @setFloat32 @OFFSET_FAR, far, LE        
+                
             @frustrum near, far, right, bottom, top, left
 
         orthographic : ( near, far, right, bottom, top, left ) ->
@@ -427,6 +553,46 @@ do  self.init   = ->
 
             y : get : -> @getFloat32 @OFFSET_CLIENT_Y, LE
 
+            delta : get : -> @getFloat32 @OFFSET_EVENT_DELTA, LE
+            
+            timeStamp : get : -> @getFloat32 @OFFSET_EVENT_TIME, LE
+
+            moveForth : get : -> @getUint8 @OFFSET_MOVE_FORTH
+            
+            moveBack : get : -> @getUint8 @OFFSET_MOVE_BACK
+            
+            moveLeft : get : -> @getUint8 @OFFSET_MOVE_LEFT
+            
+            moveRight : get : -> @getUint8 @OFFSET_MOVE_RIGHT
+
+            keySpace : get : -> @getUint8 @OFFSET_MOVE_SPACE
+
+            keyTab : get : -> @getUint8 @OFFSET_MOVE_TAB
+            
+            keyCaps : get : -> @getUint8 @OFFSET_MOVE_CAPS
+            
+            keyEnter : get : -> @getUint8 @OFFSET_MOVE_ENTER
+
+            keyShift : get : -> @getUint8 @OFFSET_MOVE_SHIFT
+            
+            keyCtrl : get : -> @getUint8 @OFFSET_MOVE_CTRL
+            
+            keyAlt : get : -> @getUint8 @OFFSET_MOVE_ALT
+            
+            keyMeta : get : -> @getUint8 @OFFSET_MOVE_META
+
+            xMovementPerSecond : get : -> @getFloat32 @MOVEMENT_PER_SECOND_X, LE
+
+            yMovementPerSecond : get : -> @getFloat32 @MOVEMENT_PER_SECOND_Y, LE
+            
+            zMovementPerSecond : get : -> @getFloat32 @MOVEMENT_PER_SECOND_Z, LE
+
+            xRotationPerSecond : get : -> @getFloat32 @ROTATION_PER_SECOND_X, LE
+
+            yRotationPerSecond : get : -> @getFloat32 @ROTATION_PER_SECOND_Y, LE
+            
+            zRotationPerSecond : get : -> @getFloat32 @ROTATION_PER_SECOND_Z, LE
+
             viewportX : get : -> @getFloat32 @OFFSET_VIEWPORT_X, LE
 
             viewportY : get : -> @getFloat32 @OFFSET_VIEWPORT_Y, LE
@@ -443,7 +609,9 @@ do  self.init   = ->
             
             far : get : -> @getFloat32 @OFFSET_FAR, LE
 
-            matrix : get : -> new Float32Array @buffer, @OFFSET_MATRIX, 16
+            matrix : 
+                get : -> DOMMatrix::new @byteOffset + @OFFSET_MATRIX
+                set : -> @matrix.set arguments[0]
 
             eventCount : get : -> @getUint32 @OFFSET_EVENT_COUNT, LE
 
@@ -525,9 +693,7 @@ do  self.init   = ->
 
             detach              :
                 value           : ( byteOffset = 0, length = @length ) ->
-                    target = new this.TypedArray length
-                    target . set @sub byteOffset , length
-                    target
+                    new this.TypedArray @sub byteOffset , length
                     
             slice               :
                 #copy to new
@@ -570,60 +736,137 @@ do  self.init   = ->
             loadUint8           :
                     value       : ( index ) ->
                         Atomics.load ui8, index + @byteOffset
+
+            getUint8            :
+                    value       : ( index ) ->
+                        ui8[ index + @byteOffset ]
             
             loadInt8            :
                     value       : ( index ) ->
                         Atomics.load si8, index + @byteOffset
-            
+
+            getInt8             :
+                    value       : ( index ) ->
+                        si8[ index + @byteOffset ]
+                        
             loadUint8Clamped    :
                     value       : ( index ) ->
                         Atomics.load cu8, index + @byteOffset
+
+            getUint8Clamped     :
+                    value       : ( index ) ->
+                        cu8[ index + @byteOffset ]
             
             loadUint16          :
                     value       : ( index ) ->
                         Atomics.load u16, index + @byteOffset / 2
-            
+
+            getUint16           :
+                    value       : ( index ) ->
+                        u16[ index + @byteOffset / 2 ]
+
             loadInt16           :
                     value       : ( index ) ->
                         Atomics.load i16, index + @byteOffset / 2
             
+            getInt16            :
+                    value       : ( index ) ->
+                        i16[ index + @byteOffset / 2 ]
+                        
             loadUint32          :
                     value       : ( index ) ->
                         Atomics.load u32, index + @byteOffset / 4
 
+            getUint32           :
+                    value       : ( index ) ->
+                        u32[ index + @byteOffset / 4 ]
+
             loadInt32           :
                     value       : ( index ) ->
                         Atomics.load i32, index + @byteOffset / 4
+
+            loadFloat32         :
+                    value       : ( index ) ->
+                        new self.Float32Array( self.Uint32Array.of(
+                            Atomics.load u32, index + @byteOffset / 4
+                        ).buffer ).at(0)
             
+            getInt32            :
+                    value       : ( index ) ->
+                        i32[ index + @byteOffset / 4 ]
+            
+            getFloat32          :
+                    value       : ( index ) ->
+                        f32[ index + @byteOffset / 4 ]
+            
+            getFloat64          :
+                    value       : ( index ) ->
+                        f64[ index + @byteOffset / 8 ]
 
             storeUint8          :
                     value       : ( index, value ) ->
                         Atomics.store ui8, index + @byteOffset, value
-            
+
+            setUint8             :
+                    value       : ( index, value ) ->
+                        ui8[ index + @byteOffset ] = value
+
             storeInt8           :
                     value       : ( index, value ) ->
                         Atomics.store si8, index + @byteOffset, value
             
+            setInt8             :
+                    value       : ( index, value ) ->
+                        si8[ index + @byteOffset ] = value
+
             storeUint8Clamped   :
                     value       : ( index, value ) ->
                         Atomics.store cu8, index + @byteOffset, value
+
+            setUint8Clamped     :
+                    value       : ( index, value ) ->
+                        cu8[ index + @byteOffset ] = value
             
             storeUint16         :
                     value       : ( index, value ) ->
                         Atomics.store u16, index + @byteOffset / 2, value
+
+            setUint16           :
+                    value       : ( index, value ) ->
+                        u16[ index + @byteOffset / 2 ] = value
             
             storeInt16          :
                     value       : ( index, value ) ->
                         Atomics.store i16, index + @byteOffset / 2, value
+
+            setInt16            :
+                    value       : ( index, value ) ->
+                        i16[ index + @byteOffset / 2 ] = value
             
             storeUint32         :
                     value       : ( index, value ) ->
                         Atomics.store u32, index + @byteOffset / 4, value
 
+            setUint32           :
+                    value       : ( index, value ) ->
+                        u32[ index + @byteOffset / 4 ] = value
+
             storeInt32          :
                     value       : ( index, value ) ->
                         Atomics.store i32, index + @byteOffset / 4, value
+
+            storeFloat32        :
+                    value       : ( index, value ) ->
+                        value = new self.Uint32Array(self.Float32Array.of(value).buffer)[0]
+                        Atomics.store u32, index + @byteOffset / 4, value
                         
+            setInt32            :
+                    value       : ( index, value ) ->
+                        i32[ index + @byteOffset / 4 ] = value
+
+            setFloat32          :
+                    value       : ( index, value ) ->
+                        f32[ index + @byteOffset / 4 ] = value
 
             addUint8            :
                     value       : ( index, value ) ->
@@ -2479,19 +2722,23 @@ do  self.init   = ->
             DEFAULT_SOURCE      : ``` `
                 attribute vec3 a_Position;
                 uniform mat4 u_ViewMatrix;
+                uniform float u_PointSize;
 
-                void main() { gl_Position = u_ViewMatrix * vec4(a_Position, 1.0); }
+                void main() {
+                    gl_Position = u_ViewMatrix * vec4(a_Position, 1.0);
+                    gl_PointSize = u_PointSize;
+                }
             ` ```
 
         class FragmentShader    extends WebGLShader
             
             DEFAULT_SOURCE      : ``` `
-                void main() { gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); }
+                void main() { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }
             ` ```
 
         class OnscreenCanvas    extends Uint32Array
     
-            @byteLength         : 10 * 4    + 4096 * 4096    
+            @byteLength         : 16 * 4    + 4096 * 4096    
 
             INDEX_HASCONTEXT    : 0         # Uint8
 
@@ -2499,19 +2746,27 @@ do  self.init   = ->
 
             INDEX_ISRENDERING   : 2         # Uint8
             
-            INDEX_FRAMECOUNT    : 1         # Uint32
+            INDEX_FRAME         : 3         # Uint32
 
-            INDEX_VSHADER       : 2         # Uint32
+            INDEX_TIMESTAMP     : 4         # Uint32
             
-            INDEX_FSHADER       : 3         # Uint32
-
-            INDEX_DRAWLENGTH    : 4
-
-            INDEX_POINTCOUNT    : 5
-
-            INDEX_GLBUFFER_PTRI : 6
+            INDEX_DELTA         : 5         # Uint32
             
-            BYTEOFFSET_GLBUFFER : 8 * 4
+            INDEX_FPS           : 6         # Uint32
+
+            INDEX_VSHADER       : 7         # Uint32
+            
+            INDEX_FSHADER       : 8         # Uint32
+
+            INDEX_DRAWLENGTH    : 9
+
+            INDEX_DRAWBYTELENGTH: 10
+
+            INDEX_POINTCOUNT    : 11
+
+            INDEX_GLBUFFER_PTRI : 12
+            
+            BYTEOFFSET_GLBUFFER : 16 * 4
 
             ELEMENTS_PER_POINT  : 3
 
@@ -2529,9 +2784,21 @@ do  self.init   = ->
                     get : -> @loadUint8 @INDEX_HASBINDING
                     set : (v) -> @storeUint8 @INDEX_HASBINDING, v
 
-                frameCount :
-                    get : -> @loadUint32 @INDEX_FRAMECOUNT
-                    set : (v) -> @storeUint32 @INDEX_FRAMECOUNT, v
+                frame :
+                    get : -> @loadUint32 @INDEX_FRAME
+                    set : (v) -> @storeUint32 @INDEX_FRAME, v
+
+                timeStamp :
+                    get : -> @getFloat32 @INDEX_TIMESTAMP
+                    set : (v) -> @setFloat32 @INDEX_TIMESTAMP, v
+
+                delta :
+                    get : -> @getFloat32 @INDEX_DELTA
+                    set : (v) -> @setFloat32 @INDEX_DELTA, v
+
+                fps :
+                    get : -> @getUint8 @INDEX_FPS
+                    set : (v) -> @setUint8 @INDEX_FPS, v
 
                 vertexShader :
                     get : -> VertexShader.at @loadUint32 @INDEX_VSHADER
@@ -2610,8 +2877,12 @@ do  self.init   = ->
                             uniform
                     
 
-            addFrame            : ->
-                @addUint32 @INDEX_FRAMECOUNT, 1
+            addFrame            : ( timeStamp ) ->
+                @delta = ( timeStamp - @timeStamp ) * 1e-3
+                @timeStamp = timeStamp
+                @frame += 1 
+                @fps = 1 / @delta
+                @delta
 
             lostContext         : ->                
                 this.gl
@@ -2621,8 +2892,9 @@ do  self.init   = ->
             malloc              : ( pointCount = 0 ) ->
                 @pointCount = pointCount + @pointCount
                 length      = pointCount * @ELEMENTS_PER_POINT
+                @drawLength += length
                 byteLength  = length * @BYTES_PER_ELEMENT
-                offset      = @addUint32 @INDEX_DRAWLENGTH, byteLength
+                offset      = @addUint32 @INDEX_DRAWBYTELENGTH, byteLength
                 byteOffset  = @byteOffset + @BYTEOFFSET_GLBUFFER + offset
                 array       = new WebGLBuffer @buffer, byteOffset, length
 
@@ -2634,6 +2906,21 @@ do  self.init   = ->
                         @gl.vertexAttribPointer a_Position, 3, @gl.FLOAT, off, 0, 0
                         @gl.enableVertexAttribArray a_Position
 
+            defineUniforms : ->
+                for u in @activeUniforms then switch u.type
+                        when 35676, "FLOAT_MAT4" then ( ( program, uniform ) ->
+                            Object.defineProperty( this, uniform.name,
+                                get : @getUniform.bind this, program, uniform.location
+                                set : @uniformMatrix4fv.bind this, uniform.location, false
+                            )
+                        ).call( @gl, @program, u )
+                        
+                        when 5126, "FLOAT" then ( ( program, uniform ) ->
+                            Object.defineProperty( this, uniform.name,
+                                get : @getUniform.bind this, program, uniform.location
+                                set : @uniform1f.bind this, uniform.location
+                            )
+                        ).call( @gl, @program, u )
 
             reload      : ->
                 program = @gl.createProgram()
@@ -2647,12 +2934,14 @@ do  self.init   = ->
                 @gl.linkProgram program
                 @gl.useProgram program
 
+
                 unless @gl.getProgramParameter program, @gl.LINK_STATUS
                     info = @gl.getProgramInfoLog program
                     throw "Could not compile WebGL program. \n#{info}"
 
                 @program = program
 
+                @defineUniforms()
 
                 this
                 
@@ -2699,11 +2988,10 @@ do  self.init   = ->
                 [ gl, handler, ptri ] =
                     [ @gl, @handler, resolvs.get this ]
 
-                if  isBridge then do commit = =>
+                if  isBridge then do commit = ( now = 0 ) =>
                     
                     if  @hasContext and @hasBinding
-                        handler.call this, gl, frame = @addFrame()
-
+                        handler.call this, gl, @addFrame now 
                         @gl.drawArrays @gl.POINTS, 0, @pointCount
 
                     requestAnimationFrame commit
@@ -2725,7 +3013,6 @@ do  self.init   = ->
                     @setContext data.canvas.getContext type, {
                         powerPreference: "high-performance",
                     }
-                    unlock data.ptri
                     
                 postMessage onscreen : { ptri }
                 resolvs.set onscreen , ( ptri )

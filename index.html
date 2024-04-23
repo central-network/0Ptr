@@ -37,41 +37,54 @@
 
 
 
-
     onscreen.oncontextrestored = function ( gl ){
+
+        log(gl)
 
         gl.viewport( 0, 0, this.width, this.height )
         ui.viewport( 0, 0, this.width, this.height )
-            .perspective( 60, .01, 1000 )
-
+            .perspective( 90, 1e-4, 1e5 )
+            .setMovementsPerSecond( 1, 1, 1 )
+            .setRotationsPerSecond( .1, .1, .1 )
 
         const triangle = this.malloc( 3 );
 
         triangle.set([
-            1, -1, 0,
-            -1, -1, 0,
-            0, 1, 0
+            0, 0, 0,
         ])
 
-        console.log(ui)
-        
+
+        ui.matrix = ui.matrix.translateSelf(
+            0, 0, -1
+        )
+
+        gl.u_ViewMatrix = ui.matrix;
+        gl.u_PointSize = 10;
 
         setTimeout(function (){
-            triangle.set([
-                121232, -121232, 210,
-                -121232, -122123, 210,
-                1212330, 123122, 123210
-            ])
-            log(triangle)
+
+            gl.u_PointSize = 10;
+            warn({ drawBuffer: ui.matrix })
 
         }, 3000)
 
     };
 
-    
-    log( ui)
+    const applyMovements = function ( delta ) {
 
-    onscreen.render(function (gl){
+        if ( ui.moveForth ) {
+            ui.matrix.translateSelf(
+                ui.moveForth * delta  * ui.xMovementPerSecond
+            )
+        }
+    }
+    
+    onscreen.render(function (gl, delta){
+
+        if ( ui.hasEvent ) {
+            applyMovements( delta )
+            gl.u_ViewMatrix = ui.matrix
+        }
 
         red += (factor * sign);
         green += (factor * sign);
@@ -82,7 +95,8 @@
         if ( blue > 1 || blue < 0 ) { sign *= -1; }
 
         gl.clearColor( red, green, blue, 1 );
-        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.clearDepth(1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     });
 

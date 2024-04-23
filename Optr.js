@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_ITERINDEX, HINDEX_ITERLENGTH, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_RESOLV_ID, HINDEX_WAITCOUNT, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, LE, MAX_PTR_COUNT, MAX_THREAD_COUNT, OffscreenCanvas, OnscreenCanvas, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, UI, UI_LENGTH, UI_OFFSET, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, keybuf, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, objects, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
+  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_ITERINDEX, HINDEX_ITERLENGTH, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_RESOLV_ID, HINDEX_WAITCOUNT, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, LE, MAX_PTR_COUNT, MAX_THREAD_COUNT, OffscreenCanvas, OnscreenCanvas, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, UI, UI_LENGTH, UI_OFFSET, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, keybuf, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, objects, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8, xrSession;
   log = function() {
     return console.log(name, ...arguments);
   };
@@ -43,6 +43,7 @@ self.name = "window";
     UI_LENGTH = 4 * 48,
     UI_OFFSET = null,
     LE = new self.Uint8Array(self.Uint16Array.of(1).buffer).at(),
+    RADIANS_PER_DEGREE = Math.PI / 180.0,
     INNER_WIDTH = typeof innerWidth !== "undefined" && innerWidth !== null ? innerWidth : 640,
     INNER_HEIGHT = typeof innerHeight !== "undefined" && innerHeight !== null ? innerHeight : 480,
     RATIO_PIXEL = typeof devicePixelRatio !== "undefined" && devicePixelRatio !== null ? devicePixelRatio : 1,
@@ -55,7 +56,7 @@ self.name = "window";
       }
     })()
   ];
-  [blobURL, objbuf, ptrbuf, keybuf, lock, unlock, malloc, littleEnd, ui, p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, UI, OnscreenCanvas, OffscreenCanvas, Uint8Array, Int8Array, Uint8ClampedArray, Uint16Array, Int16Array, Uint32Array, Int32Array, Float32Array, Float64Array, BigInt64Array, BigUint64Array] = [];
+  [blobURL, objbuf, ptrbuf, keybuf, lock, unlock, malloc, littleEnd, ui, p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, UI, OnscreenCanvas, OffscreenCanvas, xrSession, Uint8Array, Int8Array, Uint8ClampedArray, Uint16Array, Int16Array, Uint32Array, Int32Array, Float32Array, Float64Array, BigInt64Array, BigUint64Array] = [];
   [bc = new BroadcastChannel("0ptr"), textEncoder = new TextEncoder(), textDecoder = new TextDecoder(), selfName = self.name, isWindow = typeof document !== "undefined" && document !== null, isBridge = /bridge/i.test(selfName), isThread = /thread/i.test(selfName), threadId = isThread && parseInt(selfName.match(/\d+/)), now = Date.now(), pnow = performance.now(), resolvs = new WeakMap(), replies = new Object(), objects = new Object(), workers = new self.Array(), littleEnd = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0], TypedArray = Object.getPrototypeOf(self.Uint8Array), GLContext = typeof WebGL2RenderingContext !== "undefined" && WebGL2RenderingContext !== null ? WebGL2RenderingContext : WebGLRenderingContext];
   resolvFind = function(id, retry = 0) {
     var i, ptri;
@@ -264,13 +265,156 @@ self.name = "window";
     })();
     return 0;
   };
+  Object.defineProperties(DOMMatrix.prototype, {
+    new: {
+      value: function(byteOffset) {
+        return Object.defineProperties(this.constructor.fromFloat32Array(f32.detach(byteOffset, 16)), {
+          index: {
+            value: byteOffset / 4
+          }
+        });
+      }
+    },
+    set: {
+      value: function(valueset) {
+        f32.set([...valueset], this.index);
+        [this.m11, this.m21, this.m31, this.m41, this.m12, this.m22, this.m32, this.m42, this.m13, this.m23, this.m33, this.m43, this.m14, this.m24, this.m34, this.m44] = [...valueset];
+        return this;
+      }
+    },
+    valueOf: {
+      value: function() {
+        return self.Float32Array.of(this.m11, this.m21, this.m31, this.m41, this.m12, this.m22, this.m32, this.m42, this.m13, this.m23, this.m33, this.m43, this.m14, this.m24, this.m34, this.m44);
+      }
+    },
+    [Symbol.iterator]: {
+      value: function*() {
+        yield this.m11;
+        yield this.m21;
+        yield this.m31;
+        yield this.m41;
+        yield this.m12;
+        yield this.m22;
+        yield this.m32;
+        yield this.m42;
+        yield this.m13;
+        yield this.m23;
+        yield this.m33;
+        yield this.m43;
+        yield this.m14;
+        yield this.m24;
+        yield this.m34;
+        return (yield this.m44);
+      }
+    }
+  });
   UI = (function() {
     class UI extends self.DataView {
+      handle(e) {
+        this.setUint32(this.OFFSET_EVENT_COUNT, ++this.lastEventCount, LE);
+        this.setFloat32(this.OFFSET_EVENT_DELTA, e.timeStamp - this.timeStamp, LE);
+        this.setFloat32(this.OFFSET_EVENT_TIME, e.timeStamp, LE);
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+        return true;
+      }
+
       listen(window) {
-        return window.addEventListener("pointermove", (e) => {
+        var alt, back, caps, ctrl, enter, forth, left, meta, right, shift, space, tab;
+        window.addEventListener("pointermove", (e) => {
           this.setFloat32(this.OFFSET_CLIENT_X, e.clientX, LE);
           this.setFloat32(this.OFFSET_CLIENT_Y, e.clientY, LE);
-          return this.setUint32(this.OFFSET_EVENT_COUNT, ++this.lastEventCount, LE);
+          return this.handle(e);
+        });
+        [left, forth, right, back, space, tab, enter, caps, shift, ctrl, alt, meta] = new Array(64).fill(0);
+        window.addEventListener("keydown", (e) => {
+          switch (e.keyCode) {
+            case 65:
+            case 37:
+              this.setUint8(this.OFFSET_MOVE_LEFT, ++left);
+              break;
+            case 87:
+            case 38:
+              this.setUint8(this.OFFSET_MOVE_FORTH, ++forth);
+              break;
+            case 68:
+            case 39:
+              this.setUint8(this.OFFSET_MOVE_RIGHT, ++right);
+              break;
+            case 83:
+            case 40:
+              this.setUint8(this.OFFSET_MOVE_BACK, ++back);
+              break;
+            case 32:
+              this.setUint8(this.OFFSET_MOVE_SPACE, ++space);
+              break;
+            case 9:
+              this.setUint8(this.OFFSET_MOVE_TAB, ++tab);
+              break;
+            case 13:
+              this.setUint8(this.OFFSET_MOVE_ENTER, ++enter);
+              break;
+            case 20:
+              this.setUint8(this.OFFSET_MOVE_CAPS, ++caps);
+              break;
+            case 16:
+              this.setUint8(this.OFFSET_MOVE_SHIFT, ++shift);
+              break;
+            case 17:
+              this.setUint8(this.OFFSET_MOVE_CTRL, ++ctrl);
+              break;
+            case 18:
+              this.setUint8(this.OFFSET_MOVE_ALT, ++alt);
+              break;
+            case 91:
+              this.setUint8(this.OFFSET_MOVE_META, ++meta);
+          }
+          return this.handle(e);
+        });
+        return window.addEventListener("keyup", (e) => {
+          switch (e.keyCode) {
+            case 65:
+            case 37:
+              this.setUint8(this.OFFSET_MOVE_LEFT, left = 0);
+              break;
+            case 87:
+            case 38:
+              this.setUint8(this.OFFSET_MOVE_FORTH, forth = 0);
+              break;
+            case 68:
+            case 39:
+              this.setUint8(this.OFFSET_MOVE_RIGHT, right = 0);
+              break;
+            case 83:
+            case 40:
+              this.setUint8(this.OFFSET_MOVE_BACK, back = 0);
+              break;
+            case 32:
+              this.setUint8(this.OFFSET_MOVE_SPACE, space = 0);
+              break;
+            case 9:
+              this.setUint8(this.OFFSET_MOVE_TAB, tab = 0);
+              break;
+            case 13:
+              this.setUint8(this.OFFSET_MOVE_ENTER, enter = 0);
+              break;
+            case 20:
+              this.setUint8(this.OFFSET_MOVE_CAPS, caps = 0);
+              break;
+            case 16:
+              this.setUint8(this.OFFSET_MOVE_SHIFT, shift = 0);
+              break;
+            case 17:
+              this.setUint8(this.OFFSET_MOVE_CTRL, ctrl = 0);
+              break;
+            case 18:
+              this.setUint8(this.OFFSET_MOVE_ALT, alt = 0);
+              break;
+            case 91:
+              this.setUint8(this.OFFSET_MOVE_META, meta = 0);
+          }
+          return this.handle(e);
         });
       }
 
@@ -283,7 +427,7 @@ self.name = "window";
         return this;
       }
 
-      frustrum(near = this.near, far = this.far, right, bottom, top = this.viewportY, left = this.viewportX) {
+      frustrum(near = this.near, far = this.far, right = this.width, bottom = this.height, top = this.viewportY, left = this.viewportX) {
         var c1, c2, h, sx, sy, tx, ty, w;
         /*
         * @param left   Number Farthest left on the x-axis
@@ -317,6 +461,20 @@ self.name = "window";
         tx = -near * (left + right) / w;
         ty = -near * (bottom + top) / h;
         this.matrix.set([sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, c2, -1, tx, ty, c1, 0]);
+        return this;
+      }
+
+      setMovementsPerSecond(x, y, z) {
+        this.setFloat32(this.MOVEMENT_PER_SECOND_X, x, LE);
+        this.setFloat32(this.MOVEMENT_PER_SECOND_Y, y, LE);
+        this.setFloat32(this.MOVEMENT_PER_SECOND_Z, z, LE);
+        return this;
+      }
+
+      setRotationsPerSecond(x, y, z) {
+        this.setFloat32(this.ROTATION_PER_SECOND_X, x, LE);
+        this.setFloat32(this.ROTATION_PER_SECOND_Y, y, LE);
+        this.setFloat32(this.ROTATION_PER_SECOND_Z, z, LE);
         return this;
       }
 
@@ -358,29 +516,71 @@ self.name = "window";
 
     UI.prototype.lastEventCount = 0;
 
-    UI.prototype.OFFSET_EVENT_COUNT = 0 * 4;
+    UI.prototype.OFFSET_EVENT_TIME = 1 * 4;
 
-    UI.prototype.OFFSET_VIEWPORT_X = 1 * 4;
+    UI.prototype.OFFSET_EVENT_DELTA = 2 * 4;
 
-    UI.prototype.OFFSET_VIEWPORT_Y = 2 * 4;
+    UI.prototype.OFFSET_EVENT_COUNT = 3 * 4;
 
-    UI.prototype.OFFSET_WIDTH = 3 * 4;
+    UI.prototype.OFFSET_VIEWPORT_X = 4 * 4;
 
-    UI.prototype.OFFSET_HEIGHT = 4 * 4;
+    UI.prototype.OFFSET_VIEWPORT_Y = 5 * 4;
 
-    UI.prototype.OFFSET_ASPECT = 5 * 4;
+    UI.prototype.OFFSET_WIDTH = 6 * 4;
 
-    UI.prototype.OFFSET_FOVY = 6 * 4;
+    UI.prototype.OFFSET_HEIGHT = 7 * 4;
 
-    UI.prototype.OFFSET_NEAR = 7 * 4;
+    UI.prototype.OFFSET_ASPECT = 8 * 4;
 
-    UI.prototype.OFFSET_FAR = 8 * 4;
+    UI.prototype.OFFSET_FOVY = 9 * 4;
 
-    UI.prototype.OFFSET_CLIENT_X = 9 * 4;
+    UI.prototype.OFFSET_NEAR = 10 * 4;
 
-    UI.prototype.OFFSET_CLIENT_Y = 10 * 4;
+    UI.prototype.OFFSET_FAR = 11 * 4;
 
-    UI.prototype.OFFSET_MATRIX = 11 * 4;
+    UI.prototype.OFFSET_CLIENT_X = 12 * 4;
+
+    UI.prototype.OFFSET_CLIENT_Y = 13 * 4;
+
+    UI.prototype.OFFSET_MOVE_FORTH = 14 * 4 + 0;
+
+    UI.prototype.OFFSET_MOVE_BACK = 14 * 4 + 1;
+
+    UI.prototype.OFFSET_MOVE_LEFT = 14 * 4 + 2;
+
+    UI.prototype.OFFSET_MOVE_RIGHT = 14 * 4 + 3;
+
+    UI.prototype.OFFSET_MOVE_SPACE = 15 * 4 + 0;
+
+    UI.prototype.OFFSET_MOVE_TAB = 15 * 4 + 1;
+
+    UI.prototype.OFFSET_MOVE_ENTER = 15 * 4 + 2;
+
+    UI.prototype.OFFSET_MOVE_CAPS = 15 * 4 + 3;
+
+    UI.prototype.OFFSET_MOVE_SHIFT = 16 * 4 + 0;
+
+    UI.prototype.OFFSET_MOVE_CTRL = 16 * 4 + 1;
+
+    UI.prototype.OFFSET_MOVE_ALT = 16 * 4 + 2;
+
+    UI.prototype.OFFSET_MOVE_META = 16 * 4 + 3;
+
+    UI.prototype.MOVEMENT_PER_SECOND_X = 17;
+
+    UI.prototype.MOVEMENT_PER_SECOND_Y = 18;
+
+    UI.prototype.MOVEMENT_PER_SECOND_Z = 19;
+
+    UI.prototype.ROTATION_PER_SECOND_X = 20;
+
+    UI.prototype.ROTATION_PER_SECOND_Y = 21;
+
+    UI.prototype.ROTATION_PER_SECOND_Z = 22;
+
+    UI.prototype.OFFSET_MATRIX = 32 * 4;
+
+    UI.prototype.LENGTH_MATRIX = 16;
 
     Object.defineProperties(UI.prototype, {
       x: {
@@ -391,6 +591,106 @@ self.name = "window";
       y: {
         get: function() {
           return this.getFloat32(this.OFFSET_CLIENT_Y, LE);
+        }
+      },
+      delta: {
+        get: function() {
+          return this.getFloat32(this.OFFSET_EVENT_DELTA, LE);
+        }
+      },
+      timeStamp: {
+        get: function() {
+          return this.getFloat32(this.OFFSET_EVENT_TIME, LE);
+        }
+      },
+      moveForth: {
+        get: function() {
+          return this.getUint8(this.OFFSET_MOVE_FORTH);
+        }
+      },
+      moveBack: {
+        get: function() {
+          return this.getUint8(this.OFFSET_MOVE_BACK);
+        }
+      },
+      moveLeft: {
+        get: function() {
+          return this.getUint8(this.OFFSET_MOVE_LEFT);
+        }
+      },
+      moveRight: {
+        get: function() {
+          return this.getUint8(this.OFFSET_MOVE_RIGHT);
+        }
+      },
+      keySpace: {
+        get: function() {
+          return this.getUint8(this.OFFSET_MOVE_SPACE);
+        }
+      },
+      keyTab: {
+        get: function() {
+          return this.getUint8(this.OFFSET_MOVE_TAB);
+        }
+      },
+      keyCaps: {
+        get: function() {
+          return this.getUint8(this.OFFSET_MOVE_CAPS);
+        }
+      },
+      keyEnter: {
+        get: function() {
+          return this.getUint8(this.OFFSET_MOVE_ENTER);
+        }
+      },
+      keyShift: {
+        get: function() {
+          return this.getUint8(this.OFFSET_MOVE_SHIFT);
+        }
+      },
+      keyCtrl: {
+        get: function() {
+          return this.getUint8(this.OFFSET_MOVE_CTRL);
+        }
+      },
+      keyAlt: {
+        get: function() {
+          return this.getUint8(this.OFFSET_MOVE_ALT);
+        }
+      },
+      keyMeta: {
+        get: function() {
+          return this.getUint8(this.OFFSET_MOVE_META);
+        }
+      },
+      xMovementPerSecond: {
+        get: function() {
+          return this.getFloat32(this.MOVEMENT_PER_SECOND_X, LE);
+        }
+      },
+      yMovementPerSecond: {
+        get: function() {
+          return this.getFloat32(this.MOVEMENT_PER_SECOND_Y, LE);
+        }
+      },
+      zMovementPerSecond: {
+        get: function() {
+          return this.getFloat32(this.MOVEMENT_PER_SECOND_Z, LE);
+        }
+      },
+      xRotationPerSecond: {
+        get: function() {
+          return this.getFloat32(this.ROTATION_PER_SECOND_X, LE);
+        }
+      },
+      yRotationPerSecond: {
+        get: function() {
+          return this.getFloat32(this.ROTATION_PER_SECOND_Y, LE);
+        }
+      },
+      zRotationPerSecond: {
+        get: function() {
+          return this.getFloat32(this.ROTATION_PER_SECOND_Z, LE);
         }
       },
       viewportX: {
@@ -435,7 +735,10 @@ self.name = "window";
       },
       matrix: {
         get: function() {
-          return new Float32Array(this.buffer, this.OFFSET_MATRIX, 16);
+          return DOMMatrix.prototype.new(this.byteOffset + this.OFFSET_MATRIX);
+        },
+        set: function() {
+          return this.matrix.set(arguments[0]);
         }
       },
       eventCount: {
@@ -539,10 +842,7 @@ self.name = "window";
       },
       detach: {
         value: function(byteOffset = 0, length = this.length) {
-          var target;
-          target = new this.TypedArray(length);
-          target.set(this.sub(byteOffset, length));
-          return target;
+          return new this.TypedArray(this.sub(byteOffset, length));
         }
       },
       slice: {
@@ -597,9 +897,19 @@ self.name = "window";
           return Atomics.load(ui8, index + this.byteOffset);
         }
       },
+      getUint8: {
+        value: function(index) {
+          return ui8[index + this.byteOffset];
+        }
+      },
       loadInt8: {
         value: function(index) {
           return Atomics.load(si8, index + this.byteOffset);
+        }
+      },
+      getInt8: {
+        value: function(index) {
+          return si8[index + this.byteOffset];
         }
       },
       loadUint8Clamped: {
@@ -607,9 +917,19 @@ self.name = "window";
           return Atomics.load(cu8, index + this.byteOffset);
         }
       },
+      getUint8Clamped: {
+        value: function(index) {
+          return cu8[index + this.byteOffset];
+        }
+      },
       loadUint16: {
         value: function(index) {
           return Atomics.load(u16, index + this.byteOffset / 2);
+        }
+      },
+      getUint16: {
+        value: function(index) {
+          return u16[index + this.byteOffset / 2];
         }
       },
       loadInt16: {
@@ -617,9 +937,19 @@ self.name = "window";
           return Atomics.load(i16, index + this.byteOffset / 2);
         }
       },
+      getInt16: {
+        value: function(index) {
+          return i16[index + this.byteOffset / 2];
+        }
+      },
       loadUint32: {
         value: function(index) {
           return Atomics.load(u32, index + this.byteOffset / 4);
+        }
+      },
+      getUint32: {
+        value: function(index) {
+          return u32[index + this.byteOffset / 4];
         }
       },
       loadInt32: {
@@ -627,9 +957,34 @@ self.name = "window";
           return Atomics.load(i32, index + this.byteOffset / 4);
         }
       },
+      loadFloat32: {
+        value: function(index) {
+          return new self.Float32Array(self.Uint32Array.of(Atomics.load(u32, index + this.byteOffset / 4)).buffer).at(0);
+        }
+      },
+      getInt32: {
+        value: function(index) {
+          return i32[index + this.byteOffset / 4];
+        }
+      },
+      getFloat32: {
+        value: function(index) {
+          return f32[index + this.byteOffset / 4];
+        }
+      },
+      getFloat64: {
+        value: function(index) {
+          return f64[index + this.byteOffset / 8];
+        }
+      },
       storeUint8: {
         value: function(index, value) {
           return Atomics.store(ui8, index + this.byteOffset, value);
+        }
+      },
+      setUint8: {
+        value: function(index, value) {
+          return ui8[index + this.byteOffset] = value;
         }
       },
       storeInt8: {
@@ -637,9 +992,19 @@ self.name = "window";
           return Atomics.store(si8, index + this.byteOffset, value);
         }
       },
+      setInt8: {
+        value: function(index, value) {
+          return si8[index + this.byteOffset] = value;
+        }
+      },
       storeUint8Clamped: {
         value: function(index, value) {
           return Atomics.store(cu8, index + this.byteOffset, value);
+        }
+      },
+      setUint8Clamped: {
+        value: function(index, value) {
+          return cu8[index + this.byteOffset] = value;
         }
       },
       storeUint16: {
@@ -647,9 +1012,19 @@ self.name = "window";
           return Atomics.store(u16, index + this.byteOffset / 2, value);
         }
       },
+      setUint16: {
+        value: function(index, value) {
+          return u16[index + this.byteOffset / 2] = value;
+        }
+      },
       storeInt16: {
         value: function(index, value) {
           return Atomics.store(i16, index + this.byteOffset / 2, value);
+        }
+      },
+      setInt16: {
+        value: function(index, value) {
+          return i16[index + this.byteOffset / 2] = value;
         }
       },
       storeUint32: {
@@ -657,9 +1032,30 @@ self.name = "window";
           return Atomics.store(u32, index + this.byteOffset / 4, value);
         }
       },
+      setUint32: {
+        value: function(index, value) {
+          return u32[index + this.byteOffset / 4] = value;
+        }
+      },
       storeInt32: {
         value: function(index, value) {
           return Atomics.store(i32, index + this.byteOffset / 4, value);
+        }
+      },
+      storeFloat32: {
+        value: function(index, value) {
+          value = new self.Uint32Array(self.Float32Array.of(value).buffer)[0];
+          return Atomics.store(u32, index + this.byteOffset / 4, value);
+        }
+      },
+      setInt32: {
+        value: function(index, value) {
+          return i32[index + this.byteOffset / 4] = value;
+        }
+      },
+      setFloat32: {
+        value: function(index, value) {
+          return f32[index + this.byteOffset / 4] = value;
         }
       },
       addUint8: {
@@ -2169,8 +2565,12 @@ self.name = "window";
       VertexShader.prototype.DEFAULT_SOURCE =  `
                 attribute vec3 a_Position;
                 uniform mat4 u_ViewMatrix;
+                uniform float u_PointSize;
 
-                void main() { gl_Position = u_ViewMatrix * vec4(a_Position, 1.0); }
+                void main() {
+                    gl_Position = u_ViewMatrix * vec4(a_Position, 1.0);
+                    gl_PointSize = u_PointSize;
+                }
             ` ;
 
       return VertexShader;
@@ -2180,7 +2580,7 @@ self.name = "window";
       class FragmentShader extends WebGLShader {};
 
       FragmentShader.prototype.DEFAULT_SOURCE =  `
-                void main() { gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); }
+                void main() { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }
             ` ;
 
       return FragmentShader;
@@ -2188,8 +2588,12 @@ self.name = "window";
     }).call(this);
     return OnscreenCanvas = (function() {
       class OnscreenCanvas extends Uint32Array {
-        addFrame() {
-          return this.addUint32(this.INDEX_FRAMECOUNT, 1);
+        addFrame(timeStamp) {
+          this.delta = (timeStamp - this.timeStamp) * 1e-3;
+          this.timeStamp = timeStamp;
+          this.frame += 1;
+          this.fps = 1 / this.delta;
+          return this.delta;
         }
 
         lostContext() {
@@ -2200,8 +2604,9 @@ self.name = "window";
           var array, byteLength, byteOffset, length, offset;
           this.pointCount = pointCount + this.pointCount;
           length = pointCount * this.ELEMENTS_PER_POINT;
+          this.drawLength += length;
           byteLength = length * this.BYTES_PER_ELEMENT;
-          offset = this.addUint32(this.INDEX_DRAWLENGTH, byteLength);
+          offset = this.addUint32(this.INDEX_DRAWBYTELENGTH, byteLength);
           byteOffset = this.byteOffset + this.BYTEOFFSET_GLBUFFER + offset;
           array = new WebGLBuffer(this.buffer, byteOffset, length);
           return Object.defineProperties(array, {
@@ -2215,6 +2620,38 @@ self.name = "window";
               }
             }
           });
+        }
+
+        defineUniforms() {
+          var j, len, ref, results, u;
+          ref = this.activeUniforms;
+          results = [];
+          for (j = 0, len = ref.length; j < len; j++) {
+            u = ref[j];
+            switch (u.type) {
+              case 35676:
+              case "FLOAT_MAT4":
+                results.push((function(program, uniform) {
+                  return Object.defineProperty(this, uniform.name, {
+                    get: this.getUniform.bind(this, program, uniform.location),
+                    set: this.uniformMatrix4fv.bind(this, uniform.location, false)
+                  });
+                }).call(this.gl, this.program, u));
+                break;
+              case 5126:
+              case "FLOAT":
+                results.push((function(program, uniform) {
+                  return Object.defineProperty(this, uniform.name, {
+                    get: this.getUniform.bind(this, program, uniform.location),
+                    set: this.uniform1f.bind(this, uniform.location)
+                  });
+                }).call(this.gl, this.program, u));
+                break;
+              default:
+                results.push(void 0);
+            }
+          }
+          return results;
         }
 
         reload() {
@@ -2235,6 +2672,7 @@ self.name = "window";
             throw `Could not compile WebGL program. \n${info}`;
           }
           this.program = program;
+          this.defineUniforms();
           return this;
         }
 
@@ -2289,14 +2727,13 @@ self.name = "window";
           }
           [gl, handler, ptri] = [this.gl, this.handler, resolvs.get(this)];
           if (isBridge) {
-            return (commit = () => {
-              var frame;
+            return (commit = (now) => {
               if (this.hasContext && this.hasBinding) {
-                handler.call(this, gl, frame = this.addFrame());
+                handler.call(this, gl, this.addFrame(now));
                 this.gl.drawArrays(this.gl.POINTS, 0, this.pointCount);
               }
               return requestAnimationFrame(commit);
-            })();
+            })(0);
           }
         }
 
@@ -2314,10 +2751,9 @@ self.name = "window";
             });
           }
           replies[ptri] = new WeakRef((data) => {
-            this.setContext(data.canvas.getContext(type, {
+            return this.setContext(data.canvas.getContext(type, {
               powerPreference: "high-performance"
             }));
-            return unlock(data.ptri);
           });
           postMessage({
             onscreen: {ptri}
@@ -2327,7 +2763,7 @@ self.name = "window";
 
       };
 
-      OnscreenCanvas.byteLength = 10 * 4 + 4096 * 4096;
+      OnscreenCanvas.byteLength = 16 * 4 + 4096 * 4096;
 
       OnscreenCanvas.prototype.INDEX_HASCONTEXT = 0; // Uint8
 
@@ -2335,19 +2771,27 @@ self.name = "window";
 
       OnscreenCanvas.prototype.INDEX_ISRENDERING = 2; // Uint8
 
-      OnscreenCanvas.prototype.INDEX_FRAMECOUNT = 1; // Uint32
+      OnscreenCanvas.prototype.INDEX_FRAME = 3; // Uint32
 
-      OnscreenCanvas.prototype.INDEX_VSHADER = 2; // Uint32
+      OnscreenCanvas.prototype.INDEX_TIMESTAMP = 4; // Uint32
 
-      OnscreenCanvas.prototype.INDEX_FSHADER = 3; // Uint32
+      OnscreenCanvas.prototype.INDEX_DELTA = 5; // Uint32
 
-      OnscreenCanvas.prototype.INDEX_DRAWLENGTH = 4;
+      OnscreenCanvas.prototype.INDEX_FPS = 6; // Uint32
 
-      OnscreenCanvas.prototype.INDEX_POINTCOUNT = 5;
+      OnscreenCanvas.prototype.INDEX_VSHADER = 7; // Uint32
 
-      OnscreenCanvas.prototype.INDEX_GLBUFFER_PTRI = 6;
+      OnscreenCanvas.prototype.INDEX_FSHADER = 8; // Uint32
 
-      OnscreenCanvas.prototype.BYTEOFFSET_GLBUFFER = 8 * 4;
+      OnscreenCanvas.prototype.INDEX_DRAWLENGTH = 9;
+
+      OnscreenCanvas.prototype.INDEX_DRAWBYTELENGTH = 10;
+
+      OnscreenCanvas.prototype.INDEX_POINTCOUNT = 11;
+
+      OnscreenCanvas.prototype.INDEX_GLBUFFER_PTRI = 12;
+
+      OnscreenCanvas.prototype.BYTEOFFSET_GLBUFFER = 16 * 4;
 
       OnscreenCanvas.prototype.ELEMENTS_PER_POINT = 3;
 
@@ -2376,12 +2820,36 @@ self.name = "window";
             return this.storeUint8(this.INDEX_HASBINDING, v);
           }
         },
-        frameCount: {
+        frame: {
           get: function() {
-            return this.loadUint32(this.INDEX_FRAMECOUNT);
+            return this.loadUint32(this.INDEX_FRAME);
           },
           set: function(v) {
-            return this.storeUint32(this.INDEX_FRAMECOUNT, v);
+            return this.storeUint32(this.INDEX_FRAME, v);
+          }
+        },
+        timeStamp: {
+          get: function() {
+            return this.getFloat32(this.INDEX_TIMESTAMP);
+          },
+          set: function(v) {
+            return this.setFloat32(this.INDEX_TIMESTAMP, v);
+          }
+        },
+        delta: {
+          get: function() {
+            return this.getFloat32(this.INDEX_DELTA);
+          },
+          set: function(v) {
+            return this.setFloat32(this.INDEX_DELTA, v);
+          }
+        },
+        fps: {
+          get: function() {
+            return this.getUint8(this.INDEX_FPS);
+          },
+          set: function(v) {
+            return this.setUint8(this.INDEX_FPS, v);
           }
         },
         vertexShader: {
