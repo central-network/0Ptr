@@ -9,10 +9,6 @@ do  self.init   = ->
         ( b.charCodeAt() + ( a.charCodeAt?() or a ) )
 
     [
-        WORKER_PTR                  = null
-        WORKER_PTR_OFFSET           = null
-        WORKER_PTR_LENGTH           = 4 * 4096
-
         HEADERS_LENGTH_OFFSET       = 1
         HINDEX_BEGIN                = HEADERS_LENGTH_OFFSET++
         HINDEX_END                  = HEADERS_LENGTH_OFFSET++
@@ -36,6 +32,9 @@ do  self.init   = ->
         MAX_PTR_COUNT               = 1e5
         MAX_THREAD_COUNT            = -4 + navigator?.hardwareConcurrency or 3
         ITERATION_PER_THREAD        = 1000000
+        UI_LENGTH                   = 4 * 48
+        UI_OFFSET                   = null
+        LE                          = new self.Uint8Array( self.Uint16Array.of(1).buffer ).at()
     
         INNER_WIDTH                 = innerWidth ? 640
         INNER_HEIGHT                = innerHeight ? 480
@@ -54,10 +53,10 @@ do  self.init   = ->
 
     [
         blobURL,
-        objbuf, ptrbuf, 
+        objbuf, ptrbuf, keybuf,
         lock, unlock,
         malloc, littleEnd,
-        p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16,
+        ui, p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16,
 
         andUint32 , orUint32 , xorUint32 , subUint32 , addUint32 , loadUint32 , storeUint32 , getUint32 , setUint32 , exchangeUint32 , compareUint32 ,
         andUint16 , orUint16 , xorUint16 , subUint16 , addUint16 , loadUint16 , storeUint16 , getUint16 , setUint16 , exchangeUint16 , compareUint16 ,
@@ -66,6 +65,7 @@ do  self.init   = ->
         andInt16  , orInt16  , xorInt16  , subInt16  , addInt16  , loadInt16  , storeInt16  , getInt16  , setInt16  , exchangeInt16  , compareInt16  ,
         andInt8   , orInt8   , xorInt8   , subInt8   , addInt8   , loadInt8   , storeInt8   , getInt8   , setInt8   , exchangeInt8   , compareInt8   ,
 
+        UI,
         OnscreenCanvas,
         OffscreenCanvas,
 
@@ -168,6 +168,7 @@ do  self.init   = ->
 
         objbuf = buffers.objbuf
         ptrbuf = buffers.ptrbuf
+        keybuf = buffers.keybuf
 
         u64 = new self.BigUint64Array objbuf
         i64 = new self.BigInt64Array objbuf
@@ -183,7 +184,8 @@ do  self.init   = ->
         dvw = new self.DataView objbuf
 
         p32 = new self.Int32Array ptrbuf
-
+        ui  = new UI keybuf
+        
         lock                = ( ptri ) ->
             if  ptri
                 Atomics.wait p32, ptri + HINDEX_LOCKFREE
@@ -284,17 +286,171 @@ do  self.init   = ->
             getInt8             = ( o ) -> dvw.getInt8 o, littleEnd
             setInt8             = ( o, v ) -> dvw.setInt8 o, v, littleEnd
 
-        WORKER_PTR          = Atomics.add p32, 1, HEADERS_LENGTH
-        WORKER_PTR_OFFSET   = malloc WORKER_PTR_LENGTH
-        WORKER_PTR_OFFSET   = malloc WORKER_PTR_LENGTH
 
-        Atomics.store  p32, WORKER_PTR + HINDEX_LENGTH, WORKER_PTR_LENGTH
-        Atomics.store  p32, WORKER_PTR + HINDEX_BYTEOFFSET, WORKER_PTR_OFFSET
-        Atomics.store  p32, WORKER_PTR + HINDEX_BYTELENGTH, WORKER_PTR_LENGTH
-        Atomics.store  p32, WORKER_PTR + HINDEX_BEGIN, WORKER_PTR_OFFSET
-        Atomics.store  p32, WORKER_PTR + HINDEX_END, WORKER_PTR_OFFSET + WORKER_PTR_LENGTH      
-        
+            
         ; 0
+
+    class UI extends self.DataView
+
+        lastEventCount      : 0
+
+        OFFSET_EVENT_COUNT  : 0 * 4
+
+        OFFSET_VIEWPORT_X   : 1 * 4
+
+        OFFSET_VIEWPORT_Y   : 2 * 4
+        
+        OFFSET_WIDTH        : 3 * 4
+
+        OFFSET_HEIGHT       : 4 * 4
+        
+        OFFSET_ASPECT       : 5 * 4
+
+        OFFSET_FOVY         : 6 * 4
+
+        OFFSET_NEAR         : 7 * 4
+        
+        OFFSET_FAR          : 8 * 4
+
+        OFFSET_CLIENT_X     : 9 * 4
+
+        OFFSET_CLIENT_Y     : 10 * 4
+
+        OFFSET_MATRIX       : 11 * 4
+
+        listen : ( window ) ->
+            window.addEventListener "pointermove", (e) =>
+                @setFloat32 @OFFSET_CLIENT_X, e.clientX, LE 
+                @setFloat32 @OFFSET_CLIENT_Y, e.clientY, LE 
+                @setUint32 @OFFSET_EVENT_COUNT, ++@lastEventCount, LE
+
+        viewport : ( x, y, width, height ) ->
+            @setFloat32 @OFFSET_VIEWPORT_X, x, LE 
+            @setFloat32 @OFFSET_VIEWPORT_Y, y, LE 
+            @setFloat32 @OFFSET_WIDTH, width, LE 
+            @setFloat32 @OFFSET_HEIGHT, height, LE 
+            @setFloat32 @OFFSET_ASPECT, width/height, LE 
+
+            this
+
+        frustrum : ( near = @near, far = @far, right, bottom, top = @viewportY, left = @viewportX ) ->
+            ###
+            * @param left   Number Farthest left on the x-axis
+            * @param right  Number Farthest right on the x-axis
+            * @param bottom Number Farthest down on the y-axis
+            * @param top    Number Farthest up on the y-axis
+            * @param near   Number Distance to the near clipping plane along the -Z axis
+            * @param far    Number Distance to the far clipping plane along the -Z axis
+            * @return Float32Array A perspective transformation matrix
+            ###
+
+
+    
+            unless left then left = - (  right /= 2 )
+            unless top  then  top = - ( bottom /= 2 )
+            
+            #. Make sure there is no division by zero
+            if  left is right  or  bottom is top  or  near is far
+                throw [ "Invalid frustrum parameters:", ...arguments ]
+    
+            if  near <= 0      or     far <= 0    or  near >= far
+                throw [ "Distance near >= far and must be positive:", { near, far } ]
+    
+            w = right - left
+            h = top - bottom
+    
+            sx = 2 * near / w
+            sy = 2 * near / h
+    
+            c2 = - ( far + near ) / (far - near)
+            c1 = 2 * near * far / ( near - far )
+    
+            tx = -near * (   left + right ) / w
+            ty = -near * ( bottom + top   ) / h
+
+    
+            @matrix.set [
+                sx,       0,       0,      0,
+                 0,      sy,       0,      0,
+                 0,       0,      c2,     -1,
+                tx,      ty,      c1,      0
+            ]
+    
+            this
+
+        perspective : ( fovy = 60, near = 0.01, far = 1000, aspect = @aspect ) ->
+
+            if  fovy <= 0 or fovy >= 180 or aspect <= 0
+                throw [ "Invalid parameters to perspective", { fovy, aspect } ]
+            
+            half_fovy = ( .5 * fovy * (Math.PI / 180) )
+            bottom = - ( top = near * Math.tan half_fovy )
+            left = - ( right = top * aspect )
+
+            @setFloat32 @OFFSET_FOVY, fovy, LE 
+            @setFloat32 @OFFSET_NEAR, near, LE 
+            @setFloat32 @OFFSET_FAR, far, LE             
+    
+            @frustrum near, far, right, bottom, top, left
+
+        orthographic : ( near, far, right, bottom, top, left ) ->
+            if  left is right or bottom is top or near is far
+                throw [ "Invalid parameters to orthographic", ...arguments ]
+    
+            widthRatio  = 1 / ( right - left )
+            heightRatio = 1 / (   top - bottom )
+            depthRatio  = 1 / (   far - near )
+
+            @setFloat32 @OFFSET_NEAR, near, LE 
+            @setFloat32 @OFFSET_FAR, far, LE             
+    
+            sx =  2 *  widthRatio
+            sy =  2 * heightRatio
+            sz = -2 *  depthRatio
+    
+            tz = - (   near + far  ) *  depthRatio
+            tx = - (  right + left ) *  widthRatio
+            ty = - ( bottom + top  ) * heightRatio
+    
+            @matrix.set [
+                sx,       0,       0,     tx,
+                 0,      sy,       0,     ty,
+                 0,       0,      sz,     tz,
+                 0,       0,       0,      1
+            ]
+
+            this
+
+        Object.defineProperties UI::,
+            
+            x : get : -> @getFloat32 @OFFSET_CLIENT_X, LE
+
+            y : get : -> @getFloat32 @OFFSET_CLIENT_Y, LE
+
+            viewportX : get : -> @getFloat32 @OFFSET_VIEWPORT_X, LE
+
+            viewportY : get : -> @getFloat32 @OFFSET_VIEWPORT_Y, LE
+
+            width : get : -> @getFloat32 @OFFSET_WIDTH, LE
+            
+            height : get : -> @getFloat32 @OFFSET_HEIGHT, LE
+            
+            aspect : get : -> @getFloat32 @OFFSET_ASPECT, LE
+
+            fovy : get : -> @getFloat32 @OFFSET_FOVY, LE
+            
+            near : get : -> @getFloat32 @OFFSET_NEAR, LE
+            
+            far : get : -> @getFloat32 @OFFSET_FAR, LE
+
+            matrix : get : -> new Float32Array @buffer, @OFFSET_MATRIX, 16
+
+            eventCount : get : -> @getUint32 @OFFSET_EVENT_COUNT, LE
+
+            hasEvent : get : -> 
+                unless @eventCount is @lastEventCount
+                    return @lastEventCount = @eventCount
+                no
 
     regenerate  = ->
 
@@ -333,7 +489,6 @@ do  self.init   = ->
                 value : ( ptri ) ->
                     return null unless ptri
                     new this -parseInt ptri
-                    
 
         Object.defineProperties TypedArray::,
             
@@ -2240,21 +2395,12 @@ do  self.init   = ->
                 resolvs.set canvas, ptri
                 return canvas
 
-
         class WebGLBuffer       extends Float32Array
 
-            @byteLength         : 4 * 8 + 1024 * 1024
-
-            INDEX_ISACTIVE      : 0
-
-            INDEX_TYPE          : 1
-
-            INDEX_ALLOCOFFSET   : 2
-
-            INDEX_ALLOCBEGIN    : 4
-
-            INDEX_DRAWBEGIN     : 5
-
+            set : ( valueset, index = 0 ) ->
+                super( valueset, index )
+                @upload()
+            
         class WebGLShader       extends Uint8Array
 
             @byteLength         : 4 * 4 + 1024 * 16
@@ -2328,7 +2474,6 @@ do  self.init   = ->
             attach              : ( gl, program ) ->
                 gl.attachShader program, @compile gl ; this
 
-
         class VertexShader      extends WebGLShader
             
             DEFAULT_SOURCE      : ``` `
@@ -2362,7 +2507,9 @@ do  self.init   = ->
 
             INDEX_DRAWLENGTH    : 4
 
-            INDEX_GLBUFFER_PTRI : 5
+            INDEX_POINTCOUNT    : 5
+
+            INDEX_GLBUFFER_PTRI : 6
             
             BYTEOFFSET_GLBUFFER : 8 * 4
 
@@ -2395,14 +2542,17 @@ do  self.init   = ->
                     set : (v) -> @storeUint32 @INDEX_FSHADER, resolvs.get v
 
                 drawBuffer :
-                    get : -> new Float32Array @buffer, @OFFSET_DRAWBEGIN, @drawLength
+                    get : ->
+                        @glBuffer
+                        new WebGLBuffer @buffer, @byteOffset + @BYTEOFFSET_GLBUFFER, @drawLength
 
                 drawLength :
                     get : -> @loadUint32 @INDEX_DRAWLENGTH
                     set : (v) -> @storeUint32 @INDEX_DRAWLENGTH, v
 
                 pointCount :
-                    get : -> @drawLength / 3
+                    get : -> @loadUint32 @INDEX_POINTCOUNT
+                    set : (v) -> @storeUint32 @INDEX_POINTCOUNT, v
 
                 width :
                     get : -> @gl.drawingBufferWidth
@@ -2411,12 +2561,18 @@ do  self.init   = ->
                     get : -> @gl.drawingBufferHeight
 
                 glBuffer : 
+                    configurable: on
                     get : ->
                         unless buffer = @gl.getParameter( @gl.ELEMENT_ARRAY_BUFFER_BINDING )
                             buffer = @gl.createBuffer()                        
                         @gl.bindBuffer @gl.ARRAY_BUFFER, buffer
                         @hasBinding = 1
-                        buffer
+
+                        Object.defineProperty( this, "glBuffer", {
+                            value : buffer
+                            configurable: on
+                            writable: on
+                        }).glBuffer
 
                 activeAttributes :
                     get : ->
@@ -2463,20 +2619,20 @@ do  self.init   = ->
                     .loseContext()
 
             malloc              : ( pointCount = 0 ) ->
+                @pointCount = pointCount + @pointCount
                 length      = pointCount * @ELEMENTS_PER_POINT
                 byteLength  = length * @BYTES_PER_ELEMENT
                 offset      = @addUint32 @INDEX_DRAWLENGTH, byteLength
                 byteOffset  = @byteOffset + @BYTEOFFSET_GLBUFFER + offset
-                array       = new Float32Array @buffer, byteOffset, length
+                array       = new WebGLBuffer @buffer, byteOffset, length
 
                 Object.defineProperties array,
                     upload : value : =>
-                        @glBuffer
                         @gl.bufferData @gl.ARRAY_BUFFER, @drawBuffer, @gl.STATIC_DRAW
                         
                         a_Position = @gl.getAttribLocation @program, "a_Position"
-                        @gl.enableVertexAttribArray a_Position
                         @gl.vertexAttribPointer a_Position, 3, @gl.FLOAT, off, 0, 0
+                        @gl.enableVertexAttribArray a_Position
 
 
             reload      : ->
@@ -2573,7 +2729,6 @@ do  self.init   = ->
                     
                 postMessage onscreen : { ptri }
                 resolvs.set onscreen , ( ptri )
-                
 
     if  isWindow
 
@@ -2645,17 +2800,13 @@ do  self.init   = ->
                 try buffer = new Buffer 0, { maxByteLength }
                 catch then maxByteLength /= BUFFER_TEST_STEP_DIVIDER
 
-            buffer = new SharedArrayBuffer 1e8
+            keybuf = new Buffer 4 * 48
+            objbuf = new Buffer 4 * 2e7
+            ptrbuf = new Buffer MAX_PTR_COUNT * BYTES_PER_ELEMENT
 
-            initMemory {
-                objbuf : buffer,
-                ptrbuf : new Buffer( Math.min(
-                    MAX_PTR_COUNT * BYTES_PER_ELEMENT,
-                    maxByteLength
-                ), { maxByteLength })
-            }
+            Atomics.store new self.Int32Array(ptrbuf), 1, HEADERS_LENGTH
 
-            Atomics.store p32, 1, HEADERS_LENGTH
+            initMemory { objbuf, ptrbuf, keybuf }
 
         createWorker    = ( name, onmessage ) ->
             worker = new Worker( blobURL, { name } )
@@ -2668,11 +2819,11 @@ do  self.init   = ->
         
         createThreads   = ->
             bridge = createWorker "bridge", bridgemessage
-            bridge . postMessage setup : { blobURL, objbuf, ptrbuf }
+            bridge . postMessage setup : { blobURL, objbuf, ptrbuf, keybuf }
             
             for i in [ 0 ... MAX_THREAD_COUNT ]
                 thread = createWorker "thread" + i, threadmessage
-                thread . postMessage setup : { blobURL, objbuf, ptrbuf }
+                thread . postMessage setup : { blobURL, objbuf, ptrbuf, keybuf }
 
         createBlobURL   = ->
             __user = "\nconst onready = function ( document ) {\n\t" +
@@ -2725,11 +2876,13 @@ do  self.init   = ->
                     location.reload(true)
             }
 
+            ui.listen window
+
         queueMicrotask  ->
-            listenEvents()
             createBuffers()
             createBlobURL()
             createThreads()
+            listenEvents()
 
 
 

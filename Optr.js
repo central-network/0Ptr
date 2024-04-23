@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_ITERINDEX, HINDEX_ITERLENGTH, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_RESOLV_ID, HINDEX_WAITCOUNT, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, MAX_PTR_COUNT, MAX_THREAD_COUNT, OffscreenCanvas, OnscreenCanvas, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, WORKER_PTR, WORKER_PTR_LENGTH, WORKER_PTR_OFFSET, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, objects, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
+  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_ITERINDEX, HINDEX_ITERLENGTH, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_RESOLV_ID, HINDEX_WAITCOUNT, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, LE, MAX_PTR_COUNT, MAX_THREAD_COUNT, OffscreenCanvas, OnscreenCanvas, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, UI, UI_LENGTH, UI_OFFSET, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, keybuf, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, objects, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
   log = function() {
     return console.log(name, ...arguments);
   };
@@ -17,9 +17,6 @@ self.name = "window";
     });
   };
   [
-    WORKER_PTR = null,
-    WORKER_PTR_OFFSET = null,
-    WORKER_PTR_LENGTH = 4 * 4096,
     HEADERS_LENGTH_OFFSET = 1,
     HINDEX_BEGIN = HEADERS_LENGTH_OFFSET++,
     HINDEX_END = HEADERS_LENGTH_OFFSET++,
@@ -43,6 +40,9 @@ self.name = "window";
     MAX_PTR_COUNT = 1e5,
     MAX_THREAD_COUNT = -4 + (typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 3,
     ITERATION_PER_THREAD = 1000000,
+    UI_LENGTH = 4 * 48,
+    UI_OFFSET = null,
+    LE = new self.Uint8Array(self.Uint16Array.of(1).buffer).at(),
     INNER_WIDTH = typeof innerWidth !== "undefined" && innerWidth !== null ? innerWidth : 640,
     INNER_HEIGHT = typeof innerHeight !== "undefined" && innerHeight !== null ? innerHeight : 480,
     RATIO_PIXEL = typeof devicePixelRatio !== "undefined" && devicePixelRatio !== null ? devicePixelRatio : 1,
@@ -55,7 +55,7 @@ self.name = "window";
       }
     })()
   ];
-  [blobURL, objbuf, ptrbuf, lock, unlock, malloc, littleEnd, p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, OnscreenCanvas, OffscreenCanvas, Uint8Array, Int8Array, Uint8ClampedArray, Uint16Array, Int16Array, Uint32Array, Int32Array, Float32Array, Float64Array, BigInt64Array, BigUint64Array] = [];
+  [blobURL, objbuf, ptrbuf, keybuf, lock, unlock, malloc, littleEnd, ui, p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, UI, OnscreenCanvas, OffscreenCanvas, Uint8Array, Int8Array, Uint8ClampedArray, Uint16Array, Int16Array, Uint32Array, Int32Array, Float32Array, Float64Array, BigInt64Array, BigUint64Array] = [];
   [bc = new BroadcastChannel("0ptr"), textEncoder = new TextEncoder(), textDecoder = new TextDecoder(), selfName = self.name, isWindow = typeof document !== "undefined" && document !== null, isBridge = /bridge/i.test(selfName), isThread = /thread/i.test(selfName), threadId = isThread && parseInt(selfName.match(/\d+/)), now = Date.now(), pnow = performance.now(), resolvs = new WeakMap(), replies = new Object(), objects = new Object(), workers = new self.Array(), littleEnd = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0], TypedArray = Object.getPrototypeOf(self.Uint8Array), GLContext = typeof WebGL2RenderingContext !== "undefined" && WebGL2RenderingContext !== null ? WebGL2RenderingContext : WebGLRenderingContext];
   resolvFind = function(id, retry = 0) {
     var i, ptri;
@@ -125,6 +125,7 @@ self.name = "window";
   initMemory = function(buffers) {
     objbuf = buffers.objbuf;
     ptrbuf = buffers.ptrbuf;
+    keybuf = buffers.keybuf;
     u64 = new self.BigUint64Array(objbuf);
     i64 = new self.BigInt64Array(objbuf);
     f32 = new self.Float32Array(objbuf);
@@ -138,6 +139,7 @@ self.name = "window";
     si8 = new self.Int8Array(objbuf);
     dvw = new self.DataView(objbuf);
     p32 = new self.Int32Array(ptrbuf);
+    ui = new UI(keybuf);
     lock = function(ptri) {
       if (ptri) {
         return Atomics.wait(p32, ptri + HINDEX_LOCKFREE);
@@ -260,16 +262,200 @@ self.name = "window";
         return dvw.setInt8(o, v, littleEnd);
       };
     })();
-    WORKER_PTR = Atomics.add(p32, 1, HEADERS_LENGTH);
-    WORKER_PTR_OFFSET = malloc(WORKER_PTR_LENGTH);
-    WORKER_PTR_OFFSET = malloc(WORKER_PTR_LENGTH);
-    Atomics.store(p32, WORKER_PTR + HINDEX_LENGTH, WORKER_PTR_LENGTH);
-    Atomics.store(p32, WORKER_PTR + HINDEX_BYTEOFFSET, WORKER_PTR_OFFSET);
-    Atomics.store(p32, WORKER_PTR + HINDEX_BYTELENGTH, WORKER_PTR_LENGTH);
-    Atomics.store(p32, WORKER_PTR + HINDEX_BEGIN, WORKER_PTR_OFFSET);
-    Atomics.store(p32, WORKER_PTR + HINDEX_END, WORKER_PTR_OFFSET + WORKER_PTR_LENGTH);
     return 0;
   };
+  UI = (function() {
+    class UI extends self.DataView {
+      listen(window) {
+        return window.addEventListener("pointermove", (e) => {
+          this.setFloat32(this.OFFSET_CLIENT_X, e.clientX, LE);
+          this.setFloat32(this.OFFSET_CLIENT_Y, e.clientY, LE);
+          return this.setUint32(this.OFFSET_EVENT_COUNT, ++this.lastEventCount, LE);
+        });
+      }
+
+      viewport(x, y, width, height) {
+        this.setFloat32(this.OFFSET_VIEWPORT_X, x, LE);
+        this.setFloat32(this.OFFSET_VIEWPORT_Y, y, LE);
+        this.setFloat32(this.OFFSET_WIDTH, width, LE);
+        this.setFloat32(this.OFFSET_HEIGHT, height, LE);
+        this.setFloat32(this.OFFSET_ASPECT, width / height, LE);
+        return this;
+      }
+
+      frustrum(near = this.near, far = this.far, right, bottom, top = this.viewportY, left = this.viewportX) {
+        var c1, c2, h, sx, sy, tx, ty, w;
+        /*
+        * @param left   Number Farthest left on the x-axis
+        * @param right  Number Farthest right on the x-axis
+        * @param bottom Number Farthest down on the y-axis
+        * @param top    Number Farthest up on the y-axis
+        * @param near   Number Distance to the near clipping plane along the -Z axis
+        * @param far    Number Distance to the far clipping plane along the -Z axis
+        * @return Float32Array A perspective transformation matrix
+         */
+        if (!left) {
+          left = -(right /= 2);
+        }
+        if (!top) {
+          top = -(bottom /= 2);
+        }
+        
+        //. Make sure there is no division by zero
+        if (left === right || bottom === top || near === far) {
+          throw ["Invalid frustrum parameters:", ...arguments];
+        }
+        if (near <= 0 || far <= 0 || near >= far) {
+          throw ["Distance near >= far and must be positive:", {near, far}];
+        }
+        w = right - left;
+        h = top - bottom;
+        sx = 2 * near / w;
+        sy = 2 * near / h;
+        c2 = -(far + near) / (far - near);
+        c1 = 2 * near * far / (near - far);
+        tx = -near * (left + right) / w;
+        ty = -near * (bottom + top) / h;
+        this.matrix.set([sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, c2, -1, tx, ty, c1, 0]);
+        return this;
+      }
+
+      perspective(fovy = 60, near = 0.01, far = 1000, aspect = this.aspect) {
+        var bottom, half_fovy, left, right, top;
+        if (fovy <= 0 || fovy >= 180 || aspect <= 0) {
+          throw ["Invalid parameters to perspective", {fovy, aspect}];
+        }
+        half_fovy = .5 * fovy * (Math.PI / 180);
+        bottom = -(top = near * Math.tan(half_fovy));
+        left = -(right = top * aspect);
+        this.setFloat32(this.OFFSET_FOVY, fovy, LE);
+        this.setFloat32(this.OFFSET_NEAR, near, LE);
+        this.setFloat32(this.OFFSET_FAR, far, LE);
+        return this.frustrum(near, far, right, bottom, top, left);
+      }
+
+      orthographic(near, far, right, bottom, top, left) {
+        var depthRatio, heightRatio, sx, sy, sz, tx, ty, tz, widthRatio;
+        if (left === right || bottom === top || near === far) {
+          throw ["Invalid parameters to orthographic", ...arguments];
+        }
+        widthRatio = 1 / (right - left);
+        heightRatio = 1 / (top - bottom);
+        depthRatio = 1 / (far - near);
+        this.setFloat32(this.OFFSET_NEAR, near, LE);
+        this.setFloat32(this.OFFSET_FAR, far, LE);
+        sx = 2 * widthRatio;
+        sy = 2 * heightRatio;
+        sz = -2 * depthRatio;
+        tz = -(near + far) * depthRatio;
+        tx = -(right + left) * widthRatio;
+        ty = -(bottom + top) * heightRatio;
+        this.matrix.set([sx, 0, 0, tx, 0, sy, 0, ty, 0, 0, sz, tz, 0, 0, 0, 1]);
+        return this;
+      }
+
+    };
+
+    UI.prototype.lastEventCount = 0;
+
+    UI.prototype.OFFSET_EVENT_COUNT = 0 * 4;
+
+    UI.prototype.OFFSET_VIEWPORT_X = 1 * 4;
+
+    UI.prototype.OFFSET_VIEWPORT_Y = 2 * 4;
+
+    UI.prototype.OFFSET_WIDTH = 3 * 4;
+
+    UI.prototype.OFFSET_HEIGHT = 4 * 4;
+
+    UI.prototype.OFFSET_ASPECT = 5 * 4;
+
+    UI.prototype.OFFSET_FOVY = 6 * 4;
+
+    UI.prototype.OFFSET_NEAR = 7 * 4;
+
+    UI.prototype.OFFSET_FAR = 8 * 4;
+
+    UI.prototype.OFFSET_CLIENT_X = 9 * 4;
+
+    UI.prototype.OFFSET_CLIENT_Y = 10 * 4;
+
+    UI.prototype.OFFSET_MATRIX = 11 * 4;
+
+    Object.defineProperties(UI.prototype, {
+      x: {
+        get: function() {
+          return this.getFloat32(this.OFFSET_CLIENT_X, LE);
+        }
+      },
+      y: {
+        get: function() {
+          return this.getFloat32(this.OFFSET_CLIENT_Y, LE);
+        }
+      },
+      viewportX: {
+        get: function() {
+          return this.getFloat32(this.OFFSET_VIEWPORT_X, LE);
+        }
+      },
+      viewportY: {
+        get: function() {
+          return this.getFloat32(this.OFFSET_VIEWPORT_Y, LE);
+        }
+      },
+      width: {
+        get: function() {
+          return this.getFloat32(this.OFFSET_WIDTH, LE);
+        }
+      },
+      height: {
+        get: function() {
+          return this.getFloat32(this.OFFSET_HEIGHT, LE);
+        }
+      },
+      aspect: {
+        get: function() {
+          return this.getFloat32(this.OFFSET_ASPECT, LE);
+        }
+      },
+      fovy: {
+        get: function() {
+          return this.getFloat32(this.OFFSET_FOVY, LE);
+        }
+      },
+      near: {
+        get: function() {
+          return this.getFloat32(this.OFFSET_NEAR, LE);
+        }
+      },
+      far: {
+        get: function() {
+          return this.getFloat32(this.OFFSET_FAR, LE);
+        }
+      },
+      matrix: {
+        get: function() {
+          return new Float32Array(this.buffer, this.OFFSET_MATRIX, 16);
+        }
+      },
+      eventCount: {
+        get: function() {
+          return this.getUint32(this.OFFSET_EVENT_COUNT, LE);
+        }
+      },
+      hasEvent: {
+        get: function() {
+          if (this.eventCount !== this.lastEventCount) {
+            return this.lastEventCount = this.eventCount;
+          }
+          return false;
+        }
+      }
+    });
+
+    return UI;
+
+  }).call(this);
   regenerate = function() {
     var FragmentShader, VertexShader, WebGLBuffer, WebGLShader;
     Object.defineProperties(TypedArray, {
@@ -1879,24 +2065,13 @@ self.name = "window";
       }
 
     };
-    WebGLBuffer = (function() {
-      class WebGLBuffer extends Float32Array {};
+    WebGLBuffer = class WebGLBuffer extends Float32Array {
+      set(valueset, index = 0) {
+        super.set(valueset, index);
+        return this.upload();
+      }
 
-      WebGLBuffer.byteLength = 4 * 8 + 1024 * 1024;
-
-      WebGLBuffer.prototype.INDEX_ISACTIVE = 0;
-
-      WebGLBuffer.prototype.INDEX_TYPE = 1;
-
-      WebGLBuffer.prototype.INDEX_ALLOCOFFSET = 2;
-
-      WebGLBuffer.prototype.INDEX_ALLOCBEGIN = 4;
-
-      WebGLBuffer.prototype.INDEX_DRAWBEGIN = 5;
-
-      return WebGLBuffer;
-
-    }).call(this);
+    };
     WebGLShader = (function() {
       class WebGLShader extends Uint8Array {
         constructor() {
@@ -2023,20 +2198,20 @@ self.name = "window";
 
         malloc(pointCount = 0) {
           var array, byteLength, byteOffset, length, offset;
+          this.pointCount = pointCount + this.pointCount;
           length = pointCount * this.ELEMENTS_PER_POINT;
           byteLength = length * this.BYTES_PER_ELEMENT;
           offset = this.addUint32(this.INDEX_DRAWLENGTH, byteLength);
           byteOffset = this.byteOffset + this.BYTEOFFSET_GLBUFFER + offset;
-          array = new Float32Array(this.buffer, byteOffset, length);
+          array = new WebGLBuffer(this.buffer, byteOffset, length);
           return Object.defineProperties(array, {
             upload: {
               value: () => {
                 var a_Position;
-                this.glBuffer;
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, this.drawBuffer, this.gl.STATIC_DRAW);
                 a_Position = this.gl.getAttribLocation(this.program, "a_Position");
-                this.gl.enableVertexAttribArray(a_Position);
-                return this.gl.vertexAttribPointer(a_Position, 3, this.gl.FLOAT, false, 0, 0);
+                this.gl.vertexAttribPointer(a_Position, 3, this.gl.FLOAT, false, 0, 0);
+                return this.gl.enableVertexAttribArray(a_Position);
               }
             }
           });
@@ -2168,7 +2343,9 @@ self.name = "window";
 
       OnscreenCanvas.prototype.INDEX_DRAWLENGTH = 4;
 
-      OnscreenCanvas.prototype.INDEX_GLBUFFER_PTRI = 5;
+      OnscreenCanvas.prototype.INDEX_POINTCOUNT = 5;
+
+      OnscreenCanvas.prototype.INDEX_GLBUFFER_PTRI = 6;
 
       OnscreenCanvas.prototype.BYTEOFFSET_GLBUFFER = 8 * 4;
 
@@ -2225,7 +2402,8 @@ self.name = "window";
         },
         drawBuffer: {
           get: function() {
-            return new Float32Array(this.buffer, this.OFFSET_DRAWBEGIN, this.drawLength);
+            this.glBuffer;
+            return new WebGLBuffer(this.buffer, this.byteOffset + this.BYTEOFFSET_GLBUFFER, this.drawLength);
           }
         },
         drawLength: {
@@ -2238,7 +2416,10 @@ self.name = "window";
         },
         pointCount: {
           get: function() {
-            return this.drawLength / 3;
+            return this.loadUint32(this.INDEX_POINTCOUNT);
+          },
+          set: function(v) {
+            return this.storeUint32(this.INDEX_POINTCOUNT, v);
           }
         },
         width: {
@@ -2252,6 +2433,7 @@ self.name = "window";
           }
         },
         glBuffer: {
+          configurable: true,
           get: function() {
             var buffer;
             if (!(buffer = this.gl.getParameter(this.gl.ELEMENT_ARRAY_BUFFER_BINDING))) {
@@ -2259,7 +2441,11 @@ self.name = "window";
             }
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
             this.hasBinding = 1;
-            return buffer;
+            return Object.defineProperty(this, "glBuffer", {
+              value: buffer,
+              configurable: true,
+              writable: true
+            }).glBuffer;
           }
         },
         activeAttributes: {
@@ -2391,12 +2577,11 @@ self.name = "window";
           maxByteLength /= BUFFER_TEST_STEP_DIVIDER;
         }
       }
-      buffer = new SharedArrayBuffer(1e8);
-      initMemory({
-        objbuf: buffer,
-        ptrbuf: new Buffer(Math.min(MAX_PTR_COUNT * BYTES_PER_ELEMENT, maxByteLength), {maxByteLength})
-      });
-      return Atomics.store(p32, 1, HEADERS_LENGTH);
+      keybuf = new Buffer(4 * 48);
+      objbuf = new Buffer(4 * 2e7);
+      ptrbuf = new Buffer(MAX_PTR_COUNT * BYTES_PER_ELEMENT);
+      Atomics.store(new self.Int32Array(ptrbuf), 1, HEADERS_LENGTH);
+      return initMemory({objbuf, ptrbuf, keybuf});
     };
     createWorker = function(name, onmessage) {
       var worker;
@@ -2410,13 +2595,13 @@ self.name = "window";
       var bridge, i, j, ref, results, thread;
       bridge = createWorker("bridge", bridgemessage);
       bridge.postMessage({
-        setup: {blobURL, objbuf, ptrbuf}
+        setup: {blobURL, objbuf, ptrbuf, keybuf}
       });
       results = [];
       for (i = j = 0, ref = MAX_THREAD_COUNT; (0 <= ref ? j < ref : j > ref); i = 0 <= ref ? ++j : --j) {
         thread = createWorker("thread" + i, threadmessage);
         results.push(thread.postMessage({
-          setup: {blobURL, objbuf, ptrbuf}
+          setup: {blobURL, objbuf, ptrbuf, keybuf}
         }));
       }
       return results;
@@ -2464,7 +2649,7 @@ self.name = "window";
       window.onpagehide = prevent;
       window.onbeforeunload = prevent;
       window.onunhandledrejection = prevent;
-      return window.r = new Proxy({}, {
+      window.r = new Proxy({}, {
         get: function() {
           var j, len, w;
           window.onerror = window.onunload = window.onpagehide = window.onbeforeunload = window.onunhandledrejection = function() {};
@@ -2476,12 +2661,13 @@ self.name = "window";
           return location.reload(true);
         }
       });
+      return ui.listen(window);
     };
     queueMicrotask(function() {
-      listenEvents();
       createBuffers();
       createBlobURL();
-      return createThreads();
+      createThreads();
+      return listenEvents();
     });
   }
   if (isBridge) {

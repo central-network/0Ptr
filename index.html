@@ -35,8 +35,15 @@
     const onscreen = new OnscreenCanvas()
     let red = 0.1, green = 0.3 , blue= 0.9, sign = 1, factor = 0.002;
 
+
+
+
     onscreen.oncontextrestored = function ( gl ){
-        gl.viewport( 0, 0, this.width, this.height );
+
+        gl.viewport( 0, 0, this.width, this.height )
+        ui.viewport( 0, 0, this.width, this.height )
+            .perspective( 60, .01, 1000 )
+
 
         const triangle = this.malloc( 3 );
 
@@ -46,16 +53,23 @@
             0, 1, 0
         ])
 
-        triangle.upload()
+        console.log(ui)
         
-        log( triangle )
-        log( this )
+
+        setTimeout(function (){
+            triangle.set([
+                121232, -121232, 210,
+                -121232, -122123, 210,
+                1212330, 123122, 123210
+            ])
+            log(triangle)
+
+        }, 3000)
+
     };
 
-    if ( isBridge )
-        setTimeout(function (){
-            1
-        }, 3000)
+    
+    log( ui)
 
     onscreen.render(function (gl){
 
@@ -72,7 +86,6 @@
 
     });
 
-    log( [onscreen] )
 
     /*
 
