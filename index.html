@@ -166,6 +166,7 @@
         )
     });
 
+
     onscreen.oncontextrestored = function ( gl ){
 
         gl.u_PointSize = 10;
@@ -173,9 +174,14 @@
             1e-2, 1e4, this.width, this.height, 0, 0, 90
         );
 
-        return
-        const triangle = this.malloc( shape.pointCount );
+        const triangle = this.malloc( shape );
+        log( shape )
+
+        setTimeout(function (){
+            shape.needsUpdate = 1;
+        }, 1000)
         
+        return
 
         for (let i=0; i<shape.length; i+= 3) {
             triangle.set( shape.subarray(i, i+3), (i/3) * this.attribLength )
@@ -187,11 +193,13 @@
 
     };
 
-    onscreen.render(function (gl, delta){
+    onscreen.onanimationframe = function (gl, delta){
 
         red += (factor * sign);
         green += (factor * sign);
         blue += (factor * sign); 
+
+        shape.updateIfNeeded()
 
         if ( red > 1 || red < 0 ) { sign *= -1; }
         if ( green > 1 || green < 0 ) { sign *= -1; }
@@ -201,7 +209,8 @@
         gl.clearDepth(1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    });
+    };
+
 
     /*
         function numberWithCommas(x) {

@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_ITERINDEX, HINDEX_ITERLENGTH, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_RESOLV_ID, HINDEX_WAITCOUNT, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, LE, MAX_PTR_COUNT, MAX_THREAD_COUNT, Object3, OffscreenCanvas, OnscreenCanvas, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, UI, UI_LENGTH, UI_OFFSET, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, keybuf, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, objects, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8, xrSession;
+  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_ATTRIBSLENGTH, HINDEX_ATTRIBSOFFSET, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_ITERINDEX, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_NEEDSUPDATE, HINDEX_PARENT, HINDEX_PTRI, HINDEX_RESOLV_ID, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, LE, MAX_PTR_COUNT, MAX_THREAD_COUNT, Object3, OffscreenCanvas, OnscreenCanvas, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, UI, UI_LENGTH, UI_OFFSET, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, keybuf, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, objects, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8, xrSession;
   log = function() {
     return console.log(name, ...arguments);
   };
@@ -18,16 +18,17 @@ self.name = "window";
   };
   [
     HEADERS_LENGTH_OFFSET = 1,
-    HINDEX_BEGIN = HEADERS_LENGTH_OFFSET++,
-    HINDEX_END = HEADERS_LENGTH_OFFSET++,
-    HINDEX_BYTEOFFSET = HEADERS_LENGTH_OFFSET++,
+    HINDEX_PTRI = HEADERS_LENGTH_OFFSET++,
     HINDEX_LENGTH = HEADERS_LENGTH_OFFSET++,
+    HINDEX_BYTEOFFSET = HEADERS_LENGTH_OFFSET++,
     HINDEX_BYTELENGTH = HEADERS_LENGTH_OFFSET++,
     HINDEX_RESOLV_ID = HEADERS_LENGTH_OFFSET++,
     HINDEX_LOCKFREE = HEADERS_LENGTH_OFFSET++,
-    HINDEX_WAITCOUNT = HEADERS_LENGTH_OFFSET++,
+    HINDEX_PARENT = HEADERS_LENGTH_OFFSET++,
     HINDEX_ITERINDEX = HEADERS_LENGTH_OFFSET++,
-    HINDEX_ITERLENGTH = HEADERS_LENGTH_OFFSET++,
+    HINDEX_NEEDSUPDATE = HEADERS_LENGTH_OFFSET++,
+    HINDEX_ATTRIBSOFFSET = HEADERS_LENGTH_OFFSET++,
+    HINDEX_ATTRIBSLENGTH = HEADERS_LENGTH_OFFSET++,
     BUFFER_TEST_START_LENGTH = Math.pow(((typeof navigator !== "undefined" && navigator !== null ? navigator.deviceMemory : void 0) || 1) + 1,
     11),
     BUFFER_TEST_STEP_DIVIDER = 1e2,
@@ -73,6 +74,7 @@ self.name = "window";
       if (isBridge) {
         ptri = Atomics.add(p32, 1, HEADERS_LENGTH);
         Atomics.store(p32, ptri + HINDEX_RESOLV_ID, id);
+        Atomics.store(p32, ptri + HINDEX_PTRI, ptri);
         return ptri;
       }
       Atomics.wait(p32, 3, 0, 20);
@@ -789,13 +791,21 @@ self.name = "window";
         }
       },
       detach: {
-        value: function(byteOffset = 0, length) {
+        value: function(byteOffset = 0, length, ArrayInstance = this.TypedArray) {
           var array, buffer, detached;
           array = this.sub(byteOffset, length);
           buffer = new ArrayBuffer(length * this.BYTES_PER_ELEMENT);
-          detached = new this.TypedArray(buffer);
+          detached = new ArrayInstance(buffer);
           detached.set(array);
           return detached;
+        }
+      },
+      needsUpdate: {
+        get: function() {
+          return Atomics.load(p32, this.ptri + HINDEX_NEEDSUPDATE);
+        },
+        set: function(v) {
+          return Atomics.store(p32, this.ptri + HINDEX_NEEDSUPDATE, v);
         }
       },
       slice: {
@@ -806,10 +816,9 @@ self.name = "window";
       },
       [Symbol.iterator]: {
         value: function() {
-          var begin, index, iterate, length, ptri, total;
+          var index, iterate, length, ptri, total;
           ptri = resolvs.get(this);
           length = -1 + Atomics.load(p32, ptri + HINDEX_LENGTH);
-          begin = Atomics.load(p32, ptri + HINDEX_BEGIN);
           if (isBridge) {
             Atomics.wait(p32, 4);
             return {
@@ -1062,12 +1071,14 @@ self.name = "window";
       }
 
       constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
         if (arg0 < 0) {
           ptri = -arg0;
           length = Atomics.load(p32, ptri + HINDEX_LENGTH);
           byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return super(objbuf, byteOffset, length);
+          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
+            value: ptri
+          });
         }
         ptri = resolvCall();
         argc = arguments.length;
@@ -1164,18 +1175,16 @@ self.name = "window";
             }
           }
           super(objbuf, byteOffset, length);
-          begin = byteOffset / bpel;
-          end = begin + length;
           Atomics.store(p32, ptri + HINDEX_LENGTH, length);
           Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
           Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-          Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-          Atomics.store(p32, ptri + HINDEX_END, end);
           Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
           Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
         }
         // WeakMap -> {TypedArray} => ptri
-        resolvs.set(this, ptri);
+        resolvs.set(Object.defineProperty(this, "ptri", {
+          value: ptri
+        }), ptri);
       }
 
     };
@@ -1194,12 +1203,14 @@ self.name = "window";
       }
 
       constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
         if (arg0 < 0) {
           ptri = -arg0;
           length = Atomics.load(p32, ptri + HINDEX_LENGTH);
           byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return super(objbuf, byteOffset, length);
+          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
+            value: ptri
+          });
         }
         ptri = resolvCall();
         argc = arguments.length;
@@ -1296,18 +1307,16 @@ self.name = "window";
             }
           }
           super(objbuf, byteOffset, length);
-          begin = byteOffset / bpel;
-          end = begin + length;
           Atomics.store(p32, ptri + HINDEX_LENGTH, length);
           Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
           Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-          Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-          Atomics.store(p32, ptri + HINDEX_END, end);
           Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
           Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
         }
         // WeakMap -> {TypedArray} => ptri
-        resolvs.set(this, ptri);
+        resolvs.set(Object.defineProperty(this, "ptri", {
+          value: ptri
+        }), ptri);
       }
 
     };
@@ -1326,12 +1335,14 @@ self.name = "window";
       }
 
       constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
         if (arg0 < 0) {
           ptri = -arg0;
           length = Atomics.load(p32, ptri + HINDEX_LENGTH);
           byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return super(objbuf, byteOffset, length);
+          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
+            value: ptri
+          });
         }
         ptri = resolvCall();
         argc = arguments.length;
@@ -1428,18 +1439,16 @@ self.name = "window";
             }
           }
           super(objbuf, byteOffset, length);
-          begin = byteOffset / bpel;
-          end = begin + length;
           Atomics.store(p32, ptri + HINDEX_LENGTH, length);
           Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
           Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-          Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-          Atomics.store(p32, ptri + HINDEX_END, end);
           Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
           Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
         }
         // WeakMap -> {TypedArray} => ptri
-        resolvs.set(this, ptri);
+        resolvs.set(Object.defineProperty(this, "ptri", {
+          value: ptri
+        }), ptri);
       }
 
     };
@@ -1458,12 +1467,14 @@ self.name = "window";
       }
 
       constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
         if (arg0 < 0) {
           ptri = -arg0;
           length = Atomics.load(p32, ptri + HINDEX_LENGTH);
           byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return super(objbuf, byteOffset, length);
+          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
+            value: ptri
+          });
         }
         ptri = resolvCall();
         argc = arguments.length;
@@ -1560,18 +1571,16 @@ self.name = "window";
             }
           }
           super(objbuf, byteOffset, length);
-          begin = byteOffset / bpel;
-          end = begin + length;
           Atomics.store(p32, ptri + HINDEX_LENGTH, length);
           Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
           Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-          Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-          Atomics.store(p32, ptri + HINDEX_END, end);
           Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
           Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
         }
         // WeakMap -> {TypedArray} => ptri
-        resolvs.set(this, ptri);
+        resolvs.set(Object.defineProperty(this, "ptri", {
+          value: ptri
+        }), ptri);
       }
 
     };
@@ -1590,12 +1599,14 @@ self.name = "window";
       }
 
       constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
         if (arg0 < 0) {
           ptri = -arg0;
           length = Atomics.load(p32, ptri + HINDEX_LENGTH);
           byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return super(objbuf, byteOffset, length);
+          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
+            value: ptri
+          });
         }
         ptri = resolvCall();
         argc = arguments.length;
@@ -1692,18 +1703,16 @@ self.name = "window";
             }
           }
           super(objbuf, byteOffset, length);
-          begin = byteOffset / bpel;
-          end = begin + length;
           Atomics.store(p32, ptri + HINDEX_LENGTH, length);
           Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
           Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-          Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-          Atomics.store(p32, ptri + HINDEX_END, end);
           Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
           Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
         }
         // WeakMap -> {TypedArray} => ptri
-        resolvs.set(this, ptri);
+        resolvs.set(Object.defineProperty(this, "ptri", {
+          value: ptri
+        }), ptri);
       }
 
     };
@@ -1722,12 +1731,14 @@ self.name = "window";
       }
 
       constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
         if (arg0 < 0) {
           ptri = -arg0;
           length = Atomics.load(p32, ptri + HINDEX_LENGTH);
           byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return super(objbuf, byteOffset, length);
+          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
+            value: ptri
+          });
         }
         ptri = resolvCall();
         argc = arguments.length;
@@ -1824,18 +1835,16 @@ self.name = "window";
             }
           }
           super(objbuf, byteOffset, length);
-          begin = byteOffset / bpel;
-          end = begin + length;
           Atomics.store(p32, ptri + HINDEX_LENGTH, length);
           Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
           Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-          Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-          Atomics.store(p32, ptri + HINDEX_END, end);
           Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
           Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
         }
         // WeakMap -> {TypedArray} => ptri
-        resolvs.set(this, ptri);
+        resolvs.set(Object.defineProperty(this, "ptri", {
+          value: ptri
+        }), ptri);
       }
 
     };
@@ -1854,12 +1863,14 @@ self.name = "window";
       }
 
       constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
         if (arg0 < 0) {
           ptri = -arg0;
           length = Atomics.load(p32, ptri + HINDEX_LENGTH);
           byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return super(objbuf, byteOffset, length);
+          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
+            value: ptri
+          });
         }
         ptri = resolvCall();
         argc = arguments.length;
@@ -1956,18 +1967,16 @@ self.name = "window";
             }
           }
           super(objbuf, byteOffset, length);
-          begin = byteOffset / bpel;
-          end = begin + length;
           Atomics.store(p32, ptri + HINDEX_LENGTH, length);
           Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
           Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-          Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-          Atomics.store(p32, ptri + HINDEX_END, end);
           Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
           Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
         }
         // WeakMap -> {TypedArray} => ptri
-        resolvs.set(this, ptri);
+        resolvs.set(Object.defineProperty(this, "ptri", {
+          value: ptri
+        }), ptri);
       }
 
     };
@@ -1986,12 +1995,14 @@ self.name = "window";
       }
 
       constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
         if (arg0 < 0) {
           ptri = -arg0;
           length = Atomics.load(p32, ptri + HINDEX_LENGTH);
           byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return super(objbuf, byteOffset, length);
+          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
+            value: ptri
+          });
         }
         ptri = resolvCall();
         argc = arguments.length;
@@ -2088,18 +2099,16 @@ self.name = "window";
             }
           }
           super(objbuf, byteOffset, length);
-          begin = byteOffset / bpel;
-          end = begin + length;
           Atomics.store(p32, ptri + HINDEX_LENGTH, length);
           Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
           Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-          Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-          Atomics.store(p32, ptri + HINDEX_END, end);
-          Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
-          Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
         }
         // WeakMap -> {TypedArray} => ptri
-        resolvs.set(this, ptri);
+        resolvs.set(Object.defineProperty(this, "ptri", {
+          value: ptri
+        }), ptri);
+        Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
+        Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
       }
 
     };
@@ -2118,12 +2127,14 @@ self.name = "window";
       }
 
       constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
         if (arg0 < 0) {
           ptri = -arg0;
           length = Atomics.load(p32, ptri + HINDEX_LENGTH);
           byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return super(objbuf, byteOffset, length);
+          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
+            value: ptri
+          });
         }
         ptri = resolvCall();
         argc = arguments.length;
@@ -2220,18 +2231,16 @@ self.name = "window";
             }
           }
           super(objbuf, byteOffset, length);
-          begin = byteOffset / bpel;
-          end = begin + length;
           Atomics.store(p32, ptri + HINDEX_LENGTH, length);
           Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
           Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-          Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-          Atomics.store(p32, ptri + HINDEX_END, end);
           Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
           Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
         }
         // WeakMap -> {TypedArray} => ptri
-        resolvs.set(this, ptri);
+        resolvs.set(Object.defineProperty(this, "ptri", {
+          value: ptri
+        }), ptri);
       }
 
     };
@@ -2250,12 +2259,14 @@ self.name = "window";
       }
 
       constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
         if (arg0 < 0) {
           ptri = -arg0;
           length = Atomics.load(p32, ptri + HINDEX_LENGTH);
           byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return super(objbuf, byteOffset, length);
+          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
+            value: ptri
+          });
         }
         ptri = resolvCall();
         argc = arguments.length;
@@ -2352,18 +2363,16 @@ self.name = "window";
             }
           }
           super(objbuf, byteOffset, length);
-          begin = byteOffset / bpel;
-          end = begin + length;
           Atomics.store(p32, ptri + HINDEX_LENGTH, length);
           Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
           Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-          Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-          Atomics.store(p32, ptri + HINDEX_END, end);
           Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
           Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
         }
         // WeakMap -> {TypedArray} => ptri
-        resolvs.set(this, ptri);
+        resolvs.set(Object.defineProperty(this, "ptri", {
+          value: ptri
+        }), ptri);
       }
 
     };
@@ -2382,12 +2391,14 @@ self.name = "window";
       }
 
       constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
         if (arg0 < 0) {
           ptri = -arg0;
           length = Atomics.load(p32, ptri + HINDEX_LENGTH);
           byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return super(objbuf, byteOffset, length);
+          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
+            value: ptri
+          });
         }
         ptri = resolvCall();
         argc = arguments.length;
@@ -2484,18 +2495,16 @@ self.name = "window";
             }
           }
           super(objbuf, byteOffset, length);
-          begin = byteOffset / bpel;
-          end = begin + length;
           Atomics.store(p32, ptri + HINDEX_LENGTH, length);
           Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
           Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
-          Atomics.store(p32, ptri + HINDEX_BEGIN, begin);
-          Atomics.store(p32, ptri + HINDEX_END, end);
           Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
           Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
         }
         // WeakMap -> {TypedArray} => ptri
-        resolvs.set(this, ptri);
+        resolvs.set(Object.defineProperty(this, "ptri", {
+          value: ptri
+        }), ptri);
       }
 
     };
@@ -3044,10 +3053,13 @@ self.name = "window";
           return this.gl.getExtension("WEBGL_lose_context").loseContext();
         }
 
-        malloc(pointCount) {
+        malloc(shape) {
           var start;
-          start = this.addUint32(this.INDEX_POINTCOUNT, pointCount);
-          return this.drawBuffer.sub(start * 3 * 4, pointCount * this.attribLength);
+          start = this.addUint32(this.INDEX_POINTCOUNT, shape.pointCount);
+          Atomics.store(p32, shape.ptri + HINDEX_PARENT, this.ptri);
+          Atomics.store(p32, shape.ptri + HINDEX_ATTRIBSOFFSET, start * 3 * 4);
+          Atomics.store(p32, shape.ptri + HINDEX_ATTRIBSLENGTH, shape.pointCount * this.attribLength);
+          return this.drawBuffer.sub(start * 3 * 4, shape.pointCount * this.attribLength);
         }
 
         defineAttributes() {
@@ -3192,9 +3204,7 @@ self.name = "window";
             this.reload();
             this.oncontextrestored(this.gl);
             this.onwebglcontextrestored(this.gl);
-            if (this.isRendering) {
-              return this.render();
-            }
+            return this.render();
           });
           this.canvas.dispatchEvent(new CustomEvent("webglcontextrestored"));
           return this;
@@ -3208,25 +3218,42 @@ self.name = "window";
 
         onwebglcontextrestored() {}
 
-        render(handler) {
-          var commit, gl, ptri;
-          if (isThread) {
-            return (function() {});
+        onanimationframe() {
+          log(2);
+          return setTimeout(() => {
+            return log(888);
+          }, 1000);
+        }
+
+        onanimationframed() {
+          var ptri, results;
+          ptri = Atomics.load(p32, 1);
+          results = [];
+          while (ptri > HEADERS_LENGTH) {
+            if (Atomics.and(p32, ptri + HINDEX_NEEDSUPDATE, 0)) {
+              log("update", ptri);
+            }
+            results.push(ptri -= HEADERS_LENGTH);
           }
-          if (!this.isRendering) {
-            this.isRendering = 1;
-          }
-          if (handler) {
-            this.handler = handler;
-          }
+          return results;
+        }
+
+        render() {
+          var commit;
           if (!this.hasContext) {
             return;
           }
-          [gl, handler, ptri] = [this.gl, this.handler, resolvs.get(this)];
-          if (isBridge) {
+          if (isThread) {
+            log(this.onanimationframe + "");
+            return 1;
+            return (commit = () => {
+              this.onanimationframe(this.gl, this.frame);
+              return requestAnimationFrame(commit);
+            })();
+          } else {
             return (commit = (now) => {
               if (this.hasContext && this.hasBinding) {
-                handler.call(this, gl, this.addFrame(now));
+                this.onanimationframe(this.gl, this.addFrame(now));
                 this.gl.drawArrays(this.gl.POINTS, 0, this.pointCount);
                 this.gl.drawArrays(this.gl.LINES, 0, this.pointCount);
                 this.gl.drawArrays(this.gl.TRIANGLES, 0, this.pointCount);
@@ -3241,28 +3268,22 @@ self.name = "window";
         }
 
         getContext(type) {
-          var onscreen, ptri;
-          ptri = resolvCall();
-          onscreen = this;
           if (isThread) {
-            return Object.defineProperties(onscreen, {
+            return Object.defineProperties(this, {
               gl: {
                 value: new Proxy({}, {})
-              },
-              bridgeOnly: {
-                value: true
               }
+            }).render();
+          } else {
+            replies[this.ptri] = new WeakRef((data) => {
+              return this.setContext(data.canvas.getContext(type, {
+                powerPreference: "high-performance"
+              }));
+            });
+            return postMessage({
+              onscreen: {ptri: this.ptri}
             });
           }
-          replies[ptri] = new WeakRef((data) => {
-            return this.setContext(data.canvas.getContext(type, {
-              powerPreference: "high-performance"
-            }));
-          });
-          postMessage({
-            onscreen: {ptri}
-          });
-          return resolvs.set(onscreen, ptri);
         }
 
       };
@@ -3469,21 +3490,25 @@ self.name = "window";
 
     }).call(this);
     return Object3 = (function() {
-      class Object3 extends Uint8Array {
-        constructor(options = {}) {
-          var byteLength, ptri;
+      class Object3 extends Float32Array {
+        constructor(options = {
+            points: []
+          }) {
+          var byteLength;
           byteLength = Object3.byteLength + options.points.length * 4;
-          ptri = resolvs.get(super(byteLength));
-          if (isThread) {
-            lock(ptri);
+          super(byteLength);
+          if (isBridge) {
+            this.uuid = randomUUID();
           }
-          this.uuid = randomUUID();
-          log(ptri);
+        }
+
+        updateIfNeeded(gl) {
+          return log(1, "update if needed");
         }
 
       };
 
-      Object3.byteLength = 100;
+      Object3.byteLength = 104;
 
       Object3.prototype.OFFSET_UUID = 0;
 
@@ -3495,12 +3520,16 @@ self.name = "window";
 
       Object3.prototype.OFFSET_COLOR = 84;
 
+      Object3.prototype.OFFSET_DRAWBUFFER = 100;
+
+      Object3.prototype.INDEX_DRAWBUFFER = 100 / 4;
+
       Object3.prototype.OFFSET_POINTS = Object3.byteLength;
 
       Object.defineProperties(Object3.prototype, {
         uuid: {
           get: function() {
-            return textDecoder.decode(this.detach(this.OFFSET_UUID, 36));
+            return textDecoder.decode(this.detach(this.OFFSET_UUID, 36, Uint8Array));
           },
           set: function(v) {
             return this.set(textEncoder.encode(v), this.OFFSET_UUID);
@@ -3554,6 +3583,14 @@ self.name = "window";
         pointsLength: {
           get: function() {
             return (this.byteLength - this.OFFSET_POINTS) / 4;
+          }
+        },
+        drawBuffer: {
+          get: function() {
+            return this.getUint32(this.INDEX_DRAWBUFFER);
+          },
+          set: function(v) {
+            return this.storeUint32(this.INDEX_DRAWBUFFER, v);
           }
         }
       });
@@ -3735,9 +3772,8 @@ self.name = "window";
   }
   if (isBridge) {
     addEventListener("message", function(e) {
-      var data, ref, req, results, uuid;
+      var data, ref, req, uuid;
       ref = e.data;
-      results = [];
       for (req in ref) {
         data = ref[req];
         switch (req) {
@@ -3746,36 +3782,31 @@ self.name = "window";
             blobURL = data.blobURL;
             initMemory(data);
             regenerate();
-            results.push(postMessage({
+            postMessage({
               register: {selfName, isBridge, isThread, threadId, now, pnow, uuid}
-            }));
+            });
             break;
           case "onscreen":
-            replies[data.ptri].deref()(data);
-            results.push(setTimeout(() => {
-              var ptri, results1;
+            return replies[data.ptri].deref()(data);
+            setTimeout(() => {
+              var ptri, results;
               ptri = Atomics.load(p32, 1);
-              results1 = [];
+              results = [];
               while (ptri > HEADERS_LENGTH) {
                 log({
                   ptri,
+                  parent: p32[ptri + HINDEX_PARENT],
                   length: p32[ptri + HINDEX_LENGTH],
                   resolvId: p32[ptri + HINDEX_RESOLV_ID],
                   byteOffset: p32[ptri + HINDEX_BYTEOFFSET],
-                  byteLength: p32[ptri + HINDEX_BYTELENGTH],
-                  begin: p32[ptri + HINDEX_BEGIN],
-                  end: p32[ptri + HINDEX_END]
+                  byteLength: p32[ptri + HINDEX_BYTELENGTH]
                 });
-                results1.push(ptri -= HEADERS_LENGTH);
+                results.push(ptri -= HEADERS_LENGTH);
               }
-              return results1;
-            }, 1000));
-            break;
-          default:
-            results.push(void 0);
+              return results;
+            }, 1000);
         }
       }
-      return results;
     });
   }
   if (isThread) {

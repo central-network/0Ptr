@@ -10,16 +10,17 @@ do  self.init   = ->
 
     [
         HEADERS_LENGTH_OFFSET       = 1
-        HINDEX_BEGIN                = HEADERS_LENGTH_OFFSET++
-        HINDEX_END                  = HEADERS_LENGTH_OFFSET++
-        HINDEX_BYTEOFFSET           = HEADERS_LENGTH_OFFSET++
+        HINDEX_PTRI                 = HEADERS_LENGTH_OFFSET++
         HINDEX_LENGTH               = HEADERS_LENGTH_OFFSET++
+        HINDEX_BYTEOFFSET           = HEADERS_LENGTH_OFFSET++
         HINDEX_BYTELENGTH           = HEADERS_LENGTH_OFFSET++
         HINDEX_RESOLV_ID            = HEADERS_LENGTH_OFFSET++
         HINDEX_LOCKFREE             = HEADERS_LENGTH_OFFSET++
-        HINDEX_WAITCOUNT            = HEADERS_LENGTH_OFFSET++
+        HINDEX_PARENT               = HEADERS_LENGTH_OFFSET++
         HINDEX_ITERINDEX            = HEADERS_LENGTH_OFFSET++
-        HINDEX_ITERLENGTH           = HEADERS_LENGTH_OFFSET++
+        HINDEX_NEEDSUPDATE          = HEADERS_LENGTH_OFFSET++
+        HINDEX_ATTRIBSOFFSET        = HEADERS_LENGTH_OFFSET++
+        HINDEX_ATTRIBSLENGTH        = HEADERS_LENGTH_OFFSET++
     
         BUFFER_TEST_START_LENGTH    = Math.pow (navigator?.deviceMemory or 1)+1, 11
         BUFFER_TEST_STEP_DIVIDER    = 1e2
@@ -109,6 +110,7 @@ do  self.init   = ->
             if  isBridge 
                 ptri = Atomics.add p32, 1, HEADERS_LENGTH
                 Atomics.store p32, ptri + HINDEX_RESOLV_ID, id
+                Atomics.store p32, ptri + HINDEX_PTRI, ptri
                 return ptri
 
             Atomics.wait p32, 3, 0, 20
@@ -654,12 +656,17 @@ do  self.init   = ->
                     self[ tarray.constructor.name ]
 
             detach              :
-                value           : ( byteOffset = 0, length ) ->
+                value           : ( byteOffset = 0, length, ArrayInstance = @TypedArray ) ->
                     array = @sub byteOffset, length
                     buffer = new ArrayBuffer length * @BYTES_PER_ELEMENT
-                    detached = new this.TypedArray buffer
+                    detached = new ArrayInstance buffer
                     detached.set array ; return detached
-                    
+
+
+            needsUpdate         :
+                get : -> Atomics.load p32, @ptri + HINDEX_NEEDSUPDATE
+                set : (v) -> Atomics.store p32, @ptri + HINDEX_NEEDSUPDATE, v
+
             slice               :
                 #copy to new
                 value   : ( begin = 0, end = @length ) ->
@@ -674,7 +681,6 @@ do  self.init   = ->
                     ptri = resolvs.get this
 
                     length = -1 + Atomics.load p32, ptri + HINDEX_LENGTH
-                    begin = Atomics.load p32, ptri + HINDEX_BEGIN
 
                     if  isBridge
                         Atomics.wait p32, 4
@@ -881,7 +887,11 @@ do  self.init   = ->
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
-                    return super objbuf, byteOffset, length
+                    return Object.defineProperty(
+                        super( objbuf, byteOffset, length ), "ptri", {
+                            value : ptri
+                        }
+                    )
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -1010,20 +1020,19 @@ do  self.init   = ->
 
                     super objbuf, byteOffset, length
 
-                    begin       = byteOffset / bpel
-                    end         = begin + length
-
                     Atomics.store  p32, ptri + HINDEX_LENGTH, length
                     Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
                     Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
-                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
-                    Atomics.store  p32, ptri + HINDEX_END, end
 
                     Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
                     Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
                 # WeakMap -> {TypedArray} => ptri
-                resolvs.set this, ptri
+                resolvs.set Object.defineProperty(
+                    this, "ptri", {
+                        value : ptri
+                    }
+                ), ptri                
 
         class Int8Array         extends self.Int8Array
 
@@ -1044,7 +1053,11 @@ do  self.init   = ->
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
-                    return super objbuf, byteOffset, length
+                    return Object.defineProperty(
+                        super( objbuf, byteOffset, length ), "ptri", {
+                            value : ptri
+                        }
+                    )
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -1173,20 +1186,19 @@ do  self.init   = ->
 
                     super objbuf, byteOffset, length
 
-                    begin       = byteOffset / bpel
-                    end         = begin + length
-
                     Atomics.store  p32, ptri + HINDEX_LENGTH, length
                     Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
                     Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
-                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
-                    Atomics.store  p32, ptri + HINDEX_END, end
 
                     Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
                     Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
                 # WeakMap -> {TypedArray} => ptri
-                resolvs.set this, ptri
+                resolvs.set Object.defineProperty(
+                    this, "ptri", {
+                        value : ptri
+                    }
+                ), ptri
 
         class Uint8ClampedArray extends self.Uint8ClampedArray
 
@@ -1207,7 +1219,11 @@ do  self.init   = ->
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
-                    return super objbuf, byteOffset, length
+                    return Object.defineProperty(
+                        super( objbuf, byteOffset, length ), "ptri", {
+                            value : ptri
+                        }
+                    )
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -1336,20 +1352,19 @@ do  self.init   = ->
 
                     super objbuf, byteOffset, length
 
-                    begin       = byteOffset / bpel
-                    end         = begin + length
-
                     Atomics.store  p32, ptri + HINDEX_LENGTH, length
                     Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
                     Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
-                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
-                    Atomics.store  p32, ptri + HINDEX_END, end
 
                     Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
                     Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
                 # WeakMap -> {TypedArray} => ptri
-                resolvs.set this, ptri
+                resolvs.set Object.defineProperty(
+                    this, "ptri", {
+                        value : ptri
+                    }
+                ), ptri
 
         class Uint16Array       extends self.Uint16Array
 
@@ -1370,7 +1385,11 @@ do  self.init   = ->
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
-                    return super objbuf, byteOffset, length
+                    return Object.defineProperty(
+                        super( objbuf, byteOffset, length ), "ptri", {
+                            value : ptri
+                        }
+                    )
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -1499,20 +1518,19 @@ do  self.init   = ->
 
                     super objbuf, byteOffset, length
 
-                    begin       = byteOffset / bpel
-                    end         = begin + length
-
                     Atomics.store  p32, ptri + HINDEX_LENGTH, length
                     Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
                     Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
-                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
-                    Atomics.store  p32, ptri + HINDEX_END, end
 
                     Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
                     Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
                 # WeakMap -> {TypedArray} => ptri
-                resolvs.set this, ptri
+                resolvs.set Object.defineProperty(
+                    this, "ptri", {
+                        value : ptri
+                    }
+                ), ptri
 
         class Int16Array        extends self.Int16Array
 
@@ -1533,7 +1551,11 @@ do  self.init   = ->
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
-                    return super objbuf, byteOffset, length
+                    return Object.defineProperty(
+                        super( objbuf, byteOffset, length ), "ptri", {
+                            value : ptri
+                        }
+                    )
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -1662,20 +1684,19 @@ do  self.init   = ->
 
                     super objbuf, byteOffset, length
 
-                    begin       = byteOffset / bpel
-                    end         = begin + length
-
                     Atomics.store  p32, ptri + HINDEX_LENGTH, length
                     Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
                     Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
-                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
-                    Atomics.store  p32, ptri + HINDEX_END, end
 
                     Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
                     Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
                 # WeakMap -> {TypedArray} => ptri
-                resolvs.set this, ptri
+                resolvs.set Object.defineProperty(
+                    this, "ptri", {
+                        value : ptri
+                    }
+                ), ptri
 
         class Uint32Array       extends self.Uint32Array
 
@@ -1696,7 +1717,11 @@ do  self.init   = ->
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
-                    return super objbuf, byteOffset, length
+                    return Object.defineProperty(
+                        super( objbuf, byteOffset, length ), "ptri", {
+                            value : ptri
+                        }
+                    )
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -1825,20 +1850,19 @@ do  self.init   = ->
 
                     super objbuf, byteOffset, length
 
-                    begin       = byteOffset / bpel
-                    end         = begin + length
-
                     Atomics.store  p32, ptri + HINDEX_LENGTH, length
                     Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
                     Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
-                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
-                    Atomics.store  p32, ptri + HINDEX_END, end
 
                     Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
                     Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
                 # WeakMap -> {TypedArray} => ptri
-                resolvs.set this, ptri
+                resolvs.set Object.defineProperty(
+                    this, "ptri", {
+                        value : ptri
+                    }
+                ), ptri
 
         class Int32Array        extends self.Int32Array
 
@@ -1859,7 +1883,11 @@ do  self.init   = ->
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
-                    return super objbuf, byteOffset, length
+                    return Object.defineProperty(
+                        super( objbuf, byteOffset, length ), "ptri", {
+                            value : ptri
+                        }
+                    )
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -1988,20 +2016,19 @@ do  self.init   = ->
 
                     super objbuf, byteOffset, length
 
-                    begin       = byteOffset / bpel
-                    end         = begin + length
-
                     Atomics.store  p32, ptri + HINDEX_LENGTH, length
                     Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
                     Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
-                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
-                    Atomics.store  p32, ptri + HINDEX_END, end
 
                     Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
                     Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
                 # WeakMap -> {TypedArray} => ptri
-                resolvs.set this, ptri
+                resolvs.set Object.defineProperty(
+                    this, "ptri", {
+                        value : ptri
+                    }
+                ), ptri
 
         class Float32Array      extends self.Float32Array
 
@@ -2017,12 +2044,16 @@ do  self.init   = ->
             constructor         : ( arg0, byteOffset, length ) ->
 
                 if  arg0 < 0
-                    
+
                     ptri        = -arg0
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
-                    return super objbuf, byteOffset, length
+                    return Object.defineProperty(
+                        super( objbuf, byteOffset, length ), "ptri", {
+                            value : ptri
+                        }
+                    )
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -2151,20 +2182,19 @@ do  self.init   = ->
 
                     super objbuf, byteOffset, length
 
-                    begin       = byteOffset / bpel
-                    end         = begin + length
-
                     Atomics.store  p32, ptri + HINDEX_LENGTH, length
                     Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
                     Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
-                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
-                    Atomics.store  p32, ptri + HINDEX_END, end
-
-                    Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
-                    Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
                 # WeakMap -> {TypedArray} => ptri
-                resolvs.set this, ptri
+                resolvs.set Object.defineProperty(
+                    this, "ptri", {
+                        value : ptri
+                    }
+                ), ptri
+
+                Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
+                Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
         class Float64Array      extends self.Float64Array
 
@@ -2185,7 +2215,11 @@ do  self.init   = ->
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
-                    return super objbuf, byteOffset, length
+                    return Object.defineProperty(
+                        super( objbuf, byteOffset, length ), "ptri", {
+                            value : ptri
+                        }
+                    )
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -2314,20 +2348,19 @@ do  self.init   = ->
 
                     super objbuf, byteOffset, length
 
-                    begin       = byteOffset / bpel
-                    end         = begin + length
-
                     Atomics.store  p32, ptri + HINDEX_LENGTH, length
                     Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
                     Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
-                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
-                    Atomics.store  p32, ptri + HINDEX_END, end
 
                     Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
                     Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
                 # WeakMap -> {TypedArray} => ptri
-                resolvs.set this, ptri
+                resolvs.set Object.defineProperty(
+                    this, "ptri", {
+                        value : ptri
+                    }
+                ), ptri
 
         class BigInt64Array     extends self.BigInt64Array
 
@@ -2348,7 +2381,11 @@ do  self.init   = ->
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
-                    return super objbuf, byteOffset, length
+                    return Object.defineProperty(
+                        super( objbuf, byteOffset, length ), "ptri", {
+                            value : ptri
+                        }
+                    )
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -2477,20 +2514,19 @@ do  self.init   = ->
 
                     super objbuf, byteOffset, length
 
-                    begin       = byteOffset / bpel
-                    end         = begin + length
-
                     Atomics.store  p32, ptri + HINDEX_LENGTH, length
                     Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
                     Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
-                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
-                    Atomics.store  p32, ptri + HINDEX_END, end
 
                     Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
                     Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
                 # WeakMap -> {TypedArray} => ptri
-                resolvs.set this, ptri
+                resolvs.set Object.defineProperty(
+                    this, "ptri", {
+                        value : ptri
+                    }
+                ), ptri
 
         class BigUint64Array    extends self.BigUint64Array
 
@@ -2511,7 +2547,11 @@ do  self.init   = ->
                     length      = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
 
-                    return super objbuf, byteOffset, length
+                    return Object.defineProperty(
+                        super( objbuf, byteOffset, length ), "ptri", {
+                            value : ptri
+                        }
+                    )
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -2640,20 +2680,19 @@ do  self.init   = ->
 
                     super objbuf, byteOffset, length
 
-                    begin       = byteOffset / bpel
-                    end         = begin + length
-
                     Atomics.store  p32, ptri + HINDEX_LENGTH, length
                     Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
                     Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
-                    Atomics.store  p32, ptri + HINDEX_BEGIN, begin
-                    Atomics.store  p32, ptri + HINDEX_END, end
 
                     Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
                     Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
                 # WeakMap -> {TypedArray} => ptri
-                resolvs.set this, ptri
+                resolvs.set Object.defineProperty(
+                    this, "ptri", {
+                        value : ptri
+                    }
+                ), ptri
 
         class OffscreenCanvas   extends self.OffscreenCanvas
 
@@ -2998,7 +3037,6 @@ do  self.init   = ->
                         get     : -> @loadUint32 @INDEX_LENGTH
                         set     : -> @storeUint32 @INDEX_LENGTH, arguments[0]
 
-
                 source          :
                         get     : ->
                             return "" unless @length
@@ -3209,9 +3247,14 @@ do  self.init   = ->
                     .getExtension "WEBGL_lose_context"
                     .loseContext()
 
-            malloc              : ( pointCount ) ->
-                start = @addUint32 @INDEX_POINTCOUNT, pointCount
-                @drawBuffer.sub start * 3 * 4, pointCount * @attribLength
+            malloc              : ( shape ) ->
+                start = @addUint32 @INDEX_POINTCOUNT, shape.pointCount
+                
+                Atomics.store p32, shape.ptri + HINDEX_PARENT, @ptri
+                Atomics.store p32, shape.ptri + HINDEX_ATTRIBSOFFSET, start * 3 * 4
+                Atomics.store p32, shape.ptri + HINDEX_ATTRIBSLENGTH, shape.pointCount * @attribLength
+
+                @drawBuffer.sub start * 3 * 4, shape.pointCount * @attribLength
 
             defineAttributes : ->
                 a_Position = @activeAttributes.find (a) => a.name is "a_Position"
@@ -3311,69 +3354,74 @@ do  self.init   = ->
                     @reload()
                     @oncontextrestored @gl
                     @onwebglcontextrestored @gl
-                    @render() if @isRendering
+                    @render() 
 
                 @canvas.dispatchEvent new CustomEvent "webglcontextrestored"
 
                 this
 
-
             oncontextlost           : ->
             oncontextrestored       : ->
             onwebglcontextlost      : ->
             onwebglcontextrestored  : ->
+                
+            onanimationframe        : ->
+                log 2
+                setTimeout =>
+                    log 888
+                , 1000
 
+            onanimationframed        : ->
+                ptri = Atomics.load p32, 1
 
-            render      : ( handler ) ->
-                return (->) if isThread
+                while ptri > HEADERS_LENGTH
+                    if  Atomics.and p32, ptri + HINDEX_NEEDSUPDATE, 0
+                        log "update", ptri
 
-                unless @isRendering
-                    @isRendering = 1
+                    ptri -= HEADERS_LENGTH
 
-                @handler = handler if handler
+            render      : ->
                 return unless @hasContext
 
-                [ gl, handler, ptri ] =
-                    [ @gl, @handler, resolvs.get this ]
+                if  isThread
+                    log  @onanimationframe + ""
 
-                if  isBridge then do commit = ( now = 0 ) =>
-                    
-                    if  @hasContext and @hasBinding
-                        handler.call this, gl, @addFrame now 
-                        
-                        @gl.drawArrays @gl.POINTS, 0, @pointCount
-                        @gl.drawArrays @gl.LINES, 0, @pointCount
-                        @gl.drawArrays @gl.TRIANGLES, 0, @pointCount
+                    return 1
+                    do  commit = => 
+                        @onanimationframe @gl, @frame
+                        requestAnimationFrame commit
+                else
+                    do commit = ( now = 0 ) =>
+                        if  @hasContext and @hasBinding
+                            @onanimationframe @gl, @addFrame now 
+                            
+                            @gl.drawArrays @gl.POINTS, 0, @pointCount
+                            @gl.drawArrays @gl.LINES, 0, @pointCount
+                            @gl.drawArrays @gl.TRIANGLES, 0, @pointCount
 
-                    requestAnimationFrame commit
-
+                        requestAnimationFrame commit
 
             constructor : ->
                 super( OnscreenCanvas.byteLength )
                     .getContext "webgl2"
 
             getContext : ( type ) ->
-                ptri = resolvCall()
-                onscreen = this
-                
                 if  isThread
-                    
-                    return Object.defineProperties( onscreen,
+                    Object.defineProperties( this,
                         gl : value : new Proxy {}, {}
-                        bridgeOnly : value : on
-                    ) 
+                    ).render()
 
-                replies[ ptri ] = new WeakRef ( data ) =>                   
-                    @setContext data.canvas.getContext type, {
-                        powerPreference: "high-performance",
-                    }
+                else
+                    replies[ @ptri ] = new WeakRef ( data ) =>                   
+                        @setContext data.canvas.getContext type, {
+                            powerPreference: "high-performance",
+                        }
+                    postMessage onscreen : { @ptri }
 
-                postMessage onscreen : { ptri }
-                resolvs.set onscreen , ( ptri )
 
-        class Object3           extends Uint8Array
+        class Object3           extends Float32Array
         
-            @byteLength         : 100
+            @byteLength         : 104
 
             OFFSET_UUID         : 0
 
@@ -3385,26 +3433,31 @@ do  self.init   = ->
 
             OFFSET_COLOR        : 84
 
+            OFFSET_DRAWBUFFER   : 100
+            
+            INDEX_DRAWBUFFER    : 100 / 4
+
             OFFSET_POINTS       : @byteLength
 
-            constructor : ( options = {} ) ->
-
+            constructor : ( options = { points : [] } ) ->
                 byteLength = (
                     Object3.byteLength + 
                     options.points.length * 4
                 )
+                
+                super byteLength
 
-                ptri = resolvs.get super byteLength
+                if  isBridge
+                    @uuid = randomUUID()
 
-                if  isThread
-                    lock ptri
 
-                @uuid = randomUUID()
-                log ptri
+            updateIfNeeded : ( gl ) ->
+                log 1, "update if needed"
+
 
             Object.defineProperties Object3::,
                 uuid :
-                    get : -> textDecoder.decode @detach @OFFSET_UUID, 36 
+                    get : -> textDecoder.decode @detach @OFFSET_UUID, 36, Uint8Array 
                     set : ( v ) -> @set textEncoder.encode( v ), @OFFSET_UUID
                     
                 points :
@@ -3433,6 +3486,9 @@ do  self.init   = ->
                 pointsLength : 
                     get : -> ( @byteLength - @OFFSET_POINTS ) / 4
 
+                drawBuffer : 
+                    get : -> @getUint32 @INDEX_DRAWBUFFER
+                    set : (v) -> @storeUint32 @INDEX_DRAWBUFFER, v
 
     if  isWindow
 
@@ -3673,7 +3729,7 @@ do  self.init   = ->
                     }
 
                 when "onscreen"
-                    replies[data.ptri].deref()( data )
+                    return replies[data.ptri].deref()( data )
 
                     setTimeout =>
                         ptri = Atomics.load p32, 1
@@ -3681,12 +3737,11 @@ do  self.init   = ->
                         while ptri > HEADERS_LENGTH
                             log {
                                 ptri
+                                parent : p32[ ptri + HINDEX_PARENT ]
                                 length : p32[ ptri + HINDEX_LENGTH ]
                                 resolvId : p32[ ptri + HINDEX_RESOLV_ID ]
                                 byteOffset : p32[ ptri + HINDEX_BYTEOFFSET ]
                                 byteLength : p32[ ptri + HINDEX_BYTELENGTH ]
-                                begin : p32[ ptri + HINDEX_BEGIN ]
-                                end : p32[ ptri + HINDEX_END ]
                             }
 
                             ptri -= HEADERS_LENGTH
