@@ -672,9 +672,8 @@ do  self.init   = ->
             subarray            :
                 #part of this
                 value   : ( begin = 0, end = @length ) ->
-                    new @constructor(
-                        @buffer, 
-                        @byteOffset + @BYTES_PER_ELEMENT * begin,
+                    new @constructor( @buffer, 
+                        @byteOffset + (@BYTES_PER_ELEMENT * begin),
                         end - begin
                     )
                 
@@ -689,7 +688,6 @@ do  self.init   = ->
                     while !Object.hasOwn tarray, "BYTES_PER_ELEMENT" 
                         tarray = Object.getPrototypeOf tarray
                     self[ tarray.constructor.name ]
-
 
             detach              :
                 value           : ( byteOffset = 0, length = @length ) ->
@@ -1101,7 +1099,7 @@ do  self.init   = ->
                                     arg0.byteOffset + byteLength
                                 )
                             else
-                                ui8.set arg0, byteOffset                            
+                                si8.set arg0, byteOffset                            
 
                         else if Array.isArray
                             # new TypedArray( [ 2, 4, 1 ] )
@@ -1111,7 +1109,7 @@ do  self.init   = ->
                             byteLength  = length * bpel
                             byteOffset  = malloc byteLength, bpel
                             
-                            ui8.set arg0, byteOffset                            
+                            si8.set arg0, byteOffset                            
                             
                     else if argc is 3
                         # new TypedArray( buffer, 1221, 4 );
@@ -1172,7 +1170,7 @@ do  self.init   = ->
                                 ui8.copyWithin byteOffset, copyStart, copyEnd
 
                             else
-                                ui8.set arg0, byteOffset
+                                si8.set arg0, byteOffset
     
                         else if arg0.byteLength
                             # new TypedArray( buffer, 36 );
@@ -1254,8 +1252,8 @@ do  self.init   = ->
                                     arg0.byteOffset, 
                                     arg0.byteOffset + byteLength
                                 )
-                            else
-                                ui8.set arg0, byteOffset                            
+                            else                                
+                                cu8.set arg0, byteOffset                            
 
                         else if Array.isArray
                             # new TypedArray( [ 2, 4, 1 ] )
@@ -1265,7 +1263,7 @@ do  self.init   = ->
                             byteLength  = length * bpel
                             byteOffset  = malloc byteLength, bpel
                             
-                            ui8.set arg0, byteOffset                            
+                            cu8.set arg0, byteOffset                            
                             
                     else if argc is 3
                         # new TypedArray( buffer, 1221, 4 );
@@ -1326,7 +1324,7 @@ do  self.init   = ->
                                 ui8.copyWithin byteOffset, copyStart, copyEnd
 
                             else
-                                ui8.set arg0, byteOffset
+                                cu8.set arg0, byteOffset
     
                         else if arg0.byteLength
                             # new TypedArray( buffer, 36 );
@@ -1409,7 +1407,7 @@ do  self.init   = ->
                                     arg0.byteOffset + byteLength
                                 )
                             else
-                                ui8.set arg0, byteOffset                            
+                                u16.set arg0, byteOffset / bpel                            
 
                         else if Array.isArray
                             # new TypedArray( [ 2, 4, 1 ] )
@@ -1419,7 +1417,7 @@ do  self.init   = ->
                             byteLength  = length * bpel
                             byteOffset  = malloc byteLength, bpel
                             
-                            ui8.set arg0, byteOffset                            
+                            u16.set arg0, byteOffset / bpel                            
                             
                     else if argc is 3
                         # new TypedArray( buffer, 1221, 4 );
@@ -1480,7 +1478,7 @@ do  self.init   = ->
                                 ui8.copyWithin byteOffset, copyStart, copyEnd
 
                             else
-                                ui8.set arg0, byteOffset
+                                u16.set arg0, byteOffset / bpel
     
                         else if arg0.byteLength
                             # new TypedArray( buffer, 36 );
@@ -1563,7 +1561,7 @@ do  self.init   = ->
                                     arg0.byteOffset + byteLength
                                 )
                             else
-                                ui8.set arg0, byteOffset                            
+                                i16.set arg0, byteOffset / bpel                            
 
                         else if Array.isArray
                             # new TypedArray( [ 2, 4, 1 ] )
@@ -1573,7 +1571,7 @@ do  self.init   = ->
                             byteLength  = length * bpel
                             byteOffset  = malloc byteLength, bpel
                             
-                            ui8.set arg0, byteOffset                            
+                            i16.set arg0, byteOffset / bpel                            
                             
                     else if argc is 3
                         # new TypedArray( buffer, 1221, 4 );
@@ -1634,7 +1632,7 @@ do  self.init   = ->
                                 ui8.copyWithin byteOffset, copyStart, copyEnd
 
                             else
-                                ui8.set arg0, byteOffset
+                                i16.set arg0, byteOffset / bpel
     
                         else if arg0.byteLength
                             # new TypedArray( buffer, 36 );
@@ -1717,7 +1715,7 @@ do  self.init   = ->
                                     arg0.byteOffset + byteLength
                                 )
                             else
-                                ui8.set arg0, byteOffset                            
+                                u32.set arg0, byteOffset / bpel                            
 
                         else if Array.isArray
                             # new TypedArray( [ 2, 4, 1 ] )
@@ -1727,7 +1725,7 @@ do  self.init   = ->
                             byteLength  = length * bpel
                             byteOffset  = malloc byteLength, bpel
                             
-                            ui8.set arg0, byteOffset                            
+                            u32.set arg0, byteOffset / bpel                            
                             
                     else if argc is 3
                         # new TypedArray( buffer, 1221, 4 );
@@ -1788,7 +1786,7 @@ do  self.init   = ->
                                 ui8.copyWithin byteOffset, copyStart, copyEnd
 
                             else
-                                ui8.set arg0, byteOffset
+                                u32.set arg0, byteOffset / bpel
     
                         else if arg0.byteLength
                             # new TypedArray( buffer, 36 );
@@ -1871,7 +1869,7 @@ do  self.init   = ->
                                     arg0.byteOffset + byteLength
                                 )
                             else
-                                ui8.set arg0, byteOffset                            
+                                i32.set arg0, byteOffset / bpel                            
 
                         else if Array.isArray
                             # new TypedArray( [ 2, 4, 1 ] )
@@ -1881,7 +1879,7 @@ do  self.init   = ->
                             byteLength  = length * bpel
                             byteOffset  = malloc byteLength, bpel
                             
-                            ui8.set arg0, byteOffset                            
+                            i32.set arg0, byteOffset / bpel                            
                             
                     else if argc is 3
                         # new TypedArray( buffer, 1221, 4 );
@@ -1942,7 +1940,7 @@ do  self.init   = ->
                                 ui8.copyWithin byteOffset, copyStart, copyEnd
 
                             else
-                                ui8.set arg0, byteOffset
+                                i32.set arg0, byteOffset / bpel
     
                         else if arg0.byteLength
                             # new TypedArray( buffer, 36 );
@@ -2025,7 +2023,7 @@ do  self.init   = ->
                                     arg0.byteOffset + byteLength
                                 )
                             else
-                                ui8.set arg0, byteOffset                            
+                                f32.set arg0, byteOffset / bpel                            
 
                         else if Array.isArray
                             # new TypedArray( [ 2, 4, 1 ] )
@@ -2035,7 +2033,7 @@ do  self.init   = ->
                             byteLength  = length * bpel
                             byteOffset  = malloc byteLength, bpel
                             
-                            ui8.set arg0, byteOffset                            
+                            f32.set arg0, byteOffset / bpel                           
                             
                     else if argc is 3
                         # new TypedArray( buffer, 1221, 4 );
@@ -2096,7 +2094,7 @@ do  self.init   = ->
                                 ui8.copyWithin byteOffset, copyStart, copyEnd
 
                             else
-                                ui8.set arg0, byteOffset
+                                f32.set arg0, byteOffset / bpel
     
                         else if arg0.byteLength
                             # new TypedArray( buffer, 36 );
@@ -2179,7 +2177,7 @@ do  self.init   = ->
                                     arg0.byteOffset + byteLength
                                 )
                             else
-                                ui8.set arg0, byteOffset                            
+                                f64.set arg0, byteOffset / bpel                            
 
                         else if Array.isArray
                             # new TypedArray( [ 2, 4, 1 ] )
@@ -2189,7 +2187,7 @@ do  self.init   = ->
                             byteLength  = length * bpel
                             byteOffset  = malloc byteLength, bpel
                             
-                            ui8.set arg0, byteOffset                            
+                            f64.set arg0, byteOffset / bpel                            
                             
                     else if argc is 3
                         # new TypedArray( buffer, 1221, 4 );
@@ -2250,7 +2248,7 @@ do  self.init   = ->
                                 ui8.copyWithin byteOffset, copyStart, copyEnd
 
                             else
-                                ui8.set arg0, byteOffset
+                                f64.set arg0, byteOffset / bpel
     
                         else if arg0.byteLength
                             # new TypedArray( buffer, 36 );
@@ -2333,7 +2331,7 @@ do  self.init   = ->
                                     arg0.byteOffset + byteLength
                                 )
                             else
-                                ui8.set arg0, byteOffset                            
+                                i64.set arg0, byteOffset / bpel                            
 
                         else if Array.isArray
                             # new TypedArray( [ 2, 4, 1 ] )
@@ -2343,7 +2341,7 @@ do  self.init   = ->
                             byteLength  = length * bpel
                             byteOffset  = malloc byteLength, bpel
                             
-                            ui8.set arg0, byteOffset                            
+                            i64.set arg0, byteOffset / bpel                            
                             
                     else if argc is 3
                         # new TypedArray( buffer, 1221, 4 );
@@ -2404,7 +2402,7 @@ do  self.init   = ->
                                 ui8.copyWithin byteOffset, copyStart, copyEnd
 
                             else
-                                ui8.set arg0, byteOffset
+                                i64.set arg0, byteOffset / bpel
     
                         else if arg0.byteLength
                             # new TypedArray( buffer, 36 );
@@ -2487,7 +2485,7 @@ do  self.init   = ->
                                     arg0.byteOffset + byteLength
                                 )
                             else
-                                ui8.set arg0, byteOffset                            
+                                u64.set arg0, byteOffset / bpel                            
 
                         else if Array.isArray
                             # new TypedArray( [ 2, 4, 1 ] )
@@ -2497,7 +2495,7 @@ do  self.init   = ->
                             byteLength  = length * bpel
                             byteOffset  = malloc byteLength, bpel
                             
-                            ui8.set arg0, byteOffset                            
+                            u64.set arg0, byteOffset / bpel                            
                             
                     else if argc is 3
                         # new TypedArray( buffer, 1221, 4 );
@@ -2558,7 +2556,7 @@ do  self.init   = ->
                                 ui8.copyWithin byteOffset, copyStart, copyEnd
 
                             else
-                                ui8.set arg0, byteOffset
+                                u64.set arg0, byteOffset / bpel
     
                         else if arg0.byteLength
                             # new TypedArray( buffer, 36 );
@@ -2638,11 +2636,267 @@ do  self.init   = ->
                 resolvs.set canvas, ptri
                 return canvas
 
-        class WebGLBuffer       extends Float32Array
+        class Matrix4f          extends Float32Array
 
-            set : ( valueset, index = 0 ) ->
-                super( valueset, index )
-                @upload()
+        class UniformMatrix4fv  extends Matrix4f
+
+            @byteLength         : 24 * 4
+
+            INDEX_LEFT          : 16
+
+            INDEX_TOP           : 17
+            
+            INDEX_RIGHT         : 18
+
+            INDEX_BOTTOM        : 19
+            
+
+            INDEX_FOVY          : 21
+
+            INDEX_NEAR          : 22
+            
+            INDEX_FAR           : 23
+
+
+            INDEX_M11           :  0
+            INDEX_M12           :  1
+            INDEX_M13           :  2
+            INDEX_M14           :  3
+    
+            INDEX_M21           :  4
+            INDEX_M22           :  5
+            INDEX_M23           :  6
+            INDEX_M24           :  7
+    
+            INDEX_M31           :  8
+            INDEX_M32           :  9
+            INDEX_M33           : 10
+            INDEX_M34           : 11
+    
+            INDEX_M41           : 12
+            INDEX_M42           : 13
+            INDEX_M43           : 14
+            INDEX_M44           : 15            
+
+            Object.defineProperties UniformMatrix4fv::,
+
+                fovy :
+                    get : -> @[ @INDEX_FOVY ]
+                    set : (v) -> @[ @INDEX_FOVY ] = v
+                
+                near :
+                    get : -> @[ @INDEX_NEAR ]
+                    set : (v) -> @[ @INDEX_NEAR ] = v
+                
+                far :
+                    get : -> @[ @INDEX_FAR ]
+                    set : (v) -> @[ @INDEX_FAR ] = v
+
+                left :
+                    get : -> @[ @INDEX_LEFT ]
+                    set : (v) -> @[ @INDEX_LEFT ] = v
+        
+                top :
+                    get : -> @[ @INDEX_TOP ]
+                    set : (v) -> @[ @INDEX_TOP ] = v
+        
+                right :
+                    get : -> @[ @INDEX_RIGHT ]
+                    set : (v) -> @[ @INDEX_RIGHT ] = v
+        
+                bottom :
+                    get : -> @[ @INDEX_BOTTOM ]
+                    set : (v) -> @[ @INDEX_BOTTOM ] = v
+        
+                xTranslation :
+                    get : -> @[ @INDEX_M41 ]
+                    set : (v) -> @[ @INDEX_M41 ] = v
+
+                yTranslation :
+                    get : -> @[ @INDEX_M42 ]
+                    set : (v) -> @[ @INDEX_M42 ] = v
+
+                zTranslation :
+                    get : -> @[ @INDEX_M43 ]
+                    set : (v) -> @[ @INDEX_M43 ] = v
+
+                matrix : get : -> new self.Float32Array @subarray(0, 16)
+                width : get : -> @right - @left
+                height : get : -> @bottom - @top
+                aspect : get : -> @width / @height
+                location : get : -> @uniform.location
+                currentValue : get : -> @gl.getUniform @program, @location
+
+                m11 : get : -> @[ @INDEX_M11 ]
+                m21 : get : -> @[ @INDEX_M21 ]
+                m31 : get : -> @[ @INDEX_M31 ]
+                m41 : get : -> @[ @INDEX_M41 ]
+        
+                m12 : get : -> @[ @INDEX_M12 ]
+                m22 : get : -> @[ @INDEX_M22 ]
+                m32 : get : -> @[ @INDEX_M32 ]
+                m42 : get : -> @[ @INDEX_M42 ]
+        
+                m13 : get : -> @[ @INDEX_M13 ]
+                m23 : get : -> @[ @INDEX_M23 ]
+                m33 : get : -> @[ @INDEX_M33 ]
+                m43 : get : -> @[ @INDEX_M43 ]
+        
+                m14 : get : -> @[ @INDEX_M14 ]
+                m24 : get : -> @[ @INDEX_M24 ]
+                m34 : get : -> @[ @INDEX_M34 ]
+                m44 : get : -> @[ @INDEX_M44 ]
+        
+            @fromUniform : ( gl, program, uniform ) ->
+                mat4 = new this @byteLength / 4
+                
+                Object.defineProperties mat4,
+                    gl       : value : gl
+                    program  : value : program
+                    uniform  : value : uniform
+                    name     : value : uniform.name
+
+                mat4.set gl.getUniform program, uniform.location
+                mat4
+
+            translateSelf : ( tx = 0, ty = 0, tz = 0 ) ->
+                @multiplySelf(
+                    1,   0,  0,  0,
+                    0,   1,  0,  0,
+                    0,   0,  1,  0,
+                    tx, ty, tz,  1
+                )
+                
+            rotateSelf : ( rx = 0, ry = 0, rz = 0 ) ->
+                if  rx
+                    c = Math.cos rx
+                    s = Math.sin rx
+
+                    @multiplySelf(
+                         1,  0,  0,  0,
+                         0,  c, -s,  0,
+                         0,  s,  c,  0,
+                         0,  0,  0,  1,
+                    ) 
+
+                if  ry
+                    c = Math.cos ry
+                    s = Math.sin ry
+
+                    @multiplySelf(
+                         c,  0,  s,  0,
+                         0,  1,  0,  0,
+                        -s,  0,  c,  0,
+                         0,  0,  0,  1,
+                    ) 
+                
+                if  rz
+                    c = Math.cos rz
+                    s = Math.sin rz
+
+                    @multiplySelf(
+                         c, -s,  0,  0,
+                         s,  c,  0,  0,
+                         0,  0,  1,  0,
+                         0,  0,  0,  1,
+                    ) 
+
+                this
+                
+            scaleSelf : ( sx, sy, sz ) ->
+                sz ?= ( sy ?= ( sx ?= 1 ) )
+
+                @multiplySelf(
+                    sx, 0,  0,  0,
+                    0, sy,  0,  0,
+                    0,  0, sz,  0,
+                    0,  0,  0,  1,
+                )
+                
+            multiplySelf : ( n11, n21, n31, n41,  n12, n22, n32, n42,  n13, n23, n33, n43,  n14, n24, n34, n44 ) ->
+                
+                [   m11, m21, m31, m41,  
+                    m12, m22, m32, m42,  
+                    m13, m23, m33, m43,  
+                    m14, m24, m34, m44  ] = Object.values this
+                
+
+                #? Cij = mi1 * n1j  +  mi2 * n2j  +  mi3 * n3j  +  mi4 * n4j 
+                @set self.Float32Array.of(
+                    m11 * n11  +  m12 * n21  +  m13 * n31  +  m14 * n41,
+                    m21 * n11  +  m22 * n21  +  m23 * n31  +  m24 * n41,
+                    m31 * n11  +  m32 * n21  +  m33 * n31  +  m34 * n41,
+                    m41 * n11  +  m42 * n21  +  m43 * n31  +  m44 * n41,
+                    m11 * n12  +  m12 * n22  +  m13 * n32  +  m14 * n42,
+                    m21 * n12  +  m22 * n22  +  m23 * n32  +  m24 * n42,
+                    m31 * n12  +  m32 * n22  +  m33 * n32  +  m34 * n42,
+                    m41 * n12  +  m42 * n22  +  m43 * n32  +  m44 * n42,
+                    m11 * n13  +  m12 * n23  +  m13 * n33  +  m14 * n43,
+                    m21 * n13  +  m22 * n23  +  m23 * n33  +  m24 * n43,
+                    m31 * n13  +  m32 * n23  +  m33 * n33  +  m34 * n43,
+                    m41 * n13  +  m42 * n23  +  m43 * n33  +  m44 * n43,
+                    m11 * n14  +  m12 * n24  +  m13 * n34  +  m14 * n44,
+                    m21 * n14  +  m22 * n24  +  m23 * n34  +  m24 * n44,
+                    m31 * n14  +  m32 * n24  +  m33 * n34  +  m34 * n44,
+                    m41 * n14  +  m42 * n24  +  m43 * n34  +  m44 * n44,
+                )
+                
+
+            set : ( set ) ->
+                super set
+                @gl.uniformMatrix4fv @uniform.location, false, set
+                this
+                
+
+            perspective : ( zNear, zFar, right, bottom, left = 0, top = 0, yFov = 60 ) ->
+
+                [ @near, @far, @right, @bottom, @left, @top, @fovy ] =
+                    [ zNear, zFar, right, bottom, left, top, yFov ]
+
+                f = Math.tan Math.PI/2 - yFov/2
+                rangeInv = 1.0 / ( zNear - zFar )
+
+                @set self.Float32Array.of(
+                    f / @aspect,   0,                             0,    0,
+                    0,             f,                             0,    0,
+                    0,             0,     (zNear + zFar) * rangeInv,   -1,
+                    0,             0, (zNear * zFar) * rangeInv * 2,    0
+                )
+
+                @gl.viewport @left, @top, @width, @height
+
+                @translateSelf 0, 0, -1
+                @rotateSelf Math.PI, 0, 0
+                @scaleSelf 1, 1, 1
+                
+                this
+
+            orthographic : ( zNear, zFar, right, bottom, left = 0, top = 0 ) ->
+
+                [ @near, @far, @right, @bottom, @left, @top ] =
+                    [ zNear, zFar, right, bottom, left, top ]
+        
+                widthRatio  = 1 / ( @right - @left )
+                heightRatio = 1 / (   @top - @bottom )
+                depthRatio  = 1 / (   @far - @near )
+
+                sx =  2 *  widthRatio
+                sy =  2 * heightRatio
+                sz = -2 *  depthRatio
+        
+                tz = - (   @near + @far  ) *  depthRatio
+                tx = - (  @right + @left ) *  widthRatio
+                ty = - ( @bottom + @top  ) * heightRatio
+        
+                @set [
+                    sx,      0,       0,     tx,
+                    0,      sy,       0,     ty,
+                    0,       0,      sz,     tz,
+                    0,       0,       0,      1
+                ]
+
+                this
+
             
         class WebGLShader       extends Uint8Array
 
@@ -2720,23 +2974,31 @@ do  self.init   = ->
         class VertexShader      extends WebGLShader
             
             DEFAULT_SOURCE      : ``` `
-                attribute vec3 a_Position;
-                uniform mat4 u_ViewMatrix;
-                uniform float u_PointSize;
+                attribute vec3     a_Position;
+                attribute vec4     a_Color;
+                uniform   float    u_PointSize;
+                uniform   mat4     u_ViewMatrix;
+                varying   vec4     v_Color;
 
                 void main() {
-                    gl_Position = u_ViewMatrix * vec4(a_Position, 1.0);
-                    gl_PointSize = u_PointSize;
+                    gl_Position  =  u_ViewMatrix * vec4(a_Position, 1.0);
+                    gl_PointSize =  u_PointSize;
+                    v_Color      =  a_Color;
                 }
             ` ```
 
         class FragmentShader    extends WebGLShader
             
             DEFAULT_SOURCE      : ``` `
-                void main() { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }
+                precision highp    float;
+                varying   vec4     v_Color;
+
+                void main() {
+                    gl_FragColor = v_Color;
+                }
             ` ```
 
-        class OnscreenCanvas    extends Uint32Array
+        class OnscreenCanvas    extends Float32Array
     
             @byteLength         : 16 * 4    + 4096 * 4096    
 
@@ -2764,9 +3026,11 @@ do  self.init   = ->
 
             INDEX_POINTCOUNT    : 11
 
-            INDEX_GLBUFFER_PTRI : 12
+            INDEX_ATTRIB_LENGTH : 12
             
-            BYTEOFFSET_GLBUFFER : 16 * 4
+            OFFSET_READBUFFER   : 16 * 4
+            
+            OFFSET_DRAWBUFFER   : 1024 * 4
 
             ELEMENTS_PER_POINT  : 3
 
@@ -2809,9 +3073,10 @@ do  self.init   = ->
                     set : (v) -> @storeUint32 @INDEX_FSHADER, resolvs.get v
 
                 drawBuffer :
-                    get : ->
-                        @glBuffer
-                        new WebGLBuffer @buffer, @byteOffset + @BYTEOFFSET_GLBUFFER, @drawLength
+                    get : -> new self.Float32Array @buffer, @byteOffset + @OFFSET_DRAWBUFFER, @pointCount * @attribLength
+
+                readBuffer :
+                    get : -> new self.Float32Array @buffer, @byteOffset + @OFFSET_READBUFFER, @pointCount * 3
 
                 drawLength :
                     get : -> @loadUint32 @INDEX_DRAWLENGTH
@@ -2821,25 +3086,15 @@ do  self.init   = ->
                     get : -> @loadUint32 @INDEX_POINTCOUNT
                     set : (v) -> @storeUint32 @INDEX_POINTCOUNT, v
 
+                attribLength :
+                    get : -> @loadUint32 @INDEX_ATTRIB_LENGTH
+                    set : (v) -> @storeUint32 @INDEX_ATTRIB_LENGTH, v
+
                 width :
                     get : -> @gl.drawingBufferWidth
 
                 height :
                     get : -> @gl.drawingBufferHeight
-
-                glBuffer : 
-                    configurable: on
-                    get : ->
-                        unless buffer = @gl.getParameter( @gl.ELEMENT_ARRAY_BUFFER_BINDING )
-                            buffer = @gl.createBuffer()                        
-                        @gl.bindBuffer @gl.ARRAY_BUFFER, buffer
-                        @hasBinding = 1
-
-                        Object.defineProperty( this, "glBuffer", {
-                            value : buffer
-                            configurable: on
-                            writable: on
-                        }).glBuffer
 
                 activeAttributes :
                     get : ->
@@ -2850,12 +3105,12 @@ do  self.init   = ->
                             attrib = @gl.getActiveAttrib @program, i
                             attrib.isEnabled = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_ENABLED
                             attrib.glBuffer = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING
-                            attrib.vertexLocation = @gl.getAttribLocation @program, attrib.name
+                            attrib.location = @gl.getAttribLocation @program, attrib.name
                             attrib.vertexSize = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_SIZE
                             attrib.vertexType = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_TYPE
                             attrib.vertexKind = k.at v.indexOf attrib.vertexType 
-                            attrib.vertexIsNormalized = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
-                            attrib.vertexStride = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_STRIDE
+                            attrib.isNormalized = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
+                            attrib.stride = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_STRIDE
                             attrib.currentValue = @gl.getVertexAttrib i, @gl.CURRENT_VERTEX_ATTRIB
                             attrib.integer = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_INTEGER
                             attrib.divisor = @gl.getVertexAttrib i, @gl.VERTEX_ATTRIB_ARRAY_DIVISOR
@@ -2889,38 +3144,49 @@ do  self.init   = ->
                     .getExtension "WEBGL_lose_context"
                     .loseContext()
 
-            malloc              : ( pointCount = 0 ) ->
-                @pointCount = pointCount + @pointCount
-                length      = pointCount * @ELEMENTS_PER_POINT
-                @drawLength += length
-                byteLength  = length * @BYTES_PER_ELEMENT
-                offset      = @addUint32 @INDEX_DRAWBYTELENGTH, byteLength
-                byteOffset  = @byteOffset + @BYTEOFFSET_GLBUFFER + offset
-                array       = new WebGLBuffer @buffer, byteOffset, length
+            malloc              : ( pointCount ) ->
+                start = @addUint32 @INDEX_POINTCOUNT, pointCount
+                @drawBuffer.sub start * 3 * 4, pointCount * @attribLength
 
-                Object.defineProperties array,
-                    upload : value : =>
-                        @gl.bufferData @gl.ARRAY_BUFFER, @drawBuffer, @gl.STATIC_DRAW
-                        
-                        a_Position = @gl.getAttribLocation @program, "a_Position"
-                        @gl.vertexAttribPointer a_Position, 3, @gl.FLOAT, off, 0, 0
-                        @gl.enableVertexAttribArray a_Position
+            defineAttributes : ->
+                a_Position = @activeAttributes.find (a) => a.name is "a_Position"
+                a_Color = @activeAttributes.find (a) => a.name is "a_Color"
+                
+                for a in @activeAttributes then switch a.type
+                    when 35664, "FLOAT_VEC2" then @attribLength += 2
+                    when 35665, "FLOAT_VEC3" then @attribLength += 3
+                    when 35666, "FLOAT_VEC4" then @attribLength += 4
 
             defineUniforms : ->
                 for u in @activeUniforms then switch u.type
-                        when 35676, "FLOAT_MAT4" then ( ( program, uniform ) ->
-                            Object.defineProperty( this, uniform.name,
-                                get : @getUniform.bind this, program, uniform.location
-                                set : @uniformMatrix4fv.bind this, uniform.location, false
-                            )
-                        ).call( @gl, @program, u )
-                        
-                        when 5126, "FLOAT" then ( ( program, uniform ) ->
-                            Object.defineProperty( this, uniform.name,
-                                get : @getUniform.bind this, program, uniform.location
-                                set : @uniform1f.bind this, uniform.location
-                            )
-                        ).call( @gl, @program, u )
+                    when 35676, "FLOAT_MAT4" then ( ( program, uniform ) ->
+                        Object.defineProperty( this, uniform.name,
+                            get : UniformMatrix4fv.fromUniform.bind UniformMatrix4fv, this, program, uniform
+                            set : @uniformMatrix4fv.bind this, uniform.location, false
+                        )
+                    ).call( @gl, @program, u )
+                    
+                    when 5126, "FLOAT" then ( ( program, uniform ) ->
+                        Object.defineProperty( this, uniform.name,
+                            get : @getUniform.bind this, program, uniform.location
+                            set : @uniform1f.bind this, uniform.location
+                        )
+                    ).call( @gl, @program, u )
+
+            upload      : ->
+                a_Position = @activeAttributes.find (a) => a.name is "a_Position"
+                a_Color = @activeAttributes.find (a) => a.name is "a_Color"
+
+                @gl.bufferData @gl.ARRAY_BUFFER, @drawBuffer, @gl.STATIC_DRAW
+                
+                @gl.enableVertexAttribArray     a_Position.location
+                @gl.enableVertexAttribArray     a_Color.location
+
+                @gl.vertexAttribPointer         a_Position.location, 3, @gl.FLOAT, no, 28, 0
+                @gl.vertexAttribPointer         a_Color.location, 4, @gl.FLOAT, no, 28, 12
+                
+                for u in @activeUniforms
+                    @gl[u.name].upload?()
 
             reload      : ->
                 program = @gl.createProgram()
@@ -2929,11 +3195,23 @@ do  self.init   = ->
                 @fragmentShader = new FragmentShader()  if !@fragmentShader
                                 
                 @vertexShader   . attach @gl, program
-                @fragmentShader . attach @gl, program
+                @fragmentShader . attach @gl, program                
 
                 @gl.linkProgram program
                 @gl.useProgram program
 
+                @gl.enable                      @gl.BLEND
+                @gl.blendFunc                   @gl.SRC_COLOR, @gl.DST_COLOR
+                @gl.blendEquation               @gl.FUNC_ADD
+                
+                @gl.enable                      @gl.DEPTH_TEST
+                @gl.depthFunc                   @gl.LEQUAL        
+                @gl.depthMask                   no
+                @gl.clearDepth                  1
+        
+                @gl.enable                      @gl.CULL_FACE
+                @gl.cullFace                    @gl.BACK
+                @gl.frontFace                   @gl.CCW                
 
                 unless @gl.getProgramParameter program, @gl.LINK_STATUS
                     info = @gl.getProgramInfoLog program
@@ -2941,7 +3219,12 @@ do  self.init   = ->
 
                 @program = program
 
+                unless @hasBinding
+                    @glBuffer or= @gl.createBuffer()
+                    @hasBinding = @gl.bindBuffer( @gl.ARRAY_BUFFER, @glBuffer ) or 1 
+
                 @defineUniforms()
+                @defineAttributes()
 
                 this
                 
@@ -2992,7 +3275,10 @@ do  self.init   = ->
                     
                     if  @hasContext and @hasBinding
                         handler.call this, gl, @addFrame now 
+                        
                         @gl.drawArrays @gl.POINTS, 0, @pointCount
+                        @gl.drawArrays @gl.LINES, 0, @pointCount
+                        @gl.drawArrays @gl.TRIANGLES, 0, @pointCount
 
                     requestAnimationFrame commit
 

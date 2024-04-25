@@ -760,7 +760,7 @@ self.name = "window";
 
   }).call(this);
   regenerate = function() {
-    var FragmentShader, VertexShader, WebGLBuffer, WebGLShader;
+    var FragmentShader, Matrix4f, UniformMatrix4fv, VertexShader, WebGLShader;
     Object.defineProperties(TypedArray, {
       from: {
         value: function() {
@@ -820,7 +820,7 @@ self.name = "window";
       subarray: {
         //part of this
         value: function(begin = 0, end = this.length) {
-          return new this.constructor(this.buffer, this.byteOffset + this.BYTES_PER_ELEMENT * begin, end - begin);
+          return new this.constructor(this.buffer, this.byteOffset + (this.BYTES_PER_ELEMENT * begin), end - begin);
         }
       },
       
@@ -1251,7 +1251,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, arg0.byteOffset, arg0.byteOffset + byteLength);
               } else {
-                ui8.set(arg0, byteOffset);
+                si8.set(arg0, byteOffset);
               }
             } else if (Array.isArray) {
               // new TypedArray( [ 2, 4, 1 ] )
@@ -1260,7 +1260,7 @@ self.name = "window";
               length = arg0.length;
               byteLength = length * bpel;
               byteOffset = malloc(byteLength, bpel);
-              ui8.set(arg0, byteOffset);
+              si8.set(arg0, byteOffset);
             }
           } else if (argc === 3) {
             // new TypedArray( buffer, 1221, 4 );
@@ -1301,7 +1301,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, copyStart, copyEnd);
               } else {
-                ui8.set(arg0, byteOffset);
+                si8.set(arg0, byteOffset);
               }
             } else if (arg0.byteLength) {
               // new TypedArray( buffer, 36 );
@@ -1370,7 +1370,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, arg0.byteOffset, arg0.byteOffset + byteLength);
               } else {
-                ui8.set(arg0, byteOffset);
+                cu8.set(arg0, byteOffset);
               }
             } else if (Array.isArray) {
               // new TypedArray( [ 2, 4, 1 ] )
@@ -1379,7 +1379,7 @@ self.name = "window";
               length = arg0.length;
               byteLength = length * bpel;
               byteOffset = malloc(byteLength, bpel);
-              ui8.set(arg0, byteOffset);
+              cu8.set(arg0, byteOffset);
             }
           } else if (argc === 3) {
             // new TypedArray( buffer, 1221, 4 );
@@ -1420,7 +1420,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, copyStart, copyEnd);
               } else {
-                ui8.set(arg0, byteOffset);
+                cu8.set(arg0, byteOffset);
               }
             } else if (arg0.byteLength) {
               // new TypedArray( buffer, 36 );
@@ -1489,7 +1489,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, arg0.byteOffset, arg0.byteOffset + byteLength);
               } else {
-                ui8.set(arg0, byteOffset);
+                u16.set(arg0, byteOffset / bpel);
               }
             } else if (Array.isArray) {
               // new TypedArray( [ 2, 4, 1 ] )
@@ -1498,7 +1498,7 @@ self.name = "window";
               length = arg0.length;
               byteLength = length * bpel;
               byteOffset = malloc(byteLength, bpel);
-              ui8.set(arg0, byteOffset);
+              u16.set(arg0, byteOffset / bpel);
             }
           } else if (argc === 3) {
             // new TypedArray( buffer, 1221, 4 );
@@ -1539,7 +1539,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, copyStart, copyEnd);
               } else {
-                ui8.set(arg0, byteOffset);
+                u16.set(arg0, byteOffset / bpel);
               }
             } else if (arg0.byteLength) {
               // new TypedArray( buffer, 36 );
@@ -1608,7 +1608,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, arg0.byteOffset, arg0.byteOffset + byteLength);
               } else {
-                ui8.set(arg0, byteOffset);
+                i16.set(arg0, byteOffset / bpel);
               }
             } else if (Array.isArray) {
               // new TypedArray( [ 2, 4, 1 ] )
@@ -1617,7 +1617,7 @@ self.name = "window";
               length = arg0.length;
               byteLength = length * bpel;
               byteOffset = malloc(byteLength, bpel);
-              ui8.set(arg0, byteOffset);
+              i16.set(arg0, byteOffset / bpel);
             }
           } else if (argc === 3) {
             // new TypedArray( buffer, 1221, 4 );
@@ -1658,7 +1658,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, copyStart, copyEnd);
               } else {
-                ui8.set(arg0, byteOffset);
+                i16.set(arg0, byteOffset / bpel);
               }
             } else if (arg0.byteLength) {
               // new TypedArray( buffer, 36 );
@@ -1727,7 +1727,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, arg0.byteOffset, arg0.byteOffset + byteLength);
               } else {
-                ui8.set(arg0, byteOffset);
+                u32.set(arg0, byteOffset / bpel);
               }
             } else if (Array.isArray) {
               // new TypedArray( [ 2, 4, 1 ] )
@@ -1736,7 +1736,7 @@ self.name = "window";
               length = arg0.length;
               byteLength = length * bpel;
               byteOffset = malloc(byteLength, bpel);
-              ui8.set(arg0, byteOffset);
+              u32.set(arg0, byteOffset / bpel);
             }
           } else if (argc === 3) {
             // new TypedArray( buffer, 1221, 4 );
@@ -1777,7 +1777,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, copyStart, copyEnd);
               } else {
-                ui8.set(arg0, byteOffset);
+                u32.set(arg0, byteOffset / bpel);
               }
             } else if (arg0.byteLength) {
               // new TypedArray( buffer, 36 );
@@ -1846,7 +1846,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, arg0.byteOffset, arg0.byteOffset + byteLength);
               } else {
-                ui8.set(arg0, byteOffset);
+                i32.set(arg0, byteOffset / bpel);
               }
             } else if (Array.isArray) {
               // new TypedArray( [ 2, 4, 1 ] )
@@ -1855,7 +1855,7 @@ self.name = "window";
               length = arg0.length;
               byteLength = length * bpel;
               byteOffset = malloc(byteLength, bpel);
-              ui8.set(arg0, byteOffset);
+              i32.set(arg0, byteOffset / bpel);
             }
           } else if (argc === 3) {
             // new TypedArray( buffer, 1221, 4 );
@@ -1896,7 +1896,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, copyStart, copyEnd);
               } else {
-                ui8.set(arg0, byteOffset);
+                i32.set(arg0, byteOffset / bpel);
               }
             } else if (arg0.byteLength) {
               // new TypedArray( buffer, 36 );
@@ -1965,7 +1965,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, arg0.byteOffset, arg0.byteOffset + byteLength);
               } else {
-                ui8.set(arg0, byteOffset);
+                f32.set(arg0, byteOffset / bpel);
               }
             } else if (Array.isArray) {
               // new TypedArray( [ 2, 4, 1 ] )
@@ -1974,7 +1974,7 @@ self.name = "window";
               length = arg0.length;
               byteLength = length * bpel;
               byteOffset = malloc(byteLength, bpel);
-              ui8.set(arg0, byteOffset);
+              f32.set(arg0, byteOffset / bpel);
             }
           } else if (argc === 3) {
             // new TypedArray( buffer, 1221, 4 );
@@ -2015,7 +2015,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, copyStart, copyEnd);
               } else {
-                ui8.set(arg0, byteOffset);
+                f32.set(arg0, byteOffset / bpel);
               }
             } else if (arg0.byteLength) {
               // new TypedArray( buffer, 36 );
@@ -2084,7 +2084,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, arg0.byteOffset, arg0.byteOffset + byteLength);
               } else {
-                ui8.set(arg0, byteOffset);
+                f64.set(arg0, byteOffset / bpel);
               }
             } else if (Array.isArray) {
               // new TypedArray( [ 2, 4, 1 ] )
@@ -2093,7 +2093,7 @@ self.name = "window";
               length = arg0.length;
               byteLength = length * bpel;
               byteOffset = malloc(byteLength, bpel);
-              ui8.set(arg0, byteOffset);
+              f64.set(arg0, byteOffset / bpel);
             }
           } else if (argc === 3) {
             // new TypedArray( buffer, 1221, 4 );
@@ -2134,7 +2134,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, copyStart, copyEnd);
               } else {
-                ui8.set(arg0, byteOffset);
+                f64.set(arg0, byteOffset / bpel);
               }
             } else if (arg0.byteLength) {
               // new TypedArray( buffer, 36 );
@@ -2203,7 +2203,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, arg0.byteOffset, arg0.byteOffset + byteLength);
               } else {
-                ui8.set(arg0, byteOffset);
+                i64.set(arg0, byteOffset / bpel);
               }
             } else if (Array.isArray) {
               // new TypedArray( [ 2, 4, 1 ] )
@@ -2212,7 +2212,7 @@ self.name = "window";
               length = arg0.length;
               byteLength = length * bpel;
               byteOffset = malloc(byteLength, bpel);
-              ui8.set(arg0, byteOffset);
+              i64.set(arg0, byteOffset / bpel);
             }
           } else if (argc === 3) {
             // new TypedArray( buffer, 1221, 4 );
@@ -2253,7 +2253,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, copyStart, copyEnd);
               } else {
-                ui8.set(arg0, byteOffset);
+                i64.set(arg0, byteOffset / bpel);
               }
             } else if (arg0.byteLength) {
               // new TypedArray( buffer, 36 );
@@ -2322,7 +2322,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, arg0.byteOffset, arg0.byteOffset + byteLength);
               } else {
-                ui8.set(arg0, byteOffset);
+                u64.set(arg0, byteOffset / bpel);
               }
             } else if (Array.isArray) {
               // new TypedArray( [ 2, 4, 1 ] )
@@ -2331,7 +2331,7 @@ self.name = "window";
               length = arg0.length;
               byteLength = length * bpel;
               byteOffset = malloc(byteLength, bpel);
-              ui8.set(arg0, byteOffset);
+              u64.set(arg0, byteOffset / bpel);
             }
           } else if (argc === 3) {
             // new TypedArray( buffer, 1221, 4 );
@@ -2372,7 +2372,7 @@ self.name = "window";
               if (arg0.buffer === objbuf) {
                 ui8.copyWithin(byteOffset, copyStart, copyEnd);
               } else {
-                ui8.set(arg0, byteOffset);
+                u64.set(arg0, byteOffset / bpel);
               }
             } else if (arg0.byteLength) {
               // new TypedArray( buffer, 36 );
@@ -2461,13 +2461,350 @@ self.name = "window";
       }
 
     };
-    WebGLBuffer = class WebGLBuffer extends Float32Array {
-      set(valueset, index = 0) {
-        super.set(valueset, index);
-        return this.upload();
-      }
+    Matrix4f = class Matrix4f extends Float32Array {};
+    UniformMatrix4fv = (function() {
+      class UniformMatrix4fv extends Matrix4f {
+        static fromUniform(gl, program, uniform) {
+          var mat4;
+          mat4 = new this(this.byteLength / 4);
+          Object.defineProperties(mat4, {
+            gl: {
+              value: gl
+            },
+            program: {
+              value: program
+            },
+            uniform: {
+              value: uniform
+            },
+            name: {
+              value: uniform.name
+            }
+          });
+          mat4.set(gl.getUniform(program, uniform.location));
+          return mat4;
+        }
 
-    };
+        translateSelf(tx = 0, ty = 0, tz = 0) {
+          return this.multiplySelf(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, tx, ty, tz, 1);
+        }
+
+        rotateSelf(rx = 0, ry = 0, rz = 0) {
+          var c, s;
+          if (rx) {
+            c = Math.cos(rx);
+            s = Math.sin(rx);
+            this.multiplySelf(1, 0, 0, 0, 0, c, -s, 0, 0, s, c, 0, 0, 0, 0, 1);
+          }
+          if (ry) {
+            c = Math.cos(ry);
+            s = Math.sin(ry);
+            this.multiplySelf(c, 0, s, 0, 0, 1, 0, 0, -s, 0, c, 0, 0, 0, 0, 1);
+          }
+          if (rz) {
+            c = Math.cos(rz);
+            s = Math.sin(rz);
+            this.multiplySelf(c, -s, 0, 0, s, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+          }
+          return this;
+        }
+
+        scaleSelf(sx, sy, sz) {
+          if (sz == null) {
+            sz = (sy != null ? sy : sy = (sx != null ? sx : sx = 1));
+          }
+          return this.multiplySelf(sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, sz, 0, 0, 0, 0, 1);
+        }
+
+        multiplySelf(n11, n21, n31, n41, n12, n22, n32, n42, n13, n23, n33, n43, n14, n24, n34, n44) {
+          var m11, m12, m13, m14, m21, m22, m23, m24, m31, m32, m33, m34, m41, m42, m43, m44;
+          [m11, m21, m31, m41, m12, m22, m32, m42, m13, m23, m33, m43, m14, m24, m34, m44] = Object.values(this);
+          
+          //? Cij = mi1 * n1j  +  mi2 * n2j  +  mi3 * n3j  +  mi4 * n4j 
+          return this.set(self.Float32Array.of(m11 * n11 + m12 * n21 + m13 * n31 + m14 * n41, m21 * n11 + m22 * n21 + m23 * n31 + m24 * n41, m31 * n11 + m32 * n21 + m33 * n31 + m34 * n41, m41 * n11 + m42 * n21 + m43 * n31 + m44 * n41, m11 * n12 + m12 * n22 + m13 * n32 + m14 * n42, m21 * n12 + m22 * n22 + m23 * n32 + m24 * n42, m31 * n12 + m32 * n22 + m33 * n32 + m34 * n42, m41 * n12 + m42 * n22 + m43 * n32 + m44 * n42, m11 * n13 + m12 * n23 + m13 * n33 + m14 * n43, m21 * n13 + m22 * n23 + m23 * n33 + m24 * n43, m31 * n13 + m32 * n23 + m33 * n33 + m34 * n43, m41 * n13 + m42 * n23 + m43 * n33 + m44 * n43, m11 * n14 + m12 * n24 + m13 * n34 + m14 * n44, m21 * n14 + m22 * n24 + m23 * n34 + m24 * n44, m31 * n14 + m32 * n24 + m33 * n34 + m34 * n44, m41 * n14 + m42 * n24 + m43 * n34 + m44 * n44));
+        }
+
+        set(set) {
+          super.set(set);
+          this.gl.uniformMatrix4fv(this.uniform.location, false, set);
+          return this;
+        }
+
+        perspective(zNear, zFar, right, bottom, left = 0, top = 0, yFov = 60) {
+          var f, rangeInv;
+          [this.near, this.far, this.right, this.bottom, this.left, this.top, this.fovy] = [zNear, zFar, right, bottom, left, top, yFov];
+          f = Math.tan(Math.PI / 2 - yFov / 2);
+          rangeInv = 1.0 / (zNear - zFar);
+          this.set(self.Float32Array.of(f / this.aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (zNear + zFar) * rangeInv, -1, 0, 0, (zNear * zFar) * rangeInv * 2, 0));
+          this.gl.viewport(this.left, this.top, this.width, this.height);
+          this.translateSelf(0, 0, -1);
+          this.rotateSelf(Math.PI, 0, 0);
+          this.scaleSelf(1, 1, 1);
+          return this;
+        }
+
+        orthographic(zNear, zFar, right, bottom, left = 0, top = 0) {
+          var depthRatio, heightRatio, sx, sy, sz, tx, ty, tz, widthRatio;
+          [this.near, this.far, this.right, this.bottom, this.left, this.top] = [zNear, zFar, right, bottom, left, top];
+          widthRatio = 1 / (this.right - this.left);
+          heightRatio = 1 / (this.top - this.bottom);
+          depthRatio = 1 / (this.far - this.near);
+          sx = 2 * widthRatio;
+          sy = 2 * heightRatio;
+          sz = -2 * depthRatio;
+          tz = -(this.near + this.far) * depthRatio;
+          tx = -(this.right + this.left) * widthRatio;
+          ty = -(this.bottom + this.top) * heightRatio;
+          this.set([sx, 0, 0, tx, 0, sy, 0, ty, 0, 0, sz, tz, 0, 0, 0, 1]);
+          return this;
+        }
+
+      };
+
+      UniformMatrix4fv.byteLength = 24 * 4;
+
+      UniformMatrix4fv.prototype.INDEX_LEFT = 16;
+
+      UniformMatrix4fv.prototype.INDEX_TOP = 17;
+
+      UniformMatrix4fv.prototype.INDEX_RIGHT = 18;
+
+      UniformMatrix4fv.prototype.INDEX_BOTTOM = 19;
+
+      UniformMatrix4fv.prototype.INDEX_FOVY = 21;
+
+      UniformMatrix4fv.prototype.INDEX_NEAR = 22;
+
+      UniformMatrix4fv.prototype.INDEX_FAR = 23;
+
+      UniformMatrix4fv.prototype.INDEX_M11 = 0;
+
+      UniformMatrix4fv.prototype.INDEX_M12 = 1;
+
+      UniformMatrix4fv.prototype.INDEX_M13 = 2;
+
+      UniformMatrix4fv.prototype.INDEX_M14 = 3;
+
+      UniformMatrix4fv.prototype.INDEX_M21 = 4;
+
+      UniformMatrix4fv.prototype.INDEX_M22 = 5;
+
+      UniformMatrix4fv.prototype.INDEX_M23 = 6;
+
+      UniformMatrix4fv.prototype.INDEX_M24 = 7;
+
+      UniformMatrix4fv.prototype.INDEX_M31 = 8;
+
+      UniformMatrix4fv.prototype.INDEX_M32 = 9;
+
+      UniformMatrix4fv.prototype.INDEX_M33 = 10;
+
+      UniformMatrix4fv.prototype.INDEX_M34 = 11;
+
+      UniformMatrix4fv.prototype.INDEX_M41 = 12;
+
+      UniformMatrix4fv.prototype.INDEX_M42 = 13;
+
+      UniformMatrix4fv.prototype.INDEX_M43 = 14;
+
+      UniformMatrix4fv.prototype.INDEX_M44 = 15;
+
+      Object.defineProperties(UniformMatrix4fv.prototype, {
+        fovy: {
+          get: function() {
+            return this[this.INDEX_FOVY];
+          },
+          set: function(v) {
+            return this[this.INDEX_FOVY] = v;
+          }
+        },
+        near: {
+          get: function() {
+            return this[this.INDEX_NEAR];
+          },
+          set: function(v) {
+            return this[this.INDEX_NEAR] = v;
+          }
+        },
+        far: {
+          get: function() {
+            return this[this.INDEX_FAR];
+          },
+          set: function(v) {
+            return this[this.INDEX_FAR] = v;
+          }
+        },
+        left: {
+          get: function() {
+            return this[this.INDEX_LEFT];
+          },
+          set: function(v) {
+            return this[this.INDEX_LEFT] = v;
+          }
+        },
+        top: {
+          get: function() {
+            return this[this.INDEX_TOP];
+          },
+          set: function(v) {
+            return this[this.INDEX_TOP] = v;
+          }
+        },
+        right: {
+          get: function() {
+            return this[this.INDEX_RIGHT];
+          },
+          set: function(v) {
+            return this[this.INDEX_RIGHT] = v;
+          }
+        },
+        bottom: {
+          get: function() {
+            return this[this.INDEX_BOTTOM];
+          },
+          set: function(v) {
+            return this[this.INDEX_BOTTOM] = v;
+          }
+        },
+        xTranslation: {
+          get: function() {
+            return this[this.INDEX_M41];
+          },
+          set: function(v) {
+            return this[this.INDEX_M41] = v;
+          }
+        },
+        yTranslation: {
+          get: function() {
+            return this[this.INDEX_M42];
+          },
+          set: function(v) {
+            return this[this.INDEX_M42] = v;
+          }
+        },
+        zTranslation: {
+          get: function() {
+            return this[this.INDEX_M43];
+          },
+          set: function(v) {
+            return this[this.INDEX_M43] = v;
+          }
+        },
+        matrix: {
+          get: function() {
+            return new self.Float32Array(this.subarray(0, 16));
+          }
+        },
+        width: {
+          get: function() {
+            return this.right - this.left;
+          }
+        },
+        height: {
+          get: function() {
+            return this.bottom - this.top;
+          }
+        },
+        aspect: {
+          get: function() {
+            return this.width / this.height;
+          }
+        },
+        location: {
+          get: function() {
+            return this.uniform.location;
+          }
+        },
+        currentValue: {
+          get: function() {
+            return this.gl.getUniform(this.program, this.location);
+          }
+        },
+        m11: {
+          get: function() {
+            return this[this.INDEX_M11];
+          }
+        },
+        m21: {
+          get: function() {
+            return this[this.INDEX_M21];
+          }
+        },
+        m31: {
+          get: function() {
+            return this[this.INDEX_M31];
+          }
+        },
+        m41: {
+          get: function() {
+            return this[this.INDEX_M41];
+          }
+        },
+        m12: {
+          get: function() {
+            return this[this.INDEX_M12];
+          }
+        },
+        m22: {
+          get: function() {
+            return this[this.INDEX_M22];
+          }
+        },
+        m32: {
+          get: function() {
+            return this[this.INDEX_M32];
+          }
+        },
+        m42: {
+          get: function() {
+            return this[this.INDEX_M42];
+          }
+        },
+        m13: {
+          get: function() {
+            return this[this.INDEX_M13];
+          }
+        },
+        m23: {
+          get: function() {
+            return this[this.INDEX_M23];
+          }
+        },
+        m33: {
+          get: function() {
+            return this[this.INDEX_M33];
+          }
+        },
+        m43: {
+          get: function() {
+            return this[this.INDEX_M43];
+          }
+        },
+        m14: {
+          get: function() {
+            return this[this.INDEX_M14];
+          }
+        },
+        m24: {
+          get: function() {
+            return this[this.INDEX_M24];
+          }
+        },
+        m34: {
+          get: function() {
+            return this[this.INDEX_M34];
+          }
+        },
+        m44: {
+          get: function() {
+            return this[this.INDEX_M44];
+          }
+        }
+      });
+
+      return UniformMatrix4fv;
+
+    }).call(this);
     WebGLShader = (function() {
       class WebGLShader extends Uint8Array {
         constructor() {
@@ -2563,13 +2900,16 @@ self.name = "window";
       class VertexShader extends WebGLShader {};
 
       VertexShader.prototype.DEFAULT_SOURCE =  `
-                attribute vec3 a_Position;
-                uniform mat4 u_ViewMatrix;
-                uniform float u_PointSize;
+                attribute vec3     a_Position;
+                attribute vec4     a_Color;
+                uniform   float    u_PointSize;
+                uniform   mat4     u_ViewMatrix;
+                varying   vec4     v_Color;
 
                 void main() {
-                    gl_Position = u_ViewMatrix * vec4(a_Position, 1.0);
-                    gl_PointSize = u_PointSize;
+                    gl_Position  =  u_ViewMatrix * vec4(a_Position, 1.0);
+                    gl_PointSize =  u_PointSize;
+                    v_Color      =  a_Color;
                 }
             ` ;
 
@@ -2580,14 +2920,19 @@ self.name = "window";
       class FragmentShader extends WebGLShader {};
 
       FragmentShader.prototype.DEFAULT_SOURCE =  `
-                void main() { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }
+                precision highp    float;
+                varying   vec4     v_Color;
+
+                void main() {
+                    gl_FragColor = v_Color;
+                }
             ` ;
 
       return FragmentShader;
 
     }).call(this);
     return OnscreenCanvas = (function() {
-      class OnscreenCanvas extends Uint32Array {
+      class OnscreenCanvas extends Float32Array {
         addFrame(timeStamp) {
           this.delta = (timeStamp - this.timeStamp) * 1e-3;
           this.timeStamp = timeStamp;
@@ -2600,26 +2945,42 @@ self.name = "window";
           return this.gl.getExtension("WEBGL_lose_context").loseContext();
         }
 
-        malloc(pointCount = 0) {
-          var array, byteLength, byteOffset, length, offset;
-          this.pointCount = pointCount + this.pointCount;
-          length = pointCount * this.ELEMENTS_PER_POINT;
-          this.drawLength += length;
-          byteLength = length * this.BYTES_PER_ELEMENT;
-          offset = this.addUint32(this.INDEX_DRAWBYTELENGTH, byteLength);
-          byteOffset = this.byteOffset + this.BYTEOFFSET_GLBUFFER + offset;
-          array = new WebGLBuffer(this.buffer, byteOffset, length);
-          return Object.defineProperties(array, {
-            upload: {
-              value: () => {
-                var a_Position;
-                this.gl.bufferData(this.gl.ARRAY_BUFFER, this.drawBuffer, this.gl.STATIC_DRAW);
-                a_Position = this.gl.getAttribLocation(this.program, "a_Position");
-                this.gl.vertexAttribPointer(a_Position, 3, this.gl.FLOAT, false, 0, 0);
-                return this.gl.enableVertexAttribArray(a_Position);
-              }
-            }
+        malloc(pointCount) {
+          var start;
+          start = this.addUint32(this.INDEX_POINTCOUNT, pointCount);
+          return this.drawBuffer.sub(start * 3 * 4, pointCount * this.attribLength);
+        }
+
+        defineAttributes() {
+          var a, a_Color, a_Position, j, len, ref, results;
+          a_Position = this.activeAttributes.find((a) => {
+            return a.name === "a_Position";
           });
+          a_Color = this.activeAttributes.find((a) => {
+            return a.name === "a_Color";
+          });
+          ref = this.activeAttributes;
+          results = [];
+          for (j = 0, len = ref.length; j < len; j++) {
+            a = ref[j];
+            switch (a.type) {
+              case 35664:
+              case "FLOAT_VEC2":
+                results.push(this.attribLength += 2);
+                break;
+              case 35665:
+              case "FLOAT_VEC3":
+                results.push(this.attribLength += 3);
+                break;
+              case 35666:
+              case "FLOAT_VEC4":
+                results.push(this.attribLength += 4);
+                break;
+              default:
+                results.push(void 0);
+            }
+          }
+          return results;
         }
 
         defineUniforms() {
@@ -2633,7 +2994,7 @@ self.name = "window";
               case "FLOAT_MAT4":
                 results.push((function(program, uniform) {
                   return Object.defineProperty(this, uniform.name, {
-                    get: this.getUniform.bind(this, program, uniform.location),
+                    get: UniformMatrix4fv.fromUniform.bind(UniformMatrix4fv, this, program, uniform),
                     set: this.uniformMatrix4fv.bind(this, uniform.location, false)
                   });
                 }).call(this.gl, this.program, u));
@@ -2654,6 +3015,28 @@ self.name = "window";
           return results;
         }
 
+        upload() {
+          var a_Color, a_Position, base, j, len, ref, results, u;
+          a_Position = this.activeAttributes.find((a) => {
+            return a.name === "a_Position";
+          });
+          a_Color = this.activeAttributes.find((a) => {
+            return a.name === "a_Color";
+          });
+          this.gl.bufferData(this.gl.ARRAY_BUFFER, this.drawBuffer, this.gl.STATIC_DRAW);
+          this.gl.enableVertexAttribArray(a_Position.location);
+          this.gl.enableVertexAttribArray(a_Color.location);
+          this.gl.vertexAttribPointer(a_Position.location, 3, this.gl.FLOAT, false, 28, 0);
+          this.gl.vertexAttribPointer(a_Color.location, 4, this.gl.FLOAT, false, 28, 12);
+          ref = this.activeUniforms;
+          results = [];
+          for (j = 0, len = ref.length; j < len; j++) {
+            u = ref[j];
+            results.push(typeof (base = this.gl[u.name]).upload === "function" ? base.upload() : void 0);
+          }
+          return results;
+        }
+
         reload() {
           var info, program;
           program = this.gl.createProgram();
@@ -2667,12 +3050,27 @@ self.name = "window";
           this.fragmentShader.attach(this.gl, program);
           this.gl.linkProgram(program);
           this.gl.useProgram(program);
+          this.gl.enable(this.gl.BLEND);
+          this.gl.blendFunc(this.gl.SRC_COLOR, this.gl.DST_COLOR);
+          this.gl.blendEquation(this.gl.FUNC_ADD);
+          this.gl.enable(this.gl.DEPTH_TEST);
+          this.gl.depthFunc(this.gl.LEQUAL);
+          this.gl.depthMask(false);
+          this.gl.clearDepth(1);
+          this.gl.enable(this.gl.CULL_FACE);
+          this.gl.cullFace(this.gl.BACK);
+          this.gl.frontFace(this.gl.CCW);
           if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
             info = this.gl.getProgramInfoLog(program);
             throw `Could not compile WebGL program. \n${info}`;
           }
           this.program = program;
+          if (!this.hasBinding) {
+            this.glBuffer || (this.glBuffer = this.gl.createBuffer());
+            this.hasBinding = this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer) || 1;
+          }
           this.defineUniforms();
+          this.defineAttributes();
           return this;
         }
 
@@ -2731,6 +3129,8 @@ self.name = "window";
               if (this.hasContext && this.hasBinding) {
                 handler.call(this, gl, this.addFrame(now));
                 this.gl.drawArrays(this.gl.POINTS, 0, this.pointCount);
+                this.gl.drawArrays(this.gl.LINES, 0, this.pointCount);
+                this.gl.drawArrays(this.gl.TRIANGLES, 0, this.pointCount);
               }
               return requestAnimationFrame(commit);
             })(0);
@@ -2789,9 +3189,11 @@ self.name = "window";
 
       OnscreenCanvas.prototype.INDEX_POINTCOUNT = 11;
 
-      OnscreenCanvas.prototype.INDEX_GLBUFFER_PTRI = 12;
+      OnscreenCanvas.prototype.INDEX_ATTRIB_LENGTH = 12;
 
-      OnscreenCanvas.prototype.BYTEOFFSET_GLBUFFER = 16 * 4;
+      OnscreenCanvas.prototype.OFFSET_READBUFFER = 16 * 4;
+
+      OnscreenCanvas.prototype.OFFSET_DRAWBUFFER = 1024 * 4;
 
       OnscreenCanvas.prototype.ELEMENTS_PER_POINT = 3;
 
@@ -2870,8 +3272,12 @@ self.name = "window";
         },
         drawBuffer: {
           get: function() {
-            this.glBuffer;
-            return new WebGLBuffer(this.buffer, this.byteOffset + this.BYTEOFFSET_GLBUFFER, this.drawLength);
+            return new self.Float32Array(this.buffer, this.byteOffset + this.OFFSET_DRAWBUFFER, this.pointCount * this.attribLength);
+          }
+        },
+        readBuffer: {
+          get: function() {
+            return new self.Float32Array(this.buffer, this.byteOffset + this.OFFSET_READBUFFER, this.pointCount * 3);
           }
         },
         drawLength: {
@@ -2890,6 +3296,14 @@ self.name = "window";
             return this.storeUint32(this.INDEX_POINTCOUNT, v);
           }
         },
+        attribLength: {
+          get: function() {
+            return this.loadUint32(this.INDEX_ATTRIB_LENGTH);
+          },
+          set: function(v) {
+            return this.storeUint32(this.INDEX_ATTRIB_LENGTH, v);
+          }
+        },
         width: {
           get: function() {
             return this.gl.drawingBufferWidth;
@@ -2898,22 +3312,6 @@ self.name = "window";
         height: {
           get: function() {
             return this.gl.drawingBufferHeight;
-          }
-        },
-        glBuffer: {
-          configurable: true,
-          get: function() {
-            var buffer;
-            if (!(buffer = this.gl.getParameter(this.gl.ELEMENT_ARRAY_BUFFER_BINDING))) {
-              buffer = this.gl.createBuffer();
-            }
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
-            this.hasBinding = 1;
-            return Object.defineProperty(this, "glBuffer", {
-              value: buffer,
-              configurable: true,
-              writable: true
-            }).glBuffer;
           }
         },
         activeAttributes: {
@@ -2927,12 +3325,12 @@ self.name = "window";
               attrib = this.gl.getActiveAttrib(this.program, i);
               attrib.isEnabled = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_ENABLED);
               attrib.glBuffer = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
-              attrib.vertexLocation = this.gl.getAttribLocation(this.program, attrib.name);
+              attrib.location = this.gl.getAttribLocation(this.program, attrib.name);
               attrib.vertexSize = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_SIZE);
               attrib.vertexType = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_TYPE);
               attrib.vertexKind = k.at(v.indexOf(attrib.vertexType));
-              attrib.vertexIsNormalized = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_NORMALIZED);
-              attrib.vertexStride = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_STRIDE);
+              attrib.isNormalized = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_NORMALIZED);
+              attrib.stride = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_STRIDE);
               attrib.currentValue = this.gl.getVertexAttrib(i, this.gl.CURRENT_VERTEX_ATTRIB);
               attrib.integer = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_INTEGER);
               attrib.divisor = this.gl.getVertexAttrib(i, this.gl.VERTEX_ATTRIB_ARRAY_DIVISOR);

@@ -34,9 +34,18 @@
 
     const onscreen = new OnscreenCanvas()
     let red = 0.1, green = 0.3 , blue= 0.9, sign = 1, factor = 0.002;
-    let valueset = new Float32Array([
-                // left column front
-                 0,   0,  0,
+   
+    
+    onscreen.oncontextrestored = function ( gl ){
+
+        gl.u_PointSize = 20;
+        gl.u_ViewMatrix.perspective(
+            1e-2, 1e4, this.width, this.height, 0, 0, 90
+        );
+
+
+        const shape = new Float32Array([
+                0,   0,  0,
                  0, 150,  0,
                 30,   0,  0,
                  0, 150,  0,
@@ -162,60 +171,22 @@
                 0,   0,   0,
                 0, 150,  30,
                 0, 150,   0,
-            ]);
-
-
-    onscreen.oncontextrestored = function ( gl ){
-
-        log(gl)
-
-        gl.viewport( 0, 0, this.width, this.height )
-        ui.viewport( 0, 0, this.width, this.height )
-            .perspective( 90, 1e-2, 1e3 )
-            .setMovementsPerSecond( 1, 1, 1 )
-            .setRotationsPerSecond( .1, .1, .1 )
-
+        ]);
+        
+        const triangle = this.malloc( shape.length/3 );
         
 
-        const triangle = this.malloc( valueset.length / 3 );
+        for (let i=0; i<shape.length; i+= 3) {
+            triangle.set( shape.subarray(i, i+3), (i/3) * this.attribLength )
+        }
 
-        triangle.set( valueset )
+        this.upload()
 
-
-
-        ui.matrix = ui.matrix.translateSelf(
-            0, 0, .1
-        )
-
-
-
-        gl.u_ViewMatrix = ui.matrix;
-        gl.u_PointSize = 10;
-
-        setTimeout(function (){
-
-            gl.u_PointSize = 10;
-            warn({ drawBuffer: ui.matrix })
-
-        }, 3000)
+        warn( this );
 
     };
 
-    const applyMovements = function ( delta ) {
-
-        if ( ui.moveForth ) {
-            ui.matrix.translateSelf(
-                ui.moveForth * delta  * ui.xMovementPerSecond
-            )
-        }
-    }
-    
     onscreen.render(function (gl, delta){
-
-        if ( ui.hasEvent ) {
-            applyMovements( delta )
-            gl.u_ViewMatrix = ui.matrix
-        }
 
         red += (factor * sign);
         green += (factor * sign);
@@ -231,10 +202,7 @@
 
     });
 
-
     /*
-
-
         function numberWithCommas(x) {
             var parts = x.toString().split(".");
             parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -265,9 +233,6 @@
         });
     
         log({ offscreen, gl });
-
-
-
     
         let a = new Uint8Array(9999999999);
         console.warn( name, "\t--> HPC code running...",  {a} );
@@ -307,176 +272,168 @@
             console.log( a )
         }
 
-    */
+            let now;
+            let count = 3;
+            let testArray8 = new Uint8Array();
 
-</script>
-<script>
-        /*
-        let now;
-        let count = 3;
-        let testArray8 = new Uint8Array();
-
-        //console.log(name, "\t", testArray8)
-        
-        // 15x faster then inop
-        let ofop = function (c) {
-            now = performance.now()
-
-            for ( let i of testArray8) {
-                testArray8[i] = Math.floor(Math.random() * 255)
-            }
-
-            if (--c)
-                return ofop(c)
-        }
-
-        // sooo slowww we slicing keys to cpu's
-        let inop = function (c) {
-            now = performance.now()
-
-            for ( let i in testArray8) {
-                testArray8[i] = Math.floor(Math.random() * 255)
-            }
-
-            if (--c)
-                return ofop(c)
-        }
-
-        ofop( count )
-
-        console.log(name, "\t", "get", testArray8)
-
-        if (self.isBridge) {
-
-            let msec = performance.now() - now;
-            let sec = parseFloat((1e-3 * msec).toFixed(2));
-            let op = (testArray8.length * count);
-            let ratio = Math.trunc( op/(msec/1e3) );
-            let iterated = count;
-
-            console.warn( name, "done:", sec, "secs", op, "ops", ratio, "op/sec", "in", iterated, "iteration" );
-
-            setTimeout(function (){
-                    console.log(testArray8.array)
-            }, 100)
-        }
-
-        //console.log(name, "\t", "get BYTES_PER_ELEMENT:", testArray8.BYTES_PER_ELEMENT)
-        //console.log(name, "\t", "set 0 = 1", testArray8[0] = 1)
-    */
-
-</script>
-<script>
-    /*
-    ###
-    self.isWindow = Boolean document?;
-
-    unless SharedArrayBuffer?
-        throw /SHARED_ARRAY_BUFFER_NOT_AVAILABLE/
-
-    import "./prototype.js"
-
-    basepath = location.href.replace('/index.html', '')
-
-    for script in document.scripts
-        if `import.meta.url` is script.src
-            break if script = "#{script.text}"
-    unless script then throw "?CODE?"
-
-    onrequest   = ( i, e ) ->
-        { func , args , lock } = e.data
-
-        ( root = self )
-
-        for prop in func
-            root = root[ prop ]
-
-        func = root.bind self[ func[ 0 ] ] 
-        call = func( ...args )
-
-        Atomics.add this, 0 , 1
-        Atomics.store this, i , 10000 * Math.random()
-        Atomics.notify this, i, 1
-
-    addEventListener "message", ({ data }) ->
-        console.log 2, data
-
-        #? window gets message that means some remote
-        #? controller connected to this device
-        #? so, we need to do what we do 
-        buffer = new SharedArrayBuffer data
-
-        #* at this point, memory is initialized
-        console.warn "[#{self.constructor.name}]", performance.now(2), "memory is initialized", buffer
-
-
-    cpuCount = Math.max( 
-        2, ( navigator?.hardwareConcurrency or 2 ) - 2
-    )
-
-    #cpuCount = 2
-
-    addEventListener "load", ->
-
-        cpuURL = URL.createWorkerURL "
-            self.isCPU = true;
-            self.cpuCount = #{cpuCount};
-
-            import '#{basepath}/prototype.js';
-            import '#{basepath}/0ptr_window.js';
-
-            addEventListener( 'message', function ({ data }){
-                self.memory = data.memory.defineProperties();                        
-                self.postMessage(0);
-                memory.lock(3);
-                console.error('cpu unlocked', name );
-                #{script}                        
-            });
-        "
-
-        self.bridge = new Worker URL.createWorkerURL "
-            self.isBridge = true;
-            self.cpuCount = #{cpuCount};
-
-            import '#{basepath}/prototype.js';
-            import '#{basepath}/0ptr_window.js';
-                    
-            self.memory = new SharedArrayBuffer();
-            self.postMessage({ memory: self.memory, name });
-
-            memory.lock(4);
-            console.warn( 'bridge unlocked:', name );
+            //console.log(name, "\t", testArray8)
             
-            #{script}
-        "
+            // 15x faster then inop
+            let ofop = function (c) {
+                now = performance.now()
 
-        bridge.addEventListener "message", ({ data }) ->
+                for ( let i of testArray8) {
+                    testArray8[i] = Math.floor(Math.random() * 255)
+                }
 
-            self.memory = data.memory.defineProperties();
-            console.warn( 'bridge ready:', data.name );
+                if (--c)
+                    return ofop(c)
+            }
+
+            // sooo slowww we slicing keys to cpu's
+            let inop = function (c) {
+                now = performance.now()
+
+                for ( let i in testArray8) {
+                    testArray8[i] = Math.floor(Math.random() * 255)
+                }
+
+                if (--c)
+                    return ofop(c)
+            }
+
+            ofop( count )
+
+            console.log(name, "\t", "get", testArray8)
+
+            if (self.isBridge) {
+
+                let msec = performance.now() - now;
+                let sec = parseFloat((1e-3 * msec).toFixed(2));
+                let op = (testArray8.length * count);
+                let ratio = Math.trunc( op/(msec/1e3) );
+                let iterated = count;
+
+                console.warn( name, "done:", sec, "secs", op, "ops", ratio, "op/sec", "in", iterated, "iteration" );
+
+                setTimeout(function (){
+                        console.log(testArray8.array)
+                }, 100)
+            }
+
+            //console.log(name, "\t", "get BYTES_PER_ELEMENT:", testArray8.BYTES_PER_ELEMENT)
+            //console.log(name, "\t", "set 0 = 1", testArray8[0] = 1)
+        
+        ###
+        self.isWindow = Boolean document?;
+
+        unless SharedArrayBuffer?
+            throw /SHARED_ARRAY_BUFFER_NOT_AVAILABLE/
+
+        import "./prototype.js"
+
+        basepath = location.href.replace('/index.html', '')
+
+        for script in document.scripts
+            if `import.meta.url` is script.src
+                break if script = "#{script.text}"
+        unless script then throw "?CODE?"
+
+        onrequest   = ( i, e ) ->
+            { func , args , lock } = e.data
+
+            ( root = self )
+
+            for prop in func
+                root = root[ prop ]
+
+            func = root.bind self[ func[ 0 ] ] 
+            call = func( ...args )
+
+            Atomics.add this, 0 , 1
+            Atomics.store this, i , 10000 * Math.random()
+            Atomics.notify this, i, 1
+
+        addEventListener "message", ({ data }) ->
+            console.log 2, data
+
+            #? window gets message that means some remote
+            #? controller connected to this device
+            #? so, we need to do what we do 
+            buffer = new SharedArrayBuffer data
+
+            #* at this point, memory is initialized
+            console.warn "[#{self.constructor.name}]", performance.now(2), "memory is initialized", buffer
 
 
-            waiting = cpuCount
-            forking = cpuCount 
-            threads = []
+        cpuCount = Math.max( 
+            2, ( navigator?.hardwareConcurrency or 2 ) - 2
+        )
 
-            while forking--
+        #cpuCount = 2
+
+        addEventListener "load", ->
+
+            cpuURL = URL.createWorkerURL "
+                self.isCPU = true;
+                self.cpuCount = #{cpuCount};
+
+                import '#{basepath}/prototype.js';
+                import '#{basepath}/0ptr_window.js';
+
+                addEventListener( 'message', function ({ data }){
+                    self.memory = data.memory.defineProperties();                        
+                    self.postMessage(0);
+                    memory.lock(3);
+                    console.error('cpu unlocked', name );
+                    #{script}                        
+                });
+            "
+
+            self.bridge = new Worker URL.createWorkerURL "
+                self.isBridge = true;
+                self.cpuCount = #{cpuCount};
+
+                import '#{basepath}/prototype.js';
+                import '#{basepath}/0ptr_window.js';
+                        
+                self.memory = new SharedArrayBuffer();
+                self.postMessage({ memory: self.memory, name });
+
+                memory.lock(4);
+                console.warn( 'bridge unlocked:', name );
                 
-                cpu = new Worker cpuURL, "cpu" + forking
+                #{script}
+            "
 
-                cpu . onmessage = ({ data: i }) ->
-                    threads.push this
+            bridge.addEventListener "message", ({ data }) ->
 
-                    return if --waiting
-                    requestIdleCallback ->
-                        memory.unlock(3)
+                self.memory = data.memory.defineProperties();
+                console.warn( 'bridge ready:', data.name );
 
-                    memory.unlock(4)
-                                                                        
-                cpu . postMessage({ memory: self.memory });
 
-            self.onclick = -> console.log threads
-    ###*/
+                waiting = cpuCount
+                forking = cpuCount 
+                threads = []
+
+                while forking--
+                    
+                    cpu = new Worker cpuURL, "cpu" + forking
+
+                    cpu . onmessage = ({ data: i }) ->
+                        threads.push this
+
+                        return if --waiting
+                        requestIdleCallback ->
+                            memory.unlock(3)
+
+                        memory.unlock(4)
+                                                                            
+                    cpu . postMessage({ memory: self.memory });
+
+                self.onclick = -> console.log threads
+        ###
+    */
 </script>
 </body>
 </html>
