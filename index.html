@@ -181,16 +181,11 @@
             shape.needsUpdate = 1;
         }, 1000)
         
-        return
 
-        for (let i=0; i<shape.length; i+= 3) {
-            triangle.set( shape.subarray(i, i+3), (i/3) * this.attribLength )
-        }
+    };
 
-        log( shape )
-
-        this.upload()
-
+    onscreen.onupdate = function ( shape ) {
+        log(1)
     };
 
     onscreen.onanimationframe = function (gl, delta){
@@ -198,8 +193,6 @@
         red += (factor * sign);
         green += (factor * sign);
         blue += (factor * sign); 
-
-        shape.updateIfNeeded()
 
         if ( red > 1 || red < 0 ) { sign *= -1; }
         if ( green > 1 || green < 0 ) { sign *= -1; }

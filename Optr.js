@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_ATTRIBSLENGTH, HINDEX_ATTRIBSOFFSET, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_ITERINDEX, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_NEEDSUPDATE, HINDEX_PARENT, HINDEX_PTRI, HINDEX_RESOLV_ID, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, LE, MAX_PTR_COUNT, MAX_THREAD_COUNT, Object3, OffscreenCanvas, OnscreenCanvas, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, UI, UI_LENGTH, UI_OFFSET, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, keybuf, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, objects, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8, xrSession;
+  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, FragmentShader, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_ATTRIBSLENGTH, HINDEX_ATTRIBSOFFSET, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_ITERINDEX, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_NEEDSUPDATE, HINDEX_PARENT, HINDEX_PTRI, HINDEX_RESOLV_ID, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, LE, MAX_PTR_COUNT, MAX_THREAD_COUNT, Object3, OffscreenCanvas, OnscreenCanvas, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, UI, UI_LENGTH, UI_OFFSET, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, VertexShader, WebGLShader, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, keybuf, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, objects, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
   log = function() {
     return console.log(name, ...arguments);
   };
@@ -57,15 +57,16 @@ self.name = "window";
       }
     })()
   ];
-  [blobURL, objbuf, ptrbuf, keybuf, lock, unlock, malloc, littleEnd, ui, p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, UI, OnscreenCanvas, OffscreenCanvas, xrSession, Object3, Uint8Array, Int8Array, Uint8ClampedArray, Uint16Array, Int16Array, Uint32Array, Int32Array, Float32Array, Float64Array, BigInt64Array, BigUint64Array] = [];
+  [blobURL, objbuf, ptrbuf, keybuf, lock, unlock, malloc, littleEnd, ui, p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, UI, OnscreenCanvas, OffscreenCanvas, WebGLShader, VertexShader, FragmentShader, Object3, Uint8Array, Int8Array, Uint8ClampedArray, Uint16Array, Int16Array, Uint32Array, Int32Array, Float32Array, Float64Array, BigInt64Array, BigUint64Array] = [];
   [bc = new BroadcastChannel("0ptr"), textEncoder = new TextEncoder(), textDecoder = new TextDecoder(), selfName = self.name, isWindow = typeof document !== "undefined" && document !== null, isBridge = /bridge/i.test(selfName), isThread = /thread/i.test(selfName), threadId = isThread && parseInt(selfName.match(/\d+/)), now = Date.now(), pnow = performance.now(), resolvs = new WeakMap(), replies = new Object(), objects = new Object(), workers = new self.Array(), littleEnd = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0], TypedArray = Object.getPrototypeOf(self.Uint8Array), GLContext = typeof WebGL2RenderingContext !== "undefined" && WebGL2RenderingContext !== null ? WebGL2RenderingContext : WebGLRenderingContext];
   resolvFind = function(id, retry = 0) {
     var i, ptri;
     i = HINDEX_RESOLV_ID + Atomics.load(p32, 1);
     ptri = 0;
+    //error id, retry
     while (i > 0) {
       if (id === Atomics.load(p32, i)) {
-        ptri = i - HINDEX_RESOLV_ID;
+        ptri = Atomics.load(p32, ptri + HINDEX_PTRI);
         break;
       }
       i -= HEADERS_LENGTH;
@@ -78,18 +79,19 @@ self.name = "window";
         return ptri;
       }
       Atomics.wait(p32, 3, 0, 20);
-      if (retry > 100) {
+      if (retry > 10) {
         throw /TOO_MANY_TRIED_TO_FIND/;
       }
       return resolvFind(id, ++retry);
-    } else if (isBridge) {
-      return ptri;
-    }
-    if (!Atomics.load(p32, ptri + HINDEX_LOCKFREE)) {
-      Atomics.wait(p32, ptri + HINDEX_LOCKFREE, 1, 1000);
     }
     return ptri;
   };
+  //else if isBridge then return ptri
+
+  //unless Atomics.load p32, ptri + HINDEX_LOCKFREE
+  //Atomics.wait p32, ptri + HINDEX_LOCKFREE, 1, 100
+
+  //return ptri
   resolvCall = function() {
     var cBrace, cBreak, cColon, cCount, call, discard, e, lasti, length, stack, vals;
     Error.captureStackTrace(e = {});
@@ -156,7 +158,7 @@ self.name = "window";
         Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
         Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
       }
-      return Atomics.notify(p32, isThread ? 4 : 3);
+      return Atomics.notify(p32, isThread ? 3 : 4);
     };
     malloc = function(byteLength = 0, alignBytes = 1) {
       var byteOffset, mod;
@@ -720,7 +722,7 @@ self.name = "window";
 
   }).call(this);
   regenerate = function() {
-    var FragmentShader, Matrix4f, UniformMatrix4fv, VertexShader, WebGLShader;
+    var Matrix4f, UniformMatrix4fv;
     Object.defineProperties(Object.prototype, {
       toArray: {
         value: function() {
@@ -737,9 +739,9 @@ self.name = "window";
             for (i in array) {
               array[i] = arguments[0][i];
             }
-            Atomics.notify(p32, 3, 1, MAX_THREAD_COUNT);
+            unlock();
           } else {
-            Atomics.wait(p32, 3);
+            lock();
           }
           return array;
         }
@@ -752,19 +754,21 @@ self.name = "window";
             for (i in array) {
               array[i] = arguments[i];
             }
-            Atomics.notify(p32, 3, 1, MAX_THREAD_COUNT);
+            unlock();
           } else {
-            Atomics.wait(p32, 3);
+            lock();
           }
           return array;
         }
       },
       at: {
         value: function(ptri) {
-          if (!ptri) {
-            return null;
+          var byteOffset, length;
+          if (!(length = Atomics.load(p32, ptri + HINDEX_LENGTH))) {
+            return;
           }
-          return new this(-parseInt(ptri));
+          byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
+          return new this(this.buffer, byteOffset, length, ptri);
         }
       }
     });
@@ -1070,17 +1074,9 @@ self.name = "window";
         return this;
       }
 
-      constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
-        if (arg0 < 0) {
-          ptri = -arg0;
-          length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-          byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
-            value: ptri
-          });
-        }
-        ptri = resolvCall();
+      constructor(arg0, byteOffset, length, ptri) {
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength;
+        ptri = ptri || resolvCall();
         argc = arguments.length;
         bpel = 1;
         if (isThread) {
@@ -1202,17 +1198,9 @@ self.name = "window";
         return this;
       }
 
-      constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
-        if (arg0 < 0) {
-          ptri = -arg0;
-          length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-          byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
-            value: ptri
-          });
-        }
-        ptri = resolvCall();
+      constructor(arg0, byteOffset, length, ptri) {
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength;
+        ptri = ptri || resolvCall();
         argc = arguments.length;
         bpel = 1;
         if (isThread) {
@@ -1334,17 +1322,9 @@ self.name = "window";
         return this;
       }
 
-      constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
-        if (arg0 < 0) {
-          ptri = -arg0;
-          length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-          byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
-            value: ptri
-          });
-        }
-        ptri = resolvCall();
+      constructor(arg0, byteOffset, length, ptri) {
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength;
+        ptri = ptri || resolvCall();
         argc = arguments.length;
         bpel = 1;
         if (isThread) {
@@ -1466,17 +1446,9 @@ self.name = "window";
         return this;
       }
 
-      constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
-        if (arg0 < 0) {
-          ptri = -arg0;
-          length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-          byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
-            value: ptri
-          });
-        }
-        ptri = resolvCall();
+      constructor(arg0, byteOffset, length, ptri) {
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength;
+        ptri = ptri || resolvCall();
         argc = arguments.length;
         bpel = 2;
         if (isThread) {
@@ -1598,17 +1570,9 @@ self.name = "window";
         return this;
       }
 
-      constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
-        if (arg0 < 0) {
-          ptri = -arg0;
-          length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-          byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
-            value: ptri
-          });
-        }
-        ptri = resolvCall();
+      constructor(arg0, byteOffset, length, ptri) {
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength;
+        ptri = ptri || resolvCall();
         argc = arguments.length;
         bpel = 2;
         if (isThread) {
@@ -1730,17 +1694,9 @@ self.name = "window";
         return this;
       }
 
-      constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
-        if (arg0 < 0) {
-          ptri = -arg0;
-          length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-          byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
-            value: ptri
-          });
-        }
-        ptri = resolvCall();
+      constructor(arg0, byteOffset, length, ptri) {
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength;
+        ptri = ptri || resolvCall();
         argc = arguments.length;
         bpel = 4;
         if (isThread) {
@@ -1862,16 +1818,8 @@ self.name = "window";
         return this;
       }
 
-      constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
-        if (arg0 < 0) {
-          ptri = -arg0;
-          length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-          byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
-            value: ptri
-          });
-        }
+      constructor(arg0, byteOffset, length, ptri) {
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength;
         ptri = resolvCall();
         argc = arguments.length;
         bpel = 4;
@@ -1994,17 +1942,9 @@ self.name = "window";
         return this;
       }
 
-      constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
-        if (arg0 < 0) {
-          ptri = -arg0;
-          length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-          byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
-            value: ptri
-          });
-        }
-        ptri = resolvCall();
+      constructor(arg0, byteOffset, length, ptri) {
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength;
+        ptri = ptri || resolvCall();
         argc = arguments.length;
         bpel = 4;
         if (isThread) {
@@ -2027,11 +1967,9 @@ self.name = "window";
               // new TypedArray( new TypedArray(?) );
 
               //Atomics.wait p32, 4, 0, 2240; #testing locks
-              byteLength = arg0.byteLength;
-              length = arg0.byteLength / bpel;
-              byteOffset = malloc(byteLength, bpel);
+              byteOffset = malloc(arg0.byteLength, bpel);
               if (arg0.buffer === objbuf) {
-                ui8.copyWithin(byteOffset, arg0.byteOffset, arg0.byteOffset + byteLength);
+                ui8.copyWithin(byteOffset, arg0.byteOffset, arg0.byteOffset + arg0.byteLength);
               } else {
                 f32.set(arg0, byteOffset / bpel);
               }
@@ -2102,13 +2040,13 @@ self.name = "window";
           Atomics.store(p32, ptri + HINDEX_LENGTH, length);
           Atomics.store(p32, ptri + HINDEX_BYTEOFFSET, byteOffset);
           Atomics.store(p32, ptri + HINDEX_BYTELENGTH, byteLength);
+          Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
+          Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
         }
         // WeakMap -> {TypedArray} => ptri
         resolvs.set(Object.defineProperty(this, "ptri", {
           value: ptri
         }), ptri);
-        Atomics.store(p32, ptri + HINDEX_LOCKFREE, 1);
-        Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
       }
 
     };
@@ -2126,17 +2064,9 @@ self.name = "window";
         return this;
       }
 
-      constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
-        if (arg0 < 0) {
-          ptri = -arg0;
-          length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-          byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
-            value: ptri
-          });
-        }
-        ptri = resolvCall();
+      constructor(arg0, byteOffset, length, ptri) {
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength;
+        ptri = ptri || resolvCall();
         argc = arguments.length;
         bpel = 8;
         if (isThread) {
@@ -2258,17 +2188,9 @@ self.name = "window";
         return this;
       }
 
-      constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
-        if (arg0 < 0) {
-          ptri = -arg0;
-          length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-          byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
-            value: ptri
-          });
-        }
-        ptri = resolvCall();
+      constructor(arg0, byteOffset, length, ptri) {
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength;
+        ptri = ptri || resolvCall();
         argc = arguments.length;
         bpel = 8;
         if (isThread) {
@@ -2390,17 +2312,9 @@ self.name = "window";
         return this;
       }
 
-      constructor(arg0, byteOffset, length) {
-        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength, ptri;
-        if (arg0 < 0) {
-          ptri = -arg0;
-          length = Atomics.load(p32, ptri + HINDEX_LENGTH);
-          byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return Object.defineProperty(super(objbuf, byteOffset, length), "ptri", {
-            value: ptri
-          });
-        }
-        ptri = resolvCall();
+      constructor(arg0, byteOffset, length, ptri) {
+        var arg0ByteLength, arg0Length, arg0Offset, argc, bpel, byteLength, copyEnd, copyStart, nextByteLength;
+        ptri = ptri || resolvCall();
         argc = arguments.length;
         bpel = 8;
         if (isThread) {
@@ -2912,11 +2826,14 @@ self.name = "window";
     }).call(this);
     WebGLShader = (function() {
       class WebGLShader extends Uint8Array {
-        constructor() {
-          if (arguments.length) {
+        constructor(source) {
+          var srclen;
+          if (arguments.length > 1) {
             super(...arguments);
           } else {
-            super(WebGLShader.byteLength).source = this.DEFAULT_SOURCE;
+            srclen = source.length;
+            srclen = srclen + srclen % 4;
+            super(WebGLShader.byteLength + srclen).source = source;
           }
         }
 
@@ -2940,7 +2857,7 @@ self.name = "window";
 
       };
 
-      WebGLShader.byteLength = 4 * 4 + 1024 * 16;
+      WebGLShader.byteLength = 4 * 4;
 
       WebGLShader.prototype.INDEX_ISACTIVE = 0; //  8 bit        byteOffset : 0
 
@@ -2990,7 +2907,7 @@ self.name = "window";
             }
             return textDecoder.decode(this.detach(this.OFFSET_SOURCE_BEGIN, this.length));
           },
-          set: function(source = this.DEFAULT_SOURCE) {
+          set: function(source) {
             var text;
             if (text = `${source}`.trim()) {
               this.length = text.length;
@@ -3007,7 +2924,7 @@ self.name = "window";
     VertexShader = (function() {
       class VertexShader extends WebGLShader {};
 
-      VertexShader.prototype.DEFAULT_SOURCE =  `
+      VertexShader.DEFAULT_SOURCE =  `
                 attribute vec3     a_Position;
                 attribute vec4     a_Color;
                 uniform   float    u_PointSize;
@@ -3027,7 +2944,7 @@ self.name = "window";
     FragmentShader = (function() {
       class FragmentShader extends WebGLShader {};
 
-      FragmentShader.prototype.DEFAULT_SOURCE =  `
+      FragmentShader.DEFAULT_SOURCE =  `
                 precision highp    float;
                 varying   vec4     v_Color;
 
@@ -3151,12 +3068,8 @@ self.name = "window";
         reload() {
           var info, program;
           program = this.gl.createProgram();
-          if (!this.vertexShader) {
-            this.vertexShader = new VertexShader();
-          }
-          if (!this.fragmentShader) {
-            this.fragmentShader = new FragmentShader();
-          }
+          this.vertexShader = new VertexShader(VertexShader.DEFAULT_SOURCE);
+          this.fragmentShader = new FragmentShader(FragmentShader.DEFAULT_SOURCE);
           this.vertexShader.attach(this.gl, program);
           this.fragmentShader.attach(this.gl, program);
           this.gl.linkProgram(program);
@@ -3218,24 +3131,30 @@ self.name = "window";
 
         onwebglcontextrestored() {}
 
-        onanimationframe() {
-          log(2);
-          return setTimeout(() => {
-            return log(888);
-          }, 1000);
-        }
+        onanimationframe() {}
 
-        onanimationframed() {
-          var ptri, results;
+        onupdate() {}
+
+        onrender() {
+          var ptri;
           ptri = Atomics.load(p32, 1);
-          results = [];
           while (ptri > HEADERS_LENGTH) {
-            if (Atomics.and(p32, ptri + HINDEX_NEEDSUPDATE, 0)) {
-              log("update", ptri);
+            //if  Atomics.and p32, ptri + HINDEX_NEEDSUPDATE, 0
+            if (Atomics.load(p32, ptri + HINDEX_NEEDSUPDATE, 0)) {
+              if (isBridge) {
+                log("update", ptri);
+                unlock();
+              } else {
+                //log "updating"
+                this.onupdate();
+              }
             }
-            results.push(ptri -= HEADERS_LENGTH);
+            ptri -= HEADERS_LENGTH;
           }
-          return results;
+          if (isThread) {
+            lock();
+            return this.onrender();
+          }
         }
 
         render() {
@@ -3243,24 +3162,19 @@ self.name = "window";
           if (!this.hasContext) {
             return;
           }
-          if (isThread) {
-            log(this.onanimationframe + "");
-            return 1;
-            return (commit = () => {
-              this.onanimationframe(this.gl, this.frame);
-              return requestAnimationFrame(commit);
-            })();
-          } else {
-            return (commit = (now) => {
-              if (this.hasContext && this.hasBinding) {
-                this.onanimationframe(this.gl, this.addFrame(now));
-                this.gl.drawArrays(this.gl.POINTS, 0, this.pointCount);
-                this.gl.drawArrays(this.gl.LINES, 0, this.pointCount);
-                this.gl.drawArrays(this.gl.TRIANGLES, 0, this.pointCount);
-              }
-              return requestAnimationFrame(commit);
-            })(0);
+          if (!isBridge) {
+            return;
           }
+          return (commit = (now) => {
+            if (this.hasContext && this.hasBinding) {
+              this.onrender();
+              this.onanimationframe(this.gl, this.addFrame(now));
+              this.gl.drawArrays(this.gl.POINTS, 0, this.pointCount);
+              this.gl.drawArrays(this.gl.LINES, 0, this.pointCount);
+              this.gl.drawArrays(this.gl.TRIANGLES, 0, this.pointCount);
+            }
+            return requestAnimationFrame(commit);
+          })(0);
         }
 
         constructor() {
@@ -3269,11 +3183,10 @@ self.name = "window";
 
         getContext(type) {
           if (isThread) {
-            return Object.defineProperties(this, {
-              gl: {
-                value: new Proxy({}, {})
-              }
-            }).render();
+            log(this.onupdate + "");
+            //lock()
+            //@onrender()
+            return 1;
           } else {
             replies[this.ptri] = new WeakRef((data) => {
               return this.setContext(data.canvas.getContext(type, {
@@ -3381,10 +3294,13 @@ self.name = "window";
         },
         vertexShader: {
           get: function() {
-            return VertexShader.at(this.loadUint32(this.INDEX_VSHADER));
+            var v;
+            v = VertexShader.at(this.loadUint32(this.INDEX_VSHADER));
+            log(v, this.loadUint32(this.INDEX_VSHADER));
+            return v;
           },
           set: function(v) {
-            return this.storeUint32(this.INDEX_VSHADER, resolvs.get(v));
+            return this.storeUint32(this.INDEX_VSHADER, v.ptri);
           }
         },
         fragmentShader: {
@@ -3392,7 +3308,7 @@ self.name = "window";
             return FragmentShader.at(this.loadUint32(this.INDEX_FSHADER));
           },
           set: function(v) {
-            return this.storeUint32(this.INDEX_FSHADER, resolvs.get(v));
+            return this.storeUint32(this.INDEX_FSHADER, v.ptri);
           }
         },
         drawBuffer: {

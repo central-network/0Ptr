@@ -70,7 +70,9 @@ do  self.init   = ->
         UI,
         OnscreenCanvas,
         OffscreenCanvas,
-        xrSession,
+        WebGLShader,
+        VertexShader,
+        FragmentShader,
 
         Object3,
         Uint8Array  , Int8Array   , Uint8ClampedArray,
@@ -99,10 +101,11 @@ do  self.init   = ->
     resolvFind  = ( id, retry = 0 ) ->
         i = HINDEX_RESOLV_ID + Atomics.load p32, 1
         ptri = 0
+        #error id, retry
 
         while i > 0
             if  id is Atomics.load p32, i
-                ptri = i - HINDEX_RESOLV_ID
+                ptri = Atomics.load p32, ptri + HINDEX_PTRI
                 break
             i -= HEADERS_LENGTH
 
@@ -115,16 +118,18 @@ do  self.init   = ->
 
             Atomics.wait p32, 3, 0, 20
 
-            if  retry > 100
+            if  retry > 10
                 throw /TOO_MANY_TRIED_TO_FIND/
             return resolvFind id, ++retry
 
-        else if isBridge then return ptri
-        
-        unless Atomics.load p32, ptri + HINDEX_LOCKFREE
-            Atomics.wait p32, ptri + HINDEX_LOCKFREE, 1, 1000
-
         return ptri
+
+        #else if isBridge then return ptri
+        
+        #unless Atomics.load p32, ptri + HINDEX_LOCKFREE
+            #Atomics.wait p32, ptri + HINDEX_LOCKFREE, 1, 100
+
+        #return ptri
 
     resolvCall  = ->
         Error.captureStackTrace e = {}
@@ -202,7 +207,7 @@ do  self.init   = ->
             if  ptri
                 Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
                 Atomics.notify p32, ptri + HINDEX_LOCKFREE
-            Atomics.notify p32 , if isThread then 4 else 3
+            Atomics.notify p32 , if isThread then 3 else 4
 
 
         malloc              = ( byteLength = 0, alignBytes = 1 ) ->
@@ -608,10 +613,9 @@ do  self.init   = ->
 
                     if  isBridge
                         array[i] = arguments[0][i] for i of array
-                        Atomics.notify p32, 3, 1, MAX_THREAD_COUNT
-
+                        unlock()
                     else
-                        Atomics.wait p32, 3
+                        lock()
 
                     array
 
@@ -622,17 +626,18 @@ do  self.init   = ->
                     if  isBridge
                         
                         array[i] = arguments[i] for i of array
-                        Atomics.notify p32, 3, 1, MAX_THREAD_COUNT
+                        unlock()
 
                     else
-                        Atomics.wait p32, 3
+                        lock()
 
                     array
 
             at                  :
                 value : ( ptri ) ->
-                    return null unless ptri
-                    new this -parseInt ptri
+                    return unless length = Atomics.load p32, ptri + HINDEX_LENGTH
+                    byteOffset = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
+                    new this @buffer, byteOffset, length, ptri
 
         Object.defineProperties TypedArray::,
             
@@ -880,20 +885,9 @@ do  self.init   = ->
                     super value, index
                 this
 
-            constructor         : ( arg0, byteOffset, length ) ->
+            constructor         : ( arg0, byteOffset, length, ptri ) ->
 
-                if  arg0 < 0
-                    ptri        = -arg0
-                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                    return Object.defineProperty(
-                        super( objbuf, byteOffset, length ), "ptri", {
-                            value : ptri
-                        }
-                    )
-
-                ptri = resolvCall()
+                ptri = ptri or resolvCall()
                 argc = arguments.length                
                 bpel = 1
 
@@ -1045,21 +1039,9 @@ do  self.init   = ->
                     super value, index
                 this
 
-            constructor         : ( arg0, byteOffset, length ) ->
+            constructor         : ( arg0, byteOffset, length, ptri ) ->
 
-                if  arg0 < 0
-                    
-                    ptri        = -arg0
-                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                    return Object.defineProperty(
-                        super( objbuf, byteOffset, length ), "ptri", {
-                            value : ptri
-                        }
-                    )
-
-                ptri = resolvCall()
+                ptri = ptri or resolvCall()
                 argc = arguments.length                
                 bpel = 1
 
@@ -1211,21 +1193,9 @@ do  self.init   = ->
                     super value, index
                 this
 
-            constructor         : ( arg0, byteOffset, length ) ->
+            constructor         : ( arg0, byteOffset, length, ptri ) ->
 
-                if  arg0 < 0
-                    
-                    ptri        = -arg0
-                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                    return Object.defineProperty(
-                        super( objbuf, byteOffset, length ), "ptri", {
-                            value : ptri
-                        }
-                    )
-
-                ptri = resolvCall()
+                ptri = ptri or resolvCall()
                 argc = arguments.length                
                 bpel = 1
 
@@ -1377,21 +1347,9 @@ do  self.init   = ->
                     super value, index
                 this
 
-            constructor         : ( arg0, byteOffset, length ) ->
+            constructor         : ( arg0, byteOffset, length, ptri ) ->
                 
-                if  arg0 < 0
-                    
-                    ptri        = -arg0
-                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                    return Object.defineProperty(
-                        super( objbuf, byteOffset, length ), "ptri", {
-                            value : ptri
-                        }
-                    )
-
-                ptri = resolvCall()
+                ptri = ptri or resolvCall()
                 argc = arguments.length                
                 bpel = 2
 
@@ -1543,21 +1501,9 @@ do  self.init   = ->
                     super value, index
                 this
 
-            constructor         : ( arg0, byteOffset, length ) ->
+            constructor         : ( arg0, byteOffset, length, ptri ) ->
 
-                if  arg0 < 0
-                    
-                    ptri        = -arg0
-                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                    return Object.defineProperty(
-                        super( objbuf, byteOffset, length ), "ptri", {
-                            value : ptri
-                        }
-                    )
-
-                ptri = resolvCall()
+                ptri = ptri or resolvCall()
                 argc = arguments.length                
                 bpel = 2
 
@@ -1709,21 +1655,9 @@ do  self.init   = ->
                     super value, index
                 this
 
-            constructor         : ( arg0, byteOffset, length ) ->
+            constructor         : ( arg0, byteOffset, length, ptri ) ->
 
-                if  arg0 < 0
-                    
-                    ptri        = -arg0
-                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                    return Object.defineProperty(
-                        super( objbuf, byteOffset, length ), "ptri", {
-                            value : ptri
-                        }
-                    )
-
-                ptri = resolvCall()
+                ptri = ptri or resolvCall()
                 argc = arguments.length                
                 bpel = 4
 
@@ -1875,19 +1809,7 @@ do  self.init   = ->
                     super value, index
                 this
 
-            constructor         : ( arg0, byteOffset, length ) ->
-
-                if  arg0 < 0
-                    
-                    ptri        = -arg0
-                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                    return Object.defineProperty(
-                        super( objbuf, byteOffset, length ), "ptri", {
-                            value : ptri
-                        }
-                    )
+            constructor         : ( arg0, byteOffset, length, ptri ) ->
 
                 ptri = resolvCall()
                 argc = arguments.length                
@@ -2041,21 +1963,9 @@ do  self.init   = ->
                     super value, index
                 this
 
-            constructor         : ( arg0, byteOffset, length ) ->
+            constructor         : ( arg0, byteOffset, length, ptri ) ->
 
-                if  arg0 < 0
-
-                    ptri        = -arg0
-                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                    return Object.defineProperty(
-                        super( objbuf, byteOffset, length ), "ptri", {
-                            value : ptri
-                        }
-                    )
-
-                ptri = resolvCall()
+                ptri = ptri or resolvCall()
                 argc = arguments.length                
                 bpel = 4
 
@@ -2084,14 +1994,12 @@ do  self.init   = ->
                             # new TypedArray( new TypedArray(?) );
 
                             #Atomics.wait p32, 4, 0, 2240; #testing locks
-                            byteLength  = arg0.byteLength
-                            length      = arg0.byteLength / bpel
-                            byteOffset  = malloc byteLength, bpel
+                            byteOffset  = malloc arg0.byteLength, bpel
                             
                             if  arg0.buffer is objbuf
                                 ui8.copyWithin( byteOffset,
                                     arg0.byteOffset, 
-                                    arg0.byteOffset + byteLength
+                                    arg0.byteOffset + arg0.byteLength
                                 )
                             else
                                 f32.set arg0, byteOffset / bpel                            
@@ -2186,15 +2094,15 @@ do  self.init   = ->
                     Atomics.store  p32, ptri + HINDEX_BYTEOFFSET, byteOffset
                     Atomics.store  p32, ptri + HINDEX_BYTELENGTH, byteLength
 
+                    Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
+                    Atomics.notify p32, ptri + HINDEX_LOCKFREE
+
                 # WeakMap -> {TypedArray} => ptri
                 resolvs.set Object.defineProperty(
                     this, "ptri", {
                         value : ptri
                     }
                 ), ptri
-
-                Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
-                Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
         class Float64Array      extends self.Float64Array
 
@@ -2207,21 +2115,9 @@ do  self.init   = ->
                     super value, index
                 this
 
-            constructor         : ( arg0, byteOffset, length ) ->
+            constructor         : ( arg0, byteOffset, length, ptri ) ->
 
-                if  arg0 < 0
-                    
-                    ptri        = -arg0
-                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                    return Object.defineProperty(
-                        super( objbuf, byteOffset, length ), "ptri", {
-                            value : ptri
-                        }
-                    )
-
-                ptri = resolvCall()
+                ptri = ptri or resolvCall()
                 argc = arguments.length                
                 bpel = 8
 
@@ -2373,21 +2269,9 @@ do  self.init   = ->
                     super value, index
                 this
 
-            constructor         : ( arg0, byteOffset, length ) ->
+            constructor         : ( arg0, byteOffset, length, ptri ) ->
 
-                if  arg0 < 0
-                    
-                    ptri        = -arg0
-                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                    return Object.defineProperty(
-                        super( objbuf, byteOffset, length ), "ptri", {
-                            value : ptri
-                        }
-                    )
-
-                ptri = resolvCall()
+                ptri = ptri or resolvCall()
                 argc = arguments.length                
                 bpel = 8
 
@@ -2539,21 +2423,9 @@ do  self.init   = ->
                     super value, index
                 this
 
-            constructor         : ( arg0, byteOffset, length ) ->
+            constructor         : ( arg0, byteOffset, length, ptri ) ->
 
-                if  arg0 < 0
-                    
-                    ptri        = -arg0
-                    length      = Atomics.load p32, ptri + HINDEX_LENGTH
-                    byteOffset  = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-
-                    return Object.defineProperty(
-                        super( objbuf, byteOffset, length ), "ptri", {
-                            value : ptri
-                        }
-                    )
-
-                ptri = resolvCall()
+                ptri = ptri or resolvCall()
                 argc = arguments.length                
                 bpel = 8
 
@@ -3004,7 +2876,7 @@ do  self.init   = ->
 
         class WebGLShader       extends Uint8Array
 
-            @byteLength         : 4 * 4 + 1024 * 16
+            @byteLength         : 4 * 4
 
             INDEX_ISACTIVE      : 0     #  8 bit        byteOffset : 0
 
@@ -3042,7 +2914,7 @@ do  self.init   = ->
                             return "" unless @length
                             textDecoder.decode @detach @OFFSET_SOURCE_BEGIN, @length
 
-                        set     : ( source = @DEFAULT_SOURCE ) ->
+                        set     : ( source ) ->
                             @length = text.length if text = "#{source}".trim()
                             
                             @type = unless text.match /gl_FragColor/
@@ -3051,13 +2923,16 @@ do  self.init   = ->
 
                             @set textEncoder.encode( text ), @OFFSET_SOURCE_BEGIN
 
-            constructor         : ->
-                if  arguments.length
-                    super ...arguments
-                
+
+            constructor : ( source ) ->
+                if  arguments.length > 1
+                    super arguments...
+
                 else
-                    super WebGLShader.byteLength
-                        .source = @DEFAULT_SOURCE
+                    srclen = source.length
+                    srclen = srclen + srclen % 4
+                    super WebGLShader.byteLength + srclen
+                        .source = source
 
             compile             : ( gl ) ->
                 shader = gl.createShader @type
@@ -3077,7 +2952,7 @@ do  self.init   = ->
 
         class VertexShader      extends WebGLShader
             
-            DEFAULT_SOURCE      : ``` `
+            @DEFAULT_SOURCE     : ``` `
                 attribute vec3     a_Position;
                 attribute vec4     a_Color;
                 uniform   float    u_PointSize;
@@ -3093,7 +2968,7 @@ do  self.init   = ->
 
         class FragmentShader    extends WebGLShader
             
-            DEFAULT_SOURCE      : ``` `
+            @DEFAULT_SOURCE     : ``` `
                 precision highp    float;
                 varying   vec4     v_Color;
 
@@ -3169,12 +3044,16 @@ do  self.init   = ->
                     set : (v) -> @setUint8 @INDEX_FPS, v
 
                 vertexShader :
-                    get : -> VertexShader.at @loadUint32 @INDEX_VSHADER
-                    set : (v) -> @storeUint32 @INDEX_VSHADER, resolvs.get v
+                    get : ->
+                        v = VertexShader.at @loadUint32 @INDEX_VSHADER
+                        log v, @loadUint32 @INDEX_VSHADER
+                        v
+
+                    set : (v) -> @storeUint32 @INDEX_VSHADER, v.ptri
 
                 fragmentShader :
                     get : -> FragmentShader.at @loadUint32 @INDEX_FSHADER
-                    set : (v) -> @storeUint32 @INDEX_FSHADER, resolvs.get v
+                    set : (v) -> @storeUint32 @INDEX_FSHADER, v.ptri
 
                 drawBuffer :
                     get : -> new self.Float32Array @buffer, @byteOffset + @OFFSET_DRAWBUFFER, @pointCount * @attribLength
@@ -3299,8 +3178,8 @@ do  self.init   = ->
             reload      : ->
                 program = @gl.createProgram()
                 
-                @vertexShader   = new VertexShader()    if !@vertexShader
-                @fragmentShader = new FragmentShader()  if !@fragmentShader
+                @vertexShader = new VertexShader VertexShader.DEFAULT_SOURCE
+                @fragmentShader = new FragmentShader FragmentShader.DEFAULT_SOURCE
                                 
                 @vertexShader   . attach @gl, program
                 @fragmentShader . attach @gl, program                
@@ -3364,52 +3243,55 @@ do  self.init   = ->
             oncontextrestored       : ->
             onwebglcontextlost      : ->
             onwebglcontextrestored  : ->
-                
             onanimationframe        : ->
-                log 2
-                setTimeout =>
-                    log 888
-                , 1000
+            onupdate                : ->
 
-            onanimationframed        : ->
+            onrender                : ->
                 ptri = Atomics.load p32, 1
 
                 while ptri > HEADERS_LENGTH
-                    if  Atomics.and p32, ptri + HINDEX_NEEDSUPDATE, 0
-                        log "update", ptri
+                    #if  Atomics.and p32, ptri + HINDEX_NEEDSUPDATE, 0
+                    if  Atomics.load p32, ptri + HINDEX_NEEDSUPDATE, 0
+                        if  isBridge
+                            log "update", ptri
+                            unlock()
+
+                        else
+                            #log "updating"
+                            @onupdate()
 
                     ptri -= HEADERS_LENGTH
 
+                if  isThread
+                    lock() 
+                    @onrender()
+
             render      : ->
                 return unless @hasContext
+                return unless isBridge
 
-                if  isThread
-                    log  @onanimationframe + ""
+                do commit = ( now = 0 ) =>
+                    if  @hasContext and @hasBinding
 
-                    return 1
-                    do  commit = => 
-                        @onanimationframe @gl, @frame
-                        requestAnimationFrame commit
-                else
-                    do commit = ( now = 0 ) =>
-                        if  @hasContext and @hasBinding
-                            @onanimationframe @gl, @addFrame now 
-                            
-                            @gl.drawArrays @gl.POINTS, 0, @pointCount
-                            @gl.drawArrays @gl.LINES, 0, @pointCount
-                            @gl.drawArrays @gl.TRIANGLES, 0, @pointCount
+                        @onrender()
+                        @onanimationframe @gl, @addFrame now 
+                        
+                        @gl.drawArrays @gl.POINTS, 0, @pointCount
+                        @gl.drawArrays @gl.LINES, 0, @pointCount
+                        @gl.drawArrays @gl.TRIANGLES, 0, @pointCount
 
-                        requestAnimationFrame commit
+                    requestAnimationFrame commit
 
             constructor : ->
                 super( OnscreenCanvas.byteLength )
                     .getContext "webgl2"
 
-            getContext : ( type ) ->
+            getContext : ( type ) ->                
                 if  isThread
-                    Object.defineProperties( this,
-                        gl : value : new Proxy {}, {}
-                    ).render()
+                    log @onupdate + ""
+                    #lock()
+                    #@onrender()
+                    1
 
                 else
                     replies[ @ptri ] = new WeakRef ( data ) =>                   
@@ -3449,7 +3331,6 @@ do  self.init   = ->
 
                 if  isBridge
                     @uuid = randomUUID()
-
 
             updateIfNeeded : ( gl ) ->
                 log 1, "update if needed"
@@ -3817,9 +3698,7 @@ do  self.init   = ->
                         now, pnow, uuid
                     }
 
-
-
-
+            
 
 
 
