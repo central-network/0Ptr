@@ -31,7 +31,7 @@ do  self.init   = ->
         HEADERS_BYTE_LENGTH         = 4 * 16
         MAX_PTR_COUNT               = 1e5
         MAX_THREAD_COUNT            = -4 + navigator?.hardwareConcurrency or 3
-        ITERATION_PER_THREAD        = 1000000
+        ITERATION_PER_THREAD        = 100
         UI_LENGTH                   = 4 * 48
         UI_OFFSET                   = null
         LE                          = new self.Uint8Array( self.Uint16Array.of(1).buffer ).at()
@@ -71,6 +71,7 @@ do  self.init   = ->
         OffscreenCanvas,
         xrSession,
 
+        Object3,
         Uint8Array  , Int8Array   , Uint8ClampedArray,
         Uint16Array , Int16Array  , Uint32Array  , Int32Array,
         Float32Array, Float64Array, BigInt64Array, BigUint64Array ] = []
@@ -97,7 +98,6 @@ do  self.init   = ->
     resolvFind  = ( id, retry = 0 ) ->
         i = HINDEX_RESOLV_ID + Atomics.load p32, 1
         ptri = 0
-        #error { id, retry }
 
         while i > 0
             if  id is Atomics.load p32, i
@@ -113,13 +113,14 @@ do  self.init   = ->
 
             Atomics.wait p32, 3, 0, 20
 
-            if  retry > 400
+            if  retry > 100
                 throw /TOO_MANY_TRIED_TO_FIND/
             return resolvFind id, ++retry
 
         else if isBridge then return ptri
         
-        Atomics.wait p32, ptri + HINDEX_LOCKFREE
+        unless Atomics.load p32, ptri + HINDEX_LOCKFREE
+            Atomics.wait p32, ptri + HINDEX_LOCKFREE, 1, 1000
 
         return ptri
 
@@ -190,7 +191,7 @@ do  self.init   = ->
         
         lock                = ( ptri ) ->
             if  ptri
-                Atomics.wait p32, ptri + HINDEX_LOCKFREE
+                Atomics.wait p32, ptri + HINDEX_LOCKFREE, 1
 
             else
                 Atomics.wait p32 , if isThread then 4 else 3
@@ -292,34 +293,6 @@ do  self.init   = ->
         ; 0
 
 
-
-    Object.defineProperties DOMMatrix::,
-
-        new : value : ( byteOffset ) -> Object.defineProperties(
-            @constructor.fromFloat32Array( f32.detach byteOffset, 16 ),
-            index : { value : byteOffset / 4 }
-        )
-        
-        set : value : ( valueset ) ->
-            f32.set [ ...valueset ], @index
-
-            [   @m11, @m21, @m31, @m41,
-                @m12, @m22, @m32, @m42, 
-                @m13, @m23, @m33, @m43, 
-                @m14, @m24, @m34, @m44  ] = [ ...valueset ] ; @
-
-        valueOf : value : -> self.Float32Array.of(
-            @m11, @m21, @m31, @m41,
-            @m12, @m22, @m32, @m42, 
-            @m13, @m23, @m33, @m43, 
-            @m14, @m24, @m34, @m44
-        )
-
-        [ Symbol.iterator ] : value : ->
-            yield @m11; yield @m21; yield @m31; yield @m41;
-            yield @m12; yield @m22; yield @m32; yield @m42; 
-            yield @m13; yield @m23; yield @m33; yield @m43; 
-            yield @m14; yield @m24; yield @m34; yield @m44;
 
     class UI extends self.DataView
 
@@ -622,6 +595,9 @@ do  self.init   = ->
 
     regenerate  = ->
 
+        Object.defineProperties Object::,
+            toArray : value : -> Object.values this
+
         Object.defineProperties TypedArray,
 
             from                :
@@ -629,8 +605,7 @@ do  self.init   = ->
                     array = new this arguments[0].length
 
                     if  isBridge
-                        for i of array
-                            array[i] = arguments[0][i]
+                        array[i] = arguments[0][i] for i of array
                         Atomics.notify p32, 3, 1, MAX_THREAD_COUNT
 
                     else
@@ -643,9 +618,8 @@ do  self.init   = ->
                     array = new this arguments.length
 
                     if  isBridge
-                        for i of array
-                            array[i] = arguments[i]
                         
+                        array[i] = arguments[i] for i of array
                         Atomics.notify p32, 3, 1, MAX_THREAD_COUNT
 
                     else
@@ -660,15 +634,6 @@ do  self.init   = ->
 
         Object.defineProperties TypedArray::,
             
-            indexUint8          :
-                    value       : -> arguments[0] + ( p32[ resolvs.get this ] + HINDEX_BYTEOFFSET ) / 1
-
-            indexUint16         :
-                    value       : -> arguments[0] + ( p32[ resolvs.get this ] + HINDEX_BYTEOFFSET ) / 2
-
-            indexUint32         :
-                    value       : -> arguments[0] + ( p32[ resolvs.get this ] + HINDEX_BYTEOFFSET ) / 4
-            
             subarray            :
                 #part of this
                 value   : ( begin = 0, end = @length ) ->
@@ -677,10 +642,9 @@ do  self.init   = ->
                         end - begin
                     )
                 
-            #part of this
             sub                 :
-                value           : ( byteOffset = 0, length = @length ) ->
-                    new @constructor @buffer, @byteOffset + byteOffset, length
+                value           : ( byteOffset = 0, length ) ->
+                    new this.TypedArray @buffer, @byteOffset + byteOffset, length
 
             TypedArray          :
                 get             : ->
@@ -690,8 +654,11 @@ do  self.init   = ->
                     self[ tarray.constructor.name ]
 
             detach              :
-                value           : ( byteOffset = 0, length = @length ) ->
-                    new this.TypedArray @sub byteOffset , length
+                value           : ( byteOffset = 0, length ) ->
+                    array = @sub byteOffset, length
+                    buffer = new ArrayBuffer length * @BYTES_PER_ELEMENT
+                    detached = new this.TypedArray buffer
+                    detached.set array ; return detached
                     
             slice               :
                 #copy to new
@@ -705,12 +672,14 @@ do  self.init   = ->
             [ Symbol.iterator ] :
                 value   : ->
                     ptri = resolvs.get this
+
                     length = -1 + Atomics.load p32, ptri + HINDEX_LENGTH
                     begin = Atomics.load p32, ptri + HINDEX_BEGIN
 
                     if  isBridge
                         Atomics.wait p32, 4
                         return next : -> done: on
+
 
                     index = 0
                     iterate = 0
@@ -724,7 +693,7 @@ do  self.init   = ->
                             total += iterate
 
                         if  index > length
-                            Atomics.wait p32, 3, 0, 100
+                            Atomics.wait p32, 3, 0, 20
                             Atomics.notify p32, 4, 1
                             return done: yes
 
@@ -894,8 +863,16 @@ do  self.init   = ->
                     value       : ( index, value ) ->
                         Atomics.add i32, index + @byteOffset / 4, value
             
-
         class Uint8Array        extends self.Uint8Array
+
+            set : ( value, index = 0 ) ->
+                if  value.buffer is this.buffer
+                    target = this.byteOffset + index
+                    start = value.byteOffset ; end = start + value.byteLength
+                    ui8.copyWithin target, start, end
+                else
+                    super value, index
+                this
 
             constructor         : ( arg0, byteOffset, length ) ->
 
@@ -1049,6 +1026,15 @@ do  self.init   = ->
                 resolvs.set this, ptri
 
         class Int8Array         extends self.Int8Array
+
+            set : ( value, index = 0 ) ->
+                if  value.buffer is this.buffer
+                    target = this.byteOffset + index
+                    start = value.byteOffset ; end = start + value.byteLength
+                    ui8.copyWithin target, start, end
+                else
+                    super value, index
+                this
 
             constructor         : ( arg0, byteOffset, length ) ->
 
@@ -1204,6 +1190,15 @@ do  self.init   = ->
 
         class Uint8ClampedArray extends self.Uint8ClampedArray
 
+            set : ( value, index = 0 ) ->
+                if  value.buffer is this.buffer
+                    target = this.byteOffset + index
+                    start = value.byteOffset ; end = start + value.byteLength
+                    ui8.copyWithin target, start, end
+                else
+                    super value, index
+                this
+
             constructor         : ( arg0, byteOffset, length ) ->
 
                 if  arg0 < 0
@@ -1357,6 +1352,15 @@ do  self.init   = ->
                 resolvs.set this, ptri
 
         class Uint16Array       extends self.Uint16Array
+
+            set : ( value, index = 0 ) ->
+                if  value.buffer is this.buffer
+                    target = this.byteOffset + index * @BYTES_PER_ELEMENT
+                    start = value.byteOffset ; end = start + value.byteLength
+                    ui8.copyWithin target, start, end
+                else
+                    super value, index
+                this
 
             constructor         : ( arg0, byteOffset, length ) ->
                 
@@ -1512,6 +1516,15 @@ do  self.init   = ->
 
         class Int16Array        extends self.Int16Array
 
+            set : ( value, index = 0 ) ->
+                if  value.buffer is this.buffer
+                    target = this.byteOffset + index * @BYTES_PER_ELEMENT
+                    start = value.byteOffset ; end = start + value.byteLength
+                    ui8.copyWithin target, start, end
+                else
+                    super value, index
+                this
+
             constructor         : ( arg0, byteOffset, length ) ->
 
                 if  arg0 < 0
@@ -1665,6 +1678,15 @@ do  self.init   = ->
                 resolvs.set this, ptri
 
         class Uint32Array       extends self.Uint32Array
+
+            set : ( value, index = 0 ) ->
+                if  value.buffer is this.buffer
+                    target = this.byteOffset + index * @BYTES_PER_ELEMENT
+                    start = value.byteOffset ; end = start + value.byteLength
+                    ui8.copyWithin target, start, end
+                else
+                    super value, index
+                this
 
             constructor         : ( arg0, byteOffset, length ) ->
 
@@ -1820,6 +1842,15 @@ do  self.init   = ->
 
         class Int32Array        extends self.Int32Array
 
+            set : ( value, index = 0 ) ->
+                if  value.buffer is this.buffer
+                    target = this.byteOffset + index * @BYTES_PER_ELEMENT
+                    start = value.byteOffset ; end = start + value.byteLength
+                    ui8.copyWithin target, start, end
+                else
+                    super value, index
+                this
+
             constructor         : ( arg0, byteOffset, length ) ->
 
                 if  arg0 < 0
@@ -1973,6 +2004,15 @@ do  self.init   = ->
                 resolvs.set this, ptri
 
         class Float32Array      extends self.Float32Array
+
+            set : ( value, index = 0 ) ->
+                if  value.buffer is this.buffer
+                    target = this.byteOffset + index * @BYTES_PER_ELEMENT
+                    start = value.byteOffset ; end = start + value.byteLength
+                    ui8.copyWithin target, start, end
+                else
+                    super value, index
+                this
 
             constructor         : ( arg0, byteOffset, length ) ->
 
@@ -2128,6 +2168,15 @@ do  self.init   = ->
 
         class Float64Array      extends self.Float64Array
 
+            set : ( value, index = 0 ) ->
+                if  value.buffer is this.buffer
+                    target = this.byteOffset + index * @BYTES_PER_ELEMENT
+                    start = value.byteOffset ; end = start + value.byteLength
+                    ui8.copyWithin target, start, end
+                else
+                    super value, index
+                this
+
             constructor         : ( arg0, byteOffset, length ) ->
 
                 if  arg0 < 0
@@ -2282,6 +2331,15 @@ do  self.init   = ->
 
         class BigInt64Array     extends self.BigInt64Array
 
+            set : ( value, index = 0 ) ->
+                if  value.buffer is this.buffer
+                    target = this.byteOffset + index * @BYTES_PER_ELEMENT
+                    start = value.byteOffset ; end = start + value.byteLength
+                    ui8.copyWithin target, start, end
+                else
+                    super value, index
+                this
+
             constructor         : ( arg0, byteOffset, length ) ->
 
                 if  arg0 < 0
@@ -2435,6 +2493,15 @@ do  self.init   = ->
                 resolvs.set this, ptri
 
         class BigUint64Array    extends self.BigUint64Array
+
+            set : ( value, index = 0 ) ->
+                if  value.buffer is this.buffer
+                    target = this.byteOffset + index * @BYTES_PER_ELEMENT
+                    start = value.byteOffset ; end = start + value.byteLength
+                    ui8.copyWithin target, start, end
+                else
+                    super value, index
+                this
 
             constructor         : ( arg0, byteOffset, length ) ->
 
@@ -2843,9 +2910,8 @@ do  self.init   = ->
                 
 
             set : ( set ) ->
-                super set
                 @gl.uniformMatrix4fv @uniform.location, false, set
-                this
+                super set ; this
                 
 
             perspective : ( zNear, zFar, right, bottom, left = 0, top = 0, yFov = 60 ) ->
@@ -2865,7 +2931,7 @@ do  self.init   = ->
 
                 @gl.viewport @left, @top, @width, @height
 
-                @translateSelf 0, 0, -1
+                @translateSelf 0, 0, -500
                 @rotateSelf Math.PI, 0, 0
                 @scaleSelf 1, 1, 1
                 
@@ -2897,7 +2963,6 @@ do  self.init   = ->
 
                 this
 
-            
         class WebGLShader       extends Uint8Array
 
             @byteLength         : 4 * 4 + 1024 * 16
@@ -2936,7 +3001,8 @@ do  self.init   = ->
 
                 source          :
                         get     : ->
-                            textDecoder.decode @detach @OFFSET_SOURCE_BEGIN
+                            return "" unless @length
+                            textDecoder.decode @detach @OFFSET_SOURCE_BEGIN, @length
 
                         set     : ( source = @DEFAULT_SOURCE ) ->
                             @length = text.length if text = "#{source}".trim()
@@ -3131,7 +3197,6 @@ do  self.init   = ->
                             uniform.uniform = @gl.getUniform @program, uniform.location
                             uniform
                     
-
             addFrame            : ( timeStamp ) ->
                 @delta = ( timeStamp - @timeStamp ) * 1e-3
                 @timeStamp = timeStamp
@@ -3291,17 +3356,83 @@ do  self.init   = ->
                 ptri = resolvCall()
                 onscreen = this
                 
-                return Object.defineProperty(
-                    onscreen, "gl", value : new Proxy {}, {}
-                ) if isThread
+                if  isThread
+                    
+                    return Object.defineProperties( onscreen,
+                        gl : value : new Proxy {}, {}
+                        bridgeOnly : value : on
+                    ) 
 
                 replies[ ptri ] = new WeakRef ( data ) =>                   
                     @setContext data.canvas.getContext type, {
                         powerPreference: "high-performance",
                     }
-                    
+
                 postMessage onscreen : { ptri }
                 resolvs.set onscreen , ( ptri )
+
+        class Object3           extends Uint8Array
+        
+            @byteLength         : 100
+
+            OFFSET_UUID         : 0
+
+            OFFSET_POSITION     : 36
+
+            OFFSET_ROTATION     : 52
+
+            OFFSET_SCALE        : 68
+
+            OFFSET_COLOR        : 84
+
+            OFFSET_POINTS       : @byteLength
+
+            constructor : ( options = {} ) ->
+
+                byteLength = (
+                    Object3.byteLength + 
+                    options.points.length * 4
+                )
+
+                ptri = resolvs.get super byteLength
+
+                if  isThread
+                    lock ptri
+
+                @uuid = randomUUID()
+                log ptri
+
+            Object.defineProperties Object3::,
+                uuid :
+                    get : -> textDecoder.decode @detach @OFFSET_UUID, 36 
+                    set : ( v ) -> @set textEncoder.encode( v ), @OFFSET_UUID
+                    
+                points :
+                    get : -> new Float32Array @buffer, @byteOffset + @OFFSET_POINTS, @pointsLength
+                    set : ( v ) -> @points.set v.subarray( 0, @pointsLength )
+                    
+                color :
+                    get : -> new Float32Array @buffer, @byteOffset + @OFFSET_COLOR, 4
+                    set : ( v ) -> @color.set v
+                    
+                position :
+                    get : -> new Float32Array @buffer, @byteOffset + @OFFSET_POSITION, 3
+                    set : ( v ) -> @position.set v
+                    
+                rotation :
+                    get : -> new Float32Array @buffer, @byteOffset + @OFFSET_ROTATION, 3
+                    set : ( v ) -> @rotation.set v
+                
+                scale :
+                    get : -> new Float32Array @buffer, @byteOffset + @OFFSET_SCALE, 3
+                    set : ( v ) -> @scale.set v
+                    
+                pointCount : 
+                    get : -> @pointsLength / 3
+                    
+                pointsLength : 
+                    get : -> ( @byteLength - @OFFSET_POINTS ) / 4
+
 
     if  isWindow
 
@@ -3543,6 +3674,23 @@ do  self.init   = ->
 
                 when "onscreen"
                     replies[data.ptri].deref()( data )
+
+                    setTimeout =>
+                        ptri = Atomics.load p32, 1
+
+                        while ptri > HEADERS_LENGTH
+                            log {
+                                ptri
+                                length : p32[ ptri + HINDEX_LENGTH ]
+                                resolvId : p32[ ptri + HINDEX_RESOLV_ID ]
+                                byteOffset : p32[ ptri + HINDEX_BYTEOFFSET ]
+                                byteLength : p32[ ptri + HINDEX_BYTELENGTH ]
+                                begin : p32[ ptri + HINDEX_BEGIN ]
+                                end : p32[ ptri + HINDEX_END ]
+                            }
+
+                            ptri -= HEADERS_LENGTH
+                    , 1000
 
 
 

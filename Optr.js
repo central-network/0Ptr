@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_ITERINDEX, HINDEX_ITERLENGTH, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_RESOLV_ID, HINDEX_WAITCOUNT, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, LE, MAX_PTR_COUNT, MAX_THREAD_COUNT, OffscreenCanvas, OnscreenCanvas, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, UI, UI_LENGTH, UI_OFFSET, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, keybuf, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, objects, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8, xrSession;
+  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_END, HINDEX_ITERINDEX, HINDEX_ITERLENGTH, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_RESOLV_ID, HINDEX_WAITCOUNT, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, LE, MAX_PTR_COUNT, MAX_THREAD_COUNT, Object3, OffscreenCanvas, OnscreenCanvas, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, UI, UI_LENGTH, UI_OFFSET, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, keybuf, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, objects, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8, xrSession;
   log = function() {
     return console.log(name, ...arguments);
   };
@@ -39,7 +39,7 @@ self.name = "window";
     HEADERS_BYTE_LENGTH = 4 * 16,
     MAX_PTR_COUNT = 1e5,
     MAX_THREAD_COUNT = -4 + (typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0) || 3,
-    ITERATION_PER_THREAD = 1000000,
+    ITERATION_PER_THREAD = 100,
     UI_LENGTH = 4 * 48,
     UI_OFFSET = null,
     LE = new self.Uint8Array(self.Uint16Array.of(1).buffer).at(),
@@ -56,13 +56,12 @@ self.name = "window";
       }
     })()
   ];
-  [blobURL, objbuf, ptrbuf, keybuf, lock, unlock, malloc, littleEnd, ui, p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, UI, OnscreenCanvas, OffscreenCanvas, xrSession, Uint8Array, Int8Array, Uint8ClampedArray, Uint16Array, Int16Array, Uint32Array, Int32Array, Float32Array, Float64Array, BigInt64Array, BigUint64Array] = [];
+  [blobURL, objbuf, ptrbuf, keybuf, lock, unlock, malloc, littleEnd, ui, p32, dvw, si8, ui8, cu8, i32, u32, f32, f64, u64, i64, i16, u16, andUint32, orUint32, xorUint32, subUint32, addUint32, loadUint32, storeUint32, getUint32, setUint32, exchangeUint32, compareUint32, andUint16, orUint16, xorUint16, subUint16, addUint16, loadUint16, storeUint16, getUint16, setUint16, exchangeUint16, compareUint16, andUint8, orUint8, xorUint8, subUint8, addUint8, loadUint8, storeUint8, getUint8, setUint8, exchangeUint8, compareUint8, andInt32, orInt32, xorInt32, subInt32, addInt32, loadInt32, storeInt32, getInt32, setInt32, exchangeInt32, compareInt32, andInt16, orInt16, xorInt16, subInt16, addInt16, loadInt16, storeInt16, getInt16, setInt16, exchangeInt16, compareInt16, andInt8, orInt8, xorInt8, subInt8, addInt8, loadInt8, storeInt8, getInt8, setInt8, exchangeInt8, compareInt8, UI, OnscreenCanvas, OffscreenCanvas, xrSession, Object3, Uint8Array, Int8Array, Uint8ClampedArray, Uint16Array, Int16Array, Uint32Array, Int32Array, Float32Array, Float64Array, BigInt64Array, BigUint64Array] = [];
   [bc = new BroadcastChannel("0ptr"), textEncoder = new TextEncoder(), textDecoder = new TextDecoder(), selfName = self.name, isWindow = typeof document !== "undefined" && document !== null, isBridge = /bridge/i.test(selfName), isThread = /thread/i.test(selfName), threadId = isThread && parseInt(selfName.match(/\d+/)), now = Date.now(), pnow = performance.now(), resolvs = new WeakMap(), replies = new Object(), objects = new Object(), workers = new self.Array(), littleEnd = new self.Uint8Array(self.Uint32Array.of(0x01).buffer)[0], TypedArray = Object.getPrototypeOf(self.Uint8Array), GLContext = typeof WebGL2RenderingContext !== "undefined" && WebGL2RenderingContext !== null ? WebGL2RenderingContext : WebGLRenderingContext];
   resolvFind = function(id, retry = 0) {
     var i, ptri;
     i = HINDEX_RESOLV_ID + Atomics.load(p32, 1);
     ptri = 0;
-    //error { id, retry }
     while (i > 0) {
       if (id === Atomics.load(p32, i)) {
         ptri = i - HINDEX_RESOLV_ID;
@@ -77,14 +76,16 @@ self.name = "window";
         return ptri;
       }
       Atomics.wait(p32, 3, 0, 20);
-      if (retry > 400) {
+      if (retry > 100) {
         throw /TOO_MANY_TRIED_TO_FIND/;
       }
       return resolvFind(id, ++retry);
     } else if (isBridge) {
       return ptri;
     }
-    Atomics.wait(p32, ptri + HINDEX_LOCKFREE);
+    if (!Atomics.load(p32, ptri + HINDEX_LOCKFREE)) {
+      Atomics.wait(p32, ptri + HINDEX_LOCKFREE, 1, 1000);
+    }
     return ptri;
   };
   resolvCall = function() {
@@ -143,7 +144,7 @@ self.name = "window";
     ui = new UI(keybuf);
     lock = function(ptri) {
       if (ptri) {
-        return Atomics.wait(p32, ptri + HINDEX_LOCKFREE);
+        return Atomics.wait(p32, ptri + HINDEX_LOCKFREE, 1);
       } else {
         return Atomics.wait(p32, isThread ? 4 : 3);
       }
@@ -265,49 +266,6 @@ self.name = "window";
     })();
     return 0;
   };
-  Object.defineProperties(DOMMatrix.prototype, {
-    new: {
-      value: function(byteOffset) {
-        return Object.defineProperties(this.constructor.fromFloat32Array(f32.detach(byteOffset, 16)), {
-          index: {
-            value: byteOffset / 4
-          }
-        });
-      }
-    },
-    set: {
-      value: function(valueset) {
-        f32.set([...valueset], this.index);
-        [this.m11, this.m21, this.m31, this.m41, this.m12, this.m22, this.m32, this.m42, this.m13, this.m23, this.m33, this.m43, this.m14, this.m24, this.m34, this.m44] = [...valueset];
-        return this;
-      }
-    },
-    valueOf: {
-      value: function() {
-        return self.Float32Array.of(this.m11, this.m21, this.m31, this.m41, this.m12, this.m22, this.m32, this.m42, this.m13, this.m23, this.m33, this.m43, this.m14, this.m24, this.m34, this.m44);
-      }
-    },
-    [Symbol.iterator]: {
-      value: function*() {
-        yield this.m11;
-        yield this.m21;
-        yield this.m31;
-        yield this.m41;
-        yield this.m12;
-        yield this.m22;
-        yield this.m32;
-        yield this.m42;
-        yield this.m13;
-        yield this.m23;
-        yield this.m33;
-        yield this.m43;
-        yield this.m14;
-        yield this.m24;
-        yield this.m34;
-        return (yield this.m44);
-      }
-    }
-  });
   UI = (function() {
     class UI extends self.DataView {
       handle(e) {
@@ -761,6 +719,13 @@ self.name = "window";
   }).call(this);
   regenerate = function() {
     var FragmentShader, Matrix4f, UniformMatrix4fv, VertexShader, WebGLShader;
+    Object.defineProperties(Object.prototype, {
+      toArray: {
+        value: function() {
+          return Object.values(this);
+        }
+      }
+    });
     Object.defineProperties(TypedArray, {
       from: {
         value: function() {
@@ -802,32 +767,15 @@ self.name = "window";
       }
     });
     Object.defineProperties(TypedArray.prototype, {
-      indexUint8: {
-        value: function() {
-          return arguments[0] + (p32[resolvs.get(this)] + HINDEX_BYTEOFFSET) / 1;
-        }
-      },
-      indexUint16: {
-        value: function() {
-          return arguments[0] + (p32[resolvs.get(this)] + HINDEX_BYTEOFFSET) / 2;
-        }
-      },
-      indexUint32: {
-        value: function() {
-          return arguments[0] + (p32[resolvs.get(this)] + HINDEX_BYTEOFFSET) / 4;
-        }
-      },
       subarray: {
         //part of this
         value: function(begin = 0, end = this.length) {
           return new this.constructor(this.buffer, this.byteOffset + (this.BYTES_PER_ELEMENT * begin), end - begin);
         }
       },
-      
-      //part of this
       sub: {
-        value: function(byteOffset = 0, length = this.length) {
-          return new this.constructor(this.buffer, this.byteOffset + byteOffset, length);
+        value: function(byteOffset = 0, length) {
+          return new this.TypedArray(this.buffer, this.byteOffset + byteOffset, length);
         }
       },
       TypedArray: {
@@ -841,8 +789,13 @@ self.name = "window";
         }
       },
       detach: {
-        value: function(byteOffset = 0, length = this.length) {
-          return new this.TypedArray(this.sub(byteOffset, length));
+        value: function(byteOffset = 0, length) {
+          var array, buffer, detached;
+          array = this.sub(byteOffset, length);
+          buffer = new ArrayBuffer(length * this.BYTES_PER_ELEMENT);
+          detached = new this.TypedArray(buffer);
+          detached.set(array);
+          return detached;
         }
       },
       slice: {
@@ -878,7 +831,7 @@ self.name = "window";
                 total += iterate;
               }
               if (index > length) {
-                Atomics.wait(p32, 3, 0, 100);
+                Atomics.wait(p32, 3, 0, 20);
                 Atomics.notify(p32, 4, 1);
                 return {
                   done: true
@@ -1095,6 +1048,19 @@ self.name = "window";
       }
     });
     Uint8Array = class Uint8Array extends self.Uint8Array {
+      set(value, index = 0) {
+        var end, start, target;
+        if (value.buffer === this.buffer) {
+          target = this.byteOffset + index;
+          start = value.byteOffset;
+          end = start + value.byteLength;
+          ui8.copyWithin(target, start, end);
+        } else {
+          super.set(value, index);
+        }
+        return this;
+      }
+
       constructor(arg0, byteOffset, length) {
         var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
         if (arg0 < 0) {
@@ -1214,6 +1180,19 @@ self.name = "window";
 
     };
     Int8Array = class Int8Array extends self.Int8Array {
+      set(value, index = 0) {
+        var end, start, target;
+        if (value.buffer === this.buffer) {
+          target = this.byteOffset + index;
+          start = value.byteOffset;
+          end = start + value.byteLength;
+          ui8.copyWithin(target, start, end);
+        } else {
+          super.set(value, index);
+        }
+        return this;
+      }
+
       constructor(arg0, byteOffset, length) {
         var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
         if (arg0 < 0) {
@@ -1333,6 +1312,19 @@ self.name = "window";
 
     };
     Uint8ClampedArray = class Uint8ClampedArray extends self.Uint8ClampedArray {
+      set(value, index = 0) {
+        var end, start, target;
+        if (value.buffer === this.buffer) {
+          target = this.byteOffset + index;
+          start = value.byteOffset;
+          end = start + value.byteLength;
+          ui8.copyWithin(target, start, end);
+        } else {
+          super.set(value, index);
+        }
+        return this;
+      }
+
       constructor(arg0, byteOffset, length) {
         var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
         if (arg0 < 0) {
@@ -1452,6 +1444,19 @@ self.name = "window";
 
     };
     Uint16Array = class Uint16Array extends self.Uint16Array {
+      set(value, index = 0) {
+        var end, start, target;
+        if (value.buffer === this.buffer) {
+          target = this.byteOffset + index * this.BYTES_PER_ELEMENT;
+          start = value.byteOffset;
+          end = start + value.byteLength;
+          ui8.copyWithin(target, start, end);
+        } else {
+          super.set(value, index);
+        }
+        return this;
+      }
+
       constructor(arg0, byteOffset, length) {
         var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
         if (arg0 < 0) {
@@ -1571,6 +1576,19 @@ self.name = "window";
 
     };
     Int16Array = class Int16Array extends self.Int16Array {
+      set(value, index = 0) {
+        var end, start, target;
+        if (value.buffer === this.buffer) {
+          target = this.byteOffset + index * this.BYTES_PER_ELEMENT;
+          start = value.byteOffset;
+          end = start + value.byteLength;
+          ui8.copyWithin(target, start, end);
+        } else {
+          super.set(value, index);
+        }
+        return this;
+      }
+
       constructor(arg0, byteOffset, length) {
         var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
         if (arg0 < 0) {
@@ -1690,6 +1708,19 @@ self.name = "window";
 
     };
     Uint32Array = class Uint32Array extends self.Uint32Array {
+      set(value, index = 0) {
+        var end, start, target;
+        if (value.buffer === this.buffer) {
+          target = this.byteOffset + index * this.BYTES_PER_ELEMENT;
+          start = value.byteOffset;
+          end = start + value.byteLength;
+          ui8.copyWithin(target, start, end);
+        } else {
+          super.set(value, index);
+        }
+        return this;
+      }
+
       constructor(arg0, byteOffset, length) {
         var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
         if (arg0 < 0) {
@@ -1809,6 +1840,19 @@ self.name = "window";
 
     };
     Int32Array = class Int32Array extends self.Int32Array {
+      set(value, index = 0) {
+        var end, start, target;
+        if (value.buffer === this.buffer) {
+          target = this.byteOffset + index * this.BYTES_PER_ELEMENT;
+          start = value.byteOffset;
+          end = start + value.byteLength;
+          ui8.copyWithin(target, start, end);
+        } else {
+          super.set(value, index);
+        }
+        return this;
+      }
+
       constructor(arg0, byteOffset, length) {
         var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
         if (arg0 < 0) {
@@ -1928,6 +1972,19 @@ self.name = "window";
 
     };
     Float32Array = class Float32Array extends self.Float32Array {
+      set(value, index = 0) {
+        var end, start, target;
+        if (value.buffer === this.buffer) {
+          target = this.byteOffset + index * this.BYTES_PER_ELEMENT;
+          start = value.byteOffset;
+          end = start + value.byteLength;
+          ui8.copyWithin(target, start, end);
+        } else {
+          super.set(value, index);
+        }
+        return this;
+      }
+
       constructor(arg0, byteOffset, length) {
         var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
         if (arg0 < 0) {
@@ -2047,6 +2104,19 @@ self.name = "window";
 
     };
     Float64Array = class Float64Array extends self.Float64Array {
+      set(value, index = 0) {
+        var end, start, target;
+        if (value.buffer === this.buffer) {
+          target = this.byteOffset + index * this.BYTES_PER_ELEMENT;
+          start = value.byteOffset;
+          end = start + value.byteLength;
+          ui8.copyWithin(target, start, end);
+        } else {
+          super.set(value, index);
+        }
+        return this;
+      }
+
       constructor(arg0, byteOffset, length) {
         var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
         if (arg0 < 0) {
@@ -2166,6 +2236,19 @@ self.name = "window";
 
     };
     BigInt64Array = class BigInt64Array extends self.BigInt64Array {
+      set(value, index = 0) {
+        var end, start, target;
+        if (value.buffer === this.buffer) {
+          target = this.byteOffset + index * this.BYTES_PER_ELEMENT;
+          start = value.byteOffset;
+          end = start + value.byteLength;
+          ui8.copyWithin(target, start, end);
+        } else {
+          super.set(value, index);
+        }
+        return this;
+      }
+
       constructor(arg0, byteOffset, length) {
         var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
         if (arg0 < 0) {
@@ -2285,6 +2368,19 @@ self.name = "window";
 
     };
     BigUint64Array = class BigUint64Array extends self.BigUint64Array {
+      set(value, index = 0) {
+        var end, start, target;
+        if (value.buffer === this.buffer) {
+          target = this.byteOffset + index * this.BYTES_PER_ELEMENT;
+          start = value.byteOffset;
+          end = start + value.byteLength;
+          ui8.copyWithin(target, start, end);
+        } else {
+          super.set(value, index);
+        }
+        return this;
+      }
+
       constructor(arg0, byteOffset, length) {
         var arg0ByteLength, arg0Length, arg0Offset, argc, begin, bpel, byteLength, copyEnd, copyStart, end, nextByteLength, ptri;
         if (arg0 < 0) {
@@ -2525,8 +2621,8 @@ self.name = "window";
         }
 
         set(set) {
-          super.set(set);
           this.gl.uniformMatrix4fv(this.uniform.location, false, set);
+          super.set(set);
           return this;
         }
 
@@ -2537,7 +2633,7 @@ self.name = "window";
           rangeInv = 1.0 / (zNear - zFar);
           this.set(self.Float32Array.of(f / this.aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (zNear + zFar) * rangeInv, -1, 0, 0, (zNear * zFar) * rangeInv * 2, 0));
           this.gl.viewport(this.left, this.top, this.width, this.height);
-          this.translateSelf(0, 0, -1);
+          this.translateSelf(0, 0, -500);
           this.rotateSelf(Math.PI, 0, 0);
           this.scaleSelf(1, 1, 1);
           return this;
@@ -2880,7 +2976,10 @@ self.name = "window";
         },
         source: {
           get: function() {
-            return textDecoder.decode(this.detach(this.OFFSET_SOURCE_BEGIN));
+            if (!this.length) {
+              return "";
+            }
+            return textDecoder.decode(this.detach(this.OFFSET_SOURCE_BEGIN, this.length));
           },
           set: function(source = this.DEFAULT_SOURCE) {
             var text;
@@ -2931,7 +3030,7 @@ self.name = "window";
       return FragmentShader;
 
     }).call(this);
-    return OnscreenCanvas = (function() {
+    OnscreenCanvas = (function() {
       class OnscreenCanvas extends Float32Array {
         addFrame(timeStamp) {
           this.delta = (timeStamp - this.timeStamp) * 1e-3;
@@ -3146,8 +3245,13 @@ self.name = "window";
           ptri = resolvCall();
           onscreen = this;
           if (isThread) {
-            return Object.defineProperty(onscreen, "gl", {
-              value: new Proxy({}, {})
+            return Object.defineProperties(onscreen, {
+              gl: {
+                value: new Proxy({}, {})
+              },
+              bridgeOnly: {
+                value: true
+              }
             });
           }
           replies[ptri] = new WeakRef((data) => {
@@ -3364,6 +3468,99 @@ self.name = "window";
       return OnscreenCanvas;
 
     }).call(this);
+    return Object3 = (function() {
+      class Object3 extends Uint8Array {
+        constructor(options = {}) {
+          var byteLength, ptri;
+          byteLength = Object3.byteLength + options.points.length * 4;
+          ptri = resolvs.get(super(byteLength));
+          if (isThread) {
+            lock(ptri);
+          }
+          this.uuid = randomUUID();
+          log(ptri);
+        }
+
+      };
+
+      Object3.byteLength = 100;
+
+      Object3.prototype.OFFSET_UUID = 0;
+
+      Object3.prototype.OFFSET_POSITION = 36;
+
+      Object3.prototype.OFFSET_ROTATION = 52;
+
+      Object3.prototype.OFFSET_SCALE = 68;
+
+      Object3.prototype.OFFSET_COLOR = 84;
+
+      Object3.prototype.OFFSET_POINTS = Object3.byteLength;
+
+      Object.defineProperties(Object3.prototype, {
+        uuid: {
+          get: function() {
+            return textDecoder.decode(this.detach(this.OFFSET_UUID, 36));
+          },
+          set: function(v) {
+            return this.set(textEncoder.encode(v), this.OFFSET_UUID);
+          }
+        },
+        points: {
+          get: function() {
+            return new Float32Array(this.buffer, this.byteOffset + this.OFFSET_POINTS, this.pointsLength);
+          },
+          set: function(v) {
+            return this.points.set(v.subarray(0, this.pointsLength));
+          }
+        },
+        color: {
+          get: function() {
+            return new Float32Array(this.buffer, this.byteOffset + this.OFFSET_COLOR, 4);
+          },
+          set: function(v) {
+            return this.color.set(v);
+          }
+        },
+        position: {
+          get: function() {
+            return new Float32Array(this.buffer, this.byteOffset + this.OFFSET_POSITION, 3);
+          },
+          set: function(v) {
+            return this.position.set(v);
+          }
+        },
+        rotation: {
+          get: function() {
+            return new Float32Array(this.buffer, this.byteOffset + this.OFFSET_ROTATION, 3);
+          },
+          set: function(v) {
+            return this.rotation.set(v);
+          }
+        },
+        scale: {
+          get: function() {
+            return new Float32Array(this.buffer, this.byteOffset + this.OFFSET_SCALE, 3);
+          },
+          set: function(v) {
+            return this.scale.set(v);
+          }
+        },
+        pointCount: {
+          get: function() {
+            return this.pointsLength / 3;
+          }
+        },
+        pointsLength: {
+          get: function() {
+            return (this.byteLength - this.OFFSET_POINTS) / 4;
+          }
+        }
+      });
+
+      return Object3;
+
+    }).call(this);
   };
   if (isWindow) {
     sharedHandler = {
@@ -3554,7 +3751,25 @@ self.name = "window";
             }));
             break;
           case "onscreen":
-            results.push(replies[data.ptri].deref()(data));
+            replies[data.ptri].deref()(data);
+            results.push(setTimeout(() => {
+              var ptri, results1;
+              ptri = Atomics.load(p32, 1);
+              results1 = [];
+              while (ptri > HEADERS_LENGTH) {
+                log({
+                  ptri,
+                  length: p32[ptri + HINDEX_LENGTH],
+                  resolvId: p32[ptri + HINDEX_RESOLV_ID],
+                  byteOffset: p32[ptri + HINDEX_BYTEOFFSET],
+                  byteLength: p32[ptri + HINDEX_BYTELENGTH],
+                  begin: p32[ptri + HINDEX_BEGIN],
+                  end: p32[ptri + HINDEX_END]
+                });
+                results1.push(ptri -= HEADERS_LENGTH);
+              }
+              return results1;
+            }, 1000));
             break;
           default:
             results.push(void 0);

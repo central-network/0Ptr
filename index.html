@@ -35,16 +35,8 @@
     const onscreen = new OnscreenCanvas()
     let red = 0.1, green = 0.3 , blue= 0.9, sign = 1, factor = 0.002;
    
-    
-    onscreen.oncontextrestored = function ( gl ){
-
-        gl.u_PointSize = 20;
-        gl.u_ViewMatrix.perspective(
-            1e-2, 1e4, this.width, this.height, 0, 0, 90
-        );
-
-
-        const shape = new Float32Array([
+    const shape = new Object3({
+        points : Float32Array.of(
                 0,   0,  0,
                  0, 150,  0,
                 30,   0,  0,
@@ -171,18 +163,27 @@
                 0,   0,   0,
                 0, 150,  30,
                 0, 150,   0,
-        ]);
-        
-        const triangle = this.malloc( shape.length/3 );
+        )
+    });
+
+    onscreen.oncontextrestored = function ( gl ){
+
+        gl.u_PointSize = 10;
+        gl.u_ViewMatrix.perspective(
+            1e-2, 1e4, this.width, this.height, 0, 0, 90
+        );
+
+        return
+        const triangle = this.malloc( shape.pointCount );
         
 
         for (let i=0; i<shape.length; i+= 3) {
             triangle.set( shape.subarray(i, i+3), (i/3) * this.attribLength )
         }
 
-        this.upload()
+        log( shape )
 
-        warn( this );
+        this.upload()
 
     };
 
