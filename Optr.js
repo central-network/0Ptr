@@ -80,7 +80,7 @@ self.name = "window";
         return ptri;
       }
       Atomics.wait(p32, 3, 0, 20);
-      if (retry > 10) {
+      if (retry > 30) {
         throw /TOO_MANY_TRIED_TO_FIND/;
       }
       return resolvFind(id, ++retry);
@@ -730,8 +730,25 @@ self.name = "window";
     ptri = Atomics.load(p32, 1);
     while (ptri > HEADERS_LENGTH) {
       if (Atomics.and(p32, ptri + HINDEX_NEEDSUPDATE, 0)) {
-        log("updating" + ptri);
+        log("updating" + ptri, Object3.at(ptri));
       }
+      //todo   threadlar yalnizda update icin obje
+      //todo   olusturmali ama kodu okudugu icin
+      //todo   degisik seyler oluyor
+      //todo   
+      //todo   isColorNeedsUpdate?
+      //todo       getColor
+      //todo           getNextPaintPoint
+      //todo               isNull
+      //todo                   flagDone
+      //todo         
+      //todo   isVertexNeedsUpdate?
+      //todo       getRotation
+      //todo           getScale
+      //todo               getPosition
+      //todo                   getNextVertexPoint
+      //todo                       isNull
+      //todo                           flagDone
       ptri -= HEADERS_LENGTH;
     }
     lock();
@@ -784,7 +801,7 @@ self.name = "window";
             return;
           }
           byteOffset = Atomics.load(p32, ptri + HINDEX_BYTEOFFSET);
-          return new this(this.buffer, byteOffset, length, ptri);
+          return new this(objbuf, byteOffset, length, ptri);
         }
       }
     });
@@ -2061,6 +2078,7 @@ self.name = "window";
         }
         // WeakMap -> {TypedArray} => ptri
         resolvs.set(Object.defineProperty(this, "ptri", {
+          configurable: true,
           value: ptri
         }), ptri);
       }
@@ -3408,12 +3426,19 @@ self.name = "window";
         constructor(options = {
             points: []
           }) {
-          var byteLength;
+          var byteLength, ptri;
+          ptri = resolvCall();
           byteLength = Object3.byteLength + options.points.length * 4;
           super(byteLength);
           if (isBridge) {
             this.uuid = randomUUID();
           }
+          resolvs.set(Object.defineProperties(this, {
+            ptri: {
+              value: ptri
+            }
+          }), ptri);
+          Atomics.notify(p32, ptri + HINDEX_LOCKFREE);
         }
 
         updateIfNeeded(gl) {

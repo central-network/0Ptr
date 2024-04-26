@@ -124,7 +124,7 @@ do  self.init   = ->
 
             Atomics.wait p32, 3, 0, 20
 
-            if  retry > 10
+            if  retry > 30
                 throw /TOO_MANY_TRIED_TO_FIND/
             return resolvFind id, ++retry
 
@@ -611,7 +611,29 @@ do  self.init   = ->
 
         while ptri > HEADERS_LENGTH
             if  Atomics.and p32, ptri + HINDEX_NEEDSUPDATE, 0
-                log "updating" + ptri
+
+                log "updating" + ptri, Object3.at( ptri )
+
+                #todo   threadlar yalnizda update icin obje
+                #todo   olusturmali ama kodu okudugu icin
+                #todo   degisik seyler oluyor
+                #todo   
+                #todo   isColorNeedsUpdate?
+                #todo       getColor
+                #todo           getNextPaintPoint
+                #todo               isNull
+                #todo                   flagDone
+                #todo         
+                #todo   isVertexNeedsUpdate?
+                #todo       getRotation
+                #todo           getScale
+                #todo               getPosition
+                #todo                   getNextVertexPoint
+                #todo                       isNull
+                #todo                           flagDone
+
+
+
 
             ptri -= HEADERS_LENGTH
 
@@ -655,7 +677,7 @@ do  self.init   = ->
                 value : ( ptri ) ->
                     return unless length = Atomics.load p32, ptri + HINDEX_LENGTH
                     byteOffset = Atomics.load p32, ptri + HINDEX_BYTEOFFSET
-                    new this @buffer, byteOffset, length, ptri
+                    new this objbuf, byteOffset, length, ptri
 
         Object.defineProperties TypedArray::,
             
@@ -1982,7 +2004,6 @@ do  self.init   = ->
                 this
 
             constructor         : ( arg0, byteOffset, length, ptri ) ->
-
                 ptri = ptri or resolvCall()
                 argc = arguments.length                
                 bpel = 4
@@ -2118,6 +2139,7 @@ do  self.init   = ->
                 # WeakMap -> {TypedArray} => ptri
                 resolvs.set Object.defineProperty(
                     this, "ptri", {
+                        configurable: yes,
                         value : ptri
                     }
                 ), ptri
@@ -3322,6 +3344,8 @@ do  self.init   = ->
             OFFSET_POINTS       : @byteLength
 
             constructor : ( options = { points : [] } ) ->
+                ptri = resolvCall()
+
                 byteLength = (
                     Object3.byteLength + 
                     options.points.length * 4
@@ -3331,10 +3355,15 @@ do  self.init   = ->
 
                 if  isBridge
                     @uuid = randomUUID()
+                
+                resolvs.set Object.defineProperties( this,
+                    ptri : value : ptri
+                ), ptri
+
+                Atomics.notify p32, ptri + HINDEX_LOCKFREE
 
             updateIfNeeded : ( gl ) ->
                 log 1, "update if needed"
-
 
             Object.defineProperties Object3::,
                 uuid :

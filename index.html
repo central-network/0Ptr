@@ -183,12 +183,18 @@
 
         const triangle = this.malloc( shape );
         log( shape )
+        shape2.needsUpdate = 1;
 
         setTimeout(function (){
             shape.needsUpdate = 1;
+            shape2.needsUpdate = 1;
+
             setTimeout(function (){
                 shape.needsUpdate = 1;
             }, 1010)
+            setTimeout(function (){
+                shape2.needsUpdate = 1;
+            }, 110)
         }, 1000)
         
         setTimeout(function (){
