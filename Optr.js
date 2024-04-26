@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, FragmentShader, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_ATTRIBSLENGTH, HINDEX_ATTRIBSOFFSET, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_ITERINDEX, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_NEEDSUPDATE, HINDEX_PARENT, HINDEX_PTRI, HINDEX_RESOLV_ID, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, LE, MAX_PTR_COUNT, MAX_THREAD_COUNT, Object3, OffscreenCanvas, OnscreenCanvas, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, UI, UI_LENGTH, UI_OFFSET, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, VertexShader, WebGLShader, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, keybuf, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, objects, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
+  var ALLOCATION_BYTEOFFSET, BUFFER_TEST_START_LENGTH, BUFFER_TEST_STEP_DIVIDER, BYTES_PER_ELEMENT, BigInt64Array, BigUint64Array, CONTEXT_READY, DUMP_WEAKMAP, EVENT_READY, Float32Array, Float64Array, FragmentShader, GLContext, HEADERS_BYTE_LENGTH, HEADERS_LENGTH, HEADERS_LENGTH_OFFSET, HINDEX_ATTRIBSLENGTH, HINDEX_ATTRIBSOFFSET, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_ITERINDEX, HINDEX_LENGTH, HINDEX_LOCKFREE, HINDEX_NEEDSUPDATE, HINDEX_PARENT, HINDEX_PTRI, HINDEX_RESOLV_ID, INITIAL_BYTELENGTH, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, Int16Array, Int32Array, Int8Array, LE, MAX_PTR_COUNT, MAX_THREAD_COUNT, Object3, OffscreenCanvas, OnscreenCanvas, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RESERVED_BYTELENGTH, TypedArray, UI, UI_LENGTH, UI_OFFSET, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, VertexShader, WebGLShader, addInt16, addInt32, addInt8, addUint16, addUint32, addUint8, andInt16, andInt32, andInt8, andUint16, andUint32, andUint8, bc, blobURL, bridgeHandler, bridgemessage, compareInt16, compareInt32, compareInt8, compareUint16, compareUint32, compareUint8, createBlobURL, createBuffers, createCanvas, createThreads, createWorker, cu8, dvw, error, exchangeInt16, exchangeInt32, exchangeInt8, exchangeUint16, exchangeUint32, exchangeUint8, f32, f64, getInt16, getInt32, getInt8, getUint16, getUint32, getUint8, i16, i32, i64, initMemory, isBridge, isThread, isWindow, keybuf, listenEvents, littleEnd, loadInt16, loadInt32, loadInt8, loadUint16, loadUint32, loadUint8, lock, log, malloc, now, number, objbuf, objects, oncontextready, orInt16, orInt32, orInt8, orUint16, orUint32, orUint8, p32, pnow, ptrbuf, randomUUID, regenerate, replies, resolvCall, resolvFind, resolvs, selfName, setInt16, setInt32, setInt8, setUint16, setUint32, setUint8, sharedHandler, si8, storeInt16, storeInt32, storeInt8, storeUint16, storeUint32, storeUint8, subInt16, subInt32, subInt8, subUint16, subUint32, subUint8, textDecoder, textEncoder, threadHandler, threadId, threadmessage, u16, u32, u64, ui, ui8, unlock, warn, workers, xorInt16, xorInt32, xorInt8, xorUint16, xorUint32, xorUint8;
   log = function() {
     return console.log(name, ...arguments);
   };
@@ -51,6 +51,7 @@ self.name = "window";
     RATIO_ASPECT = INNER_WIDTH / INNER_HEIGHT,
     EVENT_READY = new (EVENT_READY = class EVENT_READY extends Number {})(number(/EVENT_READY/.source)),
     DUMP_WEAKMAP = new (DUMP_WEAKMAP = class DUMP_WEAKMAP extends Number {})(number(/DUMP_WEAKMAP/.source)),
+    CONTEXT_READY = new (CONTEXT_READY = class CONTEXT_READY extends Number {})(number(/CONTEXT_READY/.source)),
     (function() {
       if (HEADERS_LENGTH_OFFSET >= HEADERS_LENGTH) {
         throw /MAX_HEADERS_LENGTH_EXCEED/;
@@ -721,6 +722,21 @@ self.name = "window";
     return UI;
 
   }).call(this);
+  oncontextready = function() {
+    var ptri;
+    if (!isThread) {
+      return;
+    }
+    ptri = Atomics.load(p32, 1);
+    while (ptri > HEADERS_LENGTH) {
+      if (Atomics.and(p32, ptri + HINDEX_NEEDSUPDATE, 0)) {
+        log("updating" + ptri);
+      }
+      ptri -= HEADERS_LENGTH;
+    }
+    lock();
+    return oncontextready();
+  };
   regenerate = function() {
     var Matrix4f, UniformMatrix4fv;
     Object.defineProperties(Object.prototype, {
@@ -3135,28 +3151,6 @@ self.name = "window";
 
         onupdate() {}
 
-        onrender() {
-          var ptri;
-          ptri = Atomics.load(p32, 1);
-          while (ptri > HEADERS_LENGTH) {
-            //if  Atomics.and p32, ptri + HINDEX_NEEDSUPDATE, 0
-            if (Atomics.load(p32, ptri + HINDEX_NEEDSUPDATE, 0)) {
-              if (isBridge) {
-                log("update", ptri);
-                unlock();
-              } else {
-                //log "updating"
-                this.onupdate();
-              }
-            }
-            ptri -= HEADERS_LENGTH;
-          }
-          if (isThread) {
-            lock();
-            return this.onrender();
-          }
-        }
-
         render() {
           var commit;
           if (!this.hasContext) {
@@ -3165,9 +3159,17 @@ self.name = "window";
           if (!isBridge) {
             return;
           }
+          bc.postMessage(CONTEXT_READY);
           return (commit = (now) => {
+            var ptri;
             if (this.hasContext && this.hasBinding) {
-              this.onrender();
+              ptri = Atomics.load(p32, 1);
+              while (ptri > HEADERS_LENGTH) {
+                if (Atomics.load(p32, ptri + HINDEX_NEEDSUPDATE, 0)) {
+                  unlock();
+                }
+                ptri -= HEADERS_LENGTH;
+              }
               this.onanimationframe(this.gl, this.addFrame(now));
               this.gl.drawArrays(this.gl.POINTS, 0, this.pointCount);
               this.gl.drawArrays(this.gl.LINES, 0, this.pointCount);
@@ -3182,21 +3184,17 @@ self.name = "window";
         }
 
         getContext(type) {
-          if (isThread) {
-            log(this.onupdate + "");
-            //lock()
-            //@onrender()
-            return 1;
-          } else {
-            replies[this.ptri] = new WeakRef((data) => {
-              return this.setContext(data.canvas.getContext(type, {
-                powerPreference: "high-performance"
-              }));
-            });
-            return postMessage({
-              onscreen: {ptri: this.ptri}
-            });
+          if (!isBridge) {
+            return;
           }
+          replies[this.ptri] = new WeakRef((data) => {
+            return this.setContext(data.canvas.getContext(type, {
+              powerPreference: "high-performance"
+            }));
+          });
+          return postMessage({
+            onscreen: {ptri: this.ptri}
+          });
         }
 
       };
@@ -3688,8 +3686,9 @@ self.name = "window";
   }
   if (isBridge) {
     addEventListener("message", function(e) {
-      var data, ref, req, uuid;
+      var data, ref, req, results, uuid;
       ref = e.data;
+      results = [];
       for (req in ref) {
         data = ref[req];
         switch (req) {
@@ -3698,31 +3697,18 @@ self.name = "window";
             blobURL = data.blobURL;
             initMemory(data);
             regenerate();
-            postMessage({
+            results.push(postMessage({
               register: {selfName, isBridge, isThread, threadId, now, pnow, uuid}
-            });
+            }));
             break;
           case "onscreen":
-            return replies[data.ptri].deref()(data);
-            setTimeout(() => {
-              var ptri, results;
-              ptri = Atomics.load(p32, 1);
-              results = [];
-              while (ptri > HEADERS_LENGTH) {
-                log({
-                  ptri,
-                  parent: p32[ptri + HINDEX_PARENT],
-                  length: p32[ptri + HINDEX_LENGTH],
-                  resolvId: p32[ptri + HINDEX_RESOLV_ID],
-                  byteOffset: p32[ptri + HINDEX_BYTEOFFSET],
-                  byteLength: p32[ptri + HINDEX_BYTELENGTH]
-                });
-                results.push(ptri -= HEADERS_LENGTH);
-              }
-              return results;
-            }, 1000);
+            results.push(replies[data.ptri].deref()(data));
+            break;
+          default:
+            results.push(void 0);
         }
       }
+      return results;
     });
   }
   if (isThread) {
@@ -3753,6 +3739,9 @@ self.name = "window";
     return {
       [EVENT_READY]: function() {
         return onready();
+      },
+      [CONTEXT_READY]: function() {
+        return oncontextready();
       },
       [DUMP_WEAKMAP]: function() {
         return log(resolvs);

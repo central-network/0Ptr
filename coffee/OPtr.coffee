@@ -51,6 +51,12 @@ do  self.init   = ->
             number( /DUMP_WEAKMAP/.source )
         )
 
+        CONTEXT_READY               = new (class CONTEXT_READY extends Number)(
+            number( /CONTEXT_READY/.source )
+        )
+
+
+
         throw /MAX_HEADERS_LENGTH_EXCEED/ if HEADERS_LENGTH_OFFSET >= HEADERS_LENGTH ]
 
     [
@@ -208,7 +214,6 @@ do  self.init   = ->
                 Atomics.store  p32, ptri + HINDEX_LOCKFREE, 1
                 Atomics.notify p32, ptri + HINDEX_LOCKFREE
             Atomics.notify p32 , if isThread then 3 else 4
-
 
         malloc              = ( byteLength = 0, alignBytes = 1 ) ->
             if  byteLength > 0
@@ -599,6 +604,19 @@ do  self.init   = ->
                 unless @eventCount is @lastEventCount
                     return @lastEventCount = @eventCount
                 no
+
+    oncontextready = ->
+        return unless isThread
+        ptri = Atomics.load p32, 1
+
+        while ptri > HEADERS_LENGTH
+            if  Atomics.and p32, ptri + HINDEX_NEEDSUPDATE, 0
+                log "updating" + ptri
+
+            ptri -= HEADERS_LENGTH
+
+        lock()
+        oncontextready()
 
     regenerate  = ->
 
@@ -3246,34 +3264,20 @@ do  self.init   = ->
             onanimationframe        : ->
             onupdate                : ->
 
-            onrender                : ->
-                ptri = Atomics.load p32, 1
-
-                while ptri > HEADERS_LENGTH
-                    #if  Atomics.and p32, ptri + HINDEX_NEEDSUPDATE, 0
-                    if  Atomics.load p32, ptri + HINDEX_NEEDSUPDATE, 0
-                        if  isBridge
-                            log "update", ptri
-                            unlock()
-
-                        else
-                            #log "updating"
-                            @onupdate()
-
-                    ptri -= HEADERS_LENGTH
-
-                if  isThread
-                    lock() 
-                    @onrender()
-
             render      : ->
                 return unless @hasContext
                 return unless isBridge
 
+                bc.postMessage CONTEXT_READY
+
                 do commit = ( now = 0 ) =>
                     if  @hasContext and @hasBinding
 
-                        @onrender()
+                        ptri = Atomics.load p32, 1
+                        while ptri > HEADERS_LENGTH
+                            unlock() if Atomics.load p32, ptri + HINDEX_NEEDSUPDATE, 0
+                            ptri -= HEADERS_LENGTH
+
                         @onanimationframe @gl, @addFrame now 
                         
                         @gl.drawArrays @gl.POINTS, 0, @pointCount
@@ -3287,18 +3291,14 @@ do  self.init   = ->
                     .getContext "webgl2"
 
             getContext : ( type ) ->                
-                if  isThread
-                    log @onupdate + ""
-                    #lock()
-                    #@onrender()
-                    1
+                return unless isBridge
 
-                else
-                    replies[ @ptri ] = new WeakRef ( data ) =>                   
-                        @setContext data.canvas.getContext type, {
-                            powerPreference: "high-performance",
-                        }
-                    postMessage onscreen : { @ptri }
+                replies[ @ptri ] = new WeakRef ( data ) =>                   
+                    @setContext data.canvas.getContext type, {
+                        powerPreference: "high-performance",
+                    }
+
+                postMessage onscreen : { @ptri }
 
 
         class Object3           extends Float32Array
@@ -3610,23 +3610,7 @@ do  self.init   = ->
                     }
 
                 when "onscreen"
-                    return replies[data.ptri].deref()( data )
-
-                    setTimeout =>
-                        ptri = Atomics.load p32, 1
-
-                        while ptri > HEADERS_LENGTH
-                            log {
-                                ptri
-                                parent : p32[ ptri + HINDEX_PARENT ]
-                                length : p32[ ptri + HINDEX_LENGTH ]
-                                resolvId : p32[ ptri + HINDEX_RESOLV_ID ]
-                                byteOffset : p32[ ptri + HINDEX_BYTEOFFSET ]
-                                byteLength : p32[ ptri + HINDEX_BYTELENGTH ]
-                            }
-
-                            ptri -= HEADERS_LENGTH
-                    , 1000
+                    replies[data.ptri].deref()( data )
 
 
 
@@ -3684,6 +3668,7 @@ do  self.init   = ->
 
     if  isThread
 
+
         addEventListener "message", (e) ->
             for req, data of e.data then switch req
                 when "setup"
@@ -3705,6 +3690,7 @@ do  self.init   = ->
 
     bc.onmessage = ( e ) -> {
         [ EVENT_READY ] : -> onready()
+        [ CONTEXT_READY ] : -> oncontextready()
         [ DUMP_WEAKMAP ] : -> log resolvs
     }[ e.data ]()
 

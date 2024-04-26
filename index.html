@@ -166,6 +166,13 @@
         )
     });
 
+    const shape2 = new Object3({
+        points : Float32Array.of(
+            10, 0, 0,
+            -10, 0, 0,
+            0, 20, 0,
+        )
+    })
 
     onscreen.oncontextrestored = function ( gl ){
 
@@ -179,7 +186,15 @@
 
         setTimeout(function (){
             shape.needsUpdate = 1;
+            setTimeout(function (){
+                shape.needsUpdate = 1;
+            }, 1010)
         }, 1000)
+        
+        setTimeout(function (){
+            shape.needsUpdate = 1;
+            shape2.needsUpdate = 1;
+        }, 1020)
         
 
     };
