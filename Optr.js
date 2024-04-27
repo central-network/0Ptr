@@ -32,6 +32,8 @@ self.name = "window";
   glBuffer = null;
   classes = [];
   ticks = 0;
+  RADIANS_PER_DEGREE = Math.PI / 180.0;
+  LE = !!(new Uint8Array(Uint16Array.of(1).buffer).at(0));
   THREADS_STATE = 5;
   THREADS_BEGIN = 6;
   THREADS_COUNT = 2 || (typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0);
@@ -52,9 +54,9 @@ self.name = "window";
   HINDEX_PARENT = HINDEX_LENGTH++;
   HINDEX_BEGIN = HINDEX_LENGTH++;
   HINDEX_ISGL = HINDEX_LENGTH++;
-  HINDEX_UPDATED = HINDEX_ISGL + 1;
-  HINDEX_PAINTED = HINDEX_ISGL + 2;
-  HINDEX_LOCATED = HINDEX_ISGL + 3;
+  HINDEX_UPDATED = HINDEX_LENGTH++;
+  HINDEX_PAINTED = HINDEX_LENGTH++;
+  HINDEX_LOCATED = HINDEX_LENGTH++;
   HINDEX_ITER_COUNT = HINDEX_LENGTH++;
   HINDEX_NEXT_COLORI = HINDEX_LENGTH++;
   HINDEX_NEXT_VERTEXI = HINDEX_LENGTH++;
@@ -65,46 +67,45 @@ self.name = "window";
     return Atomics.store(ptri32, threadId, state);
   };
   nextTick = function() {
-    var begin, count, draw, end, index, j, len, locate, paint, ptri, ref, shape, vertex;
+    var begin, color, count, draw, end, index, j, len, locate, paint, ptri, ref, shape, vertex;
     lock();
-    log("nextTick:", ++ticks);
+    //log "nextTick:", ++ticks
     ptri = Atomics.load(ptri32, 1);
     while (OFFSET_PTR <= (ptri -= 16)) {
-      if (!Atomics.load(ui8, ptri + HINDEX_ISGL)) {
+      if (!Atomics.load(ptri32, ptri + HINDEX_ISGL)) {
         continue;
       }
-      locate = Atomics.load(ui8, ptri + HINDEX_LOCATED);
-      paint = Atomics.load(ui8, ptri + HINDEX_PAINTED);
+      locate = Atomics.load(ptri32, ptri + HINDEX_LOCATED);
+      paint = Atomics.load(ptri32, ptri + HINDEX_PAINTED);
       if (paint && locate) {
         continue;
       }
-      index = Atomics.add(u32, ptri + HINDEX_NEXT_VERTEXI, 1);
-      count = Atomics.load(u32, ptri + HINDEX_ITER_COUNT);
-      shape = new Shape(ptri);
-      begin = index * 3;
-      end = begin + 3;
-      vertex = shape.vertices.subarray(begin, end);
-      log("ptri:", {
-        ptri: ptri,
-        index,
-        vertex
-      });
-      ref = shape.children;
-      for (j = 0, len = ref.length; j < len; j++) {
-        draw = ref[j];
-        draw.vertex(index).set(vertex);
-        draw.color(index).set(shape.color);
+      index = Atomics.add(ptri32, ptri + HINDEX_NEXT_VERTEXI, 1);
+      count = Atomics.load(ptri32, ptri + HINDEX_ITER_COUNT);
+      if (index <= count) {
+        shape = new Shape(ptri);
+        begin = index * 3;
+        end = begin + 3;
+        vertex = shape.vertex(index);
+        color = shape.color;
+        log(ptri, index, count, ...vertex);
+        ref = shape.children;
+        for (j = 0, len = ref.length; j < len; j++) {
+          draw = ref[j];
+          draw.vertex(index).set(vertex);
+          draw.color(index).set(color);
+        }
       }
       if (index - count) {
         continue;
       }
       if (!locate) {
-        Atomics.store(ui8, ptri + HINDEX_LOCATED, 1);
+        Atomics.store(ptri32, ptri + HINDEX_LOCATED, 1);
       }
       if (!paint) {
-        Atomics.store(ui8, ptri + HINDEX_PAINTED, 1);
+        Atomics.store(ptri32, ptri + HINDEX_PAINTED, 1);
       }
-      Atomics.store(ui8, ptri + HINDEX_UPDATED, 1);
+      Atomics.store(ptri32, ptri + HINDEX_UPDATED, 1);
     }
     return nextTick();
   };
@@ -148,18 +149,18 @@ self.name = "window";
   OFFSET_TRIANGLES = OFFSET_GPU + STRIDE_GPU * 0;
   OFFSET_LINES = OFFSET_GPU + STRIDE_GPU * 1;
   OFFSET_POINTS = OFFSET_GPU + STRIDE_GPU * 2;
-  RADIANS_PER_DEGREE = Math.PI / 180.0;
-  LE = new Uint8Array(Uint16Array.of(1).buffer).at();
   malloc = function(constructor, byteLength) {
-    var begin, byteOffset, classId, length, ptri;
+    var BYTES_PER_ELEMENT, begin, byteOffset, classId, length, ptri;
+    BYTES_PER_ELEMENT = constructor.TypedArray.BYTES_PER_ELEMENT || constructor.BYTES_PER_ELEMENT;
     classId = constructor.classId;
-    if (byteLength == null) {
+    if (!byteLength) {
       byteLength = constructor.byteLength;
     }
-    length = byteLength / constructor.TypedArray.BYTES_PER_ELEMENT;
+    byteLength += 8 - (byteLength % 8);
+    length = byteLength / BYTES_PER_ELEMENT;
     ptri = Atomics.add(ptri32, 1, 16);
     byteOffset = Atomics.add(ptri32, 0, byteLength);
-    begin = byteOffset / constructor.TypedArray.BYTES_PER_ELEMENT;
+    begin = byteOffset / BYTES_PER_ELEMENT;
     Atomics.store(ptri32, ptri + HINDEX_PTRI, ptri);
     Atomics.store(ptri32, ptri + HINDEX_BYTEOFFSET, byteOffset);
     Atomics.store(ptri32, ptri + HINDEX_BYTELENGTH, byteLength);
@@ -177,12 +178,15 @@ self.name = "window";
   Pointer = (function() {
     class Pointer extends Number {
       static malloc(constructor, byteLength) {
-        var offset;
+        var mod, offset;
         this.classId;
         offset = this.byteLength;
+        mod = offset % 4;
+        offset += 4 - mod;
         if (byteLength == null) {
           byteLength = constructor.byteLength;
         }
+        byteLength += 4 - byteLength % 4;
         this.subclasses.push({
           constructor: constructor,
           offset: offset,
@@ -257,10 +261,10 @@ self.name = "window";
 
     Object.defineProperty(Pointer.prototype, "isGL", {
       get: function() {
-        return Atomics.load(ui8, this.ptri + HINDEX_ISGL);
+        return Atomics.load(ptri32, this.ptri + HINDEX_ISGL);
       },
       set: function(v) {
-        return Atomics.store(ui8, this.ptri + HINDEX_ISGL, v);
+        return Atomics.store(ptri32, this.ptri + HINDEX_ISGL, v);
       }
     });
 
@@ -403,16 +407,21 @@ self.name = "window";
     class Vertices extends Pointer {
       get(offset) {
         return function() {
-          return new Vertices(dvw.getUint32(this.byteOffset + offset, LE));
+          var ptri;
+          ptri = dvw.getInt32(this.byteOffset + this.OFFSET_VERTICES, LE);
+          if (ptri) {
+            return new Vertices(ptri);
+          }
+          return null;
         };
       }
 
       set(offset) {
         return function(value) {
-          var vertices;
-          vertices = new Vertices(malloc(Vertices, value.length * 4));
-          vertices.typedArray.set(value);
-          return dvw.setUint32(this.byteOffset + offset, vertices.ptri, LE);
+          var ptri;
+          ptri = malloc(Vertices, value.length * 4);
+          dvw.setInt32(this.byteOffset + this.OFFSET_VERTICES, ptri, LE);
+          return f32.set(value, ptri32[ptri + HINDEX_BEGIN]);
         };
       }
 
@@ -439,17 +448,27 @@ self.name = "window";
         ptr = new this(ptri);
         for (prop in options) {
           value = options[prop];
-          if (this.prototype.hasOwnProperty(prop)) {
-            ptr[prop] = value;
-          }
+          ptr[prop] = value;
         }
         ptr.isGL = 1;
         ptr.iterCount = ptr.vertices.pointCount;
+        log(ptr.isGL);
         return ptr;
       }
 
       drawPoints() {
         return warn(glBuffer.malloc(gl.POINTS, this));
+      }
+
+      drawLines() {
+        return warn(glBuffer.malloc(gl.LINES, this));
+      }
+
+      vertex(index) {
+        var byteOffset, ptri;
+        ptri = dvw.getUint32(this.byteOffset + this.OFFSET_VERTICES, LE);
+        byteOffset = ptri32[ptri + HINDEX_BYTEOFFSET] + index * 4 * 3;
+        return new Float32Array(buffer, byteOffset, 3);
       }
 
     };
@@ -478,11 +497,9 @@ self.name = "window";
 
     GLDraw.prototype.INDEX_COUNT = 1;
 
-    GLDraw.prototype.INDEX_OFFSET = 2;
+    GLDraw.prototype.INDEX_GLTYPE = 2;
 
-    GLDraw.prototype.INDEX_GLTYPE = 3;
-
-    GLDraw.prototype.INDEX_GLOFFSET = 4;
+    GLDraw.prototype.INDEX_GLOFFSET = 3;
 
     GLDraw.prototype.classId = GLDraw.classId;
 
@@ -503,25 +520,17 @@ self.name = "window";
           return Atomics.store(ptri32, this.begin + this.INDEX_COUNT, v);
         }
       },
-      offset: {
-        get: function() {
-          return Atomics.load(u32, this.begin + this.INDEX_OFFSET);
-        },
-        set: function(v) {
-          return Atomics.store(u32, this.begin + this.INDEX_OFFSET, v);
-        }
-      },
       vertex: {
         value: function(i) {
           var byteOffset;
-          byteOffset = this.glOffset + i * 8;
+          byteOffset = this.glOffset + (i * 32);
           return new Float32Array(buffer, byteOffset, 3);
         }
       },
       color: {
         value: function(i) {
           var byteOffset;
-          byteOffset = this.glOffset + i * 8 + 4;
+          byteOffset = this.glOffset + (i * 32) + 16;
           return new Float32Array(buffer, byteOffset, 4);
         }
       },
@@ -555,22 +564,24 @@ self.name = "window";
     class GLBuffer extends Float32Array {
       constructor() {
         super(buffer, OFFSET_GPU, LENGTH_GPU / 4);
+        Object.assign(this, {
+          [WebGL2RenderingContext.TRIANGLE]: OFFSET_TRIANGLES + 32,
+          [WebGL2RenderingContext.LINES]: OFFSET_LINES,
+          [WebGL2RenderingContext.POINTS]: OFFSET_POINTS
+        });
       }
 
       malloc(type, shape) {
-        var begin, byteLength, byteOffset, draw, end, pointCount;
+        var byteLength, byteOffset, draw, pointCount;
         pointCount = shape.vertices.pointCount;
-        byteOffset = this[type];
         byteLength = pointCount * 8 * 4;
-        this[type] += byteLength;
-        begin = byteOffset / 4;
-        end = begin + byteLength / 4;
+        byteOffset = this[type];
+        this[type] += byteLength + (4 - byteLength % 4);
         draw = new GLDraw();
         draw.start = byteOffset / 4;
         draw.count = pointCount;
         draw.glType = type;
         draw.glOffset = byteOffset;
-        draw.offset = this.byteOffset + byteOffset;
         draw.parent = shape;
         return draw;
       }
@@ -581,13 +592,9 @@ self.name = "window";
 
     };
 
-    GLBuffer.prototype.OFFSET_TRIANGLES = OFFSET_TRIANGLES + 24;
+    GLBuffer.prototype.drawOffset = OFFSET_TRIANGLES + 32;
 
-    GLBuffer.prototype.OFFSET_LINES = OFFSET_LINES;
-
-    GLBuffer.prototype.OFFSET_POINTS = OFFSET_POINTS;
-
-    GLBuffer.prototype.drawOffset = GLBuffer.prototype.OFFSET_TRIANGLES;
+    GLBuffer.prototype.begin = GLBuffer.prototype.drawOffset / 4;
 
     GLBuffer.prototype.drawLength = .25 * (LENGTH_GPU - 24);
 

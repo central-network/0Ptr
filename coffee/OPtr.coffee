@@ -25,6 +25,9 @@ do  self.init   = ->
     classes = []
     ticks = 0
 
+    RADIANS_PER_DEGREE  = Math.PI / 180.0
+    LE = !!(new Uint8Array( Uint16Array.of(1).buffer ).at(0))
+
     THREADS_STATE   = 5
     THREADS_BEGIN   = 6
     THREADS_COUNT   = 2 or navigator?.hardwareConcurrency
@@ -46,13 +49,14 @@ do  self.init   = ->
     HINDEX_BYTEOFFSET   = HINDEX_LENGTH++
     HINDEX_BYTELENGTH   = HINDEX_LENGTH++
     HINDEX_CLASSID      = HINDEX_LENGTH++
+
     HINDEX_PARENT       = HINDEX_LENGTH++
     HINDEX_BEGIN        = HINDEX_LENGTH++
 
     HINDEX_ISGL         = HINDEX_LENGTH++
-    HINDEX_UPDATED      = HINDEX_ISGL + 1
-    HINDEX_PAINTED      = HINDEX_ISGL + 2
-    HINDEX_LOCATED      = HINDEX_ISGL + 3  
+    HINDEX_UPDATED      = HINDEX_LENGTH++
+    HINDEX_PAINTED      = HINDEX_LENGTH++
+    HINDEX_LOCATED      = HINDEX_LENGTH++
     
     HINDEX_ITER_COUNT   = HINDEX_LENGTH++
     HINDEX_NEXT_COLORI  = HINDEX_LENGTH++
@@ -65,44 +69,44 @@ do  self.init   = ->
 
     nextTick = ->
         lock()
-        log "nextTick:", ++ticks
+        #log "nextTick:", ++ticks
 
         ptri = Atomics.load ptri32, 1
 
-        while OFFSET_PTR <= ptri -= 16
-            continue unless Atomics.load ui8, ptri + HINDEX_ISGL
+        while OFFSET_PTR <= ptri -= 16        
+            continue unless Atomics.load ptri32, ptri + HINDEX_ISGL
             
-            locate  = Atomics.load ui8, ptri + HINDEX_LOCATED
-            paint   = Atomics.load ui8, ptri + HINDEX_PAINTED
+            locate  = Atomics.load ptri32, ptri + HINDEX_LOCATED
+            paint   = Atomics.load ptri32, ptri + HINDEX_PAINTED
 
             continue if paint and locate
 
-            index   = Atomics.add u32, ptri + HINDEX_NEXT_VERTEXI, 1
-            count   = Atomics.load u32, ptri + HINDEX_ITER_COUNT
-            shape   = new Shape ptri
+            index   = Atomics.add ptri32, ptri + HINDEX_NEXT_VERTEXI, 1
+            count   = Atomics.load ptri32, ptri + HINDEX_ITER_COUNT
 
-            begin   = index * 3
-            end     = begin + 3
-            vertex  = shape.vertices.subarray begin, end 
+            if  index <= count
+                shape   = new Shape ptri
 
+                begin   = index * 3
+                end     = begin + 3
+                vertex  = shape.vertex index 
+                color   = shape.color
 
-            log "ptri:", { 
-                ptri: ptri, index, vertex
-            }
+                log ptri, index, count, vertex...
 
-            for draw in shape.children
-                draw.vertex( index ).set vertex
-                draw.color( index ).set shape.color
+                for draw in shape.children
+                    draw.vertex( index ).set vertex
+                    draw.color( index ).set color
                 
             continue if index - count
 
             if !locate
-                Atomics.store ui8, ptri + HINDEX_LOCATED, 1
+                Atomics.store ptri32, ptri + HINDEX_LOCATED, 1
                 
             if !paint
-                Atomics.store ui8, ptri + HINDEX_PAINTED, 1
+                Atomics.store ptri32, ptri + HINDEX_PAINTED, 1
 
-            Atomics.store ui8, ptri + HINDEX_UPDATED, 1
+            Atomics.store ptri32, ptri + HINDEX_UPDATED, 1
 
         nextTick()
         
@@ -144,17 +148,19 @@ do  self.init   = ->
     OFFSET_LINES        = OFFSET_GPU + STRIDE_GPU * 1
     OFFSET_POINTS       = OFFSET_GPU + STRIDE_GPU * 2 
 
-    RADIANS_PER_DEGREE  = Math.PI / 180.0
-    LE = new Uint8Array( Uint16Array.of(1).buffer ).at()
-
     malloc              = ( constructor, byteLength ) ->
+        BYTES_PER_ELEMENT =
+            constructor.TypedArray.BYTES_PER_ELEMENT or
+            constructor.BYTES_PER_ELEMENT
+
         classId     = constructor.classId
-        byteLength ?= constructor.byteLength
-        length      = byteLength / constructor.TypedArray.BYTES_PER_ELEMENT
+        byteLength  = constructor.byteLength if !byteLength
+        byteLength += 8 - ( byteLength % 8 )
+        length      = byteLength / BYTES_PER_ELEMENT
 
         ptri        = Atomics.add ptri32, 1, 16
         byteOffset  = Atomics.add ptri32, 0, byteLength
-        begin       = byteOffset / constructor.TypedArray.BYTES_PER_ELEMENT
+        begin       = byteOffset / BYTES_PER_ELEMENT
 
         Atomics.store ptri32, ptri + HINDEX_PTRI, ptri
         Atomics.store ptri32, ptri + HINDEX_BYTEOFFSET, byteOffset
@@ -201,8 +207,8 @@ do  self.init   = ->
             get : -> Atomics.load ptri32, @ptri + HINDEX_BEGIN
         
         Object.defineProperty this::, "isGL",
-            get : -> Atomics.load ui8, @ptri + HINDEX_ISGL
-            set : (v) -> Atomics.store ui8, @ptri + HINDEX_ISGL, v
+            get : -> Atomics.load ptri32, @ptri + HINDEX_ISGL
+            set : (v) -> Atomics.store ptri32, @ptri + HINDEX_ISGL, v
         
         Object.defineProperty this::, "parent",
             get : -> Atomics.load ptri32, @ptri + HINDEX_PARENT
@@ -230,7 +236,10 @@ do  self.init   = ->
         @malloc : ( constructor, byteLength ) ->
             @classId
             offset = @byteLength
+            mod = offset % 4
+            offset += 4 - mod
             byteLength ?= constructor.byteLength
+            byteLength += 4 - byteLength % 4
 
             @subclasses.push {
                 constructor : constructor
@@ -312,13 +321,14 @@ do  self.init   = ->
             pointCount  : get : -> @length / 3
 
         get : ( offset ) -> ->
-            new Vertices dvw.getUint32 @byteOffset + offset, LE
+            ptri = dvw.getInt32 @byteOffset + @OFFSET_VERTICES, LE
+            return new Vertices ptri if ptri ; null
 
         set : ( offset ) -> ( value ) ->
-            vertices = new Vertices malloc Vertices, value.length * 4
-            vertices.typedArray.set value            
-            dvw.setUint32 @byteOffset + offset, vertices.ptri, LE
-
+            ptri = malloc Vertices, value.length * 4
+            dvw.setInt32 @byteOffset + @OFFSET_VERTICES, ptri, LE
+            f32.set value, ptri32[ ptri + HINDEX_BEGIN ]
+            
     class Shape         extends Pointer
 
         self.Shape      = this
@@ -338,15 +348,23 @@ do  self.init   = ->
             ptr = new this ptri
 
             for prop, value of options
-                if  @::hasOwnProperty prop
-                    ptr[ prop ] = value
+                ptr[ prop ] = value
 
             ptr.isGL = 1
             ptr.iterCount = ptr.vertices.pointCount
+            log ptr.isGL
             ptr
 
         drawPoints      : ->
             warn glBuffer.malloc gl.POINTS, this
+
+        drawLines       : ->
+            warn glBuffer.malloc gl.LINES, this
+
+        vertex          : ( index ) ->
+            ptri = dvw.getUint32 @byteOffset + @OFFSET_VERTICES, LE
+            byteOffset = ptri32[ ptri + HINDEX_BYTEOFFSET ] + index * 4 * 3
+            new Float32Array buffer, byteOffset, 3
 
     class GLDraw        extends Pointer
 
@@ -356,11 +374,9 @@ do  self.init   = ->
 
         INDEX_COUNT         : 1
 
-        INDEX_OFFSET        : 2
+        INDEX_GLTYPE        : 2
 
-        INDEX_GLTYPE        : 3
-
-        INDEX_GLOFFSET      : 4
+        INDEX_GLOFFSET      : 3
 
         classId             : @classId
 
@@ -374,18 +390,14 @@ do  self.init   = ->
                 get : -> Atomics.load ptri32, @begin + @INDEX_COUNT
                 set : (v) -> Atomics.store ptri32, @begin + @INDEX_COUNT, v
             
-            offset  : 
-                get : -> Atomics.load u32, @begin + @INDEX_OFFSET
-                set : (v) -> Atomics.store u32, @begin + @INDEX_OFFSET, v
-
             vertex  : 
                 value : (i) ->
-                    byteOffset = @glOffset + i * 8
+                    byteOffset = @glOffset + ( i * 32 )
                     new Float32Array buffer, byteOffset, 3
 
             color   : 
                 value : (i) ->
-                    byteOffset = @glOffset + i * 8 + 4
+                    byteOffset = @glOffset + ( i * 32 ) + 16
                     new Float32Array buffer, byteOffset, 4
            
             glOffset   : 
@@ -400,36 +412,34 @@ do  self.init   = ->
                 get : -> new Float32Array buffer, @glOffset, @count * 8
 
     class GLBuffer      extends Float32Array
+    
+        drawOffset       : OFFSET_TRIANGLES + 32
 
-        OFFSET_TRIANGLES : OFFSET_TRIANGLES + 24
-        
-        OFFSET_LINES     : OFFSET_LINES
-
-        OFFSET_POINTS    : OFFSET_POINTS
-
-        drawOffset       : @::OFFSET_TRIANGLES
+        begin            : @::drawOffset / 4
 
         drawLength       : .25 * ( LENGTH_GPU - 24 )
 
         constructor : ->
             super buffer, OFFSET_GPU, LENGTH_GPU/4
 
+            Object.assign this,
+                [ WebGL2RenderingContext.TRIANGLE ] : OFFSET_TRIANGLES + 32
+                [ WebGL2RenderingContext.LINES ]    : OFFSET_LINES
+                [ WebGL2RenderingContext.POINTS ]   : OFFSET_POINTS
+    
         malloc      : ( type, shape ) ->
             pointCount = shape.vertices.pointCount
-            byteOffset = @[ type ]
             byteLength = pointCount * 8 * 4
+            byteOffset = @[ type ]
 
-            @[ type ] += byteLength
+            @[type] += byteLength + (4 - byteLength % 4)
 
-            begin      = byteOffset / 4
-            end        = begin + byteLength / 4
-            draw       = new GLDraw()
+            draw            = new GLDraw()
 
             draw.start      = byteOffset / 4
             draw.count      = pointCount
             draw.glType     = type
             draw.glOffset   = byteOffset
-            draw.offset     = @byteOffset + byteOffset
             draw.parent     = shape
             
             draw

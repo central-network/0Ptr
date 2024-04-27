@@ -33,11 +33,12 @@
 
     <script>
         const shape = Shape.fromOptions({
-            position : [ 1, 0, 0 ],
+            position : [ 1, 12, 0 ],
+            color : [0.1, 1, 1, 1],
             vertices : [
-                    1, 0, 0,
+                -12, 0, 4,
                     -1, 0, 0,
-                    0, 2, 0
+                    0, 2, 12.30
                 ]
         })
         
@@ -47,7 +48,8 @@
             vertices : [
                     1, 0, 10,
                     -1, 0, 20,
-                    -1, 0, 20,
+                    -3, 0, 330,
+
                     -1, 0, 20,
                     -1, 0, 20,
                     0, 2, 40
@@ -57,9 +59,12 @@
         console.log(shape)
         console.log(shape2)
 
+        console.error("öncli clickcl")
+
         addEventListener( "contextrestored", function ({ detail: gl }) {
             shape.drawPoints()
             shape2.drawPoints()
+            shape2.drawLines()
         })
 
         addEventListener( "onanimationframe", function (gl, delta){
