@@ -68,13 +68,13 @@ do  self.init   = ->
         return Atomics.store ptri32, threadId, state
 
     nextTick = ->
-        lock()
         #log "nextTick:", ++ticks
 
         ptri = Atomics.load ptri32, 1
 
         while OFFSET_PTR <= ptri -= 16        
             continue unless Atomics.load ptri32, ptri + HINDEX_ISGL
+            continue if Atomics.load ptri32, ptri + HINDEX_UPDATED
             
             locate  = Atomics.load ptri32, ptri + HINDEX_LOCATED
             paint   = Atomics.load ptri32, ptri + HINDEX_PAINTED
@@ -108,6 +108,7 @@ do  self.init   = ->
 
             Atomics.store ptri32, ptri + HINDEX_UPDATED, 1
 
+        lock()
         nextTick()
         
     lock = ->
@@ -352,7 +353,6 @@ do  self.init   = ->
 
             ptr.isGL = 1
             ptr.iterCount = ptr.vertices.pointCount
-            log ptr.isGL
             ptr
 
         drawPoints      : ->
@@ -453,6 +453,18 @@ do  self.init   = ->
         INNER_HEIGHT                = innerHeight ? 480
         RATIO_PIXEL                 = devicePixelRatio ? 1
         RATIO_ASPECT                = INNER_WIDTH / INNER_HEIGHT 
+
+        frame = 0
+        rendering = 0
+
+        @render         = ->
+            rendering = 1
+            delta = 0
+            
+            do  render = ->
+                
+                dispatchEvent new CustomEvent "animationframe", [gl, delta]
+                requestAnimationFrame render
 
         @createDisplay  = ->
             canvas = createCanvas()

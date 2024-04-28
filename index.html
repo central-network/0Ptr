@@ -61,13 +61,15 @@
 
         console.error("öncli clickcl")
 
-        addEventListener( "contextrestored", function ({ detail: gl }) {
+        addEventListener( "contextrestored", function () {
             shape.drawPoints()
             shape2.drawPoints()
             shape2.drawLines()
+
+            render()
         })
 
-        addEventListener( "onanimationframe", function (gl, delta){
+        addEventListener( "animationframe", function (gl, delta){
             red += (factor * sign);
             green += (factor * sign);
             blue += (factor * sign); 

@@ -68,11 +68,13 @@ self.name = "window";
   };
   nextTick = function() {
     var begin, color, count, draw, end, index, j, len, locate, paint, ptri, ref, shape, vertex;
-    lock();
     //log "nextTick:", ++ticks
     ptri = Atomics.load(ptri32, 1);
     while (OFFSET_PTR <= (ptri -= 16)) {
       if (!Atomics.load(ptri32, ptri + HINDEX_ISGL)) {
+        continue;
+      }
+      if (Atomics.load(ptri32, ptri + HINDEX_UPDATED)) {
         continue;
       }
       locate = Atomics.load(ptri32, ptri + HINDEX_LOCATED);
@@ -107,6 +109,7 @@ self.name = "window";
       }
       Atomics.store(ptri32, ptri + HINDEX_UPDATED, 1);
     }
+    lock();
     return nextTick();
   };
   lock = function() {
@@ -452,7 +455,6 @@ self.name = "window";
         }
         ptr.isGL = 1;
         ptr.iterCount = ptr.vertices.pointCount;
-        log(ptr.isGL);
         return ptr;
       }
 
@@ -602,11 +604,22 @@ self.name = "window";
 
   }).call(this);
   self.addEventListener("DOMContentLoaded", function() {
-    var INNER_HEIGHT, INNER_WIDTH, RATIO_ASPECT, RATIO_PIXEL, createBlobURL, createCanvas, createThreads, createWorker, listenEvents;
+    var INNER_HEIGHT, INNER_WIDTH, RATIO_ASPECT, RATIO_PIXEL, createBlobURL, createCanvas, createThreads, createWorker, frame, listenEvents, rendering;
     INNER_WIDTH = typeof innerWidth !== "undefined" && innerWidth !== null ? innerWidth : 640;
     INNER_HEIGHT = typeof innerHeight !== "undefined" && innerHeight !== null ? innerHeight : 480;
     RATIO_PIXEL = typeof devicePixelRatio !== "undefined" && devicePixelRatio !== null ? devicePixelRatio : 1;
     RATIO_ASPECT = INNER_WIDTH / INNER_HEIGHT;
+    frame = 0;
+    rendering = 0;
+    this.render = function() {
+      var delta, render;
+      rendering = 1;
+      delta = 0;
+      return (render = function() {
+        dispatchEvent(new CustomEvent("animationframe", [gl, delta]));
+        return requestAnimationFrame(render);
+      })();
+    };
     this.createDisplay = function() {
       var canvas;
       canvas = createCanvas();
