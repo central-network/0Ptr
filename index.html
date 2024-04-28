@@ -63,26 +63,26 @@
         let red = 0, green = 0.5 , blue= 0.3, sign = 1, factor = 0.01;
 
         const shape = Shape.fromOptions({
-            position : [ 1, 12, 0 ],
-            color : [0.1, 1, 1, 1],
+            position : [ 0, 0, 0 ],
+            color : [ 1, 0, 1, 1],
             vertices : [
-                -12, 0, 4,
-                    -1, 0, 0,
-                    0, 2, 12.30
-                ]
+                10,   0,  -100,
+                10,   200, -100,
+                255,  0,  -100
+            ]
         })
         
         const shape2 = Shape.fromOptions({
-            position : [ 0, 2, 0 ],
-            color: [1,1,0,1],
+            position : [ 0, 0, 0 ],
+            color: [1,0,0,1],
             vertices : [
-                    1, 0, 10,
-                    -1, 0, 20,
-                    -3, 0, 330,
+                    10,   400,  -100,
+                    10,   600, -100,
+                    255,  400,  -100
 
-                    -1, 0, 20,
-                    -1, 0, 20,
-                    0, 2, 40
+                    -1, 50, 20,
+                    -1, 50, 20,
+                    0, -50, 40
                 ]
         })
 

@@ -30,9 +30,10 @@ do  self.init   = ->
     gBuffer = null
     shaders = []
     defines = {}
-
     classes = []
+
     ticks = 0
+    frustrum = null
 
     RADIANS_PER_DEGREE  = Math.PI / 180.0
     LE = !!(new Uint8Array( Uint16Array.of(1).buffer ).at(0))
@@ -160,7 +161,7 @@ do  self.init   = ->
 
     OFFSET_POINTS       = OFFSET_GPU + STRIDE_GPU * 0 
     OFFSET_LINES        = OFFSET_GPU + STRIDE_GPU * 1
-    OFFSET_TRIANGLE     = OFFSET_GPU + STRIDE_GPU * 2
+    OFFSET_TRIANGLES    = OFFSET_GPU + STRIDE_GPU * 2
 
     malloc              = ( constructor, byteLength ) ->
         BYTES_PER_ELEMENT =
@@ -379,6 +380,126 @@ do  self.init   = ->
             byteOffset = ptri32[ ptri + HINDEX_BYTEOFFSET ] + index * 4 * 3
             new Float32Array buffer, byteOffset, 3
 
+    class Frustrum      extends Pointer
+
+        @byteLength         : 4 * 28
+
+        INDEX_BOTTOM        : 18
+        
+        INDEX_LEFT          : 19
+        
+        INDEX_RIGHT         : 20
+        
+        INDEX_TOP           : 21
+        
+        INDEX_WIDTH         : 22
+        
+        INDEX_HEIGHT        : 23
+        
+        INDEX_ASPECT        : 24
+        
+        INDEX_YFOV          : 25
+
+        INDEX_ZNEAR         : 26
+
+        INDEX_ZFAR          : 27
+
+        @fromOptions        : ( options = {} ) ->
+            { yFov = 90, zNear = 1e-3, zFar = 1e+4,
+            width = innerWidth, height = innerHeight } = options
+
+            base = new this()
+            aspect = width / height
+            half_fovy = ( .5 * yFov * RADIANS_PER_DEGREE )
+            bottom = - ( top = zNear * Math.tan half_fovy )
+            left = - ( right = top * aspect )
+    
+            w = right - left
+            h = top - bottom
+    
+            sx = 2 * zNear / w
+            sy = 2 * zNear / h
+    
+            c2 = - ( zFar + zNear ) / (zFar - zNear)
+            c1 = 2 * zNear * zFar / ( zNear - zFar )
+    
+            tx = -zNear * (   left + right ) / w
+            ty = -zNear * ( bottom + top   ) / h
+
+            base.typedArray.set Float32Array.of(
+                sx,       0,       0,      0,
+                 0,      sy,       0,      0,
+                 0,       0,      c2,     -5,
+                tx,      ty,      c1,      0,  0,  0,
+                bottom, left, right, top,
+                width, height, aspect,
+                yFov, zNear, zFar
+            )
+
+            base
+
+        Object.defineProperties Frustrum::,
+            
+            bottom  :
+                get : -> f32[ @begin + @INDEX_BOTTOM ]
+                set : (v) -> f32[ @begin + @INDEX_BOTTOM ] = v
+            
+            left    :
+                get : -> f32[ @begin + @INDEX_LEFT ]
+                set : (v) -> f32[ @begin + @INDEX_LEFT ] = v
+            
+            right   :
+                get : -> f32[ @begin + @INDEX_RIGHT ]
+                set : (v) -> f32[ @begin + @INDEX_RIGHT ] = v
+            
+            top     :
+                get : -> f32[ @begin + @INDEX_TOP ]
+                set : (v) -> f32[ @begin + @INDEX_TOP ] = v
+            
+            width   :
+                get : -> f32[ @begin + @INDEX_WIDTH ]
+                set : (v) -> f32[ @begin + @INDEX_WIDTH ] = v
+            
+            height  :
+                get : -> f32[ @begin + @INDEX_HEIGHT ]
+                set : (v) -> f32[ @begin + @INDEX_HEIGHT ] = v
+            
+            aspect  :
+                get : -> f32[ @begin + @INDEX_ASPECT ]
+                set : (v) -> f32[ @begin + @INDEX_ASPECT ] = v
+            
+            yFov    :
+                get : -> f32[ @begin + @INDEX_YFOV ]
+                set : (v) -> f32[ @begin + @INDEX_YFOV ] = v
+            
+            zNear   :
+                get : -> f32[ @begin + @INDEX_ZNEAR ]
+                set : (v) -> f32[ @begin + @INDEX_ZNEAR ] = v
+
+            zFar    :
+                get : -> f32[ @begin + @INDEX_ZFAR ]
+                set : (v) -> f32[ @begin + @INDEX_ZFAR ] = v
+
+            matrix  : 
+                get : -> f32.subarray @begin, @begin + 16
+                set : (v) -> f32.set v, @begin
+
+            rebind  :
+                get : -> @upload()
+
+        setViewport         : ( context ) ->
+            context.viewport 0, 0, @width, @height
+            if  defines.frustrum
+                defines.frustrum.upload =
+                    defines.frustrum.bindUpload @matrix
+
+                Object.defineProperties this,
+                    uniform : get   : -> defines.frustrum
+                    upload  : value : defines.frustrum.bindUpload @matrix
+
+                @upload()
+            this
+
     class GLDraw        extends Pointer
 
         @byteLength         : 8 * 4
@@ -439,7 +560,7 @@ do  self.init   = ->
             Object.assign this,
                 [ WebGL2RenderingContext.POINTS ]   : OFFSET_POINTS + 32
                 [ WebGL2RenderingContext.LINES ]    : OFFSET_LINES
-                [ WebGL2RenderingContext.TRIANGLE ] : OFFSET_TRIANGLE
+                [ WebGL2RenderingContext.TRIANGLES ]: OFFSET_TRIANGLES
 
     
         malloc      : ( type, shape ) ->
@@ -494,9 +615,9 @@ do  self.init   = ->
                 break
 
         drawBuffers = ->
-            gl.drawArrays gl.TRIANGLE, 0, 12
-            gl.drawArrays gl.LINES, 0, 12
-            gl.drawArrays gl.POINTS, 0, 12
+            gl.drawArrays gl.TRIANGLES, 0, 3
+            gl.drawArrays gl.LINES, 0, 3
+            gl.drawArrays gl.POINTS, 0, 3
 
         @render         = ->
             rendering = 1
@@ -515,7 +636,7 @@ do  self.init   = ->
 
             onanimationframe performance.now()
             
-        setupProgram    = ->
+        initialProgram  = ->
 
             vSource = scripts.find((s) -> s.type.match /x-vert/i).text
             vShader = gl.createShader gl.VERTEX_SHADER
@@ -593,7 +714,6 @@ do  self.init   = ->
                 attrib.kindof       = k.at v.indexOf attrib.typeof 
                 attrib.isNormalized = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
                 attrib.stride       = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_STRIDE
-                attrib.currentValue = gl.getVertexAttrib i, gl.CURRENT_VERTEX_ATTRIB
                 attrib.integer      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_INTEGER
                 attrib.divisor      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_DIVISOR
                 attrib.kind         = k.at v.indexOf attrib.type
@@ -612,7 +732,8 @@ do  self.init   = ->
                     attrib.isNormalized, attrib.stride, attrib.offset
                 )
 
-                defines[ attrib.name ] = attrib
+                Object.defineProperties defines[ attrib.name ] = attrib, value :
+                    get : -> gl.getVertexAttrib @location, gl.CURRENT_VERTEX_ATTRIB
 
             i = gl.getProgramParameter program, gl.ACTIVE_UNIFORMS
             uniforms = while i--
@@ -620,21 +741,31 @@ do  self.init   = ->
                 uniform.is          = "uniform"
                 uniform.kind        = k.at v.indexOf uniform.type
                 uniform.location    = gl.getUniformLocation program, uniform.name
-                uniform.uniform     = gl.getUniform program, uniform.location
                 uniform.bindUpload  = resolveUniform uniform 
 
-                defines[ uniform.name ] = uniform
+                Object.defineProperties defines[ uniform.name ] = uniform, value :
+                    get : -> gl.getUniform program, @location
+                    set : ( data ) -> @bindUpload( data )()
 
-            log defines
+
+        createFrustrum  = ( options ) ->
+            frustrum = Frustrum.fromOptions options 
+            frustrum . setViewport gl
+
+            log frustrum
 
         @createDisplay  = ->
             canvas = createCanvas()
+
             gl = canvas.getContext "webgl2"
+                        
             
-            setupProgram()
+            initialProgram()
             resolveDefines()
+            createFrustrum()
 
             glBuffer = new GLBuffer()
+            defines.pointSize.value = 10
             
             requestIdleCallback =>
                 self.emit "contextrestored", gl

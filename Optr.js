@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, Color, GLBuffer, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, LE, LENGTH_GPU, OFFSET_CPU, OFFSET_GPU, OFFSET_LINES, OFFSET_POINTS, OFFSET_PTR, OFFSET_TRIANGLE, Pointer, Position, RADIANS_PER_DEGREE, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, STRIDE_GPU, Scale, Shape, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, buffer, classes, defines, dvw, error, f32, fShader, gBuffer, gl, glBuffer, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, shaders, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, Color, Frustrum, GLBuffer, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, LE, LENGTH_GPU, OFFSET_CPU, OFFSET_GPU, OFFSET_LINES, OFFSET_POINTS, OFFSET_PTR, OFFSET_TRIANGLES, Pointer, Position, RADIANS_PER_DEGREE, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, STRIDE_GPU, Scale, Shape, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, buffer, classes, defines, dvw, error, f32, fShader, frustrum, gBuffer, gl, glBuffer, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, shaders, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -39,6 +39,7 @@ self.name = "window";
   defines = {};
   classes = [];
   ticks = 0;
+  frustrum = null;
   RADIANS_PER_DEGREE = Math.PI / 180.0;
   LE = !!(new Uint8Array(Uint16Array.of(1).buffer).at(0));
   THREADS_STATE = 5;
@@ -161,7 +162,7 @@ self.name = "window";
   }
   OFFSET_POINTS = OFFSET_GPU + STRIDE_GPU * 0;
   OFFSET_LINES = OFFSET_GPU + STRIDE_GPU * 1;
-  OFFSET_TRIANGLE = OFFSET_GPU + STRIDE_GPU * 2;
+  OFFSET_TRIANGLES = OFFSET_GPU + STRIDE_GPU * 2;
   malloc = function(constructor, byteLength) {
     var BYTES_PER_ELEMENT, begin, byteOffset, classId, length, ptri;
     BYTES_PER_ELEMENT = constructor.TypedArray.BYTES_PER_ELEMENT || constructor.BYTES_PER_ELEMENT;
@@ -500,6 +501,170 @@ self.name = "window";
     return Shape;
 
   }).call(this);
+  Frustrum = (function() {
+    class Frustrum extends Pointer {
+      static fromOptions(options = {}) {
+        var aspect, base, bottom, c1, c2, h, half_fovy, height, left, right, sx, sy, top, tx, ty, w, width, yFov, zFar, zNear;
+        ({yFov = 90, zNear = 1e-3, zFar = 1e+4, width = innerWidth, height = innerHeight} = options);
+        base = new this();
+        aspect = width / height;
+        half_fovy = .5 * yFov * RADIANS_PER_DEGREE;
+        bottom = -(top = zNear * Math.tan(half_fovy));
+        left = -(right = top * aspect);
+        w = right - left;
+        h = top - bottom;
+        sx = 2 * zNear / w;
+        sy = 2 * zNear / h;
+        c2 = -(zFar + zNear) / (zFar - zNear);
+        c1 = 2 * zNear * zFar / (zNear - zFar);
+        tx = -zNear * (left + right) / w;
+        ty = -zNear * (bottom + top) / h;
+        base.typedArray.set(Float32Array.of(sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, c2, -5, tx, ty, c1, 0, 0, 0, bottom, left, right, top, width, height, aspect, yFov, zNear, zFar));
+        return base;
+      }
+
+      setViewport(context) {
+        context.viewport(0, 0, this.width, this.height);
+        if (defines.frustrum) {
+          defines.frustrum.upload = defines.frustrum.bindUpload(this.matrix);
+          Object.defineProperties(this, {
+            uniform: {
+              get: function() {
+                return defines.frustrum;
+              }
+            },
+            upload: {
+              value: defines.frustrum.bindUpload(this.matrix)
+            }
+          });
+          this.upload();
+        }
+        return this;
+      }
+
+    };
+
+    Frustrum.byteLength = 4 * 28;
+
+    Frustrum.prototype.INDEX_BOTTOM = 18;
+
+    Frustrum.prototype.INDEX_LEFT = 19;
+
+    Frustrum.prototype.INDEX_RIGHT = 20;
+
+    Frustrum.prototype.INDEX_TOP = 21;
+
+    Frustrum.prototype.INDEX_WIDTH = 22;
+
+    Frustrum.prototype.INDEX_HEIGHT = 23;
+
+    Frustrum.prototype.INDEX_ASPECT = 24;
+
+    Frustrum.prototype.INDEX_YFOV = 25;
+
+    Frustrum.prototype.INDEX_ZNEAR = 26;
+
+    Frustrum.prototype.INDEX_ZFAR = 27;
+
+    Object.defineProperties(Frustrum.prototype, {
+      bottom: {
+        get: function() {
+          return f32[this.begin + this.INDEX_BOTTOM];
+        },
+        set: function(v) {
+          return f32[this.begin + this.INDEX_BOTTOM] = v;
+        }
+      },
+      left: {
+        get: function() {
+          return f32[this.begin + this.INDEX_LEFT];
+        },
+        set: function(v) {
+          return f32[this.begin + this.INDEX_LEFT] = v;
+        }
+      },
+      right: {
+        get: function() {
+          return f32[this.begin + this.INDEX_RIGHT];
+        },
+        set: function(v) {
+          return f32[this.begin + this.INDEX_RIGHT] = v;
+        }
+      },
+      top: {
+        get: function() {
+          return f32[this.begin + this.INDEX_TOP];
+        },
+        set: function(v) {
+          return f32[this.begin + this.INDEX_TOP] = v;
+        }
+      },
+      width: {
+        get: function() {
+          return f32[this.begin + this.INDEX_WIDTH];
+        },
+        set: function(v) {
+          return f32[this.begin + this.INDEX_WIDTH] = v;
+        }
+      },
+      height: {
+        get: function() {
+          return f32[this.begin + this.INDEX_HEIGHT];
+        },
+        set: function(v) {
+          return f32[this.begin + this.INDEX_HEIGHT] = v;
+        }
+      },
+      aspect: {
+        get: function() {
+          return f32[this.begin + this.INDEX_ASPECT];
+        },
+        set: function(v) {
+          return f32[this.begin + this.INDEX_ASPECT] = v;
+        }
+      },
+      yFov: {
+        get: function() {
+          return f32[this.begin + this.INDEX_YFOV];
+        },
+        set: function(v) {
+          return f32[this.begin + this.INDEX_YFOV] = v;
+        }
+      },
+      zNear: {
+        get: function() {
+          return f32[this.begin + this.INDEX_ZNEAR];
+        },
+        set: function(v) {
+          return f32[this.begin + this.INDEX_ZNEAR] = v;
+        }
+      },
+      zFar: {
+        get: function() {
+          return f32[this.begin + this.INDEX_ZFAR];
+        },
+        set: function(v) {
+          return f32[this.begin + this.INDEX_ZFAR] = v;
+        }
+      },
+      matrix: {
+        get: function() {
+          return f32.subarray(this.begin, this.begin + 16);
+        },
+        set: function(v) {
+          return f32.set(v, this.begin);
+        }
+      },
+      rebind: {
+        get: function() {
+          return this.upload();
+        }
+      }
+    });
+
+    return Frustrum;
+
+  }).call(this);
   GLDraw = (function() {
     class GLDraw extends Pointer {};
 
@@ -579,7 +744,7 @@ self.name = "window";
         Object.assign(this, {
           [WebGL2RenderingContext.POINTS]: OFFSET_POINTS + 32,
           [WebGL2RenderingContext.LINES]: OFFSET_LINES,
-          [WebGL2RenderingContext.TRIANGLE]: OFFSET_TRIANGLE
+          [WebGL2RenderingContext.TRIANGLES]: OFFSET_TRIANGLES
         });
       }
 
@@ -614,7 +779,7 @@ self.name = "window";
 
   }).call(this);
   self.addEventListener("DOMContentLoaded", function() {
-    var INNER_HEIGHT, INNER_WIDTH, RATIO_ASPECT, RATIO_PIXEL, checkUploads, createBlobURL, createCanvas, createThreads, createWorker, drawBuffers, epoch, frame, listenEvents, rendering, resolveDefines, resolveUniform, setupProgram;
+    var INNER_HEIGHT, INNER_WIDTH, RATIO_ASPECT, RATIO_PIXEL, checkUploads, createBlobURL, createCanvas, createFrustrum, createThreads, createWorker, drawBuffers, epoch, frame, initialProgram, listenEvents, rendering, resolveDefines, resolveUniform;
     INNER_WIDTH = typeof innerWidth !== "undefined" && innerWidth !== null ? innerWidth : 640;
     INNER_HEIGHT = typeof innerHeight !== "undefined" && innerHeight !== null ? innerHeight : 480;
     RATIO_PIXEL = typeof devicePixelRatio !== "undefined" && devicePixelRatio !== null ? devicePixelRatio : 1;
@@ -648,9 +813,9 @@ self.name = "window";
       return results;
     };
     drawBuffers = function() {
-      gl.drawArrays(gl.TRIANGLE, 0, 12);
-      gl.drawArrays(gl.LINES, 0, 12);
-      return gl.drawArrays(gl.POINTS, 0, 12);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      gl.drawArrays(gl.LINES, 0, 3);
+      return gl.drawArrays(gl.POINTS, 0, 3);
     };
     this.render = function() {
       var onanimationframe;
@@ -667,7 +832,7 @@ self.name = "window";
       };
       return onanimationframe(performance.now());
     };
-    setupProgram = function() {
+    initialProgram = function() {
       var fSource, info, vSource;
       vSource = scripts.find(function(s) {
         return s.type.match(/x-vert/i);
@@ -762,7 +927,6 @@ self.name = "window";
           attrib.kindof = k.at(v.indexOf(attrib.typeof));
           attrib.isNormalized = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED);
           attrib.stride = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_STRIDE);
-          attrib.currentValue = gl.getVertexAttrib(i, gl.CURRENT_VERTEX_ATTRIB);
           attrib.integer = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_INTEGER);
           attrib.divisor = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_DIVISOR);
           attrib.kind = k.at(v.indexOf(attrib.type));
@@ -779,10 +943,16 @@ self.name = "window";
         attrib.stride = ATTRIBS_BYTELENGTH;
         attrib.enable = gl.enableVertexAttribArray.bind(gl, attrib.location);
         attrib.rebind = gl.vertexAttribPointer.bind(gl, attrib.location, attrib.length, attrib.typeof, attrib.isNormalized, attrib.stride, attrib.offset);
-        defines[attrib.name] = attrib;
+        Object.defineProperties(defines[attrib.name] = attrib, {
+          value: {
+            get: function() {
+              return gl.getVertexAttrib(this.location, gl.CURRENT_VERTEX_ATTRIB);
+            }
+          }
+        });
       }
       i = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
-      uniforms = (function() {
+      return uniforms = (function() {
         var results;
         results = [];
         while (i--) {
@@ -790,21 +960,35 @@ self.name = "window";
           uniform.is = "uniform";
           uniform.kind = k.at(v.indexOf(uniform.type));
           uniform.location = gl.getUniformLocation(program, uniform.name);
-          uniform.uniform = gl.getUniform(program, uniform.location);
           uniform.bindUpload = resolveUniform(uniform);
-          results.push(defines[uniform.name] = uniform);
+          results.push(Object.defineProperties(defines[uniform.name] = uniform, {
+            value: {
+              get: function() {
+                return gl.getUniform(program, this.location);
+              },
+              set: function(data) {
+                return this.bindUpload(data)();
+              }
+            }
+          }));
         }
         return results;
       })();
-      return log(defines);
+    };
+    createFrustrum = function(options) {
+      frustrum = Frustrum.fromOptions(options);
+      frustrum.setViewport(gl);
+      return log(frustrum);
     };
     this.createDisplay = function() {
       var canvas;
       canvas = createCanvas();
       gl = canvas.getContext("webgl2");
-      setupProgram();
+      initialProgram();
       resolveDefines();
+      createFrustrum();
       glBuffer = new GLBuffer();
+      defines.pointSize.value = 10;
       return requestIdleCallback(() => {
         self.emit("contextrestored", gl);
         return pipe.emit("contextrestored");
