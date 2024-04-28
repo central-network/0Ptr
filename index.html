@@ -27,11 +27,42 @@
 
     </style>
 
+    <script type="x-shader/x-vertex">
+        precision mediump int;
+        precision mediump float;
+
+        uniform   mat4 u_Transform;
+        uniform  float u_PointSize;
+
+        attribute vec3 a_Position;
+        attribute vec4 a_Color;
+
+        varying vec4 v_Color;
+
+        void main() {
+            u_Transform;
+            gl_Position = vec4(a_Position, 1.0);
+            gl_PointSize = u_PointSize;
+            v_Color = a_Color;
+        }
+    </script>
+    <script type="x-shader/x-fragment">
+        precision mediump int;
+        precision mediump float;
+    
+        varying vec4 v_Color;
+    
+        void main() {
+            gl_FragColor = v_Color;
+        }
+    </script>
 </head>
 <body title="146.853.146.838 ops/sec">    
     <script src="Optr.js"></script>
 
     <script>
+        let red = 0, green = 0.5 , blue= 0.3, sign = 1, factor = 0.01;
+
         const shape = Shape.fromOptions({
             position : [ 1, 12, 0 ],
             color : [0.1, 1, 1, 1],
@@ -69,10 +100,14 @@
             render()
         })
 
-        addEventListener( "animationframe", function (gl, delta){
+        addEventListener( "animationframe", function ({detail}){
+            const { gl, delta, epoch, fps } = detail;
+
             red += (factor * sign);
             green += (factor * sign);
             blue += (factor * sign); 
+
+            //console.log(delta)
 
             if ( red > 1 || red < 0 ) { sign *= -1; }
             if ( green > 1 || green < 0 ) { sign *= -1; }

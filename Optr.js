@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var Color, GLBuffer, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, LE, LENGTH_GPU, OFFSET_CPU, OFFSET_GPU, OFFSET_LINES, OFFSET_POINTS, OFFSET_PTR, OFFSET_TRIANGLES, Pointer, Position, RADIANS_PER_DEGREE, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, STRIDE_GPU, Scale, Shape, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, buffer, classes, dvw, error, f32, gl, glBuffer, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, ptri32, state, threadId, ticks, u32, ui8, unlock, uuid, warn, workers;
+  var Color, GLBuffer, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, LE, LENGTH_GPU, OFFSET_CPU, OFFSET_GPU, OFFSET_LINES, OFFSET_POINTS, OFFSET_PTR, OFFSET_TRIANGLE, Pointer, Position, RADIANS_PER_DEGREE, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, STRIDE_GPU, Scale, Shape, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, buffer, classes, dvw, error, f32, fShader, gBuffer, gl, glBuffer, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -30,6 +30,11 @@ self.name = "window";
   dvw = null;
   buffer = null;
   glBuffer = null;
+  scripts = null;
+  program = null;
+  vShader = null;
+  fShader = null;
+  gBuffer = null;
   classes = [];
   ticks = 0;
   RADIANS_PER_DEGREE = Math.PI / 180.0;
@@ -90,13 +95,13 @@ self.name = "window";
         end = begin + 3;
         vertex = shape.vertex(index);
         color = shape.color;
-        log(ptri, index, count, ...vertex);
         ref = shape.children;
         for (j = 0, len = ref.length; j < len; j++) {
           draw = ref[j];
           draw.vertex(index).set(vertex);
           draw.color(index).set(color);
         }
+        log(ptri, index);
       }
       if (index - count) {
         continue;
@@ -138,6 +143,7 @@ self.name = "window";
     f32 = new Float32Array(buffer);
     dvw = new DataView(buffer);
     ui8 = new Uint8Array(buffer);
+    scripts = Array.from(document.querySelectorAll("script"));
     state = function(state) {
       if (!state) {
         return Atomics.load(ptri32, THREADS_STATE);
@@ -149,9 +155,9 @@ self.name = "window";
     Atomics.add(ptri32, 2, OFFSET_GPU);
     state(THREADS_NULL);
   }
-  OFFSET_TRIANGLES = OFFSET_GPU + STRIDE_GPU * 0;
+  OFFSET_POINTS = OFFSET_GPU + STRIDE_GPU * 0;
   OFFSET_LINES = OFFSET_GPU + STRIDE_GPU * 1;
-  OFFSET_POINTS = OFFSET_GPU + STRIDE_GPU * 2;
+  OFFSET_TRIANGLE = OFFSET_GPU + STRIDE_GPU * 2;
   malloc = function(constructor, byteLength) {
     var BYTES_PER_ELEMENT, begin, byteOffset, classId, length, ptri;
     BYTES_PER_ELEMENT = constructor.TypedArray.BYTES_PER_ELEMENT || constructor.BYTES_PER_ELEMENT;
@@ -567,9 +573,9 @@ self.name = "window";
       constructor() {
         super(buffer, OFFSET_GPU, LENGTH_GPU / 4);
         Object.assign(this, {
-          [WebGL2RenderingContext.TRIANGLE]: OFFSET_TRIANGLES + 32,
+          [WebGL2RenderingContext.POINTS]: OFFSET_POINTS + 32,
           [WebGL2RenderingContext.LINES]: OFFSET_LINES,
-          [WebGL2RenderingContext.POINTS]: OFFSET_POINTS
+          [WebGL2RenderingContext.TRIANGLE]: OFFSET_TRIANGLE
         });
       }
 
@@ -594,7 +600,7 @@ self.name = "window";
 
     };
 
-    GLBuffer.prototype.drawOffset = OFFSET_TRIANGLES + 32;
+    GLBuffer.prototype.drawOffset = OFFSET_POINTS + 32;
 
     GLBuffer.prototype.begin = GLBuffer.prototype.drawOffset / 4;
 
@@ -604,26 +610,98 @@ self.name = "window";
 
   }).call(this);
   self.addEventListener("DOMContentLoaded", function() {
-    var INNER_HEIGHT, INNER_WIDTH, RATIO_ASPECT, RATIO_PIXEL, createBlobURL, createCanvas, createThreads, createWorker, frame, listenEvents, rendering;
+    var INNER_HEIGHT, INNER_WIDTH, RATIO_ASPECT, RATIO_PIXEL, checkUploads, createBlobURL, createCanvas, createThreads, createWorker, drawBuffers, epoch, frame, listenEvents, rendering, setupProgram;
     INNER_WIDTH = typeof innerWidth !== "undefined" && innerWidth !== null ? innerWidth : 640;
     INNER_HEIGHT = typeof innerHeight !== "undefined" && innerHeight !== null ? innerHeight : 480;
     RATIO_PIXEL = typeof devicePixelRatio !== "undefined" && devicePixelRatio !== null ? devicePixelRatio : 1;
     RATIO_ASPECT = INNER_WIDTH / INNER_HEIGHT;
     frame = 0;
+    epoch = 0;
     rendering = 0;
+    checkUploads = function() {
+      var a_Color, a_Position, draw, j, len, ptri, ref, results, shape;
+      ptri = Atomics.load(ptri32, 1);
+      results = [];
+      while (OFFSET_PTR <= (ptri -= 16)) {
+        if (!Atomics.and(ptri32, ptri + HINDEX_UPDATED, 0)) {
+          continue;
+        }
+        shape = new Shape(ptri);
+        ref = shape.children;
+        for (j = 0, len = ref.length; j < len; j++) {
+          draw = ref[j];
+          log(glBuffer.dump());
+          gl.bufferData(gl.ARRAY_BUFFER, glBuffer.dump(), gl.STATIC_DRAW);
+          a_Position = gl.getAttribLocation(program, "a_Position");
+          gl.enableVertexAttribArray(a_Position);
+          gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 32, 0);
+          a_Color = gl.getAttribLocation(program, "a_Color");
+          gl.enableVertexAttribArray(a_Color);
+          gl.vertexAttribPointer(a_Color, 4, gl.FLOAT, false, 32, 16);
+        }
+        break;
+      }
+      return results;
+    };
+    drawBuffers = function() {
+      gl.drawArrays(gl.TRIANGLE, 0, 12);
+      gl.drawArrays(gl.LINES, 0, 12);
+      return gl.drawArrays(gl.POINTS, 0, 12);
+    };
     this.render = function() {
-      var delta, render;
+      var onanimationframe;
       rendering = 1;
-      delta = 0;
-      return (render = function() {
-        dispatchEvent(new CustomEvent("animationframe", [gl, delta]));
-        return requestAnimationFrame(render);
-      })();
+      onanimationframe = function(pnow) {
+        var delta, fps;
+        delta = pnow - epoch;
+        epoch = pnow;
+        fps = Math.trunc(1 / delta * 1e3);
+        checkUploads();
+        emit("animationframe", {gl, delta, epoch, fps});
+        drawBuffers();
+        return requestAnimationFrame(onanimationframe);
+      };
+      return onanimationframe(performance.now());
+    };
+    setupProgram = function() {
+      var fSource, info, vSource;
+      vSource = scripts.find(function(s) {
+        return s.type.match(/x-vert/i);
+      }).text;
+      vShader = gl.createShader(gl.VERTEX_SHADER);
+      gl.shaderSource(vShader, vSource);
+      gl.compileShader(vShader);
+      if (!gl.getShaderParameter(vShader, gl.COMPILE_STATUS)) {
+        info = gl.getShaderInfoLog(vShader);
+        throw `Could not compile WebGL program. \n\n${info}`;
+      }
+      fSource = scripts.find(function(s) {
+        return s.type.match(/x-frag/i);
+      }).text;
+      fShader = gl.createShader(gl.FRAGMENT_SHADER);
+      gl.shaderSource(fShader, fSource);
+      gl.compileShader(fShader);
+      if (!gl.getShaderParameter(fShader, gl.COMPILE_STATUS)) {
+        info = gl.getShaderInfoLog(fShader);
+        throw `Could not compile WebGL program. \n\n${info}`;
+      }
+      program = gl.createProgram();
+      gl.attachShader(program, vShader);
+      gl.attachShader(program, fShader);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        info = gl.getProgramInfoLog(program);
+        throw `Could not compile WebGL program. \n\n${info}`;
+      }
+      gl.bindBuffer(gl.ARRAY_BUFFER, gBuffer = gl.createBuffer());
+      gl.useProgram(program);
+      return 0;
     };
     this.createDisplay = function() {
       var canvas;
       canvas = createCanvas();
       gl = canvas.getContext("webgl");
+      setupProgram();
       glBuffer = new GLBuffer();
       self.emit("contextrestored", gl);
       return pipe.emit("contextrestored");

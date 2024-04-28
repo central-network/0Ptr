@@ -22,6 +22,13 @@ do  self.init   = ->
     dvw = null
     buffer = null
     glBuffer = null
+    
+    scripts = null
+    program = null
+    vShader = null
+    fShader = null
+    gBuffer = null
+
     classes = []
     ticks = 0
 
@@ -92,11 +99,12 @@ do  self.init   = ->
                 vertex  = shape.vertex index 
                 color   = shape.color
 
-                log ptri, index, count, vertex...
-
                 for draw in shape.children
                     draw.vertex( index ).set vertex
                     draw.color( index ).set color
+
+                log ptri, index 
+
                 
             continue if index - count
 
@@ -131,6 +139,8 @@ do  self.init   = ->
         f32 = new Float32Array buffer
         dvw = new DataView buffer
         ui8 = new Uint8Array buffer
+
+        scripts = Array.from document.querySelectorAll "script"
         
         state = ( state ) ->
             unless state
@@ -143,11 +153,9 @@ do  self.init   = ->
     
         state THREADS_NULL
 
-  
-
-    OFFSET_TRIANGLES    = OFFSET_GPU + STRIDE_GPU * 0
+    OFFSET_POINTS       = OFFSET_GPU + STRIDE_GPU * 0 
     OFFSET_LINES        = OFFSET_GPU + STRIDE_GPU * 1
-    OFFSET_POINTS       = OFFSET_GPU + STRIDE_GPU * 2 
+    OFFSET_TRIANGLE     = OFFSET_GPU + STRIDE_GPU * 2
 
     malloc              = ( constructor, byteLength ) ->
         BYTES_PER_ELEMENT =
@@ -413,19 +421,21 @@ do  self.init   = ->
 
     class GLBuffer      extends Float32Array
     
-        drawOffset       : OFFSET_TRIANGLES + 32
+        drawOffset       : OFFSET_POINTS + 32
 
         begin            : @::drawOffset / 4
 
         drawLength       : .25 * ( LENGTH_GPU - 24 )
 
         constructor : ->
+
             super buffer, OFFSET_GPU, LENGTH_GPU/4
 
             Object.assign this,
-                [ WebGL2RenderingContext.TRIANGLE ] : OFFSET_TRIANGLES + 32
+                [ WebGL2RenderingContext.POINTS ]   : OFFSET_POINTS + 32
                 [ WebGL2RenderingContext.LINES ]    : OFFSET_LINES
-                [ WebGL2RenderingContext.POINTS ]   : OFFSET_POINTS
+                [ WebGL2RenderingContext.TRIANGLE ] : OFFSET_TRIANGLE
+
     
         malloc      : ( type, shape ) ->
             pointCount = shape.vertices.pointCount
@@ -455,20 +465,97 @@ do  self.init   = ->
         RATIO_ASPECT                = INNER_WIDTH / INNER_HEIGHT 
 
         frame = 0
+        epoch = 0
         rendering = 0
+
+        checkUploads = ->
+            ptri = Atomics.load ptri32, 1
+
+            while OFFSET_PTR <= ptri -= 16        
+                continue unless Atomics.and ptri32, ptri + HINDEX_UPDATED, 0
+                shape = new Shape ptri
+                for draw in shape.children
+                    log glBuffer.dump()
+                    gl.bufferData gl.ARRAY_BUFFER, glBuffer.dump(), gl.STATIC_DRAW
+
+                    a_Position = gl.getAttribLocation program, "a_Position"
+                    gl.enableVertexAttribArray a_Position
+                    gl.vertexAttribPointer a_Position, 3, gl.FLOAT, off, 32, 0
+
+                    a_Color = gl.getAttribLocation program, "a_Color"
+                    gl.enableVertexAttribArray a_Color
+                    gl.vertexAttribPointer a_Color, 4, gl.FLOAT, off, 32, 16
+
+                break
+
+        drawBuffers = ->
+            gl.drawArrays gl.TRIANGLE, 0, 12
+            gl.drawArrays gl.LINES, 0, 12
+            gl.drawArrays gl.POINTS, 0, 12
 
         @render         = ->
             rendering = 1
-            delta = 0
+
+            onanimationframe = ( pnow ) ->
+
+                delta = pnow - epoch
+                epoch = pnow
+                fps   = Math.trunc 1 / delta * 1e3
+
+                checkUploads()
+                emit "animationframe", { gl, delta, epoch, fps }
+
+                drawBuffers()
+                requestAnimationFrame onanimationframe
+
+            onanimationframe performance.now()
             
-            do  render = ->
-                
-                dispatchEvent new CustomEvent "animationframe", [gl, delta]
-                requestAnimationFrame render
+        setupProgram    = ->
+
+            vSource = scripts.find((s) -> s.type.match /x-vert/i).text
+            vShader = gl.createShader gl.VERTEX_SHADER
+
+            gl.shaderSource vShader, vSource
+            gl.compileShader vShader
+
+            unless gl.getShaderParameter vShader, gl.COMPILE_STATUS
+                info = gl.getShaderInfoLog vShader
+                throw "Could not compile WebGL program. \n\n#{info}"
+
+            fSource = scripts.find((s) -> s.type.match /x-frag/i).text
+            fShader = gl.createShader gl.FRAGMENT_SHADER
+
+            gl.shaderSource fShader, fSource
+            gl.compileShader fShader
+
+            unless gl.getShaderParameter fShader, gl.COMPILE_STATUS
+                info = gl.getShaderInfoLog fShader
+                throw "Could not compile WebGL program. \n\n#{info}"
+
+            program = gl.createProgram()
+
+            gl.attachShader program, vShader
+            gl.attachShader program, fShader
+
+            gl.linkProgram program
+
+            unless gl.getProgramParameter program, gl.LINK_STATUS
+                info = gl.getProgramInfoLog program
+                throw "Could not compile WebGL program. \n\n#{info}"
+
+            
+            gl.bindBuffer gl.ARRAY_BUFFER, gBuffer = gl.createBuffer()
+            gl.useProgram program
+
+            0
+
 
         @createDisplay  = ->
             canvas = createCanvas()
             gl = canvas.getContext "webgl"
+            
+            setupProgram()
+
             glBuffer = new GLBuffer()
             
             self.emit "contextrestored", gl
