@@ -28,6 +28,8 @@ do  self.init   = ->
     vShader = null
     fShader = null
     gBuffer = null
+    shaders = []
+    defines = {}
 
     classes = []
     ticks = 0
@@ -68,6 +70,9 @@ do  self.init   = ->
     HINDEX_ITER_COUNT   = HINDEX_LENGTH++
     HINDEX_NEXT_COLORI  = HINDEX_LENGTH++
     HINDEX_NEXT_VERTEXI = HINDEX_LENGTH++
+
+    ATTRIBS_LENGTH      = 0
+    ATTRIBS_BYTELENGTH  = 0
 
     state = ( state ) ->
         unless arguments.length
@@ -478,14 +483,14 @@ do  self.init   = ->
                     log glBuffer.dump()
                     gl.bufferData gl.ARRAY_BUFFER, glBuffer.dump(), gl.STATIC_DRAW
 
-                    a_Position = gl.getAttribLocation program, "a_Position"
-                    gl.enableVertexAttribArray a_Position
-                    gl.vertexAttribPointer a_Position, 3, gl.FLOAT, off, 32, 0
+                    position = gl.getAttribLocation program, "position"
+                    gl.enableVertexAttribArray position
+                    gl.vertexAttribPointer position, 3, gl.FLOAT, off, 32, 0
 
-                    a_Color = gl.getAttribLocation program, "a_Color"
-                    gl.enableVertexAttribArray a_Color
-                    gl.vertexAttribPointer a_Color, 4, gl.FLOAT, off, 32, 16
-
+                    color = gl.getAttribLocation program, "color"
+                    gl.enableVertexAttribArray color
+                    gl.vertexAttribPointer color, 4, gl.FLOAT, off, 32, 16
+                    
                 break
 
         drawBuffers = ->
@@ -543,23 +548,97 @@ do  self.init   = ->
                 info = gl.getProgramInfoLog program
                 throw "Could not compile WebGL program. \n\n#{info}"
 
-            
             gl.bindBuffer gl.ARRAY_BUFFER, gBuffer = gl.createBuffer()
             gl.useProgram program
 
             0
 
+        resolveUniform = ( uniform ) ->
+            ( data, transpose = off ) ->    switch uniform.kind
+                when "FLOAT_MAT4"           then gl.uniformMatrix4fv  .bind gl, uniform.location, transpose, data
+                when "FLOAT_MAT3"           then gl.uniformMatrix3fv  .bind gl, uniform.location, transpose, data
+                when "FLOAT_MAT2"           then gl.uniformMatrix2fv  .bind gl, uniform.location, transpose, data
+                when "FLOAT_MAT2x3"         then gl.uniformMatrix2x3fv.bind gl, uniform.location, transpose, data
+                when "FLOAT_MAT2x4"         then gl.uniformMatrix2x4fv.bind gl, uniform.location, transpose, data
+                when "FLOAT_MAT3x2"         then gl.uniformMatrix3x2fv.bind gl, uniform.location, transpose, data
+                when "FLOAT_MAT3x4"         then gl.uniformMatrix3x4fv.bind gl, uniform.location, transpose, data
+                when "FLOAT_MAT4x2"         then gl.uniformMatrix4x2fv.bind gl, uniform.location, transpose, data
+                when "FLOAT_MAT3x3"         then gl.uniformMatrix4x3fv.bind gl, uniform.location, transpose, data
+                when "FLOAT"                then gl.uniform1f         .bind gl, uniform.location, data
+                when "INT"                  then gl.uniform1iv        .bind gl, uniform.location, data
+                when "UNSIGNED_INT"         then gl.uniform1uiv       .bind gl, uniform.location, data
+                when "UNSIGNED_INT_VEC2"    then gl.uniform2uiv       .bind gl, uniform.location, data
+                when "UNSIGNED_INT_VEC3"    then gl.uniform3uiv       .bind gl, uniform.location, data
+                when "UNSIGNED_INT_VEC4"    then gl.uniform4uiv       .bind gl, uniform.location, data
+
+        resolveDefines = ->
+            i = gl.getProgramParameter program, gl.ACTIVE_ATTRIBUTES
+            v = Object.values WebGL2RenderingContext
+            k = Object.keys WebGL2RenderingContext
+
+            lengthOf =
+                vec4 : 4
+                vec3 : 3
+                vec2 : 2
+                mat4 : 4 * 4
+                mat3 : 3 * 3
+
+            attribs = while i--
+                attrib              = gl.getActiveAttrib program, i
+                attrib.is           = "attribute"
+                attrib.location     = gl.getAttribLocation program, attrib.name
+                attrib.isEnabled    = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_ENABLED
+                attrib.binding      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING
+                attrib.typeof       = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_TYPE
+                attrib.kindof       = k.at v.indexOf attrib.typeof 
+                attrib.isNormalized = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
+                attrib.stride       = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_STRIDE
+                attrib.currentValue = gl.getVertexAttrib i, gl.CURRENT_VERTEX_ATTRIB
+                attrib.integer      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_INTEGER
+                attrib.divisor      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_DIVISOR
+                attrib.kind         = k.at v.indexOf attrib.type
+                attrib.offset       = ATTRIBS_BYTELENGTH
+                attrib.length       = lengthOf[ attrib.kind.split(/_/).at(-1).toLowerCase() ]
+                
+                ATTRIBS_LENGTH     += attrib.length
+                ATTRIBS_BYTELENGTH  = ATTRIBS_LENGTH * 4
+                attrib
+
+            for attrib in attribs
+                attrib.stride       = ATTRIBS_BYTELENGTH
+                attrib.enable       = gl.enableVertexAttribArray.bind gl, attrib.location
+                attrib.rebind       = gl.vertexAttribPointer.bind(
+                    gl, attrib.location, attrib.length, attrib.typeof, 
+                    attrib.isNormalized, attrib.stride, attrib.offset
+                )
+
+                defines[ attrib.name ] = attrib
+
+            i = gl.getProgramParameter program, gl.ACTIVE_UNIFORMS
+            uniforms = while i--
+                uniform             = gl.getActiveUniform program, i
+                uniform.is          = "uniform"
+                uniform.kind        = k.at v.indexOf uniform.type
+                uniform.location    = gl.getUniformLocation program, uniform.name
+                uniform.uniform     = gl.getUniform program, uniform.location
+                uniform.bindUpload  = resolveUniform uniform 
+
+                defines[ uniform.name ] = uniform
+
+            log defines
 
         @createDisplay  = ->
             canvas = createCanvas()
-            gl = canvas.getContext "webgl"
+            gl = canvas.getContext "webgl2"
             
             setupProgram()
+            resolveDefines()
 
             glBuffer = new GLBuffer()
             
-            self.emit "contextrestored", gl
-            pipe.emit "contextrestored"
+            requestIdleCallback =>
+                self.emit "contextrestored", gl
+                pipe.emit "contextrestored"
 
         createCanvas    = ->
             canvas                  = document.createElement "canvas"

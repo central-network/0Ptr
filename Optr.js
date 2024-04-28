@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var Color, GLBuffer, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, LE, LENGTH_GPU, OFFSET_CPU, OFFSET_GPU, OFFSET_LINES, OFFSET_POINTS, OFFSET_PTR, OFFSET_TRIANGLE, Pointer, Position, RADIANS_PER_DEGREE, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, STRIDE_GPU, Scale, Shape, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, buffer, classes, dvw, error, f32, fShader, gBuffer, gl, glBuffer, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, Color, GLBuffer, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, LE, LENGTH_GPU, OFFSET_CPU, OFFSET_GPU, OFFSET_LINES, OFFSET_POINTS, OFFSET_PTR, OFFSET_TRIANGLE, Pointer, Position, RADIANS_PER_DEGREE, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, STRIDE_GPU, Scale, Shape, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, buffer, classes, defines, dvw, error, f32, fShader, gBuffer, gl, glBuffer, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, shaders, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -35,6 +35,8 @@ self.name = "window";
   vShader = null;
   fShader = null;
   gBuffer = null;
+  shaders = [];
+  defines = {};
   classes = [];
   ticks = 0;
   RADIANS_PER_DEGREE = Math.PI / 180.0;
@@ -65,6 +67,8 @@ self.name = "window";
   HINDEX_ITER_COUNT = HINDEX_LENGTH++;
   HINDEX_NEXT_COLORI = HINDEX_LENGTH++;
   HINDEX_NEXT_VERTEXI = HINDEX_LENGTH++;
+  ATTRIBS_LENGTH = 0;
+  ATTRIBS_BYTELENGTH = 0;
   state = function(state) {
     if (!arguments.length) {
       return Atomics.load(ptri32, threadId);
@@ -610,7 +614,7 @@ self.name = "window";
 
   }).call(this);
   self.addEventListener("DOMContentLoaded", function() {
-    var INNER_HEIGHT, INNER_WIDTH, RATIO_ASPECT, RATIO_PIXEL, checkUploads, createBlobURL, createCanvas, createThreads, createWorker, drawBuffers, epoch, frame, listenEvents, rendering, setupProgram;
+    var INNER_HEIGHT, INNER_WIDTH, RATIO_ASPECT, RATIO_PIXEL, checkUploads, createBlobURL, createCanvas, createThreads, createWorker, drawBuffers, epoch, frame, listenEvents, rendering, resolveDefines, resolveUniform, setupProgram;
     INNER_WIDTH = typeof innerWidth !== "undefined" && innerWidth !== null ? innerWidth : 640;
     INNER_HEIGHT = typeof innerHeight !== "undefined" && innerHeight !== null ? innerHeight : 480;
     RATIO_PIXEL = typeof devicePixelRatio !== "undefined" && devicePixelRatio !== null ? devicePixelRatio : 1;
@@ -619,7 +623,7 @@ self.name = "window";
     epoch = 0;
     rendering = 0;
     checkUploads = function() {
-      var a_Color, a_Position, draw, j, len, ptri, ref, results, shape;
+      var color, draw, j, len, position, ptri, ref, results, shape;
       ptri = Atomics.load(ptri32, 1);
       results = [];
       while (OFFSET_PTR <= (ptri -= 16)) {
@@ -632,12 +636,12 @@ self.name = "window";
           draw = ref[j];
           log(glBuffer.dump());
           gl.bufferData(gl.ARRAY_BUFFER, glBuffer.dump(), gl.STATIC_DRAW);
-          a_Position = gl.getAttribLocation(program, "a_Position");
-          gl.enableVertexAttribArray(a_Position);
-          gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 32, 0);
-          a_Color = gl.getAttribLocation(program, "a_Color");
-          gl.enableVertexAttribArray(a_Color);
-          gl.vertexAttribPointer(a_Color, 4, gl.FLOAT, false, 32, 16);
+          position = gl.getAttribLocation(program, "position");
+          gl.enableVertexAttribArray(position);
+          gl.vertexAttribPointer(position, 3, gl.FLOAT, false, 32, 0);
+          color = gl.getAttribLocation(program, "color");
+          gl.enableVertexAttribArray(color);
+          gl.vertexAttribPointer(color, 4, gl.FLOAT, false, 32, 16);
         }
         break;
       }
@@ -697,14 +701,114 @@ self.name = "window";
       gl.useProgram(program);
       return 0;
     };
+    resolveUniform = function(uniform) {
+      return function(data, transpose = false) {
+        switch (uniform.kind) {
+          case "FLOAT_MAT4":
+            return gl.uniformMatrix4fv.bind(gl, uniform.location, transpose, data);
+          case "FLOAT_MAT3":
+            return gl.uniformMatrix3fv.bind(gl, uniform.location, transpose, data);
+          case "FLOAT_MAT2":
+            return gl.uniformMatrix2fv.bind(gl, uniform.location, transpose, data);
+          case "FLOAT_MAT2x3":
+            return gl.uniformMatrix2x3fv.bind(gl, uniform.location, transpose, data);
+          case "FLOAT_MAT2x4":
+            return gl.uniformMatrix2x4fv.bind(gl, uniform.location, transpose, data);
+          case "FLOAT_MAT3x2":
+            return gl.uniformMatrix3x2fv.bind(gl, uniform.location, transpose, data);
+          case "FLOAT_MAT3x4":
+            return gl.uniformMatrix3x4fv.bind(gl, uniform.location, transpose, data);
+          case "FLOAT_MAT4x2":
+            return gl.uniformMatrix4x2fv.bind(gl, uniform.location, transpose, data);
+          case "FLOAT_MAT3x3":
+            return gl.uniformMatrix4x3fv.bind(gl, uniform.location, transpose, data);
+          case "FLOAT":
+            return gl.uniform1f.bind(gl, uniform.location, data);
+          case "INT":
+            return gl.uniform1iv.bind(gl, uniform.location, data);
+          case "UNSIGNED_INT":
+            return gl.uniform1uiv.bind(gl, uniform.location, data);
+          case "UNSIGNED_INT_VEC2":
+            return gl.uniform2uiv.bind(gl, uniform.location, data);
+          case "UNSIGNED_INT_VEC3":
+            return gl.uniform3uiv.bind(gl, uniform.location, data);
+          case "UNSIGNED_INT_VEC4":
+            return gl.uniform4uiv.bind(gl, uniform.location, data);
+        }
+      };
+    };
+    resolveDefines = function() {
+      var attrib, attribs, i, j, k, len, lengthOf, uniform, uniforms, v;
+      i = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+      v = Object.values(WebGL2RenderingContext);
+      k = Object.keys(WebGL2RenderingContext);
+      lengthOf = {
+        vec4: 4,
+        vec3: 3,
+        vec2: 2,
+        mat4: 4 * 4,
+        mat3: 3 * 3
+      };
+      attribs = (function() {
+        var results;
+        results = [];
+        while (i--) {
+          attrib = gl.getActiveAttrib(program, i);
+          attrib.is = "attribute";
+          attrib.location = gl.getAttribLocation(program, attrib.name);
+          attrib.isEnabled = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+          attrib.binding = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+          attrib.typeof = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_TYPE);
+          attrib.kindof = k.at(v.indexOf(attrib.typeof));
+          attrib.isNormalized = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED);
+          attrib.stride = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_STRIDE);
+          attrib.currentValue = gl.getVertexAttrib(i, gl.CURRENT_VERTEX_ATTRIB);
+          attrib.integer = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_INTEGER);
+          attrib.divisor = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_DIVISOR);
+          attrib.kind = k.at(v.indexOf(attrib.type));
+          attrib.offset = ATTRIBS_BYTELENGTH;
+          attrib.length = lengthOf[attrib.kind.split(/_/).at(-1).toLowerCase()];
+          ATTRIBS_LENGTH += attrib.length;
+          ATTRIBS_BYTELENGTH = ATTRIBS_LENGTH * 4;
+          results.push(attrib);
+        }
+        return results;
+      })();
+      for (j = 0, len = attribs.length; j < len; j++) {
+        attrib = attribs[j];
+        attrib.stride = ATTRIBS_BYTELENGTH;
+        attrib.enable = gl.enableVertexAttribArray.bind(gl, attrib.location);
+        attrib.rebind = gl.vertexAttribPointer.bind(gl, attrib.location, attrib.length, attrib.typeof, attrib.isNormalized, attrib.stride, attrib.offset);
+        defines[attrib.name] = attrib;
+      }
+      i = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+      uniforms = (function() {
+        var results;
+        results = [];
+        while (i--) {
+          uniform = gl.getActiveUniform(program, i);
+          uniform.is = "uniform";
+          uniform.kind = k.at(v.indexOf(uniform.type));
+          uniform.location = gl.getUniformLocation(program, uniform.name);
+          uniform.uniform = gl.getUniform(program, uniform.location);
+          uniform.bindUpload = resolveUniform(uniform);
+          results.push(defines[uniform.name] = uniform);
+        }
+        return results;
+      })();
+      return log(defines);
+    };
     this.createDisplay = function() {
       var canvas;
       canvas = createCanvas();
-      gl = canvas.getContext("webgl");
+      gl = canvas.getContext("webgl2");
       setupProgram();
+      resolveDefines();
       glBuffer = new GLBuffer();
-      self.emit("contextrestored", gl);
-      return pipe.emit("contextrestored");
+      return requestIdleCallback(() => {
+        self.emit("contextrestored", gl);
+        return pipe.emit("contextrestored");
+      });
     };
     createCanvas = function() {
       var canvas;
