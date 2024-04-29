@@ -890,13 +890,6 @@ do  self.init   = ->
 
             this
 
-        defineDrawUpload : ( draw ) ->
-            draws[ draws.length ] = Object.defineProperties draw,
-                upload : value : gl.bufferSubData.bind(
-                    gl, gl.ARRAY_BUFFER, draw.uploadOffset, @drawBuffer, 
-                    draw.uploadBegin, draw.uploadLength
-                )
-
         draw        : ->
             if  count = @trianglesCount
                 gl.drawArrays gl.TRIANGLES, @trianglesStart, count
@@ -954,16 +947,12 @@ do  self.init   = ->
 
     self.addEventListener "DOMContentLoaded"    , ->
 
-        setTimeout =>
-            warn GLDraw.allocs()
-            warn Space.allocs()
-        , 500
-
         frame = 0
         epoch = 0
         rendering = 0
 
         checkUploads = ->
+
             for shape in Shape.allocs()
                 continue unless shape.willUploadIfNeeded
 
@@ -973,6 +962,11 @@ do  self.init   = ->
                     draw.uploadLength
                 ) for draw in GLDraw.allocs shape.ptri
 
+
+
+        @render         = ->
+            rendering = 1
+
             position = gl.getAttribLocation program, "position"
             gl.enableVertexAttribArray position
             gl.vertexAttribPointer position, 3, gl.FLOAT, off, 32, 0
@@ -981,13 +975,7 @@ do  self.init   = ->
             gl.enableVertexAttribArray color
             gl.vertexAttribPointer color, 4, gl.FLOAT, off, 32, 16
 
-        @render         = ->
-            rendering = 1
-            i = 0
-
             onanimationframe = ( pnow ) ->
-
-                return if i++ > 5
 
                 delta = pnow - epoch
                 epoch = pnow
@@ -1129,6 +1117,8 @@ do  self.init   = ->
             createFrustrum()
 
             space = new Space()
+
+            warn defines
             
             requestIdleCallback =>
                 self.emit "contextrestored", gl

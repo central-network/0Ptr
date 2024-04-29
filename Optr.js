@@ -997,14 +997,6 @@ self.name = "window";
         return this;
       }
 
-      defineDrawUpload(draw) {
-        return draws[draws.length] = Object.defineProperties(draw, {
-          upload: {
-            value: gl.bufferSubData.bind(gl, gl.ARRAY_BUFFER, draw.uploadOffset, this.drawBuffer, draw.uploadBegin, draw.uploadLength)
-          }
-        });
-      }
-
       draw() {
         var count;
         if (count = this.trianglesCount) {
@@ -1211,43 +1203,42 @@ self.name = "window";
   }).call(this);
   self.addEventListener("DOMContentLoaded", function() {
     var checkUploads, createBlobURL, createCanvas, createFrustrum, createThreads, createWorker, epoch, frame, initialProgram, listenEvents, rendering, resolveDefines, resolveUniform;
-    setTimeout(() => {
-      warn(GLDraw.allocs());
-      return warn(Space.allocs());
-    }, 500);
     frame = 0;
     epoch = 0;
     rendering = 0;
     checkUploads = function() {
-      var color, draw, j, l, len, len1, position, ref, ref1, shape;
+      var draw, j, len, ref, results, shape;
       ref = Shape.allocs();
+      results = [];
       for (j = 0, len = ref.length; j < len; j++) {
         shape = ref[j];
         if (!shape.willUploadIfNeeded) {
           continue;
         }
-        ref1 = GLDraw.allocs(shape.ptri);
-        for (l = 0, len1 = ref1.length; l < len1; l++) {
-          draw = ref1[l];
-          gl.bufferSubData(gl.ARRAY_BUFFER, draw.uploadOffset, space.drawBuffer, draw.uploadBegin, draw.uploadLength);
-        }
+        results.push((function() {
+          var l, len1, ref1, results1;
+          ref1 = GLDraw.allocs(shape.ptri);
+          results1 = [];
+          for (l = 0, len1 = ref1.length; l < len1; l++) {
+            draw = ref1[l];
+            results1.push(gl.bufferSubData(gl.ARRAY_BUFFER, draw.uploadOffset, space.drawBuffer, draw.uploadBegin, draw.uploadLength));
+          }
+          return results1;
+        })());
       }
+      return results;
+    };
+    this.render = function() {
+      var color, onanimationframe, position;
+      rendering = 1;
       position = gl.getAttribLocation(program, "position");
       gl.enableVertexAttribArray(position);
       gl.vertexAttribPointer(position, 3, gl.FLOAT, false, 32, 0);
       color = gl.getAttribLocation(program, "color");
       gl.enableVertexAttribArray(color);
-      return gl.vertexAttribPointer(color, 4, gl.FLOAT, false, 32, 16);
-    };
-    this.render = function() {
-      var i, onanimationframe;
-      rendering = 1;
-      i = 0;
+      gl.vertexAttribPointer(color, 4, gl.FLOAT, false, 32, 16);
       onanimationframe = function(pnow) {
         var delta, fps;
-        if (i++ > 5) {
-          return;
-        }
         delta = pnow - epoch;
         epoch = pnow;
         fps = Math.trunc(1 / delta * 1e3);
@@ -1413,6 +1404,7 @@ self.name = "window";
       resolveDefines();
       createFrustrum();
       space = new Space();
+      warn(defines);
       return requestIdleCallback(() => {
         self.emit("contextrestored", gl);
         return pipe.emit("contextrestored");
