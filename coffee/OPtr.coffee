@@ -963,7 +963,7 @@ do  self.init   = ->
         epoch = 0
         rendering = 0
 
-        checkUploads = ->
+        checkUploads    = ->
             for shape in Shape.allocs()
                 continue unless shape.willUploadIfNeeded
 
@@ -1033,7 +1033,7 @@ do  self.init   = ->
 
             0
 
-        resolveUniform = ( uniform ) ->
+        resolveUniform  = ( uniform ) ->
             ( data, transpose = off ) ->    switch uniform.kind
                 when "FLOAT_MAT4"           then gl.uniformMatrix4fv  .bind gl, uniform.location, transpose, data
                 when "FLOAT_MAT3"           then gl.uniformMatrix3fv  .bind gl, uniform.location, transpose, data
@@ -1051,7 +1051,7 @@ do  self.init   = ->
                 when "UNSIGNED_INT_VEC3"    then gl.uniform3uiv       .bind gl, uniform.location, data
                 when "UNSIGNED_INT_VEC4"    then gl.uniform4uiv       .bind gl, uniform.location, data
 
-        resolveDefines = ->
+        resolveDefines  = ->
             i = gl.getProgramParameter program, gl.ACTIVE_ATTRIBUTES
             v = Object.values WebGL2RenderingContext
             k = Object.keys WebGL2RenderingContext
@@ -1105,7 +1105,6 @@ do  self.init   = ->
                 Object.defineProperties defines[ uniform.name ] = uniform, value :
                     get : -> gl.getUniform program, @location
                     set : ( data ) -> @bindUpload( data )()
-
 
         createFrustrum  = ( options ) ->
             frustrum = Frustrum.fromOptions options 
