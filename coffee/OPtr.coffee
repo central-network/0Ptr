@@ -965,12 +965,8 @@ do  self.init   = ->
         @render         = ->
             rendering = 1
 
-            for label, define of defines when define.is.match /attr/i
-                define.enable() or define.rebind()
-
-            setTimeout =>
-                warn defines
-            , 500
+            for l, define of defines when define.is.match /attr/i
+                try define.enable() ; define.rebind()
 
             onanimationframe = ( pnow ) ->
 

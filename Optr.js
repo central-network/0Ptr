@@ -1216,11 +1216,11 @@ self.name = "window";
           continue;
         }
         results.push((function() {
-          var l, len1, ref1, results1;
+          var len1, m, ref1, results1;
           ref1 = GLDraw.allocs(shape.ptri);
           results1 = [];
-          for (l = 0, len1 = ref1.length; l < len1; l++) {
-            draw = ref1[l];
+          for (m = 0, len1 = ref1.length; m < len1; m++) {
+            draw = ref1[m];
             results1.push(gl.bufferSubData(gl.ARRAY_BUFFER, draw.uploadOffset, space.drawBuffer, draw.uploadBegin, draw.uploadLength));
           }
           return results1;
@@ -1229,17 +1229,17 @@ self.name = "window";
       return results;
     };
     this.render = function() {
-      var define, label, onanimationframe;
+      var define, l, onanimationframe;
       rendering = 1;
-      for (label in defines) {
-        define = defines[label];
+      for (l in defines) {
+        define = defines[l];
         if (define.is.match(/attr/i)) {
-          define.enable() || define.rebind();
+          try {
+            define.enable();
+            define.rebind();
+          } catch (error1) {}
         }
       }
-      setTimeout(() => {
-        return warn(defines);
-      }, 500);
       onanimationframe = function(pnow) {
         var delta, fps;
         delta = pnow - epoch;
