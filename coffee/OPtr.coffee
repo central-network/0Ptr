@@ -42,6 +42,12 @@ do  self.init   = ->
     THREADS_BEGIN   = 6
     THREADS_COUNT   = 2 or navigator?.hardwareConcurrency
 
+    INNER_WIDTH     = innerWidth ? 640
+    INNER_HEIGHT    = innerHeight ? 480
+    RATIO_PIXEL     = devicePixelRatio ? 1
+    RATIO_ASPECT    = INNER_WIDTH / INNER_HEIGHT 
+
+
     STATE_READY     = 1
     STATE_LOCKED    = 0
     STATE_WORKING   = 3
@@ -84,6 +90,7 @@ do  self.init   = ->
         #log "nextTick:", ++ticks
 
         ptri = Atomics.load ptri32, 1
+        test = 0
 
         while OFFSET_PTR <= ptri -= 16        
             continue unless Atomics.load ptri32, ptri + HINDEX_ISGL
@@ -93,6 +100,8 @@ do  self.init   = ->
             paint   = Atomics.load ptri32, ptri + HINDEX_PAINTED
 
             continue if paint and locate
+
+            test = 1
 
             index   = Atomics.add ptri32, ptri + HINDEX_NEXT_VERTEXI, 1
             count   = Atomics.load ptri32, ptri + HINDEX_ITER_COUNT
@@ -110,8 +119,7 @@ do  self.init   = ->
                     draw.color( index ).set color
 
                 log ptri, index 
-
-                
+            
             continue if index - count
 
             if !locate
@@ -121,6 +129,9 @@ do  self.init   = ->
                 Atomics.store ptri32, ptri + HINDEX_PAINTED, 1
 
             Atomics.store ptri32, ptri + HINDEX_UPDATED, 1
+
+        if  test is 1
+            return nextTick()
 
         lock()
         nextTick()
@@ -276,6 +287,8 @@ do  self.init   = ->
             unless parseInt super ptri
                 return new @constructor malloc @constructor 
 
+        set         : ( value, index = 0 ) ->
+            @typedArray.set value, index ; this
 
         subarray    : ( begin, end ) ->
             new @constructor.TypedArray buffer, @byteOffset + begin * 4, end - begin
@@ -380,23 +393,156 @@ do  self.init   = ->
             byteOffset = ptri32[ ptri + HINDEX_BYTEOFFSET ] + index * 4 * 3
             new Float32Array buffer, byteOffset, 3
 
-    class Frustrum      extends Pointer
+    class Matrix4       extends Pointer
+
+        @byteLength         : 16
+
+        @multiply           : ( mat4a, mat4b ) ->
+            Matrix4::multiply.call mat4a, mat4b
+
+        translate           : ( x = 0, y = 0, z = 0 ) ->
+            @multiply Float32Array.of(
+                1,  0,  0,  0,
+                0,  1,  0,  0,
+                0,  0,  1,  0,
+                x,  y,  z,  1,
+            )
+
+        translateX          : ( x = 0 ) ->
+            @multiply Float32Array.of(
+                1,  0,  0,  0,
+                0,  1,  0,  0,
+                0,  0,  1,  0,
+                x,  0,  0,  1,
+            )
+
+        translateY          : ( y = 0 ) ->
+            @multiply Float32Array.of(
+                1,  0,  0,  0,
+                0,  1,  0,  0,
+                0,  0,  1,  0,
+                0,  y,  0,  1,
+            )
+
+        translateZ          : ( z = 0 ) ->
+            @multiply Float32Array.of(
+                1,  0,  0,  0,
+                0,  1,  0,  0,
+                0,  0,  1,  0,
+                0,  0,  z,  1,
+            )
+
+        rotate              : ( x = 0, y = 0, z = 0 ) ->
+            @rotateX( x ).rotateY( y ).rotateZ( z )
+
+        rotateX             : ( r = 0 ) ->
+            c = Math.cos r
+            s = Math.sin r
+
+            @multiply Float32Array.of(
+                 1,  0,  0,  0,
+                 0,  c,  s,  0,
+                 0, -s,  c,  0,
+                 0,  0,  0,  1,
+            )
+
+        rotateY             : ( r = 0 ) ->
+            c = Math.cos r
+            s = Math.sin r
+
+            @multiply Float32Array.of(
+                 c,  s,  0,  0,
+                -s,  c,  0,  0,
+                 0,  0,  1,  0,
+                 0,  0,  0,  1,
+            )
+
+        rotateZ             : ( r = 0 ) ->
+            c = Math.cos r
+            s = Math.sin r
+
+            @multiply Float32Array.of(
+                 c,  0, -s,  0,
+                 0,  1,  0,  0,
+                 s,  0,  c,  0,
+                 0,  0,  0,  1,
+            )
+
+        scale               : ( x = 1, y = 1, z = 1 ) ->
+            @multiply Float32Array.of(
+                 x,  0,  0,  0,
+                 0,  y,  0,  0,
+                 0,  0,  z,  0,
+                 0,  0,  0,  1,
+            )
+
+        multiply            : ( mat4 ) ->
+
+            [   a00, a01, a02, a03,
+                a10, a11, a12, a13,
+                a20, a21, a22, a23,
+                a30, a31, a32, a33,   ] = this
+
+            [   b00, b01, b02, b03,
+                b10, b11, b12, b13,
+                b20, b21, b22, b23,
+                b30, b31, b32, b33,   ] = mat4
+            
+            @set Float32Array.of(
+                b00 * a00  +  b01 * a10  +  b02 * a20  +  b03 * a30,
+                b00 * a01  +  b01 * a11  +  b02 * a21  +  b03 * a31,
+                b00 * a02  +  b01 * a12  +  b02 * a22  +  b03 * a32,
+                b00 * a03  +  b01 * a13  +  b02 * a23  +  b03 * a33,
+
+                b10 * a00  +  b11 * a10  +  b12 * a20  +  b13 * a30,
+                b10 * a01  +  b11 * a11  +  b12 * a21  +  b13 * a31,
+                b10 * a02  +  b11 * a12  +  b12 * a22  +  b13 * a32,
+                b10 * a03  +  b11 * a13  +  b12 * a23  +  b13 * a33,
+
+                b20 * a00  +  b21 * a10  +  b22 * a20  +  b23 * a30,
+                b20 * a01  +  b21 * a11  +  b22 * a21  +  b23 * a31,
+                b20 * a02  +  b21 * a12  +  b22 * a22  +  b23 * a32,
+                b20 * a03  +  b21 * a13  +  b22 * a23  +  b23 * a33,
+
+                b30 * a00  +  b31 * a10  +  b32 * a20  +  b33 * a30,
+                b30 * a01  +  b31 * a11  +  b32 * a21  +  b33 * a31,
+                b30 * a02  +  b31 * a12  +  b32 * a22  +  b33 * a32,
+                b30 * a03  +  b31 * a13  +  b32 * a23  +  b33 * a33,
+            )
+
+        [ Symbol.iterator ] : ->
+            begin = @begin
+            index = 0
+            count = 16
+
+            next  : ->
+                return done  : true if index is count
+                return value : f32[ begin + index++ ]
+
+        Object.defineProperties Matrix4::,
+            matrix  : 
+                get : -> f32.subarray @begin, @begin + 16
+                set : (v) -> f32.set v, @begin
+
+    class Frustrum      extends Matrix4
 
         @byteLength         : 4 * 28
 
-        INDEX_BOTTOM        : 18
+        INDEX_BOTTOM        : 17
         
-        INDEX_LEFT          : 19
+        INDEX_LEFT          : 18
         
-        INDEX_RIGHT         : 20
+        INDEX_RIGHT         : 19
         
-        INDEX_TOP           : 21
+        INDEX_TOP           : 20
         
-        INDEX_WIDTH         : 22
+        INDEX_WIDTH         : 21
         
-        INDEX_HEIGHT        : 23
+        INDEX_HEIGHT        : 22
         
-        INDEX_ASPECT        : 24
+        INDEX_ASPECT        : 23
+
+        INDEX_PRATIO        : 24
         
         INDEX_YFOV          : 25
 
@@ -406,7 +552,7 @@ do  self.init   = ->
 
         @fromOptions        : ( options = {} ) ->
             { yFov = 90, zNear = 1e-3, zFar = 1e+4,
-            width = innerWidth, height = innerHeight } = options
+            width = INNER_WIDTH, height = INNER_HEIGHT, pratio = RATIO_PIXEL } = options
 
             base = new this()
             aspect = width / height
@@ -414,27 +560,24 @@ do  self.init   = ->
             bottom = - ( top = zNear * Math.tan half_fovy )
             left = - ( right = top * aspect )
     
-            w = right - left
-            h = top - bottom
-    
-            sx = 2 * zNear / w
-            sy = 2 * zNear / h
-    
-            c2 = - ( zFar + zNear ) / (zFar - zNear)
-            c1 = 2 * zNear * zFar / ( zNear - zFar )
-    
-            tx = -zNear * (   left + right ) / w
-            ty = -zNear * ( bottom + top   ) / h
+            f = Math.tan Math.PI/2 - yFov/2
+            rangeInv = 1.0 / ( zNear - zFar )            
 
             base.typedArray.set Float32Array.of(
-                sx,       0,       0,      0,
-                 0,      sy,       0,      0,
-                 0,       0,      c2,     -5,
-                tx,      ty,      c1,      0,  0,  0,
+                f / aspect,    0,                             0,    0,
+                0,             f,                             0,    0,
+                0,             0,     (zNear + zFar) * rangeInv,   -1,
+                0,             0, (zNear * zFar) * rangeInv * 2,    0,
+                
+                0,
                 bottom, left, right, top,
-                width, height, aspect,
+                width, height, aspect, pratio,
                 yFov, zNear, zFar
             )
+
+            base.translateZ -5
+            base.rotateX Math.PI
+            base.scale 1, 1, 1
 
             base
 
@@ -468,6 +611,10 @@ do  self.init   = ->
                 get : -> f32[ @begin + @INDEX_ASPECT ]
                 set : (v) -> f32[ @begin + @INDEX_ASPECT ] = v
             
+            pratio  :
+                get : -> f32[ @begin + @INDEX_PRATIO ]
+                set : (v) -> f32[ @begin + @INDEX_PRATIO ] = v
+            
             yFov    :
                 get : -> f32[ @begin + @INDEX_YFOV ]
                 set : (v) -> f32[ @begin + @INDEX_YFOV ] = v
@@ -480,15 +627,12 @@ do  self.init   = ->
                 get : -> f32[ @begin + @INDEX_ZFAR ]
                 set : (v) -> f32[ @begin + @INDEX_ZFAR ] = v
 
-            matrix  : 
-                get : -> f32.subarray @begin, @begin + 16
-                set : (v) -> f32.set v, @begin
-
             rebind  :
                 get : -> @upload()
 
         setViewport         : ( context ) ->
-            context.viewport 0, 0, @width, @height
+            context.viewport 0, 0, @width * @pratio, @height * @pratio
+
             if  defines.frustrum
                 defines.frustrum.upload =
                     defines.frustrum.bindUpload @matrix
@@ -499,6 +643,32 @@ do  self.init   = ->
 
                 @upload()
             this
+
+        listenWindow        : ->
+
+            self.addEventListener "wheel", (e) =>
+                @translateZ e.deltaY/100
+                    .upload()
+                e.preventDefault()
+            , passive: off
+
+            rotate = 0
+
+            self.onpointerdown  = -> rotate = 1
+            self.onpointerup    = -> rotate = 0
+            self.onpointermove  = (e) => 
+                return unless rotate
+                { movementX: x, movementY: y } = e
+
+                return unless (x or y)
+
+                @rotateX y / -100 if y
+                @rotateY x / -100 if x
+
+                @upload()
+            
+        
+
 
     class GLDraw        extends Pointer
 
@@ -585,11 +755,6 @@ do  self.init   = ->
 
     self.addEventListener "DOMContentLoaded"    , ->
 
-        INNER_WIDTH                 = innerWidth ? 640
-        INNER_HEIGHT                = innerHeight ? 480
-        RATIO_PIXEL                 = devicePixelRatio ? 1
-        RATIO_ASPECT                = INNER_WIDTH / INNER_HEIGHT 
-
         frame = 0
         epoch = 0
         rendering = 0
@@ -615,9 +780,9 @@ do  self.init   = ->
                 break
 
         drawBuffers = ->
-            gl.drawArrays gl.TRIANGLES, 0, 3
-            gl.drawArrays gl.LINES, 0, 3
-            gl.drawArrays gl.POINTS, 0, 3
+            gl.drawArrays gl.TRIANGLES, 0, 430
+            gl.drawArrays gl.LINES, 0, 430
+            gl.drawArrays gl.POINTS, 0, 430
 
         @render         = ->
             rendering = 1
@@ -751,14 +916,12 @@ do  self.init   = ->
         createFrustrum  = ( options ) ->
             frustrum = Frustrum.fromOptions options 
             frustrum . setViewport gl
-
-            log frustrum
+            frustrum . listenWindow()
 
         @createDisplay  = ->
             canvas = createCanvas()
 
             gl = canvas.getContext "webgl2"
-                        
             
             initialProgram()
             resolveDefines()
@@ -868,6 +1031,7 @@ do  self.init   = ->
         unlock()
 
     self.addEventListener "click"               , ->
+        return 1;
         warn "glbuffer:", glBuffer.dump()
 
         console.table workers.map (w) ->

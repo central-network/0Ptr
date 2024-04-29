@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, Color, Frustrum, GLBuffer, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, LE, LENGTH_GPU, OFFSET_CPU, OFFSET_GPU, OFFSET_LINES, OFFSET_POINTS, OFFSET_PTR, OFFSET_TRIANGLES, Pointer, Position, RADIANS_PER_DEGREE, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, STRIDE_GPU, Scale, Shape, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, buffer, classes, defines, dvw, error, f32, fShader, frustrum, gBuffer, gl, glBuffer, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, shaders, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, Color, Frustrum, GLBuffer, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, LENGTH_GPU, Matrix4, OFFSET_CPU, OFFSET_GPU, OFFSET_LINES, OFFSET_POINTS, OFFSET_PTR, OFFSET_TRIANGLES, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, STRIDE_GPU, Scale, Shape, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, buffer, classes, defines, dvw, error, f32, fShader, frustrum, gBuffer, gl, glBuffer, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, shaders, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -45,6 +45,10 @@ self.name = "window";
   THREADS_STATE = 5;
   THREADS_BEGIN = 6;
   THREADS_COUNT = 2 || (typeof navigator !== "undefined" && navigator !== null ? navigator.hardwareConcurrency : void 0);
+  INNER_WIDTH = typeof innerWidth !== "undefined" && innerWidth !== null ? innerWidth : 640;
+  INNER_HEIGHT = typeof innerHeight !== "undefined" && innerHeight !== null ? innerHeight : 480;
+  RATIO_PIXEL = typeof devicePixelRatio !== "undefined" && devicePixelRatio !== null ? devicePixelRatio : 1;
+  RATIO_ASPECT = INNER_WIDTH / INNER_HEIGHT;
   STATE_READY = 1;
   STATE_LOCKED = 0;
   STATE_WORKING = 3;
@@ -77,9 +81,10 @@ self.name = "window";
     return Atomics.store(ptri32, threadId, state);
   };
   nextTick = function() {
-    var begin, color, count, draw, end, index, j, len, locate, paint, ptri, ref, shape, vertex;
+    var begin, color, count, draw, end, index, j, len, locate, paint, ptri, ref, shape, test, vertex;
     //log "nextTick:", ++ticks
     ptri = Atomics.load(ptri32, 1);
+    test = 0;
     while (OFFSET_PTR <= (ptri -= 16)) {
       if (!Atomics.load(ptri32, ptri + HINDEX_ISGL)) {
         continue;
@@ -92,6 +97,7 @@ self.name = "window";
       if (paint && locate) {
         continue;
       }
+      test = 1;
       index = Atomics.add(ptri32, ptri + HINDEX_NEXT_VERTEXI, 1);
       count = Atomics.load(ptri32, ptri + HINDEX_ITER_COUNT);
       if (index <= count) {
@@ -118,6 +124,9 @@ self.name = "window";
         Atomics.store(ptri32, ptri + HINDEX_PAINTED, 1);
       }
       Atomics.store(ptri32, ptri + HINDEX_UPDATED, 1);
+    }
+    if (test === 1) {
+      return nextTick();
     }
     lock();
     return nextTick();
@@ -220,6 +229,11 @@ self.name = "window";
         if (!parseInt(super(ptri))) {
           return new this.constructor(malloc(this.constructor));
         }
+      }
+
+      set(value, index = 0) {
+        this.typedArray.set(value, index);
+        return this;
       }
 
       subarray(begin, end) {
@@ -501,30 +515,122 @@ self.name = "window";
     return Shape;
 
   }).call(this);
+  Matrix4 = (function() {
+    class Matrix4 extends Pointer {
+      static multiply(mat4a, mat4b) {
+        return Matrix4.prototype.multiply.call(mat4a, mat4b);
+      }
+
+      translate(x = 0, y = 0, z = 0) {
+        return this.multiply(Float32Array.of(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1));
+      }
+
+      translateX(x = 0) {
+        return this.multiply(Float32Array.of(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, 0, 0, 1));
+      }
+
+      translateY(y = 0) {
+        return this.multiply(Float32Array.of(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, y, 0, 1));
+      }
+
+      translateZ(z = 0) {
+        return this.multiply(Float32Array.of(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, z, 1));
+      }
+
+      rotate(x = 0, y = 0, z = 0) {
+        return this.rotateX(x).rotateY(y).rotateZ(z);
+      }
+
+      rotateX(r = 0) {
+        var c, s;
+        c = Math.cos(r);
+        s = Math.sin(r);
+        return this.multiply(Float32Array.of(1, 0, 0, 0, 0, c, s, 0, 0, -s, c, 0, 0, 0, 0, 1));
+      }
+
+      rotateY(r = 0) {
+        var c, s;
+        c = Math.cos(r);
+        s = Math.sin(r);
+        return this.multiply(Float32Array.of(c, s, 0, 0, -s, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1));
+      }
+
+      rotateZ(r = 0) {
+        var c, s;
+        c = Math.cos(r);
+        s = Math.sin(r);
+        return this.multiply(Float32Array.of(c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, 0, 0, 0, 1));
+      }
+
+      scale(x = 1, y = 1, z = 1) {
+        return this.multiply(Float32Array.of(x, 0, 0, 0, 0, y, 0, 0, 0, 0, z, 0, 0, 0, 0, 1));
+      }
+
+      multiply(mat4) {
+        var a00, a01, a02, a03, a10, a11, a12, a13, a20, a21, a22, a23, a30, a31, a32, a33, b00, b01, b02, b03, b10, b11, b12, b13, b20, b21, b22, b23, b30, b31, b32, b33;
+        [a00, a01, a02, a03, a10, a11, a12, a13, a20, a21, a22, a23, a30, a31, a32, a33] = this;
+        [b00, b01, b02, b03, b10, b11, b12, b13, b20, b21, b22, b23, b30, b31, b32, b33] = mat4;
+        return this.set(Float32Array.of(b00 * a00 + b01 * a10 + b02 * a20 + b03 * a30, b00 * a01 + b01 * a11 + b02 * a21 + b03 * a31, b00 * a02 + b01 * a12 + b02 * a22 + b03 * a32, b00 * a03 + b01 * a13 + b02 * a23 + b03 * a33, b10 * a00 + b11 * a10 + b12 * a20 + b13 * a30, b10 * a01 + b11 * a11 + b12 * a21 + b13 * a31, b10 * a02 + b11 * a12 + b12 * a22 + b13 * a32, b10 * a03 + b11 * a13 + b12 * a23 + b13 * a33, b20 * a00 + b21 * a10 + b22 * a20 + b23 * a30, b20 * a01 + b21 * a11 + b22 * a21 + b23 * a31, b20 * a02 + b21 * a12 + b22 * a22 + b23 * a32, b20 * a03 + b21 * a13 + b22 * a23 + b23 * a33, b30 * a00 + b31 * a10 + b32 * a20 + b33 * a30, b30 * a01 + b31 * a11 + b32 * a21 + b33 * a31, b30 * a02 + b31 * a12 + b32 * a22 + b33 * a32, b30 * a03 + b31 * a13 + b32 * a23 + b33 * a33));
+      }
+
+      [Symbol.iterator]() {
+        var begin, count, index;
+        begin = this.begin;
+        index = 0;
+        count = 16;
+        return {
+          next: function() {
+            if (index === count) {
+              return {
+                done: true
+              };
+            }
+            return {
+              value: f32[begin + index++]
+            };
+          }
+        };
+      }
+
+    };
+
+    Matrix4.byteLength = 16;
+
+    Object.defineProperties(Matrix4.prototype, {
+      matrix: {
+        get: function() {
+          return f32.subarray(this.begin, this.begin + 16);
+        },
+        set: function(v) {
+          return f32.set(v, this.begin);
+        }
+      }
+    });
+
+    return Matrix4;
+
+  }).call(this);
   Frustrum = (function() {
-    class Frustrum extends Pointer {
+    class Frustrum extends Matrix4 {
       static fromOptions(options = {}) {
-        var aspect, base, bottom, c1, c2, h, half_fovy, height, left, right, sx, sy, top, tx, ty, w, width, yFov, zFar, zNear;
-        ({yFov = 90, zNear = 1e-3, zFar = 1e+4, width = innerWidth, height = innerHeight} = options);
+        var aspect, base, bottom, f, half_fovy, height, left, pratio, rangeInv, right, top, width, yFov, zFar, zNear;
+        ({yFov = 90, zNear = 1e-3, zFar = 1e+4, width = INNER_WIDTH, height = INNER_HEIGHT, pratio = RATIO_PIXEL} = options);
         base = new this();
         aspect = width / height;
         half_fovy = .5 * yFov * RADIANS_PER_DEGREE;
         bottom = -(top = zNear * Math.tan(half_fovy));
         left = -(right = top * aspect);
-        w = right - left;
-        h = top - bottom;
-        sx = 2 * zNear / w;
-        sy = 2 * zNear / h;
-        c2 = -(zFar + zNear) / (zFar - zNear);
-        c1 = 2 * zNear * zFar / (zNear - zFar);
-        tx = -zNear * (left + right) / w;
-        ty = -zNear * (bottom + top) / h;
-        base.typedArray.set(Float32Array.of(sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, c2, -5, tx, ty, c1, 0, 0, 0, bottom, left, right, top, width, height, aspect, yFov, zNear, zFar));
+        f = Math.tan(Math.PI / 2 - yFov / 2);
+        rangeInv = 1.0 / (zNear - zFar);
+        base.typedArray.set(Float32Array.of(f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (zNear + zFar) * rangeInv, -1, 0, 0, (zNear * zFar) * rangeInv * 2, 0, 0, bottom, left, right, top, width, height, aspect, pratio, yFov, zNear, zFar));
+        base.translateZ(-5);
+        base.rotateX(Math.PI);
+        base.scale(1, 1, 1);
         return base;
       }
 
       setViewport(context) {
-        context.viewport(0, 0, this.width, this.height);
+        context.viewport(0, 0, this.width * this.pratio, this.height * this.pratio);
         if (defines.frustrum) {
           defines.frustrum.upload = defines.frustrum.bindUpload(this.matrix);
           Object.defineProperties(this, {
@@ -542,23 +648,62 @@ self.name = "window";
         return this;
       }
 
+      listenWindow() {
+        var rotate;
+        self.addEventListener("wheel", (e) => {
+          this.translateZ(e.deltaY / 100).upload();
+          return e.preventDefault();
+        }, {
+          passive: false
+        });
+        rotate = 0;
+        self.onpointerdown = function() {
+          return rotate = 1;
+        };
+        self.onpointerup = function() {
+          return rotate = 0;
+        };
+        return self.onpointermove = (e) => {
+          var x, y;
+          if (!rotate) {
+            return;
+          }
+          ({
+            movementX: x,
+            movementY: y
+          } = e);
+          if (!(x || y)) {
+            return;
+          }
+          if (y) {
+            this.rotateX(y / -100);
+          }
+          if (x) {
+            this.rotateY(x / -100);
+          }
+          return this.upload();
+        };
+      }
+
     };
 
     Frustrum.byteLength = 4 * 28;
 
-    Frustrum.prototype.INDEX_BOTTOM = 18;
+    Frustrum.prototype.INDEX_BOTTOM = 17;
 
-    Frustrum.prototype.INDEX_LEFT = 19;
+    Frustrum.prototype.INDEX_LEFT = 18;
 
-    Frustrum.prototype.INDEX_RIGHT = 20;
+    Frustrum.prototype.INDEX_RIGHT = 19;
 
-    Frustrum.prototype.INDEX_TOP = 21;
+    Frustrum.prototype.INDEX_TOP = 20;
 
-    Frustrum.prototype.INDEX_WIDTH = 22;
+    Frustrum.prototype.INDEX_WIDTH = 21;
 
-    Frustrum.prototype.INDEX_HEIGHT = 23;
+    Frustrum.prototype.INDEX_HEIGHT = 22;
 
-    Frustrum.prototype.INDEX_ASPECT = 24;
+    Frustrum.prototype.INDEX_ASPECT = 23;
+
+    Frustrum.prototype.INDEX_PRATIO = 24;
 
     Frustrum.prototype.INDEX_YFOV = 25;
 
@@ -623,6 +768,14 @@ self.name = "window";
           return f32[this.begin + this.INDEX_ASPECT] = v;
         }
       },
+      pratio: {
+        get: function() {
+          return f32[this.begin + this.INDEX_PRATIO];
+        },
+        set: function(v) {
+          return f32[this.begin + this.INDEX_PRATIO] = v;
+        }
+      },
       yFov: {
         get: function() {
           return f32[this.begin + this.INDEX_YFOV];
@@ -645,14 +798,6 @@ self.name = "window";
         },
         set: function(v) {
           return f32[this.begin + this.INDEX_ZFAR] = v;
-        }
-      },
-      matrix: {
-        get: function() {
-          return f32.subarray(this.begin, this.begin + 16);
-        },
-        set: function(v) {
-          return f32.set(v, this.begin);
         }
       },
       rebind: {
@@ -779,11 +924,7 @@ self.name = "window";
 
   }).call(this);
   self.addEventListener("DOMContentLoaded", function() {
-    var INNER_HEIGHT, INNER_WIDTH, RATIO_ASPECT, RATIO_PIXEL, checkUploads, createBlobURL, createCanvas, createFrustrum, createThreads, createWorker, drawBuffers, epoch, frame, initialProgram, listenEvents, rendering, resolveDefines, resolveUniform;
-    INNER_WIDTH = typeof innerWidth !== "undefined" && innerWidth !== null ? innerWidth : 640;
-    INNER_HEIGHT = typeof innerHeight !== "undefined" && innerHeight !== null ? innerHeight : 480;
-    RATIO_PIXEL = typeof devicePixelRatio !== "undefined" && devicePixelRatio !== null ? devicePixelRatio : 1;
-    RATIO_ASPECT = INNER_WIDTH / INNER_HEIGHT;
+    var checkUploads, createBlobURL, createCanvas, createFrustrum, createThreads, createWorker, drawBuffers, epoch, frame, initialProgram, listenEvents, rendering, resolveDefines, resolveUniform;
     frame = 0;
     epoch = 0;
     rendering = 0;
@@ -813,9 +954,9 @@ self.name = "window";
       return results;
     };
     drawBuffers = function() {
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-      gl.drawArrays(gl.LINES, 0, 3);
-      return gl.drawArrays(gl.POINTS, 0, 3);
+      gl.drawArrays(gl.TRIANGLES, 0, 430);
+      gl.drawArrays(gl.LINES, 0, 430);
+      return gl.drawArrays(gl.POINTS, 0, 430);
     };
     this.render = function() {
       var onanimationframe;
@@ -978,7 +1119,7 @@ self.name = "window";
     createFrustrum = function(options) {
       frustrum = Frustrum.fromOptions(options);
       frustrum.setViewport(gl);
-      return log(frustrum);
+      return frustrum.listenWindow();
     };
     this.createDisplay = function() {
       var canvas;
@@ -1109,6 +1250,7 @@ self.name = "window";
     return unlock();
   });
   self.addEventListener("click", function() {
+    return 1;
     warn("glbuffer:", glBuffer.dump());
     return console.table(workers.map(function(w) {
       return {
