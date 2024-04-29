@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, Color, Frustrum, GLBuffer, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, LENGTH_GPU, Matrix4, OFFSET_CPU, OFFSET_GPU, OFFSET_LINES, OFFSET_POINTS, OFFSET_PTR, OFFSET_TRIANGLES, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, STRIDE_GPU, Scale, Shape, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, buffer, classes, defines, dvw, error, f32, fShader, frustrum, gBuffer, gl, glBuffer, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, shaders, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, Color, Frustrum, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, LENGTH_GLBUFFER, Matrix4, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shape, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, buffer, classes, defines, dvw, error, f32, fShader, frustrum, gBuffer, gl, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, shaders, space, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -29,7 +29,7 @@ self.name = "window";
   u32 = null;
   dvw = null;
   buffer = null;
-  glBuffer = null;
+  space = null;
   scripts = null;
   program = null;
   vShader = null;
@@ -58,6 +58,7 @@ self.name = "window";
   OFFSET_GPU = 1000 * 16;
   OFFSET_CPU = 4096 * 4096;
   OFFSET_PTR = 24;
+  LENGTH_GLBUFFER = 32 * 1e5;
   HINDEX_LENGTH = 0;
   HINDEX_PTRI = HINDEX_LENGTH++;
   HINDEX_BYTEOFFSET = HINDEX_LENGTH++;
@@ -111,6 +112,8 @@ self.name = "window";
           draw = ref[j];
           draw.vertex(index).set(vertex);
           draw.color(index).set(color);
+          Atomics.store(ptri32, draw.ptri + HINDEX_UPDATED, 0);
+          draw.needsUpload = 1;
         }
         log(ptri, index);
       }
@@ -148,8 +151,6 @@ self.name = "window";
     }
     return results;
   };
-  LENGTH_GPU = OFFSET_CPU - OFFSET_GPU;
-  STRIDE_GPU = Math.trunc(LENGTH_GPU / 3);
   if (isWindow) {
     buffer = new SharedArrayBuffer(1e8);
     ptri32 = new Int32Array(buffer);
@@ -169,24 +170,22 @@ self.name = "window";
     Atomics.add(ptri32, 2, OFFSET_GPU);
     state(THREADS_NULL);
   }
-  OFFSET_POINTS = OFFSET_GPU + STRIDE_GPU * 0;
-  OFFSET_LINES = OFFSET_GPU + STRIDE_GPU * 1;
-  OFFSET_TRIANGLES = OFFSET_GPU + STRIDE_GPU * 2;
   malloc = function(constructor, byteLength) {
-    var BYTES_PER_ELEMENT, begin, byteOffset, classId, length, ptri;
+    var BYTES_PER_ELEMENT, allocLength, begin, byteOffset, classId, length, ptri;
     BYTES_PER_ELEMENT = constructor.TypedArray.BYTES_PER_ELEMENT || constructor.BYTES_PER_ELEMENT;
     classId = constructor.classId;
     if (!byteLength) {
       byteLength = constructor.byteLength;
     }
+    length = (allocLength = byteLength) / BYTES_PER_ELEMENT;
     byteLength += 8 - (byteLength % 8);
-    length = byteLength / BYTES_PER_ELEMENT;
     ptri = Atomics.add(ptri32, 1, 16);
     byteOffset = Atomics.add(ptri32, 0, byteLength);
+    Atomics.add(ptri32, 0, 8 - (byteLength % 8));
     begin = byteOffset / BYTES_PER_ELEMENT;
     Atomics.store(ptri32, ptri + HINDEX_PTRI, ptri);
     Atomics.store(ptri32, ptri + HINDEX_BYTEOFFSET, byteOffset);
-    Atomics.store(ptri32, ptri + HINDEX_BYTELENGTH, byteLength);
+    Atomics.store(ptri32, ptri + HINDEX_BYTELENGTH, allocLength);
     Atomics.store(ptri32, ptri + HINDEX_CLASSID, classId);
     Atomics.store(ptri32, ptri + HINDEX_LENGTH, length);
     Atomics.store(ptri32, ptri + HINDEX_BEGIN, begin);
@@ -200,6 +199,20 @@ self.name = "window";
   };
   Pointer = (function() {
     class Pointer extends Number {
+      static allocs() {
+        var classId, object, ptri, results;
+        ptri = Atomics.load(ptri32, 1);
+        classId = this.classId;
+        results = [];
+        while (OFFSET_PTR <= (ptri -= 16)) {
+          if (classId !== Atomics.load(ptri32, ptri + HINDEX_CLASSID)) {
+            continue;
+          }
+          results.push(object = new this(ptri));
+        }
+        return results;
+      }
+
       static malloc(constructor, byteLength) {
         var mod, offset;
         this.classId;
@@ -229,10 +242,15 @@ self.name = "window";
         if (!parseInt(super(ptri))) {
           return new this.constructor(malloc(this.constructor));
         }
+        this.init(ptri);
       }
 
       set(value, index = 0) {
         this.typedArray.set(value, index);
+        return this;
+      }
+
+      init() {
         return this;
       }
 
@@ -480,15 +498,22 @@ self.name = "window";
         }
         ptr.isGL = 1;
         ptr.iterCount = ptr.vertices.pointCount;
+        if (!Number.isInteger(ptr.vertices.pointCount)) {
+          throw [/VERTEX_COUNT_MUST_BE_MULTIPLE_OF_3/, options.vertices];
+        }
         return ptr;
       }
 
       drawPoints() {
-        return warn(glBuffer.malloc(gl.POINTS, this));
+        return space.malloc(gl.POINTS, this);
       }
 
       drawLines() {
-        return warn(glBuffer.malloc(gl.LINES, this));
+        return space.malloc(gl.LINES, this);
+      }
+
+      drawTriangles() {
+        return space.malloc(gl.TRIANGLES, this);
       }
 
       vertex(index) {
@@ -511,6 +536,14 @@ self.name = "window";
     Shape.prototype.OFFSET_COLOR = Shape.malloc(Color);
 
     Shape.prototype.OFFSET_VERTICES = Shape.malloc(Vertices);
+
+    Object.defineProperties(Shape.prototype, {
+      pointCount: {
+        get: function() {
+          return this.vertices.pointCount;
+        }
+      }
+    });
 
     return Shape;
 
@@ -631,6 +664,9 @@ self.name = "window";
 
       setViewport(context) {
         context.viewport(0, 0, this.width * this.pratio, this.height * this.pratio);
+        if (defines.pointSize) {
+          defines.pointSize.value = 10;
+        }
         if (defines.frustrum) {
           defines.frustrum.upload = defines.frustrum.bindUpload(this.matrix);
           Object.defineProperties(this, {
@@ -686,11 +722,11 @@ self.name = "window";
         return self.onpointermove = (e) => {
           var x, y;
           if (plock || rotate || draging) {
+            ({
+              movementX: x,
+              movementY: y
+            } = e);
             if (rotate) {
-              ({
-                movementX: x,
-                movementY: y
-              } = e);
               if (y) {
                 this.rotateX(y / -100);
               }
@@ -699,10 +735,6 @@ self.name = "window";
               }
             }
             if (draging) {
-              ({
-                movementX: x,
-                movementY: y
-              } = e);
               this.translate(x / (INNER_WIDTH / 10), y / (INNER_HEIGHT / 15));
             }
             this.upload();
@@ -837,70 +869,100 @@ self.name = "window";
 
   }).call(this);
   GLDraw = (function() {
-    class GLDraw extends Pointer {};
+    class GLDraw extends Pointer {
+      static fromOptions(options = {}) {
+        return Object.assign(new this(), options);
+      }
+
+      vertex(i) {
+        var byteOffset;
+        byteOffset = this.globalOffset + (i * 32);
+        return new Float32Array(buffer, byteOffset, 3);
+      }
+
+      color(i) {
+        var byteOffset;
+        byteOffset = this.globalOffset + (i * 32) + 16;
+        return new Float32Array(buffer, byteOffset, 4);
+      }
+
+    };
 
     GLDraw.byteLength = 8 * 4;
 
-    GLDraw.prototype.INDEX_START = 0;
+    GLDraw.prototype.INDEX_NEEDSUP = 0;
 
     GLDraw.prototype.INDEX_COUNT = 1;
 
-    GLDraw.prototype.INDEX_GLTYPE = 2;
+    GLDraw.prototype.INDEX_TYPE = 2;
 
-    GLDraw.prototype.INDEX_GLOFFSET = 3;
+    GLDraw.prototype.INDEX_OFFSET = 3;
+
+    GLDraw.prototype.INDEX_BEGIN = 4;
+
+    GLDraw.prototype.INDEX_LENGTH = 5;
+
+    GLDraw.prototype.INDEX_ATTRLEN = 6;
+
+    GLDraw.prototype.INDEX_BOFFSET = 7;
 
     GLDraw.prototype.classId = GLDraw.classId;
 
     Object.defineProperties(GLDraw.prototype, {
-      start: {
+      needsUpload: {
         get: function() {
-          return Atomics.load(ptri32, this.begin + this.INDEX_START);
+          return u32[this.begin] && !(u32[this.begin] = 0);
         },
         set: function(v) {
-          return Atomics.store(ptri32, this.begin + this.INDEX_START, v);
+          return u32[this.begin] = v;
         }
       },
-      count: {
+      drawCount: {
         get: function() {
-          return Atomics.load(ptri32, this.begin + this.INDEX_COUNT);
+          return u32[this.begin + this.INDEX_COUNT];
         },
         set: function(v) {
-          return Atomics.store(ptri32, this.begin + this.INDEX_COUNT, v);
+          return u32[this.begin + this.INDEX_COUNT] = v;
         }
       },
-      vertex: {
-        value: function(i) {
-          var byteOffset;
-          byteOffset = this.glOffset + (i * 32);
-          return new Float32Array(buffer, byteOffset, 3);
-        }
-      },
-      color: {
-        value: function(i) {
-          var byteOffset;
-          byteOffset = this.glOffset + (i * 32) + 16;
-          return new Float32Array(buffer, byteOffset, 4);
-        }
-      },
-      glOffset: {
+      drawType: {
         get: function() {
-          return Atomics.load(ptri32, this.begin + this.INDEX_GLOFFSET);
+          return u32[this.begin + this.INDEX_TYPE];
         },
         set: function(v) {
-          return Atomics.store(ptri32, this.begin + this.INDEX_GLOFFSET, v);
+          return u32[this.begin + this.INDEX_TYPE] = v;
         }
       },
-      glType: {
+      globalOffset: {
         get: function() {
-          return Atomics.load(ptri32, this.begin + this.INDEX_GLTYPE);
+          return u32[this.begin + this.INDEX_BOFFSET];
         },
         set: function(v) {
-          return Atomics.store(ptri32, this.begin + this.INDEX_GLTYPE, v);
+          return u32[this.begin + this.INDEX_BOFFSET] = v;
         }
       },
-      glBuffer: {
+      uploadOffset: {
         get: function() {
-          return new Float32Array(buffer, this.glOffset, this.count * 8);
+          return u32[this.begin + this.INDEX_OFFSET];
+        },
+        set: function(v) {
+          return u32[this.begin + this.INDEX_OFFSET] = v;
+        }
+      },
+      uploadBegin: {
+        get: function() {
+          return u32[this.begin + this.INDEX_BEGIN];
+        },
+        set: function(v) {
+          return u32[this.begin + this.INDEX_BEGIN] = v;
+        }
+      },
+      uploadLength: {
+        get: function() {
+          return u32[this.begin + this.INDEX_LENGTH];
+        },
+        set: function(v) {
+          return u32[this.begin + this.INDEX_LENGTH] = v;
         }
       }
     });
@@ -908,94 +970,191 @@ self.name = "window";
     return GLDraw;
 
   }).call(this);
-  GLBuffer = (function() {
-    class GLBuffer extends Float32Array {
-      constructor() {
-        super(buffer, OFFSET_GPU, LENGTH_GPU / 4);
-        Object.assign(this, {
-          [WebGL2RenderingContext.POINTS]: OFFSET_POINTS + 32,
-          [WebGL2RenderingContext.LINES]: OFFSET_LINES,
-          [WebGL2RenderingContext.TRIANGLES]: OFFSET_TRIANGLES
-        });
+  Space = (function() {
+    class Space extends Pointer {
+      init() {
+        var TYPE, i, j, l, len, ref;
+        this.pointsPerType = Math.trunc(this.maxPointsCount / 3);
+        ref = [[gl.POINTS, 0], [gl.LINES, 1], [gl.TRIANGLES, 2]];
+        for (j = 0, len = ref.length; j < len; j++) {
+          [TYPE, i] = ref[j];
+          u32[this.begin + TYPE + 0] = l = this.pointsPerType * i;
+          u32[this.begin + TYPE + 5] = l * this.bytesPerPoint + this.byteOffset;
+        }
+        return this;
+      }
+
+      draw() {
+        var count;
+        if (count = this.trianglesCount) {
+          gl.drawArrays(gl.TRIANGLES, this.trianglesStart, count);
+        }
+        if (count = this.linesCount) {
+          gl.drawArrays(gl.TRIANGLES, this.linesStart, count);
+        }
+        if (count = this.pointsCount) {
+          return gl.drawArrays(gl.TRIANGLES, this.pointsStart, count);
+        }
       }
 
       malloc(type, shape) {
-        var byteLength, byteOffset, draw, pointCount;
-        pointCount = shape.vertices.pointCount;
-        byteLength = pointCount * 8 * 4;
-        byteOffset = this[type];
-        this[type] += byteLength + (4 - byteLength % 4);
-        draw = new GLDraw();
-        draw.start = byteOffset / 4;
-        draw.count = pointCount;
-        draw.glType = type;
-        draw.glOffset = byteOffset;
-        draw.parent = shape;
-        return draw;
-      }
+        var begin, byteLength, count, draw, length, offset, typeOffset;
+        //* TYPE 0 : POINTS
+        //* TYPE 1 : LINES
+        //* TYPE 4 : TRIANGLES
+        count = shape.pointCount;
+        //? [ x0, y0, z0,   x1, y1, z1 ] count = 2
+        length = count * this.itemsPerPoint;
+        //? [ x0, y0, z0,   x1, y1, z1 ] length = 16
+        byteLength = length * 4;
+        //? [ x0, y0, z0,   x1, y1, z1 ] byteLength = 64
 
-      dump() {
-        return new Float32Array(buffer, this.drawOffset, this.drawLength);
+        //start = Atomics.add u32, @begin + type + 2, count
+        //? [ GPUx0, GPUy0, GPUz0, GPUr0, GPUg0, GPUb0, GPUa0, 
+        //?   GPUx1, GPUy1, GPUz1, GPUr1, GPUg1, GPUb1, GPUa1, 
+        //?                          ...                
+        //?                          ...                
+        //?   GPUxN, GPUyN, GPUzN, GPUrN, GPUgN, ...         ] start = N
+        //? it means this space has same kind shapes which has N points 
+        typeOffset = Atomics.load(u32, this.begin + type + 5);
+        //? global byte offset of allocated GPU buffer part
+        begin = typeOffset + this.bytesPerPoint * Atomics.load(u32, this.begin + type);
+        //? copy will begin in space
+        Atomics.add(u32, this.begin + type, count);
+        //? its for fast reach to total draw point count at type
+        //? start variable IS NOT count !!! it has been settled at init
+        offset = begin * 4;
+        //? copy starts at byte offset
+        draw = GLDraw.fromOptions({
+          drawCount: count,
+          drawType: type,
+          uploadBegin: begin,
+          uploadLength: length,
+          uploadOffset: offset,
+          globalOffset: byteOffset,
+          needsUpload: 1
+        });
+        return Object.defineProperties(draw, {
+          upload: {
+            value: gl.bufferSubData.bind(gl, gl.ARRAY_BUFFER, offset, this.drawBuffer, begin, length)
+          }
+        });
       }
 
     };
 
-    GLBuffer.prototype.drawOffset = OFFSET_POINTS + 32;
+    Space.byteLength = LENGTH_GLBUFFER;
 
-    GLBuffer.prototype.begin = GLBuffer.prototype.drawOffset / 4;
+    Space.prototype.INDEX_POINTS_BEGIN = 0;
 
-    GLBuffer.prototype.drawLength = .25 * (LENGTH_GPU - 24);
+    Space.prototype.INDEX_LINES_BEGIN = 1;
 
-    return GLBuffer;
+    Space.prototype.INDEX_TRIANGES_BEGIN = 4;
+
+    Space.prototype.INDEX_POINTS_COUNT = 2;
+
+    Space.prototype.INDEX_LINES_COUNT = 3;
+
+    Space.prototype.INDEX_TRIANGES_COUNT = 6;
+
+    Space.prototype.INDEX_POINTS_OFFSET = 5;
+
+    Space.prototype.INDEX_LINES_OFFSET = 6;
+
+    Space.prototype.INDEX_TRIANGES_OFFSET = 9;
+
+    Space.prototype.INDEX_TYPELENGTH = 10;
+
+    Space.prototype.INDEX_DRAW_BEGIN = 16;
+
+    Space.prototype.itemsPerPoint = 8;
+
+    Space.prototype.bytesPerPoint = 4 * Space.prototype.itemsPerPoint;
+
+    Space.prototype.drawByteOffset = 4 * Space.prototype.INDEX_DRAW_BEGIN;
+
+    Space.prototype.calcByteLength = Space.prototype.byteLength - Space.prototype.drawByteOffset;
+
+    Space.prototype.drawByteLength = Space.prototype.calcByteLength - Space.prototype.calcByteLength % Space.prototype.bytesPerPoint;
+
+    Space.prototype.drawableLength = Space.prototype.drawByteLength / 4;
+
+    Space.prototype.maxPointsCount = Space.prototype.drawByteLength / Space.prototype.bytesPerPoint;
+
+    Object.defineProperties(Space.prototype, {
+      pointsPerType: {
+        get: function() {
+          return Atomics.load(u32, this.begin + this.INDEX_TYPELENGTH);
+        },
+        set: function(v) {
+          return Atomics.store(u32, this.begin + this.INDEX_TYPELENGTH, v);
+        }
+      },
+      drawBuffer: {
+        get: function() {
+          return new Float32Array(buffer, this.drawByteOffset, this.drawableLength);
+        }
+      },
+      pointsCount: {
+        get: function() {
+          return u32[this.begin + 2];
+        }
+      },
+      linesCount: {
+        get: function() {
+          return u32[this.begin + 3];
+        }
+      },
+      trianglesCount: {
+        get: function() {
+          return u32[this.begin + 6];
+        }
+      },
+      pointsStart: {
+        get: function() {
+          return u32[this.begin + 0];
+        }
+      },
+      linesStart: {
+        get: function() {
+          return u32[this.begin + 1];
+        }
+      },
+      trianglesStart: {
+        get: function() {
+          return u32[this.begin + 4];
+        }
+      }
+    });
+
+    return Space;
 
   }).call(this);
   self.addEventListener("DOMContentLoaded", function() {
-    var checkUploads, createBlobURL, createCanvas, createFrustrum, createThreads, createWorker, drawBuffers, epoch, frame, initialProgram, listenEvents, rendering, resolveDefines, resolveUniform;
+    var checkUploads, createBlobURL, createCanvas, createFrustrum, createThreads, createWorker, epoch, frame, initialProgram, listenEvents, rendering, resolveDefines, resolveUniform;
+    setTimeout(() => {
+      warn(GLDraw.allocs());
+      return warn(Space.allocs());
+    }, 500);
     frame = 0;
     epoch = 0;
     rendering = 0;
     checkUploads = function() {
-      var color, draw, j, len, position, ptri, ref, results, shape;
-      ptri = Atomics.load(ptri32, 1);
-      results = [];
-      while (OFFSET_PTR <= (ptri -= 16)) {
-        if (!Atomics.and(ptri32, ptri + HINDEX_UPDATED, 0)) {
-          continue;
+      var color, draw, j, len, position, ref;
+      ref = GLDraw.allocs();
+      for (j = 0, len = ref.length; j < len; j++) {
+        draw = ref[j];
+        if (draw.needsUpload) {
+          draw.upload();
         }
-        shape = new Shape(ptri);
-        ref = shape.children;
-        for (j = 0, len = ref.length; j < len; j++) {
-          draw = ref[j];
-          log(glBuffer.dump());
-          gl.bufferData(gl.ARRAY_BUFFER, glBuffer.dump(), gl.STATIC_DRAW);
-          position = gl.getAttribLocation(program, "position");
-          gl.enableVertexAttribArray(position);
-          gl.vertexAttribPointer(position, 3, gl.FLOAT, false, 32, 0);
-          color = gl.getAttribLocation(program, "color");
-          gl.enableVertexAttribArray(color);
-          gl.vertexAttribPointer(color, 4, gl.FLOAT, false, 32, 16);
-        }
-        break;
       }
-      return results;
+      position = gl.getAttribLocation(program, "position");
+      gl.enableVertexAttribArray(position);
+      gl.vertexAttribPointer(position, 3, gl.FLOAT, false, 32, 0);
+      color = gl.getAttribLocation(program, "color");
+      gl.enableVertexAttribArray(color);
+      return gl.vertexAttribPointer(color, 4, gl.FLOAT, false, 32, 16);
     };
-    drawBuffers = function() {
-      //todo
-      //todo
-      //todo
-      //todo
-      //todo
-      //todo
-      gl.drawArrays(gl.TRIANGLES, 0, 430);
-      gl.drawArrays(gl.LINES, 0, 430);
-      return gl.drawArrays(gl.POINTS, 0, 430);
-    };
-    //todo
-    //todo
-    //todo
-    //todo
-    //todo
-    //todo
     this.render = function() {
       var onanimationframe;
       rendering = 1;
@@ -1006,7 +1165,7 @@ self.name = "window";
         fps = Math.trunc(1 / delta * 1e3);
         checkUploads();
         emit("animationframe", {gl, delta, epoch, fps});
-        drawBuffers();
+        space.draw();
         return requestAnimationFrame(onanimationframe);
       };
       return onanimationframe(performance.now());
@@ -1160,14 +1319,11 @@ self.name = "window";
       return frustrum.listenWindow();
     };
     this.createDisplay = function() {
-      var canvas;
-      canvas = createCanvas();
-      gl = canvas.getContext("webgl2");
+      gl = createCanvas().getContext("webgl2");
       initialProgram();
       resolveDefines();
       createFrustrum();
-      glBuffer = new GLBuffer();
-      defines.pointSize.value = 10;
+      space = new Space();
       return requestIdleCallback(() => {
         self.emit("contextrestored", gl);
         return pipe.emit("contextrestored");
@@ -1262,7 +1418,7 @@ self.name = "window";
     f32 = new Float32Array(buffer);
     dvw = new DataView(buffer);
     ptri32 = new Int32Array(buffer);
-    glBuffer = new GLBuffer();
+    space = new Space();
     return emit("threadready");
   });
   self.addEventListener("threadready", function() {
@@ -1284,7 +1440,6 @@ self.name = "window";
     }
   });
   self.addEventListener("dblclick", function() {
-    warn("glbuffer:", glBuffer.dump());
     return console.table(workers.map(function(w) {
       return {
         state: w.state,

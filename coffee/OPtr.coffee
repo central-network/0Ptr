@@ -21,7 +21,7 @@ do  self.init   = ->
     u32 = null
     dvw = null
     buffer = null
-    glBuffer = null
+    space = null
     
     scripts = null
     program = null
@@ -59,6 +59,7 @@ do  self.init   = ->
     OFFSET_GPU          = 1000 * 16
     OFFSET_CPU          = 4096 * 4096
     OFFSET_PTR          = 24
+    LENGTH_GLBUFFER     = 32 * 1e5
 
     HINDEX_LENGTH       = 0
     HINDEX_PTRI         = HINDEX_LENGTH++
@@ -118,6 +119,9 @@ do  self.init   = ->
                     draw.vertex( index ).set vertex
                     draw.color( index ).set color
 
+                    Atomics.store ptri32, draw.ptri + HINDEX_UPDATED, 0
+                    draw.needsUpload = 1
+                    
                 log ptri, index 
             
             continue if index - count
@@ -145,10 +149,6 @@ do  self.init   = ->
             Atomics.store ptri32, w.threadId, STATE_READY
             Atomics.notify ptri32, w.threadId, 1
 
-
-    LENGTH_GPU = OFFSET_CPU - OFFSET_GPU
-    STRIDE_GPU = Math.trunc LENGTH_GPU/3
-
     if  isWindow
         buffer = new SharedArrayBuffer 1e8
         ptri32 = new Int32Array buffer 
@@ -170,10 +170,6 @@ do  self.init   = ->
     
         state THREADS_NULL
 
-    OFFSET_POINTS       = OFFSET_GPU + STRIDE_GPU * 0 
-    OFFSET_LINES        = OFFSET_GPU + STRIDE_GPU * 1
-    OFFSET_TRIANGLES    = OFFSET_GPU + STRIDE_GPU * 2
-
     malloc              = ( constructor, byteLength ) ->
         BYTES_PER_ELEMENT =
             constructor.TypedArray.BYTES_PER_ELEMENT or
@@ -181,16 +177,18 @@ do  self.init   = ->
 
         classId     = constructor.classId
         byteLength  = constructor.byteLength if !byteLength
+        length      = ( allocLength = byteLength ) / BYTES_PER_ELEMENT
         byteLength += 8 - ( byteLength % 8 )
-        length      = byteLength / BYTES_PER_ELEMENT
 
         ptri        = Atomics.add ptri32, 1, 16
         byteOffset  = Atomics.add ptri32, 0, byteLength
+
+        Atomics.add   ptri32, 0, 8 - ( byteLength % 8 )
         begin       = byteOffset / BYTES_PER_ELEMENT
 
         Atomics.store ptri32, ptri + HINDEX_PTRI, ptri
         Atomics.store ptri32, ptri + HINDEX_BYTEOFFSET, byteOffset
-        Atomics.store ptri32, ptri + HINDEX_BYTELENGTH, byteLength
+        Atomics.store ptri32, ptri + HINDEX_BYTELENGTH, allocLength
         Atomics.store ptri32, ptri + HINDEX_CLASSID, classId
         Atomics.store ptri32, ptri + HINDEX_LENGTH, length
         Atomics.store ptri32, ptri + HINDEX_BEGIN, begin
@@ -259,7 +257,15 @@ do  self.init   = ->
         Object.defineProperty this::, "typedArray",
             get : -> new this.constructor.TypedArray buffer, @byteOffset, @length
 
-        @malloc : ( constructor, byteLength ) ->
+        @allocs     : ->
+            ptri = Atomics.load ptri32, 1
+            classId = @classId
+
+            while OFFSET_PTR <= ptri -= 16        
+                continue unless classId is Atomics.load ptri32, ptri + HINDEX_CLASSID
+                object = new this ptri
+
+        @malloc     : ( constructor, byteLength ) ->
             @classId
             offset = @byteLength
             mod = offset % 4
@@ -286,9 +292,12 @@ do  self.init   = ->
         constructor : ( ptri ) ->
             unless parseInt super ptri
                 return new @constructor malloc @constructor 
+            @init ptri
 
         set         : ( value, index = 0 ) ->
             @typedArray.set value, index ; this
+
+        init        : -> this
 
         subarray    : ( begin, end ) ->
             new @constructor.TypedArray buffer, @byteOffset + begin * 4, end - begin
@@ -346,7 +355,8 @@ do  self.init   = ->
         @label          : "vertices"
 
         Object.defineProperties this::,
-            pointCount  : get : -> @length / 3
+            pointCount  : get : ->
+                @length / 3
 
         get : ( offset ) -> ->
             ptri = dvw.getInt32 @byteOffset + @OFFSET_VERTICES, LE
@@ -380,13 +390,24 @@ do  self.init   = ->
 
             ptr.isGL = 1
             ptr.iterCount = ptr.vertices.pointCount
+
+            unless Number.isInteger ptr.vertices.pointCount
+                throw [ /VERTEX_COUNT_MUST_BE_MULTIPLE_OF_3/, options.vertices ]
+
             ptr
 
+        Object.defineProperties Shape::,
+            pointCount  :
+                get     : -> @vertices.pointCount
+
         drawPoints      : ->
-            warn glBuffer.malloc gl.POINTS, this
+            space.malloc gl.POINTS, this
 
         drawLines       : ->
-            warn glBuffer.malloc gl.LINES, this
+            space.malloc gl.LINES, this
+
+        drawTriangles   : ->
+            space.malloc gl.TRIANGLES, this
 
         vertex          : ( index ) ->
             ptri = dvw.getUint32 @byteOffset + @OFFSET_VERTICES, LE
@@ -632,6 +653,9 @@ do  self.init   = ->
 
         setViewport         : ( context ) ->
             context.viewport 0, 0, @width * @pratio, @height * @pratio
+            
+            if  defines.pointSize
+                defines.pointSize.value = 10
 
             if  defines.frustrum
                 defines.frustrum.upload =
@@ -674,17 +698,17 @@ do  self.init   = ->
             self.onpointermove  = (e) => 
                 if  plock or rotate or draging
 
-                    if  rotate
-                        { movementX: x, movementY: y } = e
+                    { movementX: x, movementY: y } = e
 
+                    if  rotate
                         @rotateX y / -100 if y
                         @rotateY x / -100 if x
                         
                     if  draging
-                        { movementX: x, movementY: y } = e
-
-                        @translate x / (INNER_WIDTH/10), y / (INNER_HEIGHT/15)
-                    
+                        @translate(
+                            x / (INNER_WIDTH /10),
+                            y / (INNER_HEIGHT/15)
+                        )
                     @upload()
 
                 0
@@ -693,127 +717,217 @@ do  self.init   = ->
 
         @byteLength         : 8 * 4
 
-        INDEX_START         : 0
+        INDEX_NEEDSUP       : 0
 
         INDEX_COUNT         : 1
 
-        INDEX_GLTYPE        : 2
+        INDEX_TYPE          : 2
 
-        INDEX_GLOFFSET      : 3
+        INDEX_OFFSET        : 3
+
+        INDEX_BEGIN         : 4
+
+        INDEX_LENGTH        : 5
+
+        INDEX_ATTRLEN       : 6
+
+        INDEX_BOFFSET       : 7
 
         classId             : @classId
 
-        Object.defineProperties this::,
+        @fromOptions        : ( options = {} ) ->
+            Object.assign new this(), options
+
+        Object.defineProperties GLDraw::,
             
-            start   : 
-                get : -> Atomics.load ptri32, @begin + @INDEX_START
-                set : (v) -> Atomics.store ptri32, @begin + @INDEX_START, v
+            needsUpload : 
+                get : -> u32[ @begin ] and !(u32[ @begin ] = 0)
+                set : (v) -> u32[ @begin ] = v
             
-            count   : 
-                get : -> Atomics.load ptri32, @begin + @INDEX_COUNT
-                set : (v) -> Atomics.store ptri32, @begin + @INDEX_COUNT, v
-            
-            vertex  : 
-                value : (i) ->
-                    byteOffset = @glOffset + ( i * 32 )
-                    new Float32Array buffer, byteOffset, 3
+            drawCount : 
+                get : -> u32[ @begin + @INDEX_COUNT ]
+                set : (v) -> u32[ @begin + @INDEX_COUNT ] = v
 
-            color   : 
-                value : (i) ->
-                    byteOffset = @glOffset + ( i * 32 ) + 16
-                    new Float32Array buffer, byteOffset, 4
-           
-            glOffset   : 
-                get : -> Atomics.load ptri32, @begin + @INDEX_GLOFFSET
-                set : (v) -> Atomics.store ptri32, @begin + @INDEX_GLOFFSET, v
+            drawType :
+                get : -> u32[ @begin + @INDEX_TYPE ]
+                set : (v) -> u32[ @begin + @INDEX_TYPE ] = v                
 
-            glType    :
-                get : -> Atomics.load ptri32, @begin + @INDEX_GLTYPE
-                set : (v) -> Atomics.store ptri32, @begin + @INDEX_GLTYPE, v
+            globalOffset : 
+                get : -> u32[ @begin + @INDEX_BOFFSET ]
+                set : (v) -> u32[ @begin + @INDEX_BOFFSET ] = v
 
-            glBuffer  :
-                get : -> new Float32Array buffer, @glOffset, @count * 8
+            uploadOffset : 
+                get : -> u32[ @begin + @INDEX_OFFSET ]
+                set : (v) -> u32[ @begin + @INDEX_OFFSET ] = v
 
-    class GLBuffer      extends Float32Array
+            uploadBegin :
+                get : -> u32[ @begin + @INDEX_BEGIN ]
+                set : (v) -> u32[ @begin + @INDEX_BEGIN ] = v
+
+            uploadLength :
+                get : -> u32[ @begin + @INDEX_LENGTH ]
+                set : (v) -> u32[ @begin + @INDEX_LENGTH ] = v
+
+        vertex  : (i) ->
+            byteOffset = @globalOffset + ( i * 32 )
+            new Float32Array buffer, byteOffset, 3
+
+        color   : (i) ->
+            byteOffset = @globalOffset + ( i * 32 ) + 16
+            new Float32Array buffer, byteOffset, 4
+
+
+    class Space         extends Pointer
+
+        @byteLength                 : LENGTH_GLBUFFER 
     
-        drawOffset       : OFFSET_POINTS + 32
+        INDEX_POINTS_BEGIN          : 0
 
-        begin            : @::drawOffset / 4
+        INDEX_LINES_BEGIN           : 1
 
-        drawLength       : .25 * ( LENGTH_GPU - 24 )
+        INDEX_TRIANGES_BEGIN        : 4
 
-        constructor : ->
 
-            super buffer, OFFSET_GPU, LENGTH_GPU/4
+        INDEX_POINTS_COUNT          : 2
 
-            Object.assign this,
-                [ WebGL2RenderingContext.POINTS ]   : OFFSET_POINTS + 32
-                [ WebGL2RenderingContext.LINES ]    : OFFSET_LINES
-                [ WebGL2RenderingContext.TRIANGLES ]: OFFSET_TRIANGLES
+        INDEX_LINES_COUNT           : 3
 
+        INDEX_TRIANGES_COUNT        : 6
+
+
+        INDEX_POINTS_OFFSET         : 5
+
+        INDEX_LINES_OFFSET          : 6
+
+        INDEX_TRIANGES_OFFSET       : 9
+
+
+        INDEX_TYPELENGTH            : 10
+
+        INDEX_DRAW_BEGIN            : 16
+
+
+        itemsPerPoint               : 8
+
+        bytesPerPoint               : 4 * this::itemsPerPoint
+
+        drawByteOffset              : 4 * this::INDEX_DRAW_BEGIN
+
+        calcByteLength              : this::byteLength - this::drawByteOffset
+
+        drawByteLength              : this::calcByteLength - this::calcByteLength % this::bytesPerPoint
+
+        drawableLength              : this::drawByteLength / 4
+
+        maxPointsCount              : this::drawByteLength / this::bytesPerPoint
+
+
+        Object.defineProperties Space::,
+
+            pointsPerType   :
+                get : -> Atomics.load u32, @begin + @INDEX_TYPELENGTH
+                set : (v) -> Atomics.store u32, @begin + @INDEX_TYPELENGTH, v
+
+            drawBuffer      : get : -> new Float32Array buffer, @drawByteOffset, @drawableLength
+
+            pointsCount     : get : -> u32[ @begin + 2 ]
+            linesCount      : get : -> u32[ @begin + 3 ]
+            trianglesCount  : get : -> u32[ @begin + 6 ]
+
+            pointsStart     : get : -> u32[ @begin + 0 ]
+            linesStart      : get : -> u32[ @begin + 1 ]
+            trianglesStart  : get : -> u32[ @begin + 4 ]
+            
+        init            : ->
+            @pointsPerType = Math.trunc @maxPointsCount / 3
+
+            for [ TYPE, i ] in [ [ gl.POINTS, 0 ], [ gl.LINES, 1 ], [ gl.TRIANGLES, 2 ] ]
+                
+                u32[ @begin + TYPE + 0 ] = l = @pointsPerType * i
+                u32[ @begin + TYPE + 5 ] = l * @bytesPerPoint + @byteOffset
+
+            this
+
+        draw        : ->
+            if  count = @trianglesCount
+                gl.drawArrays gl.TRIANGLES, @trianglesStart, count
+
+            if  count = @linesCount
+                gl.drawArrays gl.TRIANGLES, @linesStart, count
+                
+            if  count = @pointsCount
+                gl.drawArrays gl.TRIANGLES, @pointsStart, count
     
         malloc      : ( type, shape ) ->
-            pointCount = shape.vertices.pointCount
-            byteLength = pointCount * 8 * 4
-            byteOffset = @[ type ]
+            #* TYPE 0 : POINTS
+            #* TYPE 1 : LINES
+            #* TYPE 4 : TRIANGLES
 
-            @[type] += byteLength + (4 - byteLength % 4)
-
-            draw            = new GLDraw()
-
-            draw.start      = byteOffset / 4
-            draw.count      = pointCount
-            draw.glType     = type
-            draw.glOffset   = byteOffset
-            draw.parent     = shape
+            count = shape.pointCount
+            #? [ x0, y0, z0,   x1, y1, z1 ] count = 2
             
-            draw
+            length = count * @itemsPerPoint
+            #? [ x0, y0, z0,   x1, y1, z1 ] length = 16
+            
+            byteLength = length * 4
+            #? [ x0, y0, z0,   x1, y1, z1 ] byteLength = 64
+            
+            #start = Atomics.add u32, @begin + type + 2, count
+            #? [ GPUx0, GPUy0, GPUz0, GPUr0, GPUg0, GPUb0, GPUa0, 
+            #?   GPUx1, GPUy1, GPUz1, GPUr1, GPUg1, GPUb1, GPUa1, 
+            #?                          ...                
+            #?                          ...                
+            #?   GPUxN, GPUyN, GPUzN, GPUrN, GPUgN, ...         ] start = N
+            #? it means this space has same kind shapes which has N points 
+            
+            typeOffset = Atomics.load u32, @begin + type + 5
+            #? global byte offset of allocated GPU buffer part
 
-        dump        : ->
-            new Float32Array buffer, @drawOffset, @drawLength
+            begin = typeOffset + @bytesPerPoint * Atomics.load u32, @begin + type
+            #? copy will begin in space
 
+            Atomics.add u32, @begin + type, count
+            #? its for fast reach to total draw point count at type
+            #? start variable IS NOT count !!! it has been settled at init
+
+            offset = begin * 4
+            #? copy starts at byte offset
+
+            draw = GLDraw.fromOptions {
+                drawCount      : count
+                drawType       : type
+                uploadBegin    : begin
+                uploadLength   : length
+                uploadOffset   : offset
+                globalOffset   : byteOffset
+                needsUpload    : 1
+            }
+
+            Object.defineProperties draw , upload : value :
+                gl.bufferSubData.bind gl, gl.ARRAY_BUFFER, offset, @drawBuffer, begin, length
+                
     self.addEventListener "DOMContentLoaded"    , ->
+
+        setTimeout =>
+            warn GLDraw.allocs()
+            warn Space.allocs()
+        , 500
 
         frame = 0
         epoch = 0
         rendering = 0
 
         checkUploads = ->
-            ptri = Atomics.load ptri32, 1
+            for draw in GLDraw.allocs() when draw.needsUpload
+                draw . upload()
 
-            while OFFSET_PTR <= ptri -= 16        
-                continue unless Atomics.and ptri32, ptri + HINDEX_UPDATED, 0
-                shape = new Shape ptri
-                for draw in shape.children
-                    log glBuffer.dump()
-                    gl.bufferData gl.ARRAY_BUFFER, glBuffer.dump(), gl.STATIC_DRAW
+            position = gl.getAttribLocation program, "position"
+            gl.enableVertexAttribArray position
+            gl.vertexAttribPointer position, 3, gl.FLOAT, off, 32, 0
 
-                    position = gl.getAttribLocation program, "position"
-                    gl.enableVertexAttribArray position
-                    gl.vertexAttribPointer position, 3, gl.FLOAT, off, 32, 0
-
-                    color = gl.getAttribLocation program, "color"
-                    gl.enableVertexAttribArray color
-                    gl.vertexAttribPointer color, 4, gl.FLOAT, off, 32, 16
-                    
-                break
-
-        drawBuffers = ->
-            #todo
-            #todo
-            #todo
-            #todo
-            #todo
-            #todo
-            gl.drawArrays gl.TRIANGLES, 0, 430
-            gl.drawArrays gl.LINES, 0, 430
-            gl.drawArrays gl.POINTS, 0, 430
-            #todo
-            #todo
-            #todo
-            #todo
-            #todo
-            #todo
+            color = gl.getAttribLocation program, "color"
+            gl.enableVertexAttribArray color
+            gl.vertexAttribPointer color, 4, gl.FLOAT, off, 32, 16
 
         @render         = ->
             rendering = 1
@@ -827,7 +941,7 @@ do  self.init   = ->
                 checkUploads()
                 emit "animationframe", { gl, delta, epoch, fps }
 
-                drawBuffers()
+                space.draw()
                 requestAnimationFrame onanimationframe
 
             onanimationframe performance.now()
@@ -950,16 +1064,14 @@ do  self.init   = ->
             frustrum . listenWindow()
 
         @createDisplay  = ->
-            canvas = createCanvas()
+            gl = createCanvas()
+                .getContext "webgl2"
 
-            gl = canvas.getContext "webgl2"
-            
             initialProgram()
             resolveDefines()
             createFrustrum()
 
-            glBuffer = new GLBuffer()
-            defines.pointSize.value = 10
+            space = new Space()
             
             requestIdleCallback =>
                 self.emit "contextrestored", gl
@@ -1040,7 +1152,7 @@ do  self.init   = ->
         f32 = new Float32Array buffer
         dvw = new DataView buffer
         ptri32 = new Int32Array buffer
-        glBuffer = new GLBuffer()
+        space = new Space()
 
         emit "threadready"
 
@@ -1057,9 +1169,7 @@ do  self.init   = ->
         unless workers.find (w) -> w.state isnt STATE_READY
             emit "threadsready" if state() isnt THREADS_READY
 
-    self.addEventListener "dblclick"               , ->
-        warn "glbuffer:", glBuffer.dump()
-
+    self.addEventListener "dblclick"            , ->
         console.table workers.map (w) ->
             state : w.state
             uuid : w.uuid
