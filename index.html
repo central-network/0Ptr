@@ -35,13 +35,13 @@
         uniform   mat4 frustrum;
         uniform  float pointSize;
 
-        attribute vec3 position;
         attribute vec4 color;
+        attribute vec4 position;
 
         varying vec4 _color;
 
         void main() {
-            gl_Position = frustrum * vec4(position, 1.0);
+            gl_Position = frustrum * vec4( vec3(position), 1.0 );
             gl_PointSize = pointSize;
             _color = color;
         }

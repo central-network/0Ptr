@@ -1229,14 +1229,17 @@ self.name = "window";
       return results;
     };
     this.render = function() {
-      var color, onanimationframe, position;
+      var define, label, onanimationframe;
       rendering = 1;
-      position = gl.getAttribLocation(program, "position");
-      gl.enableVertexAttribArray(position);
-      gl.vertexAttribPointer(position, 3, gl.FLOAT, false, 32, 0);
-      color = gl.getAttribLocation(program, "color");
-      gl.enableVertexAttribArray(color);
-      gl.vertexAttribPointer(color, 4, gl.FLOAT, false, 32, 16);
+      for (label in defines) {
+        define = defines[label];
+        if (define.is.match(/attr/i)) {
+          define.enable() || define.rebind();
+        }
+      }
+      setTimeout(() => {
+        return warn(defines);
+      }, 500);
       onanimationframe = function(pnow) {
         var delta, fps;
         delta = pnow - epoch;

@@ -962,18 +962,15 @@ do  self.init   = ->
                     draw.uploadLength
                 ) for draw in GLDraw.allocs shape.ptri
 
-
-
         @render         = ->
             rendering = 1
 
-            position = gl.getAttribLocation program, "position"
-            gl.enableVertexAttribArray position
-            gl.vertexAttribPointer position, 3, gl.FLOAT, off, 32, 0
+            for label, define of defines when define.is.match /attr/i
+                define.enable() or define.rebind()
 
-            color = gl.getAttribLocation program, "color"
-            gl.enableVertexAttribArray color
-            gl.vertexAttribPointer color, 4, gl.FLOAT, off, 32, 16
+            setTimeout =>
+                warn defines
+            , 500
 
             onanimationframe = ( pnow ) ->
 
