@@ -201,13 +201,16 @@ self.name = "window";
   };
   Pointer = (function() {
     class Pointer extends Number {
-      static allocs() {
+      static allocs(parent) {
         var classId, object, ptri, results;
         ptri = Atomics.load(ptri32, 1);
         classId = this.classId;
         results = [];
         while (OFFSET_PTR <= (ptri -= 16)) {
           if (classId !== Atomics.load(ptri32, ptri + HINDEX_CLASSID)) {
+            continue;
+          }
+          if (parent && parent !== Atomics.load(ptri32, ptri + HINDEX_PARENT)) {
             continue;
           }
           results.push(object = new this(ptri));
@@ -507,15 +510,15 @@ self.name = "window";
       }
 
       drawPoints() {
-        return space.malloc(gl.POINTS, this);
+        return this.draws.push(space.malloc(gl.POINTS, this));
       }
 
       drawLines() {
-        return space.malloc(gl.LINES, this);
+        return this.draws.push(space.malloc(gl.LINES, this));
       }
 
       drawTriangles() {
-        return space.malloc(gl.TRIANGLES, this);
+        return this.draws.push(space.malloc(gl.TRIANGLES, this));
       }
 
       vertex(index) {
@@ -539,10 +542,22 @@ self.name = "window";
 
     Shape.prototype.OFFSET_VERTICES = Shape.malloc(Vertices);
 
+    Shape.prototype.draws = [];
+
     Object.defineProperties(Shape.prototype, {
       pointCount: {
         get: function() {
           return this.vertices.pointCount;
+        }
+      },
+      markNeedsUpdate: {
+        set: function() {
+          return Atomics.store(ptri32, this.ptri + HINDEX_UPDATED, 1);
+        }
+      },
+      willUploadIfNeeded: {
+        get: function() {
+          return Atomics.and(ptri32, this.ptri + HINDEX_UPDATED, 0);
         }
       }
     });
@@ -911,14 +926,6 @@ self.name = "window";
     GLDraw.prototype.classId = GLDraw.classId;
 
     Object.defineProperties(GLDraw.prototype, {
-      needsUpload: {
-        get: function() {
-          return u32[this.begin] && !(u32[this.begin] = 0);
-        },
-        set: function(v) {
-          return u32[this.begin] = v;
-        }
-      },
       pointsCount: {
         get: function() {
           return u32[this.begin + this.INDEX_COUNT];
@@ -1048,8 +1055,7 @@ self.name = "window";
       }
 
       malloc(drawType, shape) {
-        var draw, dstByteOffset, length, needsUpload, pointsCount, srcOffset;
-        needsUpload = 1;
+        var draw, dstByteOffset, length, pointsCount, srcOffset;
         pointsCount = shape.pointCount;
         dstByteOffset = this.add(drawType, pointsCount);
         srcOffset = dstByteOffset / 4;
@@ -1057,13 +1063,13 @@ self.name = "window";
         draw = GLDraw.fromOptions({
           drawType,
           pointsCount,
-          needsUpload,
           globalOffset: dstByteOffset + this.drawBuffer.byteOffset,
           uploadOffset: dstByteOffset,
           uploadBegin: srcOffset,
           uploadLength: length,
           parent: shape.ptri
         });
+        shape.markNeedsUpdate = 1;
         return draws[draws.length] = Object.defineProperties(draw, {
           upload: {
             value: gl.bufferSubData.bind(gl, gl.ARRAY_BUFFER, draw.uploadOffset, this.drawBuffer, draw.uploadBegin, draw.uploadLength)
@@ -1213,14 +1219,18 @@ self.name = "window";
     epoch = 0;
     rendering = 0;
     checkUploads = function() {
-      var color, draw, j, len, position;
-      for (j = 0, len = draws.length; j < len; j++) {
-        draw = draws[j];
-        if (!draw.needsUpload) {
+      var color, draw, j, l, len, len1, position, ref, ref1, shape;
+      ref = Shape.allocs();
+      for (j = 0, len = ref.length; j < len; j++) {
+        shape = ref[j];
+        if (!shape.willUploadIfNeeded) {
           continue;
         }
-        warn("draw:", draw);
-        draw.upload();
+        ref1 = GLDraw.allocs(shape.ptri);
+        for (l = 0, len1 = ref1.length; l < len1; l++) {
+          draw = ref1[l];
+          gl.bufferSubData(gl.ARRAY_BUFFER, draw.uploadOffset, space.drawBuffer, draw.uploadBegin, draw.uploadLength);
+        }
       }
       position = gl.getAttribLocation(program, "position");
       gl.enableVertexAttribArray(position);

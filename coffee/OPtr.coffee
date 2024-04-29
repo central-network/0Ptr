@@ -258,12 +258,13 @@ do  self.init   = ->
         Object.defineProperty this::, "typedArray",
             get : -> new this.constructor.TypedArray buffer, @byteOffset, @length
 
-        @allocs     : ->
+        @allocs     : ( parent ) ->
             ptri = Atomics.load ptri32, 1
             classId = @classId
 
             while OFFSET_PTR <= ptri -= 16        
                 continue unless classId is Atomics.load ptri32, ptri + HINDEX_CLASSID
+                continue if parent and parent isnt Atomics.load ptri32, ptri + HINDEX_PARENT
                 object = new this ptri
 
         @malloc     : ( constructor, byteLength ) ->
@@ -382,6 +383,8 @@ do  self.init   = ->
 
         OFFSET_VERTICES : @malloc Vertices
 
+        draws           : []
+
         @fromOptions    : ( options ) ->
             ptri = malloc this
             ptr = new this ptri
@@ -401,14 +404,20 @@ do  self.init   = ->
             pointCount  :
                 get     : -> @vertices.pointCount
 
+            markNeedsUpdate : 
+                set     : -> Atomics.store ptri32, @ptri + HINDEX_UPDATED, 1
+
+            willUploadIfNeeded : 
+                get     : -> Atomics.and ptri32, @ptri + HINDEX_UPDATED, 0
+
         drawPoints      : ->
-            space.malloc gl.POINTS, this
+            @draws.push space.malloc gl.POINTS, this
 
         drawLines       : ->
-            space.malloc gl.LINES, this
+            @draws.push space.malloc gl.LINES, this
 
         drawTriangles   : ->
-            space.malloc gl.TRIANGLES, this
+            @draws.push space.malloc gl.TRIANGLES, this
 
         vertex          : ( index ) ->
             ptri = dvw.getUint32 @byteOffset + @OFFSET_VERTICES, LE
@@ -741,10 +750,6 @@ do  self.init   = ->
 
         Object.defineProperties GLDraw::,
             
-            needsUpload : 
-                get : -> u32[ @begin ] and !(u32[ @begin ] = 0)
-                set : (v) -> u32[ @begin ] = v
-            
             pointsCount : 
                 get : -> u32[ @begin + @INDEX_COUNT ]
                 set : (v) -> u32[ @begin + @INDEX_COUNT ] = v
@@ -924,10 +929,7 @@ do  self.init   = ->
             offset
     
         malloc      : ( drawType, shape ) ->
-
-            needsUpload = 1
             pointsCount = shape.pointCount
-
             dstByteOffset = @add drawType, pointsCount
             srcOffset = dstByteOffset / 4
             length = pointsCount * @itemsPerPoint
@@ -935,13 +937,13 @@ do  self.init   = ->
             draw = GLDraw.fromOptions {
                 drawType ,
                 pointsCount ,
-                needsUpload ,
-                
                 globalOffset : dstByteOffset + @drawBuffer . byteOffset
                 uploadOffset : dstByteOffset , uploadBegin : srcOffset
                 uploadLength : length
                 parent : shape.ptri
             }
+
+            shape.markNeedsUpdate = 1
 
             draws[ draws.length ] = Object.defineProperties( draw,
                 upload : value : gl.bufferSubData.bind(
@@ -949,7 +951,7 @@ do  self.init   = ->
                     draw.uploadBegin, draw.uploadLength
                 )
             )
-                
+
     self.addEventListener "DOMContentLoaded"    , ->
 
         setTimeout =>
@@ -962,9 +964,14 @@ do  self.init   = ->
         rendering = 0
 
         checkUploads = ->
-            for draw in draws when draw.needsUpload
-                warn "draw:", draw
-                draw . upload()
+            for shape in Shape.allocs()
+                continue unless shape.willUploadIfNeeded
+
+                gl.bufferSubData(
+                    gl.ARRAY_BUFFER, draw.uploadOffset,
+                    space.drawBuffer, draw.uploadBegin,
+                    draw.uploadLength
+                ) for draw in GLDraw.allocs shape.ptri
 
             position = gl.getAttribLocation program, "position"
             gl.enableVertexAttribArray position
