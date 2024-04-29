@@ -652,23 +652,42 @@ do  self.init   = ->
                 e.preventDefault()
             , passive: off
 
+            plock = 0 
             rotate = 0
+            draging = 0
 
-            self.onpointerdown  = -> rotate = 1
-            self.onpointerup    = -> rotate = 0
+            self.oncontextmenu  = (e) -> e.preventDefault()
+            self.ondblclick     = ->
+                gl.canvas.requestPointerLock unadjustedMovement : on
+                gl.canvas.requestFullscreen  navigationUI : "hide"
+
+            document.onfullscreenchange  = 
+            document.onpointerlockchange = ->
+                plock = @pointerLockElement or @fullscreenElement
+
+            self.onpointerdown  = (e) ->
+                if e.button is 2 then draging = 1
+                else rotate  = 1
+
+            self.onpointerout   =
+            self.onpointerup    = -> draging = rotate = 0
             self.onpointermove  = (e) => 
-                return unless rotate
-                { movementX: x, movementY: y } = e
+                if  plock or rotate or draging
 
-                return unless (x or y)
+                    if  rotate
+                        { movementX: x, movementY: y } = e
 
-                @rotateX y / -100 if y
-                @rotateY x / -100 if x
+                        @rotateX y / -100 if y
+                        @rotateY x / -100 if x
+                        
+                    if  draging
+                        { movementX: x, movementY: y } = e
 
-                @upload()
-            
-        
+                        @translate x / (INNER_WIDTH/10), y / (INNER_HEIGHT/15)
+                    
+                    @upload()
 
+                0
 
     class GLDraw        extends Pointer
 
@@ -780,9 +799,21 @@ do  self.init   = ->
                 break
 
         drawBuffers = ->
+            #todo
+            #todo
+            #todo
+            #todo
+            #todo
+            #todo
             gl.drawArrays gl.TRIANGLES, 0, 430
             gl.drawArrays gl.LINES, 0, 430
             gl.drawArrays gl.POINTS, 0, 430
+            #todo
+            #todo
+            #todo
+            #todo
+            #todo
+            #todo
 
         @render         = ->
             rendering = 1
@@ -1026,12 +1057,7 @@ do  self.init   = ->
         unless workers.find (w) -> w.state isnt STATE_READY
             emit "threadsready" if state() isnt THREADS_READY
 
-    self.addEventListener "contextmenu"         , ->
-        arguments[0].preventDefault()
-        unlock()
-
-    self.addEventListener "click"               , ->
-        return 1;
+    self.addEventListener "dblclick"               , ->
         warn "glbuffer:", glBuffer.dump()
 
         console.table workers.map (w) ->

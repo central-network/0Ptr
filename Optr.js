@@ -649,39 +649,65 @@ self.name = "window";
       }
 
       listenWindow() {
-        var rotate;
+        var draging, plock, rotate;
         self.addEventListener("wheel", (e) => {
           this.translateZ(e.deltaY / 100).upload();
           return e.preventDefault();
         }, {
           passive: false
         });
+        plock = 0;
         rotate = 0;
-        self.onpointerdown = function() {
-          return rotate = 1;
+        draging = 0;
+        self.oncontextmenu = function(e) {
+          return e.preventDefault();
         };
-        self.onpointerup = function() {
-          return rotate = 0;
+        self.ondblclick = function() {
+          gl.canvas.requestPointerLock({
+            unadjustedMovement: true
+          });
+          return gl.canvas.requestFullscreen({
+            navigationUI: "hide"
+          });
+        };
+        document.onfullscreenchange = document.onpointerlockchange = function() {
+          return plock = this.pointerLockElement || this.fullscreenElement;
+        };
+        self.onpointerdown = function(e) {
+          if (e.button === 2) {
+            return draging = 1;
+          } else {
+            return rotate = 1;
+          }
+        };
+        self.onpointerout = self.onpointerup = function() {
+          return draging = rotate = 0;
         };
         return self.onpointermove = (e) => {
           var x, y;
-          if (!rotate) {
-            return;
+          if (plock || rotate || draging) {
+            if (rotate) {
+              ({
+                movementX: x,
+                movementY: y
+              } = e);
+              if (y) {
+                this.rotateX(y / -100);
+              }
+              if (x) {
+                this.rotateY(x / -100);
+              }
+            }
+            if (draging) {
+              ({
+                movementX: x,
+                movementY: y
+              } = e);
+              this.translate(x / (INNER_WIDTH / 10), y / (INNER_HEIGHT / 15));
+            }
+            this.upload();
           }
-          ({
-            movementX: x,
-            movementY: y
-          } = e);
-          if (!(x || y)) {
-            return;
-          }
-          if (y) {
-            this.rotateX(y / -100);
-          }
-          if (x) {
-            this.rotateY(x / -100);
-          }
-          return this.upload();
+          return 0;
         };
       }
 
@@ -954,10 +980,22 @@ self.name = "window";
       return results;
     };
     drawBuffers = function() {
+      //todo
+      //todo
+      //todo
+      //todo
+      //todo
+      //todo
       gl.drawArrays(gl.TRIANGLES, 0, 430);
       gl.drawArrays(gl.LINES, 0, 430);
       return gl.drawArrays(gl.POINTS, 0, 430);
     };
+    //todo
+    //todo
+    //todo
+    //todo
+    //todo
+    //todo
     this.render = function() {
       var onanimationframe;
       rendering = 1;
@@ -1245,12 +1283,7 @@ self.name = "window";
       }
     }
   });
-  self.addEventListener("contextmenu", function() {
-    arguments[0].preventDefault();
-    return unlock();
-  });
-  self.addEventListener("click", function() {
-    return 1;
+  self.addEventListener("dblclick", function() {
     warn("glbuffer:", glBuffer.dump());
     return console.table(workers.map(function(w) {
       return {
