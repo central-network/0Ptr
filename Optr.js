@@ -997,7 +997,7 @@ self.name = "window";
         return this;
       }
 
-      draw() {
+      drawArrays() {
         var count;
         if (count = this.trianglesCount) {
           gl.drawArrays(gl.TRIANGLES, this.trianglesStart, count);
@@ -1010,7 +1010,24 @@ self.name = "window";
         }
       }
 
-      add(drawType, pointsCount) {
+      upload() {
+        var draw, j, len, len1, m, ref, ref1, shape;
+        ref = Shape.allocs();
+        for (j = 0, len = ref.length; j < len; j++) {
+          shape = ref[j];
+          if (!shape.willUploadIfNeeded) {
+            continue;
+          }
+          ref1 = GLDraw.allocs(shape.ptri);
+          for (m = 0, len1 = ref1.length; m < len1; m++) {
+            draw = ref1[m];
+            gl.bufferSubData(gl.ARRAY_BUFFER, draw.uploadOffset, space.drawBuffer, draw.uploadBegin, draw.uploadLength);
+          }
+          return this;
+        }
+      }
+
+      append(drawType, pointsCount) {
         var finish, length, offset, starts;
         starts = (function() {
           switch (drawType) {
@@ -1049,7 +1066,7 @@ self.name = "window";
       malloc(drawType, shape) {
         var draw, dstByteOffset, length, pointsCount, srcOffset;
         pointsCount = shape.pointCount;
-        dstByteOffset = this.add(drawType, pointsCount);
+        dstByteOffset = this.append(drawType, pointsCount);
         srcOffset = dstByteOffset / 4;
         length = pointsCount * this.itemsPerPoint;
         draw = GLDraw.fromOptions({
@@ -1245,9 +1262,9 @@ self.name = "window";
         delta = pnow - epoch;
         epoch = pnow;
         fps = Math.trunc(1 / delta * 1e3);
-        checkUploads();
+        space.upload();
         emit("animationframe", {gl, delta, epoch, fps});
-        space.draw();
+        space.drawArrays();
         return requestAnimationFrame(onanimationframe);
       };
       return onanimationframe(performance.now());

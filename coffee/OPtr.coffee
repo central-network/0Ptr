@@ -890,7 +890,7 @@ do  self.init   = ->
 
             this
 
-        draw        : ->
+        drawArrays : ->
             if  count = @trianglesCount
                 gl.drawArrays gl.TRIANGLES, @trianglesStart, count
 
@@ -900,7 +900,19 @@ do  self.init   = ->
             if  count = @pointsCount
                 gl.drawArrays gl.TRIANGLES, @pointsStart, count
 
-        add : ( drawType, pointsCount ) ->
+        upload : -> for shape in Shape.allocs()
+
+            continue unless shape.willUploadIfNeeded
+
+            gl.bufferSubData(
+                gl.ARRAY_BUFFER, draw.uploadOffset,
+                space.drawBuffer, draw.uploadBegin,
+                draw.uploadLength
+            ) for draw in GLDraw.allocs shape.ptri
+
+            return this
+
+        append : ( drawType, pointsCount ) ->
 
             starts = switch drawType
                 when WebGL2RenderingContext.POINTS    then @pointsCount += pointsCount
@@ -923,7 +935,7 @@ do  self.init   = ->
     
         malloc      : ( drawType, shape ) ->
             pointsCount = shape.pointCount
-            dstByteOffset = @add drawType, pointsCount
+            dstByteOffset = @append drawType, pointsCount
             srcOffset = dstByteOffset / 4
             length = pointsCount * @itemsPerPoint
 
@@ -952,7 +964,6 @@ do  self.init   = ->
         rendering = 0
 
         checkUploads = ->
-
             for shape in Shape.allocs()
                 continue unless shape.willUploadIfNeeded
 
@@ -974,10 +985,10 @@ do  self.init   = ->
                 epoch = pnow
                 fps   = Math.trunc 1 / delta * 1e3
 
-                checkUploads()
+                space.upload()
                 emit "animationframe", { gl, delta, epoch, fps }
 
-                space.draw()
+                space.drawArrays()
                 requestAnimationFrame onanimationframe
 
             onanimationframe performance.now()
