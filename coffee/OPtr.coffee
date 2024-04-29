@@ -22,6 +22,7 @@ do  self.init   = ->
     dvw = null
     buffer = null
     space = null
+    draws = []
     
     scripts = null
     program = null
@@ -59,7 +60,7 @@ do  self.init   = ->
     OFFSET_GPU          = 1000 * 16
     OFFSET_CPU          = 4096 * 4096
     OFFSET_PTR          = 24
-    LENGTH_GLBUFFER     = 32 * 1e5
+    BYTELENGTH_GLBUFFER     = 32 * 1e5
 
     HINDEX_LENGTH       = 0
     HINDEX_PTRI         = HINDEX_LENGTH++
@@ -122,7 +123,7 @@ do  self.init   = ->
                     Atomics.store ptri32, draw.ptri + HINDEX_UPDATED, 0
                     draw.needsUpload = 1
                     
-                log ptri, index 
+                #log ptri, index 
             
             continue if index - count
 
@@ -744,7 +745,7 @@ do  self.init   = ->
                 get : -> u32[ @begin ] and !(u32[ @begin ] = 0)
                 set : (v) -> u32[ @begin ] = v
             
-            drawCount : 
+            pointsCount : 
                 get : -> u32[ @begin + @INDEX_COUNT ]
                 set : (v) -> u32[ @begin + @INDEX_COUNT ] = v
 
@@ -768,6 +769,9 @@ do  self.init   = ->
                 get : -> u32[ @begin + @INDEX_LENGTH ]
                 set : (v) -> u32[ @begin + @INDEX_LENGTH ] = v
 
+            drawBuffer :
+                get : -> new Float32Array buffer, @globalOffset, @uploadLength
+
         vertex  : (i) ->
             byteOffset = @globalOffset + ( i * 32 )
             new Float32Array buffer, byteOffset, 3
@@ -779,7 +783,8 @@ do  self.init   = ->
 
     class Space         extends Pointer
 
-        @byteLength                 : LENGTH_GLBUFFER 
+        @byteLength                 : BYTELENGTH_GLBUFFER + 16 * 4
+
     
         INDEX_POINTS_BEGIN          : 0
 
@@ -802,51 +807,90 @@ do  self.init   = ->
         INDEX_TRIANGES_OFFSET       : 9
 
 
-        INDEX_TYPELENGTH            : 10
+        INDEX_TYPELENGTH            : 2
 
         INDEX_DRAW_BEGIN            : 16
 
 
         itemsPerPoint               : 8
 
-        bytesPerPoint               : 4 * this::itemsPerPoint
+        bytesPerPoint               : 4 * Space::itemsPerPoint
 
-        drawByteOffset              : 4 * this::INDEX_DRAW_BEGIN
+        drawByteOffset              : 4 * Space::INDEX_DRAW_BEGIN
 
-        calcByteLength              : this::byteLength - this::drawByteOffset
+        drawByteLength              : BYTELENGTH_GLBUFFER - BYTELENGTH_GLBUFFER % Space::bytesPerPoint
 
-        drawByteLength              : this::calcByteLength - this::calcByteLength % this::bytesPerPoint
+        drawableLength              : Space::drawByteLength / 4
 
-        drawableLength              : this::drawByteLength / 4
-
-        maxPointsCount              : this::drawByteLength / this::bytesPerPoint
+        maxPointsCount              : Space::drawByteLength / Space::bytesPerPoint
 
 
         Object.defineProperties Space::,
 
+            drawBuffer      :
+                get : -> new Float32Array buffer, @byteOffset + @drawByteOffset, @drawableLength
+                set : (v) -> @drawBuffer.set v
+
+            pointsStart     :
+                get : -> u32[ @begin ]
+                set : (v) -> u32[ @begin ] = v
+
+            linesStart      :
+                get : -> u32[ @begin + 1 ]
+                set : (v) -> u32[ @begin + 1 ] = v
+
+            trianglesStart  :
+                get : -> u32[ @begin + 4 ]
+                set : (v) -> u32[ @begin + 4 ] = v
+
             pointsPerType   :
-                get : -> Atomics.load u32, @begin + @INDEX_TYPELENGTH
-                set : (v) -> Atomics.store u32, @begin + @INDEX_TYPELENGTH, v
+                get : -> u32[ @begin + 2 ]
+                set : (v) -> u32[ @begin + 2 ] = v
 
-            drawBuffer      : get : -> new Float32Array buffer, @drawByteOffset, @drawableLength
+            pointsCount     :
+                get : -> u32[ @begin + 5 ]
+                set : (v) -> u32[ @begin + 5 ] = v
 
-            pointsCount     : get : -> u32[ @begin + 2 ]
-            linesCount      : get : -> u32[ @begin + 3 ]
-            trianglesCount  : get : -> u32[ @begin + 6 ]
+            linesCount      :
+                get : -> u32[ @begin + 6 ]
+                set : (v) -> u32[ @begin + 6 ] = v
 
-            pointsStart     : get : -> u32[ @begin + 0 ]
-            linesStart      : get : -> u32[ @begin + 1 ]
-            trianglesStart  : get : -> u32[ @begin + 4 ]
-            
+            trianglesCount  :
+                get : -> u32[ @begin + 7 ]
+                set : (v) -> u32[ @begin + 7 ] = v
+
+            pointsOffset    :
+                get : -> u32[ @begin + 8 ]
+                set : (v) -> u32[ @begin + 8 ] = v
+
+            linesOffset     :
+                get : -> u32[ @begin + 9 ]
+                set : (v) -> u32[ @begin + 9 ] = v
+
+            trianglesOffset :
+                get : -> u32[ @begin + 10 ]
+                set : (v) -> u32[ @begin + 10 ] = v
+
+
         init            : ->
             @pointsPerType = Math.trunc @maxPointsCount / 3
 
-            for [ TYPE, i ] in [ [ gl.POINTS, 0 ], [ gl.LINES, 1 ], [ gl.TRIANGLES, 2 ] ]
-                
-                u32[ @begin + TYPE + 0 ] = l = @pointsPerType * i
-                u32[ @begin + TYPE + 5 ] = l * @bytesPerPoint + @byteOffset
+            @pointsStart     = @pointsPerType * 0 + 2
+            @linesStart      = @pointsPerType * 1
+            @trianglesStart  = @pointsPerType * 2
+
+            @pointsOffset    = @bytesPerPoint * 2
+            @linesOffset     = @bytesPerPoint * @pointsPerType
+            @trianglesOffset = @bytesPerPoint * @pointsPerType * 2
 
             this
+
+        defineDrawUpload : ( draw ) ->
+            draws[ draws.length ] = Object.defineProperties draw,
+                upload : value : gl.bufferSubData.bind(
+                    gl, gl.ARRAY_BUFFER, draw.uploadOffset, @drawBuffer, 
+                    draw.uploadBegin, draw.uploadLength
+                )
 
         draw        : ->
             if  count = @trianglesCount
@@ -857,54 +901,54 @@ do  self.init   = ->
                 
             if  count = @pointsCount
                 gl.drawArrays gl.TRIANGLES, @pointsStart, count
+
+        add : ( drawType, pointsCount ) ->
+
+            starts = switch drawType
+                when WebGL2RenderingContext.POINTS    then @pointsCount += pointsCount
+                when WebGL2RenderingContext.LINES     then @linesCount += pointsCount
+                when WebGL2RenderingContext.TRIANGLES then @trianglesCount += pointsCount
+
+            offset = switch drawType
+                when WebGL2RenderingContext.POINTS    then @pointsOffset
+                when WebGL2RenderingContext.LINES     then @linesOffset
+                when WebGL2RenderingContext.TRIANGLES then @trianglesOffset
+
+            length = pointsCount * @bytesPerPoint 
+
+            finish = switch drawType
+                when WebGL2RenderingContext.POINTS    then @pointsOffset += length
+                when WebGL2RenderingContext.LINES     then @linesOffset += length
+                when WebGL2RenderingContext.TRIANGLES then @trianglesOffset += length
+
+            offset
     
-        malloc      : ( type, shape ) ->
-            #* TYPE 0 : POINTS
-            #* TYPE 1 : LINES
-            #* TYPE 4 : TRIANGLES
+        malloc      : ( drawType, shape ) ->
 
-            count = shape.pointCount
-            #? [ x0, y0, z0,   x1, y1, z1 ] count = 2
-            
-            length = count * @itemsPerPoint
-            #? [ x0, y0, z0,   x1, y1, z1 ] length = 16
-            
-            byteLength = length * 4
-            #? [ x0, y0, z0,   x1, y1, z1 ] byteLength = 64
-            
-            #start = Atomics.add u32, @begin + type + 2, count
-            #? [ GPUx0, GPUy0, GPUz0, GPUr0, GPUg0, GPUb0, GPUa0, 
-            #?   GPUx1, GPUy1, GPUz1, GPUr1, GPUg1, GPUb1, GPUa1, 
-            #?                          ...                
-            #?                          ...                
-            #?   GPUxN, GPUyN, GPUzN, GPUrN, GPUgN, ...         ] start = N
-            #? it means this space has same kind shapes which has N points 
-            
-            typeOffset = Atomics.load u32, @begin + type + 5
-            #? global byte offset of allocated GPU buffer part
+            needsUpload = 1
+            pointsCount = shape.pointCount
 
-            begin = typeOffset + @bytesPerPoint * Atomics.load u32, @begin + type
-            #? copy will begin in space
-
-            Atomics.add u32, @begin + type, count
-            #? its for fast reach to total draw point count at type
-            #? start variable IS NOT count !!! it has been settled at init
-
-            offset = begin * 4
-            #? copy starts at byte offset
+            dstByteOffset = @add drawType, pointsCount
+            srcOffset = dstByteOffset / 4
+            length = pointsCount * @itemsPerPoint
 
             draw = GLDraw.fromOptions {
-                drawCount      : count
-                drawType       : type
-                uploadBegin    : begin
-                uploadLength   : length
-                uploadOffset   : offset
-                globalOffset   : byteOffset
-                needsUpload    : 1
+                drawType ,
+                pointsCount ,
+                needsUpload ,
+                
+                globalOffset : dstByteOffset + @drawBuffer . byteOffset
+                uploadOffset : dstByteOffset , uploadBegin : srcOffset
+                uploadLength : length
+                parent : shape.ptri
             }
 
-            Object.defineProperties draw , upload : value :
-                gl.bufferSubData.bind gl, gl.ARRAY_BUFFER, offset, @drawBuffer, begin, length
+            draws[ draws.length ] = Object.defineProperties( draw,
+                upload : value : gl.bufferSubData.bind(
+                    gl, gl.ARRAY_BUFFER, draw.uploadOffset, @drawBuffer, 
+                    draw.uploadBegin, draw.uploadLength
+                )
+            )
                 
     self.addEventListener "DOMContentLoaded"    , ->
 
@@ -918,7 +962,8 @@ do  self.init   = ->
         rendering = 0
 
         checkUploads = ->
-            for draw in GLDraw.allocs() when draw.needsUpload
+            for draw in draws when draw.needsUpload
+                warn "draw:", draw
                 draw . upload()
 
             position = gl.getAttribLocation program, "position"
@@ -931,8 +976,11 @@ do  self.init   = ->
 
         @render         = ->
             rendering = 1
+            i = 0
 
             onanimationframe = ( pnow ) ->
+
+                return if i++ > 5
 
                 delta = pnow - epoch
                 epoch = pnow
@@ -980,6 +1028,8 @@ do  self.init   = ->
                 throw "Could not compile WebGL program. \n\n#{info}"
 
             gl.bindBuffer gl.ARRAY_BUFFER, gBuffer = gl.createBuffer()
+            gl.bufferData gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW
+
             gl.useProgram program
 
             0

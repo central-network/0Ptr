@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, Color, Frustrum, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, LENGTH_GLBUFFER, Matrix4, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shape, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, buffer, classes, defines, dvw, error, f32, fShader, frustrum, gBuffer, gl, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, shaders, space, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BYTELENGTH_GLBUFFER, Color, Frustrum, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matrix4, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shape, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, buffer, classes, defines, draws, dvw, error, f32, fShader, frustrum, gBuffer, gl, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, shaders, space, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -30,6 +30,7 @@ self.name = "window";
   dvw = null;
   buffer = null;
   space = null;
+  draws = [];
   scripts = null;
   program = null;
   vShader = null;
@@ -58,7 +59,7 @@ self.name = "window";
   OFFSET_GPU = 1000 * 16;
   OFFSET_CPU = 4096 * 4096;
   OFFSET_PTR = 24;
-  LENGTH_GLBUFFER = 32 * 1e5;
+  BYTELENGTH_GLBUFFER = 32 * 1e5;
   HINDEX_LENGTH = 0;
   HINDEX_PTRI = HINDEX_LENGTH++;
   HINDEX_BYTEOFFSET = HINDEX_LENGTH++;
@@ -115,9 +116,10 @@ self.name = "window";
           Atomics.store(ptri32, draw.ptri + HINDEX_UPDATED, 0);
           draw.needsUpload = 1;
         }
-        log(ptri, index);
       }
       if (index - count) {
+        
+        //log ptri, index 
         continue;
       }
       if (!locate) {
@@ -917,7 +919,7 @@ self.name = "window";
           return u32[this.begin] = v;
         }
       },
-      drawCount: {
+      pointsCount: {
         get: function() {
           return u32[this.begin + this.INDEX_COUNT];
         },
@@ -964,6 +966,11 @@ self.name = "window";
         set: function(v) {
           return u32[this.begin + this.INDEX_LENGTH] = v;
         }
+      },
+      drawBuffer: {
+        get: function() {
+          return new Float32Array(buffer, this.globalOffset, this.uploadLength);
+        }
       }
     });
 
@@ -973,15 +980,22 @@ self.name = "window";
   Space = (function() {
     class Space extends Pointer {
       init() {
-        var TYPE, i, j, l, len, ref;
         this.pointsPerType = Math.trunc(this.maxPointsCount / 3);
-        ref = [[gl.POINTS, 0], [gl.LINES, 1], [gl.TRIANGLES, 2]];
-        for (j = 0, len = ref.length; j < len; j++) {
-          [TYPE, i] = ref[j];
-          u32[this.begin + TYPE + 0] = l = this.pointsPerType * i;
-          u32[this.begin + TYPE + 5] = l * this.bytesPerPoint + this.byteOffset;
-        }
+        this.pointsStart = this.pointsPerType * 0 + 2;
+        this.linesStart = this.pointsPerType * 1;
+        this.trianglesStart = this.pointsPerType * 2;
+        this.pointsOffset = this.bytesPerPoint * 2;
+        this.linesOffset = this.bytesPerPoint * this.pointsPerType;
+        this.trianglesOffset = this.bytesPerPoint * this.pointsPerType * 2;
         return this;
+      }
+
+      defineDrawUpload(draw) {
+        return draws[draws.length] = Object.defineProperties(draw, {
+          upload: {
+            value: gl.bufferSubData.bind(gl, gl.ARRAY_BUFFER, draw.uploadOffset, this.drawBuffer, draw.uploadBegin, draw.uploadLength)
+          }
+        });
       }
 
       draw() {
@@ -997,53 +1011,69 @@ self.name = "window";
         }
       }
 
-      malloc(type, shape) {
-        var begin, byteLength, count, draw, length, offset, typeOffset;
-        //* TYPE 0 : POINTS
-        //* TYPE 1 : LINES
-        //* TYPE 4 : TRIANGLES
-        count = shape.pointCount;
-        //? [ x0, y0, z0,   x1, y1, z1 ] count = 2
-        length = count * this.itemsPerPoint;
-        //? [ x0, y0, z0,   x1, y1, z1 ] length = 16
-        byteLength = length * 4;
-        //? [ x0, y0, z0,   x1, y1, z1 ] byteLength = 64
+      add(drawType, pointsCount) {
+        var finish, length, offset, starts;
+        starts = (function() {
+          switch (drawType) {
+            case WebGL2RenderingContext.POINTS:
+              return this.pointsCount += pointsCount;
+            case WebGL2RenderingContext.LINES:
+              return this.linesCount += pointsCount;
+            case WebGL2RenderingContext.TRIANGLES:
+              return this.trianglesCount += pointsCount;
+          }
+        }).call(this);
+        offset = (function() {
+          switch (drawType) {
+            case WebGL2RenderingContext.POINTS:
+              return this.pointsOffset;
+            case WebGL2RenderingContext.LINES:
+              return this.linesOffset;
+            case WebGL2RenderingContext.TRIANGLES:
+              return this.trianglesOffset;
+          }
+        }).call(this);
+        length = pointsCount * this.bytesPerPoint;
+        finish = (function() {
+          switch (drawType) {
+            case WebGL2RenderingContext.POINTS:
+              return this.pointsOffset += length;
+            case WebGL2RenderingContext.LINES:
+              return this.linesOffset += length;
+            case WebGL2RenderingContext.TRIANGLES:
+              return this.trianglesOffset += length;
+          }
+        }).call(this);
+        return offset;
+      }
 
-        //start = Atomics.add u32, @begin + type + 2, count
-        //? [ GPUx0, GPUy0, GPUz0, GPUr0, GPUg0, GPUb0, GPUa0, 
-        //?   GPUx1, GPUy1, GPUz1, GPUr1, GPUg1, GPUb1, GPUa1, 
-        //?                          ...                
-        //?                          ...                
-        //?   GPUxN, GPUyN, GPUzN, GPUrN, GPUgN, ...         ] start = N
-        //? it means this space has same kind shapes which has N points 
-        typeOffset = Atomics.load(u32, this.begin + type + 5);
-        //? global byte offset of allocated GPU buffer part
-        begin = typeOffset + this.bytesPerPoint * Atomics.load(u32, this.begin + type);
-        //? copy will begin in space
-        Atomics.add(u32, this.begin + type, count);
-        //? its for fast reach to total draw point count at type
-        //? start variable IS NOT count !!! it has been settled at init
-        offset = begin * 4;
-        //? copy starts at byte offset
+      malloc(drawType, shape) {
+        var draw, dstByteOffset, length, needsUpload, pointsCount, srcOffset;
+        needsUpload = 1;
+        pointsCount = shape.pointCount;
+        dstByteOffset = this.add(drawType, pointsCount);
+        srcOffset = dstByteOffset / 4;
+        length = pointsCount * this.itemsPerPoint;
         draw = GLDraw.fromOptions({
-          drawCount: count,
-          drawType: type,
-          uploadBegin: begin,
+          drawType,
+          pointsCount,
+          needsUpload,
+          globalOffset: dstByteOffset + this.drawBuffer.byteOffset,
+          uploadOffset: dstByteOffset,
+          uploadBegin: srcOffset,
           uploadLength: length,
-          uploadOffset: offset,
-          globalOffset: byteOffset,
-          needsUpload: 1
+          parent: shape.ptri
         });
-        return Object.defineProperties(draw, {
+        return draws[draws.length] = Object.defineProperties(draw, {
           upload: {
-            value: gl.bufferSubData.bind(gl, gl.ARRAY_BUFFER, offset, this.drawBuffer, begin, length)
+            value: gl.bufferSubData.bind(gl, gl.ARRAY_BUFFER, draw.uploadOffset, this.drawBuffer, draw.uploadBegin, draw.uploadLength)
           }
         });
       }
 
     };
 
-    Space.byteLength = LENGTH_GLBUFFER;
+    Space.byteLength = BYTELENGTH_GLBUFFER + 16 * 4;
 
     Space.prototype.INDEX_POINTS_BEGIN = 0;
 
@@ -1063,7 +1093,7 @@ self.name = "window";
 
     Space.prototype.INDEX_TRIANGES_OFFSET = 9;
 
-    Space.prototype.INDEX_TYPELENGTH = 10;
+    Space.prototype.INDEX_TYPELENGTH = 2;
 
     Space.prototype.INDEX_DRAW_BEGIN = 16;
 
@@ -1073,56 +1103,99 @@ self.name = "window";
 
     Space.prototype.drawByteOffset = 4 * Space.prototype.INDEX_DRAW_BEGIN;
 
-    Space.prototype.calcByteLength = Space.prototype.byteLength - Space.prototype.drawByteOffset;
-
-    Space.prototype.drawByteLength = Space.prototype.calcByteLength - Space.prototype.calcByteLength % Space.prototype.bytesPerPoint;
+    Space.prototype.drawByteLength = BYTELENGTH_GLBUFFER - BYTELENGTH_GLBUFFER % Space.prototype.bytesPerPoint;
 
     Space.prototype.drawableLength = Space.prototype.drawByteLength / 4;
 
     Space.prototype.maxPointsCount = Space.prototype.drawByteLength / Space.prototype.bytesPerPoint;
 
     Object.defineProperties(Space.prototype, {
-      pointsPerType: {
-        get: function() {
-          return Atomics.load(u32, this.begin + this.INDEX_TYPELENGTH);
-        },
-        set: function(v) {
-          return Atomics.store(u32, this.begin + this.INDEX_TYPELENGTH, v);
-        }
-      },
       drawBuffer: {
         get: function() {
-          return new Float32Array(buffer, this.drawByteOffset, this.drawableLength);
-        }
-      },
-      pointsCount: {
-        get: function() {
-          return u32[this.begin + 2];
-        }
-      },
-      linesCount: {
-        get: function() {
-          return u32[this.begin + 3];
-        }
-      },
-      trianglesCount: {
-        get: function() {
-          return u32[this.begin + 6];
+          return new Float32Array(buffer, this.byteOffset + this.drawByteOffset, this.drawableLength);
+        },
+        set: function(v) {
+          return this.drawBuffer.set(v);
         }
       },
       pointsStart: {
         get: function() {
-          return u32[this.begin + 0];
+          return u32[this.begin];
+        },
+        set: function(v) {
+          return u32[this.begin] = v;
         }
       },
       linesStart: {
         get: function() {
           return u32[this.begin + 1];
+        },
+        set: function(v) {
+          return u32[this.begin + 1] = v;
         }
       },
       trianglesStart: {
         get: function() {
           return u32[this.begin + 4];
+        },
+        set: function(v) {
+          return u32[this.begin + 4] = v;
+        }
+      },
+      pointsPerType: {
+        get: function() {
+          return u32[this.begin + 2];
+        },
+        set: function(v) {
+          return u32[this.begin + 2] = v;
+        }
+      },
+      pointsCount: {
+        get: function() {
+          return u32[this.begin + 5];
+        },
+        set: function(v) {
+          return u32[this.begin + 5] = v;
+        }
+      },
+      linesCount: {
+        get: function() {
+          return u32[this.begin + 6];
+        },
+        set: function(v) {
+          return u32[this.begin + 6] = v;
+        }
+      },
+      trianglesCount: {
+        get: function() {
+          return u32[this.begin + 7];
+        },
+        set: function(v) {
+          return u32[this.begin + 7] = v;
+        }
+      },
+      pointsOffset: {
+        get: function() {
+          return u32[this.begin + 8];
+        },
+        set: function(v) {
+          return u32[this.begin + 8] = v;
+        }
+      },
+      linesOffset: {
+        get: function() {
+          return u32[this.begin + 9];
+        },
+        set: function(v) {
+          return u32[this.begin + 9] = v;
+        }
+      },
+      trianglesOffset: {
+        get: function() {
+          return u32[this.begin + 10];
+        },
+        set: function(v) {
+          return u32[this.begin + 10] = v;
         }
       }
     });
@@ -1140,13 +1213,14 @@ self.name = "window";
     epoch = 0;
     rendering = 0;
     checkUploads = function() {
-      var color, draw, j, len, position, ref;
-      ref = GLDraw.allocs();
-      for (j = 0, len = ref.length; j < len; j++) {
-        draw = ref[j];
-        if (draw.needsUpload) {
-          draw.upload();
+      var color, draw, j, len, position;
+      for (j = 0, len = draws.length; j < len; j++) {
+        draw = draws[j];
+        if (!draw.needsUpload) {
+          continue;
         }
+        warn("draw:", draw);
+        draw.upload();
       }
       position = gl.getAttribLocation(program, "position");
       gl.enableVertexAttribArray(position);
@@ -1156,10 +1230,14 @@ self.name = "window";
       return gl.vertexAttribPointer(color, 4, gl.FLOAT, false, 32, 16);
     };
     this.render = function() {
-      var onanimationframe;
+      var i, onanimationframe;
       rendering = 1;
+      i = 0;
       onanimationframe = function(pnow) {
         var delta, fps;
+        if (i++ > 5) {
+          return;
+        }
         delta = pnow - epoch;
         epoch = pnow;
         fps = Math.trunc(1 / delta * 1e3);
@@ -1201,6 +1279,7 @@ self.name = "window";
         throw `Could not compile WebGL program. \n\n${info}`;
       }
       gl.bindBuffer(gl.ARRAY_BUFFER, gBuffer = gl.createBuffer());
+      gl.bufferData(gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW);
       gl.useProgram(program);
       return 0;
     };
