@@ -164,13 +164,66 @@ do  self.init   = ->
     getParentPtri       = ( ptri       ) -> 
         u32[ HEADER_PARENTPTRI + ptri ]
     
-    setParentPtri       = ( ptri, v    ) -> 
-        u32[ HEADER_PARENTPTRI + ptri ] = v
+    setParent           = ( ptri, ptrj ) -> 
+        u32[ HEADER_PARENTPTRI + ptri ] = ptrj
     
     getParent           = ( ptri       ) -> 
         new ( classes[ u32[ HEADER_CLASSINDEX + (
                 ptrp = u32[ HEADER_PARENTPTRI + ptri ]
         ) ] ] )( ptrp ) 
+
+    getChilds           = ( ptri       ) -> 
+        ptrj = Atomics.load u32, 1
+        list = new Array
+
+        while ptrj -= 16
+            continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+            list[ i ] = new ( classes[ u32[ HEADER_CLASSINDEX + ptrj ] ] )( ptrj )
+            i++
+        
+        list
+
+    getChildsPtri       = ( ptri       ) -> 
+        ptrj = Atomics.load u32, 1
+        list = new Array
+
+        while ptrj -= 16
+            continue if ptri - u32[ HEADER_PARENTPTRI + ptrj ]
+            list[ i ] = ptrj ; i++
+
+        list
+
+    findChilds          = ( ptri, test ) ->
+        ptrj = Atomics.load u32, 1
+        list = new Array
+
+        ci = if test.isPtr  then classes.indexOf test
+        else if test.isPtri then u32[ HEADER_CLASSINDEX + test ]
+        else if !isNaN test then test
+        else throw /FILTER_TEST_FAILED/
+
+        while ptrj -= 16
+            continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+            continue if u32[ HEADER_CLASSINDEX + ptrj ] - ci
+            list[ i ] = new ( classes[ ci ] )( ptrj ) ; ++i
+
+        list
+
+    findChildsPtri      = ( ptri, test ) -> 
+        ptrj = Atomics.load u32, 1
+        list = new Array
+
+        ci = if test.isPtr  then classes.indexOf test
+        else if test.isPtri then u32[ HEADER_CLASSINDEX + test ]
+        else if !isNaN test then test
+        else throw /FILTER_TEST_FAILED/
+
+        while ptrj -= 16
+            continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+            continue if u32[ HEADER_CLASSINDEX + ptrj ] - ci
+            list[ i ] = ptrj ; i++
+
+        list
 
     getIterOffset       = ( ptri       ) -> 
         u32[ HEADER_ITEROFFSET + ptri ]
@@ -298,6 +351,9 @@ do  self.init   = ->
         ui8.set array, begin + u32[ ptri ]
         
 
+
+
+
     state       = ( state ) ->
         unless arguments.length
             return Atomics.load i32, threadId
@@ -386,8 +442,6 @@ do  self.init   = ->
         state THREADS_NULL
 
     
-
-
 
 
     malloc              = ( constructor, byteLength ) ->
@@ -604,7 +658,9 @@ do  self.init   = ->
 
         @byteLength : 0
 
-        @TypedArray : Float32Array
+        @isPtr      : yes
+
+        isPtri      : yes
 
     classes.register class XYZ          extends Pointer
 

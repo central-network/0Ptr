@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BYTELENGTH_GLBUFFER, Color, Draw, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERLENGTH, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RGBA, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, XYZ, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, frustrum, gBuffer, getBegin, getByteLength, getByteOffset, getClass, getClassIndex, getFloat32Array, getFragmented, getIterLength, getIterOffset, getLength, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32Array, getUint8Array, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterLength, setIterOffset, setLength, setNeedRecalc, setNeedUpload, setParentPtri, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BYTELENGTH_GLBUFFER, Color, Draw, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERLENGTH, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RGBA, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, XYZ, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, findChilds, findChildsPtri, frustrum, gBuffer, getBegin, getByteLength, getByteOffset, getChilds, getChildsPtri, getClass, getClassIndex, getFloat32Array, getFragmented, getIterLength, getIterOffset, getLength, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32Array, getUint8Array, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterLength, setIterOffset, setLength, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -158,12 +158,92 @@ self.name = "window";
   getParentPtri = function(ptri) {
     return u32[HEADER_PARENTPTRI + ptri];
   };
-  setParentPtri = function(ptri, v) {
-    return u32[HEADER_PARENTPTRI + ptri] = v;
+  setParent = function(ptri, ptrj) {
+    return u32[HEADER_PARENTPTRI + ptri] = ptrj;
   };
   getParent = function(ptri) {
     var ptrp;
     return new classes[u32[HEADER_CLASSINDEX + (ptrp = u32[HEADER_PARENTPTRI + ptri])]](ptrp);
+  };
+  getChilds = function(ptri) {
+    var list, ptrj;
+    ptrj = Atomics.load(u32, 1);
+    list = new Array;
+    while (ptrj -= 16) {
+      if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
+        continue;
+      }
+      list[i] = new classes[u32[HEADER_CLASSINDEX + ptrj]](ptrj);
+      i++;
+    }
+    return list;
+  };
+  getChildsPtri = function(ptri) {
+    var list, ptrj;
+    ptrj = Atomics.load(u32, 1);
+    list = new Array;
+    while (ptrj -= 16) {
+      if (ptri - u32[HEADER_PARENTPTRI + ptrj]) {
+        continue;
+      }
+      list[i] = ptrj;
+      i++;
+    }
+    return list;
+  };
+  findChilds = function(ptri, test) {
+    var ci, list, ptrj;
+    ptrj = Atomics.load(u32, 1);
+    list = new Array;
+    ci = (function() {
+      if (test.isPtr) {
+        return classes.indexOf(test);
+      } else if (test.isPtri) {
+        return u32[HEADER_CLASSINDEX + test];
+      } else if (!isNaN(test)) {
+        return test;
+      } else {
+        throw /FILTER_TEST_FAILED/;
+      }
+    })();
+    while (ptrj -= 16) {
+      if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
+        continue;
+      }
+      if (u32[HEADER_CLASSINDEX + ptrj] - ci) {
+        continue;
+      }
+      list[i] = new classes[ci](ptrj);
+      ++i;
+    }
+    return list;
+  };
+  findChildsPtri = function(ptri, test) {
+    var ci, list, ptrj;
+    ptrj = Atomics.load(u32, 1);
+    list = new Array;
+    ci = (function() {
+      if (test.isPtr) {
+        return classes.indexOf(test);
+      } else if (test.isPtri) {
+        return u32[HEADER_CLASSINDEX + test];
+      } else if (!isNaN(test)) {
+        return test;
+      } else {
+        throw /FILTER_TEST_FAILED/;
+      }
+    })();
+    while (ptrj -= 16) {
+      if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
+        continue;
+      }
+      if (u32[HEADER_CLASSINDEX + ptrj] - ci) {
+        continue;
+      }
+      list[i] = ptrj;
+      i++;
+    }
+    return list;
   };
   getIterOffset = function(ptri) {
     return u32[HEADER_ITEROFFSET + ptri];
@@ -592,7 +672,9 @@ self.name = "window";
 
     Pointer.byteLength = 0;
 
-    Pointer.TypedArray = Float32Array;
+    Pointer.isPtr = true;
+
+    Pointer.prototype.isPtri = true;
 
     return Pointer;
 
