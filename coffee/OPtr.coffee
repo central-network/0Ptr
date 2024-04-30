@@ -1,3 +1,5 @@
+import { name } from "./window.coffee"
+
 self.name = "window"
 
 do  self.init   = ->
@@ -32,6 +34,21 @@ do  self.init   = ->
     shaders = []
     defines = {}
     classes = []
+
+    classes.register = ( Class ) ->
+        unless @includes Class
+            @push Class 
+        Class.classId = @indexOf Class
+
+    shaders.register = ( WebGLObject ) ->
+        unless @includes WebGLObject
+            @push WebGLObject 
+        @indexOf WebGLObject
+
+    buffers.register = ( WebGLObject ) ->
+        unless @includes WebGLObject
+            @push WebGLObject 
+        @indexOf WebGLObject
 
     ticks = 0
     frustrum = null
@@ -79,6 +96,9 @@ do  self.init   = ->
     HINDEX_ITER_COUNT   = HINDEX_LENGTH++
     HINDEX_NEXT_COLORI  = HINDEX_LENGTH++
     HINDEX_NEXT_VERTEXI = HINDEX_LENGTH++
+    
+    HINDEX_RESV0        = HINDEX_LENGTH++
+    HINDEX_RESV1        = HINDEX_LENGTH++
 
     ATTRIBS_LENGTH      = 0
     ATTRIBS_BYTELENGTH  = 0
@@ -171,27 +191,28 @@ do  self.init   = ->
         state THREADS_NULL
 
     malloc              = ( constructor, byteLength ) ->
-        BYTES_PER_ELEMENT =
-            constructor.TypedArray.BYTES_PER_ELEMENT or
-            constructor.BYTES_PER_ELEMENT
-
-        classId     = constructor.classId
-        byteLength  = constructor.byteLength if !byteLength
-        length      = ( allocLength = byteLength ) / BYTES_PER_ELEMENT
-        byteLength += 8 - ( byteLength % 8 )
-
         ptri        = Atomics.add ptri32, 1, 16
-        byteOffset  = Atomics.add ptri32, 0, byteLength
+        classId     = constructor.classId
 
-        Atomics.add   ptri32, 0, 8 - ( byteLength % 8 )
-        begin       = byteOffset / BYTES_PER_ELEMENT
+        if  byteLength ?= constructor.byteLength
+
+            BYTES_PER_ELEMENT =
+                constructor.TypedArray.BYTES_PER_ELEMENT or
+                constructor.BYTES_PER_ELEMENT
+
+            length      = ( allocLength = byteLength ) / BYTES_PER_ELEMENT
+            byteLength += 8 - ( byteLength % 8 )
+            byteOffset  = Atomics.add ptri32, 0, byteLength
+            begin       = byteOffset / BYTES_PER_ELEMENT
+
+            Atomics.add   ptri32, 0, 8 - byteLength % 8
+            Atomics.store ptri32, ptri + HINDEX_BYTEOFFSET, byteOffset
+            Atomics.store ptri32, ptri + HINDEX_BYTELENGTH, allocLength
+            Atomics.store ptri32, ptri + HINDEX_LENGTH, length
+            Atomics.store ptri32, ptri + HINDEX_BEGIN, begin
 
         Atomics.store ptri32, ptri + HINDEX_PTRI, ptri
-        Atomics.store ptri32, ptri + HINDEX_BYTEOFFSET, byteOffset
-        Atomics.store ptri32, ptri + HINDEX_BYTELENGTH, allocLength
         Atomics.store ptri32, ptri + HINDEX_CLASSID, classId
-        Atomics.store ptri32, ptri + HINDEX_LENGTH, length
-        Atomics.store ptri32, ptri + HINDEX_BEGIN, begin
 
         ptri
 
@@ -212,11 +233,14 @@ do  self.init   = ->
         Object.defineProperty this  , "classId",
             configurable: on
             get : -> Object.defineProperty( this, "classId",
-                value : classes.push( this ) - 1
+                value : classes.register( this )
             ).classId
 
         Object.defineProperty this::, "byteOffset",
             get : -> Atomics.load ptri32, @ptri + HINDEX_BYTEOFFSET
+        
+        Object.defineProperty this::, "classId",
+            get : -> Atomics.load ptri32, @ptri + HINDEX_CLASSID
 
         Object.defineProperty this::, "byteLength",
             get : -> Atomics.load ptri32, @ptri + HINDEX_BYTELENGTH
@@ -225,7 +249,7 @@ do  self.init   = ->
             get : -> Atomics.load ptri32, @ptri + HINDEX_LENGTH
 
         Object.defineProperty this::, "ptri",
-            get : -> Atomics.load ptri32, parseInt this
+            get : -> Atomics.load ptri32, this
         
         Object.defineProperty this::, "begin",
             get : -> Atomics.load ptri32, @ptri + HINDEX_BEGIN
@@ -236,7 +260,7 @@ do  self.init   = ->
         
         Object.defineProperty this::, "parent",
             get : -> Atomics.load ptri32, @ptri + HINDEX_PARENT
-            set : (v) -> Atomics.store ptri32, @ptri + HINDEX_PARENT, v
+            set : (v) -> Atomics.store ptri32, @ptri + HINDEX_PARENT, parseInt v
         
         Object.defineProperty this::, "children",
             get : -> 
@@ -290,9 +314,13 @@ do  self.init   = ->
             @byteLength += byteLength
             offset
 
-        constructor : ( ptri ) ->
-            unless parseInt super ptri
-                return new @constructor malloc @constructor 
+        constructor : ( ptri, parent ) ->
+            unless ptri = parseInt super ptri
+                ptri = malloc @constructor
+                return new @constructor ptri, parent 
+
+            @parent = parent if parent
+
             @init ptri
 
         set         : ( value, index = 0 ) ->
@@ -368,7 +396,7 @@ do  self.init   = ->
             dvw.setInt32 @byteOffset + @OFFSET_VERTICES, ptri, LE
             f32.set value, ptri32[ ptri + HINDEX_BEGIN ]
 
-    class XYZ           extends Pointer
+    classes.register class XYZ          extends Pointer
 
         @byteLength : 4 * 3
 
@@ -377,10 +405,13 @@ do  self.init   = ->
             y : get : ( -> f32[ @begin + 1 ] ), set : ( (v) -> f32[ @begin + 1 ] = v )
             z : get : ( -> f32[ @begin + 2 ] ), set : ( (v) -> f32[ @begin + 2 ] = v )
 
+            get : get : ( i = @begin, length = @length ) ->
+                f32.subarray i, i + length 
+
         set : ( value ) ->
             f32.set value, @begin ; @
 
-    class RGBA          extends Pointer
+    classes.register class RGBA         extends Pointer
 
         @byteLength : 4 * 4
 
@@ -389,78 +420,78 @@ do  self.init   = ->
             g : get : ( -> f32[ @begin + 1 ] ), set : ( (v) -> f32[ @begin + 1 ] = v )
             b : get : ( -> f32[ @begin + 2 ] ), set : ( (v) -> f32[ @begin + 2 ] = v )
             a : get : ( -> f32[ @begin + 3 ] ), set : ( (v) -> f32[ @begin + 3 ] = v )
+            
+            get : get : ( i = @begin, length = @length ) ->
+                f32.subarray i, i + length 
+
 
         set : ( value ) ->
             f32.set value, @begin ; @
 
-    class Position2     extends XYZ
-    class Rotation2     extends XYZ
-    class Scale2        extends XYZ
-    class Color2        extends RGBA
+    classes.register class Position2    extends XYZ
+        name : "position"
 
-    class Vertices2     extends Pointer
+    classes.register class Rotation2    extends XYZ
+        name : "rotation"
 
-        Object.defineProperties Vertices2::,
+    classes.register class Scale2       extends XYZ
+        name : "scale"
+        
+    classes.register class Color2       extends RGBA
+        name : "color"
 
-            at  : value : ( i ) ->
-                begin = @begin + i * 3
-                f32.subarray begin, begin + 3 
+    classes.register class Vertices2    extends Pointer
+        name : "vertices"
 
-            set : value : ( v, i = @begin ) ->
-                f32.set v, i ; @
+    classes.register class Draw         extends Pointer
+        name : "draw"
+
+        @byteLength : 4 * 4
+
+    Object.defineProperties Draw::,
+        
+        type    : get : (-> u32[ @begin     ]), set : ((v) -> u32[ @begin     ] = v)
+
+        offset  : get : (-> u32[ @begin + 1 ]), set : ((v) -> u32[ @begin + 1 ] = v)
+        
+        begin   : get : (-> u32[ @begin + 2 ]), set : ((v) -> u32[ @begin + 2 ] = v)
+
+        count   : get : (-> u32[ @begin + 3 ]), set : ((v) -> u32[ @begin + 3 ] = v)
+
+    Object.defineProperties Vertices2::,
+
+        at  : value : ( i ) ->
+            begin = @begin + i * 3
+            f32.subarray begin, begin + 3 
+
+        set : value : ( v, i = @begin ) ->
+            f32.set v, i ; @
+            
+        get : get   : ( i = @begin, length = @length ) ->
+            f32.subarray i, i + length 
+
+        count : get : -> @length / 3
                 
-            get : get   : ( i = @begin, length = @length ) ->
-                f32.subarray i, i + length 
-                
-    Object.defineProperties Pointer,   
-    
-        attributes : value : new Object
-
-        hasAttribute : value : ( definitions = {} ) ->
-            for attribute , Constructor of definitions
-                @attributes[ attribute ] = ( ( index, prop, Class ) ->
-
-                    Object.defineProperty this, prop,
-                            get : -> new Class( u32[ @begin + index ] or= malloc Class )
-                            set : ( v ) -> u32[ @begin + index ] = parseInt v
-                    
-                    return { index, class: Class }
-
-                ).call( this::, @byteLength / 4, attribute, Constructor )
-                @byteLength += 4
-            @classId
-
-    class Matter        extends Pointer
+    classes.register class Matter   extends Pointer
 
         self.Matter     = Matter
 
-        @byteLength     : 4 * 16
-
-        @hasAttribute position : Position2
-
-        @hasAttribute color : Color2
-
-        @hasAttribute scale : Scale2
-        
-        @hasAttribute rotation : Rotation2
-
-        @hasAttribute vertices : Vertices2
-
         @create : ( options = {} ) ->
-            byteLength = @byteLength + options.vertices.length * 4
-            matter = new this malloc Matter, byteLength
-            for prop, value of options
-                Class = @attributes[ prop ].class
-                length = value.length
-                byteLength = Class.byteLength or length * 4
-                log 2, prop, value
+            matter = new this
 
-                log 5, new Class( matter[ prop ] =
-                    malloc Class, byteLength
-                ).set( value )
+            for prop, value of options
+                for Class in classes when prop is Class::name
+                    ptri = malloc Class, value.length * 4
+                    prop = new Class ptri, matter
+                    prop . set value
 
             matter
 
+        drawArrays : ( type ) ->
+            draw = new Draw null, this
+
+        drawAsPoints : ->
+            @drawArrays WebGL2RenderingContext.POINTS
             
     class Shape         extends Pointer
 
@@ -879,6 +910,212 @@ do  self.init   = ->
             new Float32Array buffer, byteOffset, 4
 
 
+    classes.register class Shader extends Pointer
+
+        INDEX_IS_ATTACHED     : 0 #ui8
+        INDEX_GLSHADER_INDEX  : 1
+
+        @typeof : ( source ) ->
+            if !source.match /gl_Program/
+                return WebGL2RenderingContext.FRAGMENT_SHADER
+            return WebGL2RenderingContext.VERTEX_SHADER
+
+        @getDefault : -> @allocs()[0]
+
+        @fromSource : ( source ) ->
+            if  WebGL2RenderingContext.VERTEX_SHADER is @typeof source
+                return new vShader
+            return new fShader
+
+        create : ( source ) ->
+            glType = Shader.glType source
+            shader = gl.createShader glType
+
+            gl.shaderSource shader, source
+            gl.compileShader shader
+
+            unless gl.getShaderParameter shader, gl.COMPILE_STATUS
+                info = gl.getShaderInfoLog shader
+                throw "Could not compile WebGL program. \n\n#{info}"
+
+            @glShader = shader
+
+        Object.defineProperties Shader::,
+
+            isAttached      :
+                get : -> u32[ this + @HINDEX_RESV0 ]
+                set : (v) -> u32[ this + @HINDEX_RESV0 ] = v
+
+            glShader        :
+                get : -> shaders[ u32[ this + @HINDEX_RESV1 ] ]
+                set : (v) -> u32[ this + @HINDEX_RESV1 ] = shaders.register v
+
+    classes.register class vShader extends Shader
+        name : "vShader"
+        type : WebGL2RenderingContext.VERTEX_SHADER
+
+        INDEX_GLBUFFER_BOUND  : 0 #ui8
+        INDEX_GLBUFFER_INDEX  : 1
+        INDEX_BYTES_PER_ATTR  : 2
+
+        INDEX_POINTS_START    : 1 #u32 
+        INDEX_POINTS_COUNT    : 2 
+        INDEX_POINTS_OFFSET   : 3 
+
+        INDEX_LINES_START     : 4 
+        INDEX_LINES_COUNT     : 5 
+        INDEX_LINES_OFFSET    : 6 
+
+        INDEX_TRIANGLES_START : 7 
+        INDEX_TRIANGLES_COUNT : 8 
+        INDEX_TRIANGLES_OFFSET: 9 
+
+        INDEX_DRAW_BEGIN      : 16
+
+        init : ->
+            @BYTES_PER_ATTRIBUTE = 32
+
+            length           = @byteLength / 4
+            typeLength       = Math.trunc length / 3 
+            typeByteLength   = typeLength * 4
+            typeAttribLength = typeByteLength / @BYTES_PER_ATTRIBUTE
+
+            @pointsStart     = 2 #for initial alloc
+            @linesStart      = typeAttribLength
+            @trianglesStart  = typeAttribLength * 2
+
+            @pointsOffset    = 2 * @BYTES_PER_ATTRIBUTE
+            @linesOffset     = typeByteLength * 2
+            @trianglesOffset = typeByteLength * 3 
+            
+        create : ( source ) ->
+            super source
+
+            buffer = gl.createBuffer()
+
+            gl.bindBuffer gl.ARRAY_BUFFER, buffer
+            gl.bufferData gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW
+
+            @glBuffer = buffer
+            @isBinded = 1
+
+            this
+
+        attach : ( program ) ->
+            gl.attachShader program, @glShader
+            @isAttached = 1
+
+            this
+
+        drawAsPoints : ( matter ) ->
+            byteOffset = @pointsOffset
+            pointCount = matter.vertices.count
+            byteLength = pointCount * @BYTES_PER_ATTRIBUTE
+            
+            begin = byteOffset / 4
+            count = byteLength / 4 
+
+            @pointsCount += pointCount
+            @pointsOffset += byteLength
+            
+            Object.assign new Draw( null, matter.shader = this ), {
+                begin, count, offset: byteOffset,
+                type : WebGL2RenderingContext.POINTS
+            }
+
+        drawAsLines : ( matter ) ->
+            byteOffset = @linesOffset
+            pointCount = matter.vertices.count
+            byteLength = pointCount * @BYTES_PER_ATTRIBUTE
+            
+            begin = byteOffset / 4
+            count = byteLength / 4 
+
+            @linesCount += pointCount
+            @linesOffset += byteLength
+
+            Object.assign new Draw( null, matter.shader = this ), {
+                begin, count, offset: byteOffset,
+                type : WebGL2RenderingContext.LINES
+            }
+
+        drawAsTriangles : ( matter ) ->
+            byteOffset = @trianglesOffset
+            pointCount = matter.vertices.count
+            byteLength = pointCount * @BYTES_PER_ATTRIBUTE
+            
+            begin = byteOffset / 4
+            count = byteLength / 4 
+
+            @trianglesCount += pointCount
+            @trianglesOffset += byteLength
+
+            Object.assign new Draw( null, matter.shader = this ), {
+                begin, count, offset: byteOffset,
+                type : WebGL2RenderingContext.TRIANGLES
+            }
+
+    Object.defineProperties vShader::,
+
+        drawBuffer      :
+            get : -> new Float32Array buffer, @byteOffset, BYTELENGTH_GLBUFFER/4
+
+        BYTES_PER_ATTRIBUTE :
+            get : -> ui8[ @byteOffset + @INDEX_BYTES_PER_ATTR ]
+            set : (v) -> ui8[ @byteOffset + @INDEX_BYTES_PER_ATTR ] = v
+
+        isBinded        :
+            get : -> ui8[ @byteOffset + @INDEX_GLBUFFER_BOUND ]
+            set : (v) -> ui8[ @byteOffset + @INDEX_GLBUFFER_BOUND ] = v
+
+        glBuffer        :
+            get : -> buffers[ ui8[ @byteOffset + @INDEX_GLBUFFER_INDEX ] ]
+            set : (v) -> ui8[ @byteOffset + @INDEX_GLBUFFER_INDEX ] = buffers.register v
+
+        
+        pointsStart     :
+            get : -> u32[ @begin + @INDEX_POINTS_START ]
+            set : ( v ) -> u32[ @begin + @INDEX_POINTS_START ] = v
+        
+        linesStart      :
+            get : -> u32[ @begin + @INDEX_LINES_START ]
+            set : ( v ) -> u32[ @begin + @INDEX_LINES_START ] = v
+        
+        trianglesStart  :
+            get : -> u32[ @begin + @INDEX_TRIANGLES_START ]
+            set : ( v ) -> u32[ @begin + @INDEX_TRIANGLES_START ] = v
+
+
+        pointsCount     :
+            get : -> u32[ @begin + @INDEX_POINTS_COUNT ]
+            set : ( v ) -> u32[ @begin + @INDEX_POINTS_COUNT ] = v
+        
+        linesCount      :
+            get : -> u32[ @begin + @INDEX_LINES_COUNT ]
+            set : ( v ) -> u32[ @begin + @INDEX_LINES_COUNT ] = v
+        
+        trianglesCount  :
+            get : -> u32[ @begin + @INDEX_TRIANGLES_COUNT ]
+            set : ( v ) -> u32[ @begin + @INDEX_TRIANGLES_COUNT ] = v
+
+
+        pointsOffset    :
+            get : -> u32[ @begin + @INDEX_POINTS_OFFSET ]
+            set : ( v ) -> u32[ @begin + @INDEX_POINTS_OFFSET ] = v
+        
+        linesOffset     :
+            get : -> u32[ @begin + @INDEX_LINES_OFFSET ]
+            set : ( v ) -> u32[ @begin + @INDEX_LINES_OFFSET ] = v
+        
+        trianglesOffset :
+            get : -> u32[ @begin + @INDEX_TRIANGLES_OFFSET ]
+            set : ( v ) -> u32[ @begin + @INDEX_TRIANGLES_OFFSET ] = v
+            
+
+    classes.register class fShader extends Shader
+        name : "fShader"
+        type : WebGL2RenderingContext.FRAGMENT_SHADER
+        
     class Space         extends Pointer
 
         @byteLength                 : BYTELENGTH_GLBUFFER + 16 * 4
@@ -1086,6 +1323,9 @@ do  self.init   = ->
 
             onanimationframe performance.now()
             
+        compileShaders  = ->
+
+
         initialProgram  = ->
 
             vSource = scripts.find((s) -> s.type.match /x-vert/i).text
@@ -1208,11 +1448,11 @@ do  self.init   = ->
             gl = createCanvas()
                 .getContext "webgl2"
 
+            space = new Space()
+
             initialProgram()
             resolveDefines()
             createFrustrum()
-
-            space = new Space()
 
             requestIdleCallback =>
                 self.emit "contextrestored", gl

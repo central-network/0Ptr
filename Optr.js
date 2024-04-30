@@ -1,7 +1,11 @@
+import {
+  name
+} from "./window.js";
+
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BYTELENGTH_GLBUFFER, Color, Color2, Frustrum, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matrix4, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, Position2, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RGBA, Rotation, Rotation2, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scale2, Shape, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, Vertices2, XYZ, buffer, classes, defines, draws, dvw, error, f32, fShader, frustrum, gBuffer, gl, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, shaders, space, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BYTELENGTH_GLBUFFER, Color, Color2, Draw, Frustrum, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matrix4, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, Position2, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RGBA, Rotation, Rotation2, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scale2, Shader, Shape, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, Vertices2, XYZ, buffer, classes, defines, draws, dvw, error, f32, fShader, frustrum, gBuffer, gl, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, shaders, space, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -39,6 +43,24 @@ self.name = "window";
   shaders = [];
   defines = {};
   classes = [];
+  classes.register = function(Class) {
+    if (!this.includes(Class)) {
+      this.push(Class);
+    }
+    return Class.classId = this.indexOf(Class);
+  };
+  shaders.register = function(WebGLObject) {
+    if (!this.includes(WebGLObject)) {
+      this.push(WebGLObject);
+    }
+    return this.indexOf(WebGLObject);
+  };
+  buffers.register = function(WebGLObject) {
+    if (!this.includes(WebGLObject)) {
+      this.push(WebGLObject);
+    }
+    return this.indexOf(WebGLObject);
+  };
   ticks = 0;
   frustrum = null;
   RADIANS_PER_DEGREE = Math.PI / 180.0;
@@ -74,6 +96,8 @@ self.name = "window";
   HINDEX_ITER_COUNT = HINDEX_LENGTH++;
   HINDEX_NEXT_COLORI = HINDEX_LENGTH++;
   HINDEX_NEXT_VERTEXI = HINDEX_LENGTH++;
+  HINDEX_RESV0 = HINDEX_LENGTH++;
+  HINDEX_RESV1 = HINDEX_LENGTH++;
   ATTRIBS_LENGTH = 0;
   ATTRIBS_BYTELENGTH = 0;
   state = function(state) {
@@ -173,23 +197,22 @@ self.name = "window";
   }
   malloc = function(constructor, byteLength) {
     var BYTES_PER_ELEMENT, allocLength, begin, byteOffset, classId, length, ptri;
-    BYTES_PER_ELEMENT = constructor.TypedArray.BYTES_PER_ELEMENT || constructor.BYTES_PER_ELEMENT;
-    classId = constructor.classId;
-    if (!byteLength) {
-      byteLength = constructor.byteLength;
-    }
-    length = (allocLength = byteLength) / BYTES_PER_ELEMENT;
-    byteLength += 8 - (byteLength % 8);
     ptri = Atomics.add(ptri32, 1, 16);
-    byteOffset = Atomics.add(ptri32, 0, byteLength);
-    Atomics.add(ptri32, 0, 8 - (byteLength % 8));
-    begin = byteOffset / BYTES_PER_ELEMENT;
+    classId = constructor.classId;
+    if (byteLength != null ? byteLength : byteLength = constructor.byteLength) {
+      BYTES_PER_ELEMENT = constructor.TypedArray.BYTES_PER_ELEMENT || constructor.BYTES_PER_ELEMENT;
+      length = (allocLength = byteLength) / BYTES_PER_ELEMENT;
+      byteLength += 8 - (byteLength % 8);
+      byteOffset = Atomics.add(ptri32, 0, byteLength);
+      begin = byteOffset / BYTES_PER_ELEMENT;
+      Atomics.add(ptri32, 0, 8 - byteLength % 8);
+      Atomics.store(ptri32, ptri + HINDEX_BYTEOFFSET, byteOffset);
+      Atomics.store(ptri32, ptri + HINDEX_BYTELENGTH, allocLength);
+      Atomics.store(ptri32, ptri + HINDEX_LENGTH, length);
+      Atomics.store(ptri32, ptri + HINDEX_BEGIN, begin);
+    }
     Atomics.store(ptri32, ptri + HINDEX_PTRI, ptri);
-    Atomics.store(ptri32, ptri + HINDEX_BYTEOFFSET, byteOffset);
-    Atomics.store(ptri32, ptri + HINDEX_BYTELENGTH, allocLength);
     Atomics.store(ptri32, ptri + HINDEX_CLASSID, classId);
-    Atomics.store(ptri32, ptri + HINDEX_LENGTH, length);
-    Atomics.store(ptri32, ptri + HINDEX_BEGIN, begin);
     return ptri;
   };
   self.emit = function(event, detail) {
@@ -242,9 +265,13 @@ self.name = "window";
         return offset;
       }
 
-      constructor(ptri) {
-        if (!parseInt(super(ptri))) {
-          return new this.constructor(malloc(this.constructor));
+      constructor(ptri, parent) {
+        if (!(ptri = parseInt(super(ptri)))) {
+          ptri = malloc(this.constructor);
+          return new this.constructor(ptri, parent);
+        }
+        if (parent) {
+          this.parent = parent;
         }
         this.init(ptri);
       }
@@ -274,7 +301,7 @@ self.name = "window";
       configurable: true,
       get: function() {
         return Object.defineProperty(this, "classId", {
-          value: classes.push(this) - 1
+          value: classes.register(this)
         }).classId;
       }
     });
@@ -282,6 +309,12 @@ self.name = "window";
     Object.defineProperty(Pointer.prototype, "byteOffset", {
       get: function() {
         return Atomics.load(ptri32, this.ptri + HINDEX_BYTEOFFSET);
+      }
+    });
+
+    Object.defineProperty(Pointer.prototype, "classId", {
+      get: function() {
+        return Atomics.load(ptri32, this.ptri + HINDEX_CLASSID);
       }
     });
 
@@ -299,7 +332,7 @@ self.name = "window";
 
     Object.defineProperty(Pointer.prototype, "ptri", {
       get: function() {
-        return Atomics.load(ptri32, parseInt(this));
+        return Atomics.load(ptri32, this);
       }
     });
 
@@ -323,7 +356,7 @@ self.name = "window";
         return Atomics.load(ptri32, this.ptri + HINDEX_PARENT);
       },
       set: function(v) {
-        return Atomics.store(ptri32, this.ptri + HINDEX_PARENT, v);
+        return Atomics.store(ptri32, this.ptri + HINDEX_PARENT, parseInt(v));
       }
     });
 
@@ -490,7 +523,7 @@ self.name = "window";
     return Vertices;
 
   }).call(this);
-  XYZ = (function() {
+  classes.register(XYZ = (function() {
     class XYZ extends Pointer {
       set(value) {
         f32.set(value, this.begin);
@@ -525,13 +558,18 @@ self.name = "window";
         set: (function(v) {
           return f32[this.begin + 2] = v;
         })
+      },
+      get: {
+        get: function(i = this.begin, length = this.length) {
+          return f32.subarray(i, i + length);
+        }
       }
     });
 
     return XYZ;
 
-  }).call(this);
-  RGBA = (function() {
+  }).call(this));
+  classes.register(RGBA = (function() {
     class RGBA extends Pointer {
       set(value) {
         f32.set(value, this.begin);
@@ -574,32 +612,6 @@ self.name = "window";
         set: (function(v) {
           return f32[this.begin + 3] = v;
         })
-      }
-    });
-
-    return RGBA;
-
-  }).call(this);
-  Position2 = class Position2 extends XYZ {};
-  Rotation2 = class Rotation2 extends XYZ {};
-  Scale2 = class Scale2 extends XYZ {};
-  Color2 = class Color2 extends RGBA {};
-  Vertices2 = (function() {
-    class Vertices2 extends Pointer {};
-
-    Object.defineProperties(Vertices2.prototype, {
-      at: {
-        value: function(i) {
-          var begin;
-          begin = this.begin + i * 3;
-          return f32.subarray(begin, begin + 3);
-        }
-      },
-      set: {
-        value: function(v, i = this.begin) {
-          f32.set(v, i);
-          return this;
-        }
       },
       get: {
         get: function(i = this.begin, length = this.length) {
@@ -608,85 +620,154 @@ self.name = "window";
       }
     });
 
+    return RGBA;
+
+  }).call(this));
+  classes.register(Position2 = (function() {
+    class Position2 extends XYZ {};
+
+    Position2.prototype.name = "position";
+
+    return Position2;
+
+  }).call(this));
+  classes.register(Rotation2 = (function() {
+    class Rotation2 extends XYZ {};
+
+    Rotation2.prototype.name = "rotation";
+
+    return Rotation2;
+
+  }).call(this));
+  classes.register(Scale2 = (function() {
+    class Scale2 extends XYZ {};
+
+    Scale2.prototype.name = "scale";
+
+    return Scale2;
+
+  }).call(this));
+  classes.register(Color2 = (function() {
+    class Color2 extends RGBA {};
+
+    Color2.prototype.name = "color";
+
+    return Color2;
+
+  }).call(this));
+  classes.register(Vertices2 = (function() {
+    class Vertices2 extends Pointer {};
+
+    Vertices2.prototype.name = "vertices";
+
     return Vertices2;
 
-  }).call(this);
-  Object.defineProperties(Pointer, {
-    attributes: {
-      value: new Object
+  }).call(this));
+  classes.register(Draw = (function() {
+    class Draw extends Pointer {};
+
+    Draw.prototype.name = "draw";
+
+    Draw.byteLength = 4 * 4;
+
+    return Draw;
+
+  }).call(this));
+  Object.defineProperties(Draw.prototype, {
+    type: {
+      get: (function() {
+        return u32[this.begin];
+      }),
+      set: (function(v) {
+        return u32[this.begin] = v;
+      })
     },
-    hasAttribute: {
-      value: function(definitions = {}) {
-        var Constructor, attribute;
-        for (attribute in definitions) {
-          Constructor = definitions[attribute];
-          this.attributes[attribute] = (function(index, prop, Class) {
-            Object.defineProperty(this, prop, {
-              get: function() {
-                var name1;
-                return new Class(u32[name1 = this.begin + index] || (u32[name1] = malloc(Class)));
-              },
-              set: function(v) {
-                return u32[this.begin + index] = parseInt(v);
-              }
-            });
-            return {
-              index,
-              class: Class
-            };
-          }).call(this.prototype, this.byteLength / 4, attribute, Constructor);
-          this.byteLength += 4;
-        }
-        return this.classId;
+    offset: {
+      get: (function() {
+        return u32[this.begin + 1];
+      }),
+      set: (function(v) {
+        return u32[this.begin + 1] = v;
+      })
+    },
+    begin: {
+      get: (function() {
+        return u32[this.begin + 2];
+      }),
+      set: (function(v) {
+        return u32[this.begin + 2] = v;
+      })
+    },
+    count: {
+      get: (function() {
+        return u32[this.begin + 3];
+      }),
+      set: (function(v) {
+        return u32[this.begin + 3] = v;
+      })
+    }
+  });
+  Object.defineProperties(Vertices2.prototype, {
+    at: {
+      value: function(i) {
+        var begin;
+        begin = this.begin + i * 3;
+        return f32.subarray(begin, begin + 3);
+      }
+    },
+    set: {
+      value: function(v, i = this.begin) {
+        f32.set(v, i);
+        return this;
+      }
+    },
+    get: {
+      get: function(i = this.begin, length = this.length) {
+        return f32.subarray(i, i + length);
+      }
+    },
+    count: {
+      get: function() {
+        return this.length / 3;
       }
     }
   });
-  Matter = (function() {
+  classes.register(Matter = (function() {
     class Matter extends Pointer {
       static create(options = {}) {
-        var Class, byteLength, length, matter, prop, value;
-        byteLength = this.byteLength + options.vertices.length * 4;
-        matter = new this(malloc(Matter, byteLength));
+        var Class, j, len, matter, prop, ptri, value;
+        matter = new this;
         for (prop in options) {
           value = options[prop];
-          Class = this.attributes[prop].class;
-          length = value.length;
-          byteLength = Class.byteLength || length * 4;
-          log(2, prop, value);
-          log(5, new Class(matter[prop] = malloc(Class, byteLength)).set(value));
+          for (j = 0, len = classes.length; j < len; j++) {
+            Class = classes[j];
+            if (!(prop === Class.prototype.name)) {
+              continue;
+            }
+            ptri = malloc(Class, value.length * 4);
+            prop = new Class(ptri, matter);
+            prop.set(value);
+          }
         }
         return matter;
+      }
+
+      drawArrays(type) {
+        var draw;
+        return draw = new Draw(null, this);
+      }
+
+      drawAsPoints() {
+        return this.drawArrays(WebGL2RenderingContext.POINTS);
       }
 
     };
 
     self.Matter = Matter;
 
-    Matter.byteLength = 4 * 16;
-
-    Matter.hasAttribute({
-      position: Position2
-    });
-
-    Matter.hasAttribute({
-      color: Color2
-    });
-
-    Matter.hasAttribute({
-      scale: Scale2
-    });
-
-    Matter.hasAttribute({
-      rotation: Rotation2
-    });
-
-    Matter.hasAttribute({
-      vertices: Vertices2
-    });
-
     return Matter;
 
-  }).call(this);
+  }).call(this));
   Shape = (function() {
     class Shape extends Pointer {
       static fromOptions(options) {
@@ -1180,6 +1261,299 @@ self.name = "window";
     return GLDraw;
 
   }).call(this);
+  classes.register(Shader = (function() {
+    class Shader extends Pointer {
+      static typeof(source) {
+        if (!source.match(/gl_Program/)) {
+          return WebGL2RenderingContext.FRAGMENT_SHADER;
+        }
+        return WebGL2RenderingContext.VERTEX_SHADER;
+      }
+
+      static getDefault() {
+        return this.allocs()[0];
+      }
+
+      static fromSource(source) {
+        if (WebGL2RenderingContext.VERTEX_SHADER === this.typeof(source)) {
+          return new vShader;
+        }
+        return new fShader;
+      }
+
+      create(source) {
+        var glType, info, shader;
+        glType = Shader.glType(source);
+        shader = gl.createShader(glType);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          info = gl.getShaderInfoLog(shader);
+          throw `Could not compile WebGL program. \n\n${info}`;
+        }
+        return this.glShader = shader;
+      }
+
+    };
+
+    Shader.prototype.INDEX_IS_ATTACHED = 0; //ui8
+
+    Shader.prototype.INDEX_GLSHADER_INDEX = 1;
+
+    Object.defineProperties(Shader.prototype, {
+      isAttached: {
+        get: function() {
+          return u32[this + this.HINDEX_RESV0];
+        },
+        set: function(v) {
+          return u32[this + this.HINDEX_RESV0] = v;
+        }
+      },
+      glShader: {
+        get: function() {
+          return shaders[u32[this + this.HINDEX_RESV1]];
+        },
+        set: function(v) {
+          return u32[this + this.HINDEX_RESV1] = shaders.register(v);
+        }
+      }
+    });
+
+    return Shader;
+
+  }).call(this));
+  classes.register(vShader = (function() {
+    class vShader extends Shader {
+      init() {
+        var length, typeAttribLength, typeByteLength, typeLength;
+        this.BYTES_PER_ATTRIBUTE = 32;
+        length = this.byteLength / 4;
+        typeLength = Math.trunc(length / 3);
+        typeByteLength = typeLength * 4;
+        typeAttribLength = typeByteLength / this.BYTES_PER_ATTRIBUTE;
+        this.pointsStart = 2; //for initial alloc
+        this.linesStart = typeAttribLength;
+        this.trianglesStart = typeAttribLength * 2;
+        this.pointsOffset = 2 * this.BYTES_PER_ATTRIBUTE;
+        this.linesOffset = typeByteLength * 2;
+        return this.trianglesOffset = typeByteLength * 3;
+      }
+
+      create(source) {
+        super.create(source);
+        buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW);
+        this.glBuffer = buffer;
+        this.isBinded = 1;
+        return this;
+      }
+
+      attach(program) {
+        gl.attachShader(program, this.glShader);
+        this.isAttached = 1;
+        return this;
+      }
+
+      drawAsPoints(matter) {
+        var begin, byteLength, byteOffset, count, pointCount;
+        byteOffset = this.pointsOffset;
+        pointCount = matter.vertices.count;
+        byteLength = pointCount * this.BYTES_PER_ATTRIBUTE;
+        begin = byteOffset / 4;
+        count = byteLength / 4;
+        this.pointsCount += pointCount;
+        this.pointsOffset += byteLength;
+        return Object.assign(new Draw(null, matter.shader = this), {
+          begin,
+          count,
+          offset: byteOffset,
+          type: WebGL2RenderingContext.POINTS
+        });
+      }
+
+      drawAsLines(matter) {
+        var begin, byteLength, byteOffset, count, pointCount;
+        byteOffset = this.linesOffset;
+        pointCount = matter.vertices.count;
+        byteLength = pointCount * this.BYTES_PER_ATTRIBUTE;
+        begin = byteOffset / 4;
+        count = byteLength / 4;
+        this.linesCount += pointCount;
+        this.linesOffset += byteLength;
+        return Object.assign(new Draw(null, matter.shader = this), {
+          begin,
+          count,
+          offset: byteOffset,
+          type: WebGL2RenderingContext.LINES
+        });
+      }
+
+      drawAsTriangles(matter) {
+        var begin, byteLength, byteOffset, count, pointCount;
+        byteOffset = this.trianglesOffset;
+        pointCount = matter.vertices.count;
+        byteLength = pointCount * this.BYTES_PER_ATTRIBUTE;
+        begin = byteOffset / 4;
+        count = byteLength / 4;
+        this.trianglesCount += pointCount;
+        this.trianglesOffset += byteLength;
+        return Object.assign(new Draw(null, matter.shader = this), {
+          begin,
+          count,
+          offset: byteOffset,
+          type: WebGL2RenderingContext.TRIANGLES
+        });
+      }
+
+    };
+
+    vShader.prototype.name = "vShader";
+
+    vShader.prototype.type = WebGL2RenderingContext.VERTEX_SHADER;
+
+    vShader.prototype.INDEX_GLBUFFER_BOUND = 0; //ui8
+
+    vShader.prototype.INDEX_GLBUFFER_INDEX = 1;
+
+    vShader.prototype.INDEX_BYTES_PER_ATTR = 2;
+
+    vShader.prototype.INDEX_POINTS_START = 1; //u32 
+
+    vShader.prototype.INDEX_POINTS_COUNT = 2;
+
+    vShader.prototype.INDEX_POINTS_OFFSET = 3;
+
+    vShader.prototype.INDEX_LINES_START = 4;
+
+    vShader.prototype.INDEX_LINES_COUNT = 5;
+
+    vShader.prototype.INDEX_LINES_OFFSET = 6;
+
+    vShader.prototype.INDEX_TRIANGLES_START = 7;
+
+    vShader.prototype.INDEX_TRIANGLES_COUNT = 8;
+
+    vShader.prototype.INDEX_TRIANGLES_OFFSET = 9;
+
+    vShader.prototype.INDEX_DRAW_BEGIN = 16;
+
+    return vShader;
+
+  }).call(this));
+  Object.defineProperties(vShader.prototype, {
+    drawBuffer: {
+      get: function() {
+        return new Float32Array(buffer, this.byteOffset, BYTELENGTH_GLBUFFER / 4);
+      }
+    },
+    BYTES_PER_ATTRIBUTE: {
+      get: function() {
+        return ui8[this.byteOffset + this.INDEX_BYTES_PER_ATTR];
+      },
+      set: function(v) {
+        return ui8[this.byteOffset + this.INDEX_BYTES_PER_ATTR] = v;
+      }
+    },
+    isBinded: {
+      get: function() {
+        return ui8[this.byteOffset + this.INDEX_GLBUFFER_BOUND];
+      },
+      set: function(v) {
+        return ui8[this.byteOffset + this.INDEX_GLBUFFER_BOUND] = v;
+      }
+    },
+    glBuffer: {
+      get: function() {
+        return buffers[ui8[this.byteOffset + this.INDEX_GLBUFFER_INDEX]];
+      },
+      set: function(v) {
+        return ui8[this.byteOffset + this.INDEX_GLBUFFER_INDEX] = buffers.register(v);
+      }
+    },
+    pointsStart: {
+      get: function() {
+        return u32[this.begin + this.INDEX_POINTS_START];
+      },
+      set: function(v) {
+        return u32[this.begin + this.INDEX_POINTS_START] = v;
+      }
+    },
+    linesStart: {
+      get: function() {
+        return u32[this.begin + this.INDEX_LINES_START];
+      },
+      set: function(v) {
+        return u32[this.begin + this.INDEX_LINES_START] = v;
+      }
+    },
+    trianglesStart: {
+      get: function() {
+        return u32[this.begin + this.INDEX_TRIANGLES_START];
+      },
+      set: function(v) {
+        return u32[this.begin + this.INDEX_TRIANGLES_START] = v;
+      }
+    },
+    pointsCount: {
+      get: function() {
+        return u32[this.begin + this.INDEX_POINTS_COUNT];
+      },
+      set: function(v) {
+        return u32[this.begin + this.INDEX_POINTS_COUNT] = v;
+      }
+    },
+    linesCount: {
+      get: function() {
+        return u32[this.begin + this.INDEX_LINES_COUNT];
+      },
+      set: function(v) {
+        return u32[this.begin + this.INDEX_LINES_COUNT] = v;
+      }
+    },
+    trianglesCount: {
+      get: function() {
+        return u32[this.begin + this.INDEX_TRIANGLES_COUNT];
+      },
+      set: function(v) {
+        return u32[this.begin + this.INDEX_TRIANGLES_COUNT] = v;
+      }
+    },
+    pointsOffset: {
+      get: function() {
+        return u32[this.begin + this.INDEX_POINTS_OFFSET];
+      },
+      set: function(v) {
+        return u32[this.begin + this.INDEX_POINTS_OFFSET] = v;
+      }
+    },
+    linesOffset: {
+      get: function() {
+        return u32[this.begin + this.INDEX_LINES_OFFSET];
+      },
+      set: function(v) {
+        return u32[this.begin + this.INDEX_LINES_OFFSET] = v;
+      }
+    },
+    trianglesOffset: {
+      get: function() {
+        return u32[this.begin + this.INDEX_TRIANGLES_OFFSET];
+      },
+      set: function(v) {
+        return u32[this.begin + this.INDEX_TRIANGLES_OFFSET] = v;
+      }
+    }
+  });
+  classes.register(fShader = (function() {
+    class fShader extends Shader {};
+
+    fShader.prototype.name = "fShader";
+
+    fShader.prototype.type = WebGL2RenderingContext.FRAGMENT_SHADER;
+
+    return fShader;
+
+  }).call(this));
   Space = (function() {
     class Space extends Pointer {
       init() {
@@ -1415,7 +1789,7 @@ self.name = "window";
 
   }).call(this);
   self.addEventListener("DOMContentLoaded", function() {
-    var checkUploads, createBlobURL, createCanvas, createFrustrum, createThreads, createWorker, epoch, frame, initialProgram, listenEvents, rendering, resolveDefines, resolveUniform;
+    var checkUploads, compileShaders, createBlobURL, createCanvas, createFrustrum, createThreads, createWorker, epoch, frame, initialProgram, listenEvents, rendering, resolveDefines, resolveUniform;
     frame = 0;
     epoch = 0;
     rendering = 0;
@@ -1465,6 +1839,7 @@ self.name = "window";
       };
       return onanimationframe(performance.now());
     };
+    compileShaders = function() {};
     initialProgram = function() {
       var fSource, info, vSource;
       vSource = scripts.find(function(s) {
@@ -1616,10 +1991,10 @@ self.name = "window";
     };
     this.createDisplay = function() {
       gl = createCanvas().getContext("webgl2");
+      space = new Space();
       initialProgram();
       resolveDefines();
       createFrustrum();
-      space = new Space();
       return requestIdleCallback(() => {
         self.emit("contextrestored", gl);
         return pipe.emit("contextrestored");
