@@ -38,22 +38,22 @@
         attribute vec4 color;
         attribute vec4 position;
 
-        varying vec4 _color;
+        varying vec4 ql_Color;
 
         void main() {
             gl_Position = frustrum * vec4( vec3(position), 1.0 );
             gl_PointSize = pointSize;
-            _color = color;
+            ql_Color = color;
         }
     </script>
     <script type="x-shader/x-fragment">
         precision mediump int;
         precision mediump float;
     
-        varying vec4 _color;
+        varying vec4 ql_Color;
     
         void main() {
-            gl_FragColor = _color;
+            gl_FragColor = ql_Color;
         }
     </script>
 </head>
@@ -62,6 +62,22 @@
 
     <script>
         let red = 0.5, green = 0.3 , blue= 0.8, sign = 1, factor = 0.0025;
+
+        const matter = Matter.create({
+            position : [ 0, 0, 0 ],
+            color : [ 1, 0, 0, 1],
+            vertices : [
+                3,   0,  3,
+                10,   0,  3,
+                 3,  3,  3,
+                 
+                 3,  3,  3,
+                10,   0,  3,
+                10,  3,  3,
+            ]
+        })
+
+        console.warn(matter)
 
         const shape = Shape.fromOptions({
             position : [ 0, 0, 0 ],

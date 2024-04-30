@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BYTELENGTH_GLBUFFER, Color, Frustrum, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matrix4, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shape, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, buffer, classes, defines, draws, dvw, error, f32, fShader, frustrum, gBuffer, gl, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, shaders, space, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BYTELENGTH_GLBUFFER, Color, Color2, Frustrum, GLDraw, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_PTRI, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matrix4, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, Position2, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RGBA, Rotation, Rotation2, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scale2, Shape, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, Vertices2, XYZ, buffer, classes, defines, draws, dvw, error, f32, fShader, frustrum, gBuffer, gl, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, ptri32, scripts, shaders, space, state, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -114,7 +114,6 @@ self.name = "window";
           draw.vertex(index).set(vertex);
           draw.color(index).set(color);
           Atomics.store(ptri32, draw.ptri + HINDEX_UPDATED, 0);
-          draw.needsUpload = 1;
         }
       }
       if (index - count) {
@@ -491,6 +490,203 @@ self.name = "window";
     return Vertices;
 
   }).call(this);
+  XYZ = (function() {
+    class XYZ extends Pointer {
+      set(value) {
+        f32.set(value, this.begin);
+        return this;
+      }
+
+    };
+
+    XYZ.byteLength = 4 * 3;
+
+    Object.defineProperties(XYZ.prototype, {
+      x: {
+        get: (function() {
+          return f32[this.begin];
+        }),
+        set: (function(v) {
+          return f32[this.begin] = v;
+        })
+      },
+      y: {
+        get: (function() {
+          return f32[this.begin + 1];
+        }),
+        set: (function(v) {
+          return f32[this.begin + 1] = v;
+        })
+      },
+      z: {
+        get: (function() {
+          return f32[this.begin + 2];
+        }),
+        set: (function(v) {
+          return f32[this.begin + 2] = v;
+        })
+      }
+    });
+
+    return XYZ;
+
+  }).call(this);
+  RGBA = (function() {
+    class RGBA extends Pointer {
+      set(value) {
+        f32.set(value, this.begin);
+        return this;
+      }
+
+    };
+
+    RGBA.byteLength = 4 * 4;
+
+    Object.defineProperties(RGBA.prototype, {
+      r: {
+        get: (function() {
+          return f32[this.begin];
+        }),
+        set: (function(v) {
+          return f32[this.begin] = v;
+        })
+      },
+      g: {
+        get: (function() {
+          return f32[this.begin + 1];
+        }),
+        set: (function(v) {
+          return f32[this.begin + 1] = v;
+        })
+      },
+      b: {
+        get: (function() {
+          return f32[this.begin + 2];
+        }),
+        set: (function(v) {
+          return f32[this.begin + 2] = v;
+        })
+      },
+      a: {
+        get: (function() {
+          return f32[this.begin + 3];
+        }),
+        set: (function(v) {
+          return f32[this.begin + 3] = v;
+        })
+      }
+    });
+
+    return RGBA;
+
+  }).call(this);
+  Position2 = class Position2 extends XYZ {};
+  Rotation2 = class Rotation2 extends XYZ {};
+  Scale2 = class Scale2 extends XYZ {};
+  Color2 = class Color2 extends RGBA {};
+  Vertices2 = (function() {
+    class Vertices2 extends Pointer {};
+
+    Object.defineProperties(Vertices2.prototype, {
+      at: {
+        value: function(i) {
+          var begin;
+          begin = this.begin + i * 3;
+          return f32.subarray(begin, begin + 3);
+        }
+      },
+      set: {
+        value: function(v, i = this.begin) {
+          f32.set(v, i);
+          return this;
+        }
+      },
+      get: {
+        get: function(i = this.begin, length = this.length) {
+          return f32.subarray(i, i + length);
+        }
+      }
+    });
+
+    return Vertices2;
+
+  }).call(this);
+  Object.defineProperties(Pointer, {
+    attributes: {
+      value: new Object
+    },
+    hasAttribute: {
+      value: function(definitions = {}) {
+        var Constructor, attribute;
+        for (attribute in definitions) {
+          Constructor = definitions[attribute];
+          this.attributes[attribute] = (function(index, prop, Class) {
+            Object.defineProperty(this, prop, {
+              get: function() {
+                var name1;
+                return new Class(u32[name1 = this.begin + index] || (u32[name1] = malloc(Class)));
+              },
+              set: function(v) {
+                return u32[this.begin + index] = parseInt(v);
+              }
+            });
+            return {
+              index,
+              class: Class
+            };
+          }).call(this.prototype, this.byteLength / 4, attribute, Constructor);
+          this.byteLength += 4;
+        }
+        return this.classId;
+      }
+    }
+  });
+  Matter = (function() {
+    class Matter extends Pointer {
+      static create(options = {}) {
+        var Class, byteLength, length, matter, prop, value;
+        byteLength = this.byteLength + options.vertices.length * 4;
+        matter = new this(malloc(Matter, byteLength));
+        for (prop in options) {
+          value = options[prop];
+          Class = this.attributes[prop].class;
+          length = value.length;
+          byteLength = Class.byteLength || length * 4;
+          log(2, prop, value);
+          log(5, new Class(matter[prop] = malloc(Class, byteLength)).set(value));
+        }
+        return matter;
+      }
+
+    };
+
+    self.Matter = Matter;
+
+    Matter.byteLength = 4 * 16;
+
+    Matter.hasAttribute({
+      position: Position2
+    });
+
+    Matter.hasAttribute({
+      color: Color2
+    });
+
+    Matter.hasAttribute({
+      scale: Scale2
+    });
+
+    Matter.hasAttribute({
+      rotation: Rotation2
+    });
+
+    Matter.hasAttribute({
+      vertices: Vertices2
+    });
+
+    return Matter;
+
+  }).call(this);
   Shape = (function() {
     class Shape extends Pointer {
       static fromOptions(options) {
@@ -552,7 +748,7 @@ self.name = "window";
       },
       markNeedsUpdate: {
         set: function() {
-          return Atomics.store(ptri32, this.ptri + HINDEX_UPDATED, 1);
+          return unlock(Atomics.store(ptri32, this.ptri + HINDEX_UPDATED, 1));
         }
       },
       willUploadIfNeeded: {
@@ -1424,7 +1620,6 @@ self.name = "window";
       resolveDefines();
       createFrustrum();
       space = new Space();
-      warn(defines);
       return requestIdleCallback(() => {
         self.emit("contextrestored", gl);
         return pipe.emit("contextrestored");

@@ -121,7 +121,6 @@ do  self.init   = ->
                     draw.color( index ).set color
 
                     Atomics.store ptri32, draw.ptri + HINDEX_UPDATED, 0
-                    draw.needsUpload = 1
                     
                 #log ptri, index 
             
@@ -368,6 +367,100 @@ do  self.init   = ->
             ptri = malloc Vertices, value.length * 4
             dvw.setInt32 @byteOffset + @OFFSET_VERTICES, ptri, LE
             f32.set value, ptri32[ ptri + HINDEX_BEGIN ]
+
+    class XYZ           extends Pointer
+
+        @byteLength : 4 * 3
+
+        Object.defineProperties XYZ::,
+            x : get : ( -> f32[ @begin     ] ), set : ( (v) -> f32[ @begin     ] = v )
+            y : get : ( -> f32[ @begin + 1 ] ), set : ( (v) -> f32[ @begin + 1 ] = v )
+            z : get : ( -> f32[ @begin + 2 ] ), set : ( (v) -> f32[ @begin + 2 ] = v )
+
+        set : ( value ) ->
+            f32.set value, @begin ; @
+
+    class RGBA          extends Pointer
+
+        @byteLength : 4 * 4
+
+        Object.defineProperties RGBA::,
+            r : get : ( -> f32[ @begin     ] ), set : ( (v) -> f32[ @begin     ] = v )
+            g : get : ( -> f32[ @begin + 1 ] ), set : ( (v) -> f32[ @begin + 1 ] = v )
+            b : get : ( -> f32[ @begin + 2 ] ), set : ( (v) -> f32[ @begin + 2 ] = v )
+            a : get : ( -> f32[ @begin + 3 ] ), set : ( (v) -> f32[ @begin + 3 ] = v )
+
+        set : ( value ) ->
+            f32.set value, @begin ; @
+
+    class Position2     extends XYZ
+    class Rotation2     extends XYZ
+    class Scale2        extends XYZ
+    class Color2        extends RGBA
+
+    class Vertices2     extends Pointer
+
+        Object.defineProperties Vertices2::,
+
+            at  : value : ( i ) ->
+                begin = @begin + i * 3
+                f32.subarray begin, begin + 3 
+
+            set : value : ( v, i = @begin ) ->
+                f32.set v, i ; @
+                
+            get : get   : ( i = @begin, length = @length ) ->
+                f32.subarray i, i + length 
+                
+    Object.defineProperties Pointer,   
+    
+        attributes : value : new Object
+
+        hasAttribute : value : ( definitions = {} ) ->
+            for attribute , Constructor of definitions
+                @attributes[ attribute ] = ( ( index, prop, Class ) ->
+
+                    Object.defineProperty this, prop,
+                            get : -> new Class( u32[ @begin + index ] or= malloc Class )
+                            set : ( v ) -> u32[ @begin + index ] = parseInt v
+                    
+                    return { index, class: Class }
+
+                ).call( this::, @byteLength / 4, attribute, Constructor )
+                @byteLength += 4
+            @classId
+
+    class Matter        extends Pointer
+
+        self.Matter     = Matter
+
+        @byteLength     : 4 * 16
+
+        @hasAttribute position : Position2
+
+        @hasAttribute color : Color2
+
+        @hasAttribute scale : Scale2
+        
+        @hasAttribute rotation : Rotation2
+
+        @hasAttribute vertices : Vertices2
+
+        @create : ( options = {} ) ->
+            byteLength = @byteLength + options.vertices.length * 4
+            matter = new this malloc Matter, byteLength
+            for prop, value of options
+                Class = @attributes[ prop ].class
+                length = value.length
+                byteLength = Class.byteLength or length * 4
+                log 2, prop, value
+
+                log 5, new Class( matter[ prop ] =
+                    malloc Class, byteLength
+                ).set( value )
+
+            matter
+
             
     class Shape         extends Pointer
 
@@ -405,7 +498,7 @@ do  self.init   = ->
                 get     : -> @vertices.pointCount
 
             markNeedsUpdate : 
-                set     : -> Atomics.store ptri32, @ptri + HINDEX_UPDATED, 1
+                set     : -> unlock Atomics.store ptri32, @ptri + HINDEX_UPDATED, 1
 
             willUploadIfNeeded : 
                 get     : -> Atomics.and ptri32, @ptri + HINDEX_UPDATED, 0
@@ -1121,8 +1214,6 @@ do  self.init   = ->
 
             space = new Space()
 
-            warn defines
-            
             requestIdleCallback =>
                 self.emit "contextrestored", gl
                 pipe.emit "contextrestored"
