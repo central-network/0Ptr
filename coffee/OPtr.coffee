@@ -229,40 +229,40 @@ do  self.init   = ->
     setResvUint32       = ( ptri, i, v ) -> 
         u32[ HEADER_RESVINDEX4 + ptri + i ] = v
     
-    addResvUint32       = ( ptri, i, v ) ->
+    addResvUint32       = ( ptri, i, v ) -> 
         u32[ HEADER_RESVINDEX4 + ptri + i ] = v + (
             u = u32[ HEADER_RESVINDEX4 + ptri + i ]
         ) ; u
 
-    getResvUint16       = ( ptri, i    ) ->
+    getResvUint16       = ( ptri, i    ) -> 
         u16[ HEADER_RESVINDEX2 + ptri * 2 + i ]
     
-    setResvUint16       = ( ptri, i, v ) ->
+    setResvUint16       = ( ptri, i, v ) -> 
         u16[ HEADER_RESVINDEX2 + ptri * 2 + i ] = v
     
-    addResvUint16       = ( ptri, i, v ) ->
+    addResvUint16       = ( ptri, i, v ) -> 
         u16[ HEADER_RESVINDEX2 + ptri * 2 + i ] = v + (
             u = u16[ HEADER_RESVINDEX2 + ptri * 2 + i ]
         ) ; u
 
-    getResvUint8        = ( ptri, i    ) ->
+    getResvUint8        = ( ptri, i    ) -> 
         ui8[ HEADER_RESVINDEX1 + ptri * 4 + i ]
     
-    setResvUint8        = ( ptri, i, v ) ->
+    setResvUint8        = ( ptri, i, v ) -> 
         ui8[ HEADER_RESVINDEX1 + ptri * 4 + i ] = v
     
-    addResvUint8        = ( ptri, i, v ) ->
+    addResvUint8        = ( ptri, i, v ) -> 
         ui8[ HEADER_RESVINDEX1 + ptri * 4 + i ] = v + (
             u = ui8[ HEADER_RESVINDEX1 + ptri * 4 + i ]
         ) ; u
 
-    getResvFloat32      = ( ptri, i    ) ->
+    getResvFloat32      = ( ptri, i    ) -> 
         f32[ HEADER_RESVINDEX4 + ptri + i ]
     
-    setResvFloat32      = ( ptri, i, v ) ->
+    setResvFloat32      = ( ptri, i, v ) -> 
         f32[ HEADER_RESVINDEX4 + ptri + i ] = v
     
-    addResvFloat32      = ( ptri, i, v ) ->
+    addResvFloat32      = ( ptri, i, v ) -> 
         f32[ HEADER_RESVINDEX4 + ptri + i ] = v + (
             u = f32[ HEADER_RESVINDEX4 + ptri + i ]
         ) ; u
@@ -276,25 +276,25 @@ do  self.init   = ->
     getUint8Array       = ( ptri, byteOffset = 0, length ) -> 
         new Uint8Array buffer, u32[ ptri ] + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
 
-    subarrayFloat32     = ( ptri, begin = 0, count ) ->
+    subarrayFloat32     = ( ptri, begin = 0, count ) -> 
         begin += u32[ HEADER_BEGIN + ptri ]
         f32.subarray( begin, begin + count )
 
-    subarrayUint32      = ( ptri, begin = 0, count ) ->
+    subarrayUint32      = ( ptri, begin = 0, count ) -> 
         begin += u32[ HEADER_BEGIN + ptri ]
         u32.subarray( begin, begin + count )
 
-    subarrayUint8       = ( ptri, begin = 0, count ) ->
+    subarrayUint8       = ( ptri, begin = 0, count ) -> 
         begin += u32[ ptri ]
         ui8.subarray( begin, begin + count )
     
-    setFloat32          = ( ptri, array, begin = 0 ) ->
+    setFloat32          = ( ptri, array, begin = 0 ) -> 
         f32.set array, begin + u32[ HEADER_BEGIN + ptri ]
 
-    setUint32           = ( ptri, array, begin = 0 ) ->
+    setUint32           = ( ptri, array, begin = 0 ) -> 
         u32.set array, begin + u32[ HEADER_BEGIN + ptri ]
 
-    setUint8            = ( ptri, array, begin = 0 ) ->
+    setUint8            = ( ptri, array, begin = 0 ) -> 
         ui8.set array, begin + u32[ ptri ]
         
 
