@@ -63,6 +63,10 @@
     <script>
         let red = 0.5, green = 0.3 , blue= 0.8, sign = 1, factor = 0.0025;
 
+        const space = new Space()
+
+        console.log(space)
+
         const matter = Matter.create({
             position : [ 0, -20, 0 ],
             color : [ 1, 0, 0, 1],
@@ -92,175 +96,15 @@
             ]
         })
 
-        console.log(matter.drawAsPoints())
+        console.log(matter)
 
         for (let m of Matter.allocs())
             console.warn(m)
 
-        const shape = Shape.fromOptions({
-            position : [ 0, 0, 0 ],
-            color : [ 1, 0, 1, 1],
-            vertices : [
-                1,   0,  0,
-                -1,   0, 0,
-                0,  2,  0,
 
-                30,   0,  30,
-                100,   0,  30,
-                 30,  30,  30,
-                 
-                 30,  30,  30,
-                100,   0,  30,
-                100,  30,  30,
-            ]
-        })
-        
-        const shape2 = Shape.fromOptions({
-            position : [ 0, 0, 0 ],
-            color: [0,1,0,1],
-            vertices : [
-                 0,   0,  0,
-                 0, 150,  0,
-                30,   0,  0,
-                 0, 150,  0,
-                30, 150,  0,
-                30,   0,  0,
-
-                // top rung front
-                 30,   0,  0,
-                 30,  30,  0,
-                100,   0,  0,
-                 30,  30,  0,
-                100,  30,  0,
-                100,   0,  0,
-
-                // middle rung front
-                30,  60,  0,
-                30,  90,  0,
-                67,  60,  0,
-                30,  90,  0,
-                67,  90,  0,
-                67,  60,  0,
-
-                // left column back
-                 0,   0,  30,
-                30,   0,  30,
-                 0, 150,  30,
-                 0, 150,  30,
-                30,   0,  30,
-                30, 150,  30,
-
-                // top rung back
-                 30,   0,  30,
-                100,   0,  30,
-                 30,  30,  30,
-                 30,  30,  30,
-                100,   0,  30,
-                100,  30,  30,
-
-                // middle rung back
-                30,  60,  30,
-                67,  60,  30,
-                30,  90,  30,
-                30,  90,  30,
-                67,  60,  30,
-                67,  90,  30,
-
-                // top
-                  0,   0,   0,
-                100,   0,   0,
-                100,   0,  30,
-                  0,   0,   0,
-                100,   0,  30,
-                  0,   0,  30,
-
-                // top rung right
-                100,   0,   0,
-                100,  30,   0,
-                100,  30,  30,
-                100,   0,   0,
-                100,  30,  30,
-                100,   0,  30,
-
-                // under top rung
-                30,   30,   0,
-                30,   30,  30,
-                100,  30,  30,
-                30,   30,   0,
-                100,  30,  30,
-                100,  30,   0,
-
-                // between top rung and middle
-                30,   30,   0,
-                30,   60,  30,
-                30,   30,  30,
-                30,   30,   0,
-                30,   60,   0,
-                30,   60,  30,
-
-                // top of middle rung
-                30,   60,   0,
-                67,   60,  30,
-                30,   60,  30,
-                30,   60,   0,
-                67,   60,   0,
-                67,   60,  30,
-
-                // right of middle rung
-                67,   60,   0,
-                67,   90,  30,
-                67,   60,  30,
-                67,   60,   0,
-                67,   90,   0,
-                67,   90,  30,
-
-                // bottom of middle rung.
-                30,   90,   0,
-                30,   90,  30,
-                67,   90,  30,
-                30,   90,   0,
-                67,   90,  30,
-                67,   90,   0,
-
-                // right of bottom
-                30,   90,   0,
-                30,  150,  30,
-                30,   90,  30,
-                30,   90,   0,
-                30,  150,   0,
-                30,  150,  30,
-
-                // bottom
-                0,   150,   0,
-                0,   150,  30,
-                30,  150,  30,
-                0,   150,   0,
-                30,  150,  30,
-                30,  150,   0,
-
-                // left side
-                0,   0,   0,
-                0,   0,  30,
-                0, 150,  30,
-                0,   0,   0,
-                0, 150,  30,
-                0, 150,   0,
-            ].map(v => v/100)
-        })
-
-        console.log(shape)
-        console.log(shape2)
-
-        console.error("öncli clickcl")
 
         addEventListener( "contextrestored", function () {
-            shape2.drawPoints()
-            shape.drawPoints()
-            shape2.drawLines()
-            shape2.drawTriangles()
-            shape.drawTriangles()
-
-            render()
+            //render()
         })
 
         addEventListener( "animationframe", function ({detail}){
