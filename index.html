@@ -96,11 +96,10 @@
             ]
         })
 
-        console.log(matter)
-
         for (let m of Matter.allocs())
-            console.warn(m)
+            console.warn( space.adopt( m ) )
 
+        console.log(matter.childs.at(1))
 
 
         addEventListener( "contextrestored", function () {

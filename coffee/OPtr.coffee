@@ -39,7 +39,7 @@ do  self.init   = ->
     classes.register = ( Class ) ->
         unless @includes Class
             @push Class 
-        Class.classId = @indexOf Class
+        Class.classIndex = @indexOf Class
 
     shaders.register = ( WebGLObject ) ->
         unless @includes WebGLObject
@@ -55,6 +55,7 @@ do  self.init   = ->
     frustrum = null
 
     RADIANS_PER_DEGREE  = Math.PI / 180.0
+    BPE = 4
     LE = !!(new Uint8Array( Uint16Array.of(1).buffer ).at(0))
 
     THREADS_STATE   = 5
@@ -106,7 +107,7 @@ do  self.init   = ->
 
 
 
-    HEADER_INDEXCOUNT   = 0
+    HEADER_INDEXCOUNT   =  0
 
     HEADER_BYTEOFFSET   =  0; HEADER_INDEXCOUNT++ #? 0
     HEADER_BYTELENGTH   =  1; HEADER_INDEXCOUNT++ #? 1
@@ -146,8 +147,11 @@ do  self.init   = ->
     setLength           = ( ptri, v    ) -> 
         u32[ HEADER_LENGTH + ptri ] = v
 
-    getBegin            = ( ptri       ) -> 
-        u32[ HEADER_BEGIN + ptri ]
+    getBegin            = -> 
+        u32[ HEADER_BEGIN + this ]
+
+    getIndex            = ( index = 0 ) -> 
+        u32[ HEADER_BEGIN + this ] + index
     
     setBegin            = ( ptri, v    ) -> 
         u32[ HEADER_BEGIN + ptri ] = v
@@ -164,17 +168,17 @@ do  self.init   = ->
     getParentPtri       = ( ptri       ) -> 
         u32[ HEADER_PARENTPTRI + ptri ]
     
-    setParent           = ( ptri, ptrj ) -> 
-        u32[ HEADER_PARENTPTRI + ptri ] = ptrj
-    
-    getParent           = ( ptri       ) -> 
+    setParent           = ( ptri, v    ) ->
+        u32[ HEADER_PARENTPTRI + ptri ] = v or this
+
+    getParent           = ( ptri = @   ) -> 
         new ( classes[ u32[ HEADER_CLASSINDEX + (
                 ptrp = u32[ HEADER_PARENTPTRI + ptri ]
         ) ] ] )( ptrp ) 
 
-    getChilds           = ( ptri       ) -> 
+    getChilds           = ( ptri = @   ) -> 
         ptrj = Atomics.load u32, 1
-        list = new Array
+        list = new Array() ; i = 0
 
         while ptrj -= 16
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
@@ -185,7 +189,7 @@ do  self.init   = ->
 
     getChildsPtri       = ( ptri       ) -> 
         ptrj = Atomics.load u32, 1
-        list = new Array
+        list = new Array() ; i = 0
 
         while ptrj -= 16
             continue if ptri - u32[ HEADER_PARENTPTRI + ptrj ]
@@ -193,9 +197,9 @@ do  self.init   = ->
 
         list
 
-    findChilds          = ( ptri, test ) ->
+    findChilds          = ( ptri, test ) -> 
         ptrj = Atomics.load u32, 1
-        list = new Array
+        list = new Array() ; i = 0
 
         ci = if test.isPtr  then classes.indexOf test
         else if test.isPtri then u32[ HEADER_CLASSINDEX + test ]
@@ -211,7 +215,7 @@ do  self.init   = ->
 
     findChildsPtri      = ( ptri, test ) -> 
         ptrj = Atomics.load u32, 1
-        list = new Array
+        list = new Array() ; i = 0
 
         ci = if test.isPtr  then classes.indexOf test
         else if test.isPtri then u32[ HEADER_CLASSINDEX + test ]
@@ -222,6 +226,17 @@ do  self.init   = ->
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - ci
             list[ i ] = ptrj ; i++
+
+        list
+
+    getAllocs           = ->
+        clsi = this.classIndex
+        ptrj = Atomics.load u32, 1
+        list = new Array() ; i = 0
+
+        while ptrj -= 16
+            continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
+            list[ i ] = new ( classes[ clsi ] )( ptrj ) ; i+=1
 
         list
 
@@ -320,39 +335,81 @@ do  self.init   = ->
             u = f32[ HEADER_RESVINDEX4 + ptri + i ]
         ) ; u
 
-    getFloat32Array     = ( ptri, byteOffset = 0, length ) -> 
-        new Float32Array buffer, u32[ ptri ] + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
+    newFloat32Array     = ( byteOffset = 0, length ) -> 
+        new Float32Array buffer, u32[ this ] + byteOffset, length or u32[ HEADER_LENGTH + this ]
 
-    getUint32Array      = ( ptri, byteOffset = 0, length ) -> 
-        new Uint32Array buffer, u32[ ptri ] + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
+    newUint32Array      = ( byteOffset = 0, length ) -> 
+        new Uint32Array buffer, u32[ this ] + byteOffset, length or u32[ HEADER_LENGTH + this ]
 
-    getUint8Array       = ( ptri, byteOffset = 0, length ) -> 
-        new Uint8Array buffer, u32[ ptri ] + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
+    newUint8Array       = ( byteOffset = 0, length ) -> 
+        new Uint8Array buffer, u32[ this ] + byteOffset, length or u32[ HEADER_LENGTH + this ]
 
-    subarrayFloat32     = ( ptri, begin = 0, count ) -> 
-        begin += u32[ HEADER_BEGIN + ptri ]
+    subarrayFloat32     = ( begin = 0, count ) -> 
+        begin += u32[ HEADER_BEGIN + this ]
         f32.subarray( begin, begin + count )
 
-    subarrayUint32      = ( ptri, begin = 0, count ) -> 
-        begin += u32[ HEADER_BEGIN + ptri ]
+    subarrayUint32      = ( begin = 0, count ) -> 
+        begin += u32[ HEADER_BEGIN + this ]
         u32.subarray( begin, begin + count )
 
-    subarrayUint8       = ( ptri, begin = 0, count ) -> 
-        begin += u32[ ptri ]
+    subarrayUint8       = ( begin = 0, count ) -> 
+        begin += u32[ this ]
         ui8.subarray( begin, begin + count )
     
-    setFloat32          = ( ptri, array, begin = 0 ) -> 
-        f32.set array, begin + u32[ HEADER_BEGIN + ptri ]
+    setFloat32          = ( value, index = 0 ) ->
+        f32[ u32[ HEADER_BEGIN + this ] + index ] = value
 
-    setUint32           = ( ptri, array, begin = 0 ) -> 
-        u32.set array, begin + u32[ HEADER_BEGIN + ptri ]
+    getFloat32          = ( index = 0 ) ->
+        f32[ u32[ HEADER_BEGIN + this ] + index ]
 
-    setUint8            = ( ptri, array, begin = 0 ) -> 
-        ui8.set array, begin + u32[ ptri ]
+    orFloat32           = ( index = 0, fn ) ->
+        f32[ u32[ HEADER_BEGIN + this ] + index ] ||= fn.call this
+
+    bindgetFloat32      = ( index = 0 ) ->
+        -> f32[ u32[ HEADER_BEGIN + this ] + index ]
+
+    bindsetFloat32      = ( index = 0 ) ->
+        ( value ) -> f32[ u32[ HEADER_BEGIN + this ] + index ] = value
         
+    setarrayFloat32     = ( array, begin = 0 ) -> 
+        f32.set array, begin + u32[ HEADER_BEGIN + this ] ; this
 
+    setUint32           = ( value, index = 0 ) -> 
+        u32[ u32[ HEADER_BEGIN + this ] + index ] = value
 
+    getUint32           = ( index = 0 ) -> 
+        u32[ u32[ HEADER_BEGIN + this ] + index ]
 
+    orUint32            = ( index = 0, fn ) -> 
+        u32[ u32[ HEADER_BEGIN + this ] + index ] ||= fn.call this
+
+    bindgetUint32       = ( index = 0 ) ->
+        -> u32[ u32[ HEADER_BEGIN + this ] + index ]
+
+    bindsetUint32       = ( index = 0 ) ->
+        ( value ) -> u32[ u32[ HEADER_BEGIN + this ] + index ] = value
+
+    setarrayUint32      = ( array, begin = 0 ) -> 
+        u32.set array, begin + u32[ HEADER_BEGIN + this ] ; this
+
+    setUint8            = ( value, index = 0 ) -> 
+        ui8[ u32[ this ] + index ] = value
+
+    getUint8            = ( index = 0 ) -> 
+        ui8[ u32[ this ] + index ]
+
+    orUint8             = ( index = 0, fn ) ->
+        ui8[ u32[ this ] + index ] ||= fn.call this
+
+    bindgetUint8        = ( index = 0 ) ->
+        -> ui8[ u32[ this ] + index ]
+
+    bindsetUint8        = ( index = 0 ) ->
+        ( value ) -> ui8[ u32[ this ] + index ] = value
+
+    setarrayUint8       = ( array, begin = 0 ) -> 
+        ui8.set array, begin + u32[ this ] ; this
+        
 
     state       = ( state ) ->
         unless arguments.length
@@ -435,16 +492,15 @@ do  self.init   = ->
                 return Atomics.load i32, THREADS_STATE
             return Atomics.store i32, THREADS_STATE, state
 
-        Atomics.add i32, 0, OFFSET_CPU
-        Atomics.add i32, 1, OFFSET_PTR
-        Atomics.add i32, 2, OFFSET_GPU        
+        Atomics.add u32, 0, 16 * 1e5
+        Atomics.add u32, 1, 16
     
         state THREADS_NULL
 
     
 
 
-    malloc              = ( constructor, byteLength ) ->
+    malloc2              = ( constructor, byteLength ) ->
         ptri        = Atomics.add i32, 1, 16
         classId     = constructor.classId
 
@@ -662,37 +718,98 @@ do  self.init   = ->
 
         isPtri      : yes
 
+        @BPE        : BPE
+
+        BPE         : @BPE
+
+        constructor : ->
+            super arguments[0] || Atomics.add u32, 1, 16
+            @init arguments[1] if isWindow
+
+        malloc      : ( byteLength ) ->
+            byteLength = byteLength or @constructor.byteLength 
+            byteOffset = Atomics.add u32, 0, byteLength
+
+            setBegin        this, byteOffset / @BPE
+            setLength       this, byteLength / @BPE
+            setByteOffset   this, byteOffset
+
+            this
+
+        init        : ( props = {} ) ->
+            if !getClassIndex this
+                setClassIndex this, this.constructor.classIndex
+
+            for prop, value of props then for Class in classes
+                continue unless prop is Class::name
+                @adopt new Class().set value; break
+
+            return @
+
+        set  : ( array = [] ) ->
+            unless  byteLength = getByteLength this
+                if !byteLength = @constructor.byteLength
+                    byteLength = array.length * @BPE
+                
+            if !byteLength then return this
+            else this.malloc byteLength
+            return setarrayFloat32.call this, array
+
+        adopt       : setParent
+
+        @allocs     : getAllocs
+
+        @create     : ( props ) -> new this null, props
+
+        Object.defineProperties Pointer::,
+            
+            childs  : get : getChilds 
+
+            parent  : get : getParent
+
+            tarray  : get : newFloat32Array
+
     classes.register class XYZ          extends Pointer
 
-        @byteLength : 4 * 3
+        @byteLength : 9 * @BPE
 
         Object.defineProperties XYZ::,
-            x : get : ( -> f32[ @begin     ] ), set : ( (v) -> f32[ @begin     ] = v )
-            y : get : ( -> f32[ @begin + 1 ] ), set : ( (v) -> f32[ @begin + 1 ] = v )
-            z : get : ( -> f32[ @begin + 2 ] ), set : ( (v) -> f32[ @begin + 2 ] = v )
+            x    : get : bindgetFloat32(0), set : bindsetFloat32(0)
+            y    : get : bindgetFloat32(1), set : bindsetFloat32(1)
+            z    : get : bindgetFloat32(2), set : bindsetFloat32(2)
 
-            get : get : ( i = @begin, length = @length ) ->
-                f32.subarray i, i + length 
+            sinX : get : -> orFloat32.call this, 4, -> Math.sin @x
+            cosX : get : -> orFloat32.call this, 5, -> Math.cos @x
 
-        set : ( value ) ->
-            f32.set value, @begin ; @
+            sinY : get : -> orFloat32.call this, 6, -> Math.sin @y
+            cosY : get : -> orFloat32.call this, 7, -> Math.cos @y
+
+            sinZ : get : -> orFloat32.call this, 8, -> Math.sin @z
+            cosZ : get : -> orFloat32.call this, 9, -> Math.cos @z
 
     classes.register class RGBA         extends Pointer
 
-        @byteLength : 4 * 4
+        @byteLength : 4 * @BPE
+
+        getRed   : bindgetFloat32 0
+        setRed   : bindsetFloat32 0
+
+        getGreen : bindgetFloat32 1
+        setGreen : bindsetFloat32 1
+
+        getBlue  : bindgetFloat32 2
+        setBlue  : bindsetFloat32 2
+
+        getAlpha : bindgetFloat32 3
+        setAlpha : bindsetFloat32 3
 
         Object.defineProperties RGBA::,
-            r : get : ( -> f32[ @begin     ] ), set : ( (v) -> f32[ @begin     ] = v )
-            g : get : ( -> f32[ @begin + 1 ] ), set : ( (v) -> f32[ @begin + 1 ] = v )
-            b : get : ( -> f32[ @begin + 2 ] ), set : ( (v) -> f32[ @begin + 2 ] = v )
-            a : get : ( -> f32[ @begin + 3 ] ), set : ( (v) -> f32[ @begin + 3 ] = v )
-            
-            get : get : ( i = @begin, length = @length ) ->
-                f32.subarray i, i + length 
-
-
-        set : ( value ) ->
-            f32.set value, @begin ; @
+            f32  : get : newFloat32Array
+            ui8  : get : -> Uint8Array.from @f32, (v) -> v * 0xff
+            hex  : get : -> "0x" + [ ...@ui8 ].map( (v) -> v.toString(16).padStart(2,0) ).join("")
+            u32  : get : -> parseInt @hex, 16
+            rgb  : get : -> Array.from @ui8.subarray 0, 3
+            css  : get : -> "rgba( #{@rgb.join(', ')}, #{@getAlpha()} )"
 
     classes.register class Position     extends XYZ
         name : "position"
@@ -729,29 +846,10 @@ do  self.init   = ->
         at  : value : ( i ) ->
             begin = @begin + i * 3
             f32.subarray begin, begin + 3 
-
-        set : value : ( v, i = @begin ) ->
-            f32.set v, i ; @
-            
-        get : get   : ( i = @begin, length = @length ) ->
-            f32.subarray i, i + length 
-
-        count : get : -> @length / 3
                 
     classes.register class Matter       extends Pointer
 
         self.Matter     = Matter
-
-        @create : ( options = {} ) ->
-            matter = new this
-
-            for prop, value of options
-                for Class in classes when prop is Class::name
-                    ptri = malloc Class, value.length * 4
-                    prop = new Class ptri, matter
-                    prop . set value
-
-            matter
 
     ###
     class Shape         extends Pointer
@@ -1576,6 +1674,8 @@ do  self.init   = ->
 
 
         init            : ->
+            return super()
+
             @pointsPerType = Math.trunc @maxPointsCount / 3
 
             @pointsStart     = @pointsPerType * 0 + 2
@@ -1631,7 +1731,7 @@ do  self.init   = ->
 
             offset
     
-        malloc      : ( drawType, shape ) ->
+        mallo2c      : ( drawType, shape ) ->
             pointsCount = shape.pointCount
             dstByteOffset = @append drawType, pointsCount
             srcOffset = dstByteOffset / 4
@@ -1692,7 +1792,6 @@ do  self.init   = ->
             onanimationframe performance.now()
             
 
-
         initialProgram  = ->
 
             vSource = scripts.find((s) -> s.type.match /x-vert/i).text
@@ -1734,7 +1833,6 @@ do  self.init   = ->
             0
 
         
-
         createFrustrum  = ( options ) ->
             frustrum = Frustrum.fromOptions options 
             frustrum . setViewport gl
@@ -1744,6 +1842,7 @@ do  self.init   = ->
             gl = createCanvas()
                 .getContext "webgl2"
 
+            return;
             space = new Space()
 
             initialProgram()

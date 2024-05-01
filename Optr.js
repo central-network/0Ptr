@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BYTELENGTH_GLBUFFER, Color, Draw, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERLENGTH, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RGBA, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, XYZ, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, findChilds, findChildsPtri, frustrum, gBuffer, getBegin, getByteLength, getByteOffset, getChilds, getChildsPtri, getClass, getClassIndex, getFloat32Array, getFragmented, getIterLength, getIterOffset, getLength, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32Array, getUint8Array, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc, nextTick, number, pipe, program, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterLength, setIterOffset, setLength, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_GLBUFFER, Color, Draw, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERLENGTH, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RGBA, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, XYZ, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, bindgetFloat32, bindgetUint32, bindgetUint8, bindsetFloat32, bindsetUint32, bindsetUint8, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, findChilds, findChildsPtri, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsPtri, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterLength, getIterOffset, getLength, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc2, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterLength, setIterOffset, setLength, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -44,7 +44,7 @@ self.name = "window";
     if (!this.includes(Class)) {
       this.push(Class);
     }
-    return Class.classId = this.indexOf(Class);
+    return Class.classIndex = this.indexOf(Class);
   };
   shaders.register = function(WebGLObject) {
     if (!this.includes(WebGLObject)) {
@@ -61,6 +61,7 @@ self.name = "window";
   ticks = 0;
   frustrum = null;
   RADIANS_PER_DEGREE = Math.PI / 180.0;
+  BPE = 4;
   LE = !!(new Uint8Array(Uint16Array.of(1).buffer).at(0));
   THREADS_STATE = 5;
   THREADS_BEGIN = 6;
@@ -140,8 +141,11 @@ self.name = "window";
   setLength = function(ptri, v) {
     return u32[HEADER_LENGTH + ptri] = v;
   };
-  getBegin = function(ptri) {
-    return u32[HEADER_BEGIN + ptri];
+  getBegin = function() {
+    return u32[HEADER_BEGIN + this];
+  };
+  getIndex = function(index = 0) {
+    return u32[HEADER_BEGIN + this] + index;
   };
   setBegin = function(ptri, v) {
     return u32[HEADER_BEGIN + ptri] = v;
@@ -158,17 +162,18 @@ self.name = "window";
   getParentPtri = function(ptri) {
     return u32[HEADER_PARENTPTRI + ptri];
   };
-  setParent = function(ptri, ptrj) {
-    return u32[HEADER_PARENTPTRI + ptri] = ptrj;
+  setParent = function(ptri, v) {
+    return u32[HEADER_PARENTPTRI + ptri] = v || this;
   };
-  getParent = function(ptri) {
+  getParent = function(ptri = this) {
     var ptrp;
     return new classes[u32[HEADER_CLASSINDEX + (ptrp = u32[HEADER_PARENTPTRI + ptri])]](ptrp);
   };
-  getChilds = function(ptri) {
-    var list, ptrj;
+  getChilds = function(ptri = this) {
+    var i, list, ptrj;
     ptrj = Atomics.load(u32, 1);
-    list = new Array;
+    list = new Array();
+    i = 0;
     while (ptrj -= 16) {
       if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
         continue;
@@ -179,9 +184,10 @@ self.name = "window";
     return list;
   };
   getChildsPtri = function(ptri) {
-    var list, ptrj;
+    var i, list, ptrj;
     ptrj = Atomics.load(u32, 1);
-    list = new Array;
+    list = new Array();
+    i = 0;
     while (ptrj -= 16) {
       if (ptri - u32[HEADER_PARENTPTRI + ptrj]) {
         continue;
@@ -192,9 +198,10 @@ self.name = "window";
     return list;
   };
   findChilds = function(ptri, test) {
-    var ci, list, ptrj;
+    var ci, i, list, ptrj;
     ptrj = Atomics.load(u32, 1);
-    list = new Array;
+    list = new Array();
+    i = 0;
     ci = (function() {
       if (test.isPtr) {
         return classes.indexOf(test);
@@ -219,9 +226,10 @@ self.name = "window";
     return list;
   };
   findChildsPtri = function(ptri, test) {
-    var ci, list, ptrj;
+    var ci, i, list, ptrj;
     ptrj = Atomics.load(u32, 1);
-    list = new Array;
+    list = new Array();
+    i = 0;
     ci = (function() {
       if (test.isPtr) {
         return classes.indexOf(test);
@@ -242,6 +250,21 @@ self.name = "window";
       }
       list[i] = ptrj;
       i++;
+    }
+    return list;
+  };
+  getAllocs = function() {
+    var clsi, i, list, ptrj;
+    clsi = this.classIndex;
+    ptrj = Atomics.load(u32, 1);
+    list = new Array();
+    i = 0;
+    while (ptrj -= 16) {
+      if (u32[HEADER_CLASSINDEX + ptrj] - clsi) {
+        continue;
+      }
+      list[i] = new classes[clsi](ptrj);
+      i += 1;
     }
     return list;
   };
@@ -340,35 +363,98 @@ self.name = "window";
     f32[HEADER_RESVINDEX4 + ptri + i] = v + (u = f32[HEADER_RESVINDEX4 + ptri + i]);
     return u;
   };
-  getFloat32Array = function(ptri, byteOffset = 0, length) {
-    return new Float32Array(buffer, u32[ptri] + byteOffset, length || u32[HEADER_LENGTH + ptri]);
+  newFloat32Array = function(byteOffset = 0, length) {
+    return new Float32Array(buffer, u32[this] + byteOffset, length || u32[HEADER_LENGTH + this]);
   };
-  getUint32Array = function(ptri, byteOffset = 0, length) {
-    return new Uint32Array(buffer, u32[ptri] + byteOffset, length || u32[HEADER_LENGTH + ptri]);
+  newUint32Array = function(byteOffset = 0, length) {
+    return new Uint32Array(buffer, u32[this] + byteOffset, length || u32[HEADER_LENGTH + this]);
   };
-  getUint8Array = function(ptri, byteOffset = 0, length) {
-    return new Uint8Array(buffer, u32[ptri] + byteOffset, length || u32[HEADER_LENGTH + ptri]);
+  newUint8Array = function(byteOffset = 0, length) {
+    return new Uint8Array(buffer, u32[this] + byteOffset, length || u32[HEADER_LENGTH + this]);
   };
-  subarrayFloat32 = function(ptri, begin = 0, count) {
-    begin += u32[HEADER_BEGIN + ptri];
+  subarrayFloat32 = function(begin = 0, count) {
+    begin += u32[HEADER_BEGIN + this];
     return f32.subarray(begin, begin + count);
   };
-  subarrayUint32 = function(ptri, begin = 0, count) {
-    begin += u32[HEADER_BEGIN + ptri];
+  subarrayUint32 = function(begin = 0, count) {
+    begin += u32[HEADER_BEGIN + this];
     return u32.subarray(begin, begin + count);
   };
-  subarrayUint8 = function(ptri, begin = 0, count) {
-    begin += u32[ptri];
+  subarrayUint8 = function(begin = 0, count) {
+    begin += u32[this];
     return ui8.subarray(begin, begin + count);
   };
-  setFloat32 = function(ptri, array, begin = 0) {
-    return f32.set(array, begin + u32[HEADER_BEGIN + ptri]);
+  setFloat32 = function(value, index = 0) {
+    return f32[u32[HEADER_BEGIN + this] + index] = value;
   };
-  setUint32 = function(ptri, array, begin = 0) {
-    return u32.set(array, begin + u32[HEADER_BEGIN + ptri]);
+  getFloat32 = function(index = 0) {
+    return f32[u32[HEADER_BEGIN + this] + index];
   };
-  setUint8 = function(ptri, array, begin = 0) {
-    return ui8.set(array, begin + u32[ptri]);
+  orFloat32 = function(index = 0, fn) {
+    var name1;
+    return f32[name1 = u32[HEADER_BEGIN + this] + index] || (f32[name1] = fn.call(this));
+  };
+  bindgetFloat32 = function(index = 0) {
+    return function() {
+      return f32[u32[HEADER_BEGIN + this] + index];
+    };
+  };
+  bindsetFloat32 = function(index = 0) {
+    return function(value) {
+      return f32[u32[HEADER_BEGIN + this] + index] = value;
+    };
+  };
+  setarrayFloat32 = function(array, begin = 0) {
+    f32.set(array, begin + u32[HEADER_BEGIN + this]);
+    return this;
+  };
+  setUint32 = function(value, index = 0) {
+    return u32[u32[HEADER_BEGIN + this] + index] = value;
+  };
+  getUint32 = function(index = 0) {
+    return u32[u32[HEADER_BEGIN + this] + index];
+  };
+  orUint32 = function(index = 0, fn) {
+    var name1;
+    return u32[name1 = u32[HEADER_BEGIN + this] + index] || (u32[name1] = fn.call(this));
+  };
+  bindgetUint32 = function(index = 0) {
+    return function() {
+      return u32[u32[HEADER_BEGIN + this] + index];
+    };
+  };
+  bindsetUint32 = function(index = 0) {
+    return function(value) {
+      return u32[u32[HEADER_BEGIN + this] + index] = value;
+    };
+  };
+  setarrayUint32 = function(array, begin = 0) {
+    u32.set(array, begin + u32[HEADER_BEGIN + this]);
+    return this;
+  };
+  setUint8 = function(value, index = 0) {
+    return ui8[u32[this] + index] = value;
+  };
+  getUint8 = function(index = 0) {
+    return ui8[u32[this] + index];
+  };
+  orUint8 = function(index = 0, fn) {
+    var name1;
+    return ui8[name1 = u32[this] + index] || (ui8[name1] = fn.call(this));
+  };
+  bindgetUint8 = function(index = 0) {
+    return function() {
+      return ui8[u32[this] + index];
+    };
+  };
+  bindsetUint8 = function(index = 0) {
+    return function(value) {
+      return ui8[u32[this] + index] = value;
+    };
+  };
+  setarrayUint8 = function(array, begin = 0) {
+    ui8.set(array, begin + u32[this]);
+    return this;
   };
   state = function(state) {
     if (!arguments.length) {
@@ -460,12 +546,11 @@ self.name = "window";
       }
       return Atomics.store(i32, THREADS_STATE, state);
     };
-    Atomics.add(i32, 0, OFFSET_CPU);
-    Atomics.add(i32, 1, OFFSET_PTR);
-    Atomics.add(i32, 2, OFFSET_GPU);
+    Atomics.add(u32, 0, 16 * 1e5);
+    Atomics.add(u32, 1, 16);
     state(THREADS_NULL);
   }
-  malloc = function(constructor, byteLength) {
+  malloc2 = function(constructor, byteLength) {
     var BYTES_PER_ELEMENT, allocLength, begin, byteOffset, classId, length, ptri;
     ptri = Atomics.add(i32, 1, 16);
     classId = constructor.classId;
@@ -668,7 +753,63 @@ self.name = "window";
 
   */
   classes.register(Pointer = (function() {
-    class Pointer extends Number {};
+    class Pointer extends Number {
+      constructor() {
+        super(arguments[0] || Atomics.add(u32, 1, 16));
+        if (isWindow) {
+          this.init(arguments[1]);
+        }
+      }
+
+      malloc(byteLength) {
+        var byteOffset;
+        byteLength = byteLength || this.constructor.byteLength;
+        byteOffset = Atomics.add(u32, 0, byteLength);
+        setBegin(this, byteOffset / this.BPE);
+        setLength(this, byteLength / this.BPE);
+        setByteOffset(this, byteOffset);
+        return this;
+      }
+
+      init(props = {}) {
+        var Class, j, len, prop, value;
+        if (!getClassIndex(this)) {
+          setClassIndex(this, this.constructor.classIndex);
+        }
+        for (prop in props) {
+          value = props[prop];
+          for (j = 0, len = classes.length; j < len; j++) {
+            Class = classes[j];
+            if (prop !== Class.prototype.name) {
+              continue;
+            }
+            this.adopt(new Class().set(value));
+            break;
+          }
+        }
+        return this;
+      }
+
+      set(array = []) {
+        var byteLength;
+        if (!(byteLength = getByteLength(this))) {
+          if (!(byteLength = this.constructor.byteLength)) {
+            byteLength = array.length * this.BPE;
+          }
+        }
+        if (!byteLength) {
+          return this;
+        } else {
+          this.malloc(byteLength);
+        }
+        return setarrayFloat32.call(this, array);
+      }
+
+      static create(props) {
+        return new this(null, props);
+      }
+
+    };
 
     Pointer.byteLength = 0;
 
@@ -676,48 +817,87 @@ self.name = "window";
 
     Pointer.prototype.isPtri = true;
 
+    Pointer.BPE = BPE;
+
+    Pointer.prototype.BPE = Pointer.BPE;
+
+    Pointer.prototype.adopt = setParent;
+
+    Pointer.allocs = getAllocs;
+
+    Object.defineProperties(Pointer.prototype, {
+      childs: {
+        get: getChilds
+      },
+      parent: {
+        get: getParent
+      },
+      tarray: {
+        get: newFloat32Array
+      }
+    });
+
     return Pointer;
 
   }).call(this));
   classes.register(XYZ = (function() {
-    class XYZ extends Pointer {
-      set(value) {
-        f32.set(value, this.begin);
-        return this;
-      }
+    class XYZ extends Pointer {};
 
-    };
-
-    XYZ.byteLength = 4 * 3;
+    XYZ.byteLength = 9 * XYZ.BPE;
 
     Object.defineProperties(XYZ.prototype, {
       x: {
-        get: (function() {
-          return f32[this.begin];
-        }),
-        set: (function(v) {
-          return f32[this.begin] = v;
-        })
+        get: bindgetFloat32(0),
+        set: bindsetFloat32(0)
       },
       y: {
-        get: (function() {
-          return f32[this.begin + 1];
-        }),
-        set: (function(v) {
-          return f32[this.begin + 1] = v;
-        })
+        get: bindgetFloat32(1),
+        set: bindsetFloat32(1)
       },
       z: {
-        get: (function() {
-          return f32[this.begin + 2];
-        }),
-        set: (function(v) {
-          return f32[this.begin + 2] = v;
-        })
+        get: bindgetFloat32(2),
+        set: bindsetFloat32(2)
       },
-      get: {
-        get: function(i = this.begin, length = this.length) {
-          return f32.subarray(i, i + length);
+      sinX: {
+        get: function() {
+          return orFloat32.call(this, 4, function() {
+            return Math.sin(this.x);
+          });
+        }
+      },
+      cosX: {
+        get: function() {
+          return orFloat32.call(this, 5, function() {
+            return Math.cos(this.x);
+          });
+        }
+      },
+      sinY: {
+        get: function() {
+          return orFloat32.call(this, 6, function() {
+            return Math.sin(this.y);
+          });
+        }
+      },
+      cosY: {
+        get: function() {
+          return orFloat32.call(this, 7, function() {
+            return Math.cos(this.y);
+          });
+        }
+      },
+      sinZ: {
+        get: function() {
+          return orFloat32.call(this, 8, function() {
+            return Math.sin(this.z);
+          });
+        }
+      },
+      cosZ: {
+        get: function() {
+          return orFloat32.call(this, 9, function() {
+            return Math.cos(this.z);
+          });
         }
       }
     });
@@ -726,52 +906,57 @@ self.name = "window";
 
   }).call(this));
   classes.register(RGBA = (function() {
-    class RGBA extends Pointer {
-      set(value) {
-        f32.set(value, this.begin);
-        return this;
-      }
+    class RGBA extends Pointer {};
 
-    };
+    RGBA.byteLength = 4 * RGBA.BPE;
 
-    RGBA.byteLength = 4 * 4;
+    RGBA.prototype.getRed = bindgetFloat32(0);
+
+    RGBA.prototype.setRed = bindsetFloat32(0);
+
+    RGBA.prototype.getGreen = bindgetFloat32(1);
+
+    RGBA.prototype.setGreen = bindsetFloat32(1);
+
+    RGBA.prototype.getBlue = bindgetFloat32(2);
+
+    RGBA.prototype.setBlue = bindsetFloat32(2);
+
+    RGBA.prototype.getAlpha = bindgetFloat32(3);
+
+    RGBA.prototype.setAlpha = bindsetFloat32(3);
 
     Object.defineProperties(RGBA.prototype, {
-      r: {
-        get: (function() {
-          return f32[this.begin];
-        }),
-        set: (function(v) {
-          return f32[this.begin] = v;
-        })
+      f32: {
+        get: newFloat32Array
       },
-      g: {
-        get: (function() {
-          return f32[this.begin + 1];
-        }),
-        set: (function(v) {
-          return f32[this.begin + 1] = v;
-        })
+      ui8: {
+        get: function() {
+          return Uint8Array.from(this.f32, function(v) {
+            return v * 0xff;
+          });
+        }
       },
-      b: {
-        get: (function() {
-          return f32[this.begin + 2];
-        }),
-        set: (function(v) {
-          return f32[this.begin + 2] = v;
-        })
+      hex: {
+        get: function() {
+          return "0x" + [...this.ui8].map(function(v) {
+            return v.toString(16).padStart(2, 0);
+          }).join("");
+        }
       },
-      a: {
-        get: (function() {
-          return f32[this.begin + 3];
-        }),
-        set: (function(v) {
-          return f32[this.begin + 3] = v;
-        })
+      u32: {
+        get: function() {
+          return parseInt(this.hex, 16);
+        }
       },
-      get: {
-        get: function(i = this.begin, length = this.length) {
-          return f32.subarray(i, i + length);
+      rgb: {
+        get: function() {
+          return Array.from(this.ui8.subarray(0, 3));
+        }
+      },
+      css: {
+        get: function() {
+          return `rgba( ${this.rgb.join(', ')}, ${this.getAlpha()} )`;
         }
       }
     });
@@ -870,45 +1055,10 @@ self.name = "window";
         begin = this.begin + i * 3;
         return f32.subarray(begin, begin + 3);
       }
-    },
-    set: {
-      value: function(v, i = this.begin) {
-        f32.set(v, i);
-        return this;
-      }
-    },
-    get: {
-      get: function(i = this.begin, length = this.length) {
-        return f32.subarray(i, i + length);
-      }
-    },
-    count: {
-      get: function() {
-        return this.length / 3;
-      }
     }
   });
   classes.register(Matter = (function() {
-    class Matter extends Pointer {
-      static create(options = {}) {
-        var Class, j, len, matter, prop, ptri, value;
-        matter = new this;
-        for (prop in options) {
-          value = options[prop];
-          for (j = 0, len = classes.length; j < len; j++) {
-            Class = classes[j];
-            if (!(prop === Class.prototype.name)) {
-              continue;
-            }
-            ptri = malloc(Class, value.length * 4);
-            prop = new Class(ptri, matter);
-            prop.set(value);
-          }
-        }
-        return matter;
-      }
-
-    };
+    class Matter extends Pointer {};
 
     self.Matter = Matter;
 
@@ -918,217 +1068,217 @@ self.name = "window";
   /*
   class Shape         extends Pointer
 
-      self.Shape      = this
+  self.Shape      = this
 
-      OFFSET_POSITION : @malloc Position
+  OFFSET_POSITION : @malloc Position
 
-      OFFSET_ROTATION : @malloc Rotation
+  OFFSET_ROTATION : @malloc Rotation
 
-      OFFSET_SCALE    : @malloc Scale
+  OFFSET_SCALE    : @malloc Scale
 
-      OFFSET_COLOR    : @malloc Color
+  OFFSET_COLOR    : @malloc Color
 
-      OFFSET_VERTICES : @malloc Vertices
+  OFFSET_VERTICES : @malloc Vertices
 
-      draws           : []
+  draws           : []
 
-      @fromOptions    : ( options ) ->
+  @fromOptions    : ( options ) ->
   ptri = malloc this
   ptr = new this ptri
 
   for prop, value of options
-  ptr[ prop ] = value
+      ptr[ prop ] = value
 
   ptr.isGL = 1
   ptr.iterCount = ptr.vertices.pointCount
 
   unless Number.isInteger ptr.vertices.pointCount
-  throw [ /VERTEX_COUNT_MUST_BE_MULTIPLE_OF_3/, options.vertices ]
+      throw [ /VERTEX_COUNT_MUST_BE_MULTIPLE_OF_3/, options.vertices ]
 
   ptr
 
-      Object.defineProperties Shape::,
+  Object.defineProperties Shape::,
   pointCount  :
-  get     : -> @vertices.pointCount
+      get     : -> @vertices.pointCount
 
   markNeedsUpdate : 
-  set     : -> unlock Atomics.store i32, @ptri + HINDEX_UPDATED, 1
+      set     : -> unlock Atomics.store i32, @ptri + HINDEX_UPDATED, 1
 
   willUploadIfNeeded : 
-  get     : -> Atomics.and i32, @ptri + HINDEX_UPDATED, 0
+      get     : -> Atomics.and i32, @ptri + HINDEX_UPDATED, 0
 
-      drawPoints      : ->
+  drawPoints      : ->
   @draws.push space.malloc gl.POINTS, this
 
-      drawLines       : ->
+  drawLines       : ->
   @draws.push space.malloc gl.LINES, this
 
-      drawTriangles   : ->
+  drawTriangles   : ->
   @draws.push space.malloc gl.TRIANGLES, this
 
-      vertex          : ( index ) ->
+  vertex          : ( index ) ->
   ptri = dvw.getUint32 @byteOffset + @OFFSET_VERTICES, LE
   byteOffset = i32[ ptri + HINDEX_BYTEOFFSET ] + index * 4 * 3
   new Float32Array buffer, byteOffset, 3
 
   class Matrix4       extends Pointer
 
-      @byteLength         : 16
+  @byteLength         : 16
 
-      @multiply           : ( mat4a, mat4b ) ->
+  @multiply           : ( mat4a, mat4b ) ->
   Matrix4::multiply.call mat4a, mat4b
 
-      translate           : ( x = 0, y = 0, z = 0 ) ->
+  translate           : ( x = 0, y = 0, z = 0 ) ->
   @multiply Float32Array.of(
-  1,  0,  0,  0,
-  0,  1,  0,  0,
-  0,  0,  1,  0,
-  x,  y,  z,  1,
+      1,  0,  0,  0,
+      0,  1,  0,  0,
+      0,  0,  1,  0,
+      x,  y,  z,  1,
   )
 
-      translateX          : ( x = 0 ) ->
+  translateX          : ( x = 0 ) ->
   @multiply Float32Array.of(
-  1,  0,  0,  0,
-  0,  1,  0,  0,
-  0,  0,  1,  0,
-  x,  0,  0,  1,
+      1,  0,  0,  0,
+      0,  1,  0,  0,
+      0,  0,  1,  0,
+      x,  0,  0,  1,
   )
 
-      translateY          : ( y = 0 ) ->
+  translateY          : ( y = 0 ) ->
   @multiply Float32Array.of(
-  1,  0,  0,  0,
-  0,  1,  0,  0,
-  0,  0,  1,  0,
-  0,  y,  0,  1,
+      1,  0,  0,  0,
+      0,  1,  0,  0,
+      0,  0,  1,  0,
+      0,  y,  0,  1,
   )
 
-      translateZ          : ( z = 0 ) ->
+  translateZ          : ( z = 0 ) ->
   @multiply Float32Array.of(
-  1,  0,  0,  0,
-  0,  1,  0,  0,
-  0,  0,  1,  0,
-  0,  0,  z,  1,
+      1,  0,  0,  0,
+      0,  1,  0,  0,
+      0,  0,  1,  0,
+      0,  0,  z,  1,
   )
 
-      rotate              : ( x = 0, y = 0, z = 0 ) ->
+  rotate              : ( x = 0, y = 0, z = 0 ) ->
   @rotateX( x ).rotateY( y ).rotateZ( z )
 
-      rotateX             : ( r = 0 ) ->
+  rotateX             : ( r = 0 ) ->
   c = Math.cos r
   s = Math.sin r
 
   @multiply Float32Array.of(
-   1,  0,  0,  0,
-   0,  c,  s,  0,
-   0, -s,  c,  0,
-   0,  0,  0,  1,
+       1,  0,  0,  0,
+       0,  c,  s,  0,
+       0, -s,  c,  0,
+       0,  0,  0,  1,
   )
 
-      rotateY             : ( r = 0 ) ->
+  rotateY             : ( r = 0 ) ->
   c = Math.cos r
   s = Math.sin r
 
   @multiply Float32Array.of(
-   c,  s,  0,  0,
-  -s,  c,  0,  0,
-   0,  0,  1,  0,
-   0,  0,  0,  1,
+       c,  s,  0,  0,
+      -s,  c,  0,  0,
+       0,  0,  1,  0,
+       0,  0,  0,  1,
   )
 
-      rotateZ             : ( r = 0 ) ->
+  rotateZ             : ( r = 0 ) ->
   c = Math.cos r
   s = Math.sin r
 
   @multiply Float32Array.of(
-   c,  0, -s,  0,
-   0,  1,  0,  0,
-   s,  0,  c,  0,
-   0,  0,  0,  1,
+       c,  0, -s,  0,
+       0,  1,  0,  0,
+       s,  0,  c,  0,
+       0,  0,  0,  1,
   )
 
-      scale               : ( x = 1, y = 1, z = 1 ) ->
+  scale               : ( x = 1, y = 1, z = 1 ) ->
   @multiply Float32Array.of(
-   x,  0,  0,  0,
-   0,  y,  0,  0,
-   0,  0,  z,  0,
-   0,  0,  0,  1,
+       x,  0,  0,  0,
+       0,  y,  0,  0,
+       0,  0,  z,  0,
+       0,  0,  0,  1,
   )
 
-      multiply            : ( mat4 ) ->
+  multiply            : ( mat4 ) ->
 
   [   a00, a01, a02, a03,
-  a10, a11, a12, a13,
-  a20, a21, a22, a23,
-  a30, a31, a32, a33,   ] = this
+      a10, a11, a12, a13,
+      a20, a21, a22, a23,
+      a30, a31, a32, a33,   ] = this
 
   [   b00, b01, b02, b03,
-  b10, b11, b12, b13,
-  b20, b21, b22, b23,
-  b30, b31, b32, b33,   ] = mat4
+      b10, b11, b12, b13,
+      b20, b21, b22, b23,
+      b30, b31, b32, b33,   ] = mat4
 
   @set Float32Array.of(
-  b00 * a00  +  b01 * a10  +  b02 * a20  +  b03 * a30,
-  b00 * a01  +  b01 * a11  +  b02 * a21  +  b03 * a31,
-  b00 * a02  +  b01 * a12  +  b02 * a22  +  b03 * a32,
-  b00 * a03  +  b01 * a13  +  b02 * a23  +  b03 * a33,
+      b00 * a00  +  b01 * a10  +  b02 * a20  +  b03 * a30,
+      b00 * a01  +  b01 * a11  +  b02 * a21  +  b03 * a31,
+      b00 * a02  +  b01 * a12  +  b02 * a22  +  b03 * a32,
+      b00 * a03  +  b01 * a13  +  b02 * a23  +  b03 * a33,
 
-  b10 * a00  +  b11 * a10  +  b12 * a20  +  b13 * a30,
-  b10 * a01  +  b11 * a11  +  b12 * a21  +  b13 * a31,
-  b10 * a02  +  b11 * a12  +  b12 * a22  +  b13 * a32,
-  b10 * a03  +  b11 * a13  +  b12 * a23  +  b13 * a33,
+      b10 * a00  +  b11 * a10  +  b12 * a20  +  b13 * a30,
+      b10 * a01  +  b11 * a11  +  b12 * a21  +  b13 * a31,
+      b10 * a02  +  b11 * a12  +  b12 * a22  +  b13 * a32,
+      b10 * a03  +  b11 * a13  +  b12 * a23  +  b13 * a33,
 
-  b20 * a00  +  b21 * a10  +  b22 * a20  +  b23 * a30,
-  b20 * a01  +  b21 * a11  +  b22 * a21  +  b23 * a31,
-  b20 * a02  +  b21 * a12  +  b22 * a22  +  b23 * a32,
-  b20 * a03  +  b21 * a13  +  b22 * a23  +  b23 * a33,
+      b20 * a00  +  b21 * a10  +  b22 * a20  +  b23 * a30,
+      b20 * a01  +  b21 * a11  +  b22 * a21  +  b23 * a31,
+      b20 * a02  +  b21 * a12  +  b22 * a22  +  b23 * a32,
+      b20 * a03  +  b21 * a13  +  b22 * a23  +  b23 * a33,
 
-  b30 * a00  +  b31 * a10  +  b32 * a20  +  b33 * a30,
-  b30 * a01  +  b31 * a11  +  b32 * a21  +  b33 * a31,
-  b30 * a02  +  b31 * a12  +  b32 * a22  +  b33 * a32,
-  b30 * a03  +  b31 * a13  +  b32 * a23  +  b33 * a33,
+      b30 * a00  +  b31 * a10  +  b32 * a20  +  b33 * a30,
+      b30 * a01  +  b31 * a11  +  b32 * a21  +  b33 * a31,
+      b30 * a02  +  b31 * a12  +  b32 * a22  +  b33 * a32,
+      b30 * a03  +  b31 * a13  +  b32 * a23  +  b33 * a33,
   )
 
-      [ Symbol.iterator ] : ->
+  [ Symbol.iterator ] : ->
   begin = @begin
   index = 0
   count = 16
 
   next  : ->
-  return done  : true if index is count
-  return value : f32[ begin + index++ ]
+      return done  : true if index is count
+      return value : f32[ begin + index++ ]
 
-      Object.defineProperties Matrix4::,
+  Object.defineProperties Matrix4::,
   matrix  : 
-  get : -> f32.subarray @begin, @begin + 16
-  set : (v) -> f32.set v, @begin
+      get : -> f32.subarray @begin, @begin + 16
+      set : (v) -> f32.set v, @begin
 
   class Frustrum      extends Matrix4
 
-      @byteLength         : 4 * 28
+  @byteLength         : 4 * 28
 
-      INDEX_BOTTOM        : 17
+  INDEX_BOTTOM        : 17
 
-      INDEX_LEFT          : 18
+  INDEX_LEFT          : 18
 
-      INDEX_RIGHT         : 19
+  INDEX_RIGHT         : 19
 
-      INDEX_TOP           : 20
+  INDEX_TOP           : 20
 
-      INDEX_WIDTH         : 21
+  INDEX_WIDTH         : 21
 
-      INDEX_HEIGHT        : 22
+  INDEX_HEIGHT        : 22
 
-      INDEX_ASPECT        : 23
+  INDEX_ASPECT        : 23
 
-      INDEX_PRATIO        : 24
+  INDEX_PRATIO        : 24
 
-      INDEX_YFOV          : 25
+  INDEX_YFOV          : 25
 
-      INDEX_ZNEAR         : 26
+  INDEX_ZNEAR         : 26
 
-      INDEX_ZFAR          : 27
+  INDEX_ZFAR          : 27
 
-      @fromOptions        : ( options = {} ) ->
+  @fromOptions        : ( options = {} ) ->
   { yFov = 90, zNear = 1e-3, zFar = 1e+4,
   width = INNER_WIDTH, height = INNER_HEIGHT, pratio = RATIO_PIXEL } = options
 
@@ -1142,15 +1292,15 @@ self.name = "window";
   rangeInv = 1.0 / ( zNear - zFar )            
 
   base.typedArray.set Float32Array.of(
-  f / aspect,    0,                             0,    0,
-  0,             f,                             0,    0,
-  0,             0,     (zNear + zFar) * rangeInv,   -1,
-  0,             0, (zNear * zFar) * rangeInv * 2,    0,
+      f / aspect,    0,                             0,    0,
+      0,             f,                             0,    0,
+      0,             0,     (zNear + zFar) * rangeInv,   -1,
+      0,             0, (zNear * zFar) * rangeInv * 2,    0,
 
-  0,
-  bottom, left, right, top,
-  width, height, aspect, pratio,
-  yFov, zNear, zFar
+      0,
+      bottom, left, right, top,
+      width, height, aspect, pratio,
+      yFov, zNear, zFar
   )
 
   base.translateZ -5
@@ -1159,78 +1309,78 @@ self.name = "window";
 
   base
 
-      Object.defineProperties Frustrum::,
+  Object.defineProperties Frustrum::,
 
   bottom  :
-  get : -> f32[ @begin + @INDEX_BOTTOM ]
-  set : (v) -> f32[ @begin + @INDEX_BOTTOM ] = v
+      get : -> f32[ @begin + @INDEX_BOTTOM ]
+      set : (v) -> f32[ @begin + @INDEX_BOTTOM ] = v
 
   left    :
-  get : -> f32[ @begin + @INDEX_LEFT ]
-  set : (v) -> f32[ @begin + @INDEX_LEFT ] = v
+      get : -> f32[ @begin + @INDEX_LEFT ]
+      set : (v) -> f32[ @begin + @INDEX_LEFT ] = v
 
   right   :
-  get : -> f32[ @begin + @INDEX_RIGHT ]
-  set : (v) -> f32[ @begin + @INDEX_RIGHT ] = v
+      get : -> f32[ @begin + @INDEX_RIGHT ]
+      set : (v) -> f32[ @begin + @INDEX_RIGHT ] = v
 
   top     :
-  get : -> f32[ @begin + @INDEX_TOP ]
-  set : (v) -> f32[ @begin + @INDEX_TOP ] = v
+      get : -> f32[ @begin + @INDEX_TOP ]
+      set : (v) -> f32[ @begin + @INDEX_TOP ] = v
 
   width   :
-  get : -> f32[ @begin + @INDEX_WIDTH ]
-  set : (v) -> f32[ @begin + @INDEX_WIDTH ] = v
+      get : -> f32[ @begin + @INDEX_WIDTH ]
+      set : (v) -> f32[ @begin + @INDEX_WIDTH ] = v
 
   height  :
-  get : -> f32[ @begin + @INDEX_HEIGHT ]
-  set : (v) -> f32[ @begin + @INDEX_HEIGHT ] = v
+      get : -> f32[ @begin + @INDEX_HEIGHT ]
+      set : (v) -> f32[ @begin + @INDEX_HEIGHT ] = v
 
   aspect  :
-  get : -> f32[ @begin + @INDEX_ASPECT ]
-  set : (v) -> f32[ @begin + @INDEX_ASPECT ] = v
+      get : -> f32[ @begin + @INDEX_ASPECT ]
+      set : (v) -> f32[ @begin + @INDEX_ASPECT ] = v
 
   pratio  :
-  get : -> f32[ @begin + @INDEX_PRATIO ]
-  set : (v) -> f32[ @begin + @INDEX_PRATIO ] = v
+      get : -> f32[ @begin + @INDEX_PRATIO ]
+      set : (v) -> f32[ @begin + @INDEX_PRATIO ] = v
 
   yFov    :
-  get : -> f32[ @begin + @INDEX_YFOV ]
-  set : (v) -> f32[ @begin + @INDEX_YFOV ] = v
+      get : -> f32[ @begin + @INDEX_YFOV ]
+      set : (v) -> f32[ @begin + @INDEX_YFOV ] = v
 
   zNear   :
-  get : -> f32[ @begin + @INDEX_ZNEAR ]
-  set : (v) -> f32[ @begin + @INDEX_ZNEAR ] = v
+      get : -> f32[ @begin + @INDEX_ZNEAR ]
+      set : (v) -> f32[ @begin + @INDEX_ZNEAR ] = v
 
   zFar    :
-  get : -> f32[ @begin + @INDEX_ZFAR ]
-  set : (v) -> f32[ @begin + @INDEX_ZFAR ] = v
+      get : -> f32[ @begin + @INDEX_ZFAR ]
+      set : (v) -> f32[ @begin + @INDEX_ZFAR ] = v
 
   rebind  :
-  get : -> @upload()
+      get : -> @upload()
 
-      setViewport         : ( context ) ->
+  setViewport         : ( context ) ->
   context.viewport 0, 0, @width * @pratio, @height * @pratio
 
   if  defines.pointSize
-  defines.pointSize.value = 10
+      defines.pointSize.value = 10
 
   if  defines.frustrum
-  defines.frustrum.upload =
-      defines.frustrum.bindUpload @matrix
+      defines.frustrum.upload =
+          defines.frustrum.bindUpload @matrix
 
-  Object.defineProperties this,
-      uniform : get   : -> defines.frustrum
-      upload  : value : defines.frustrum.bindUpload @matrix
+      Object.defineProperties this,
+          uniform : get   : -> defines.frustrum
+          upload  : value : defines.frustrum.bindUpload @matrix
 
-  @upload()
+      @upload()
   this
 
-      listenWindow        : ->
+  listenWindow        : ->
 
   self.addEventListener "wheel", (e) =>
-  @translateZ e.deltaY/100
-      .upload()
-  e.preventDefault()
+      @translateZ e.deltaY/100
+          .upload()
+      e.preventDefault()
   , passive: off
 
   plock = 0 
@@ -1239,96 +1389,96 @@ self.name = "window";
 
   self.oncontextmenu  = (e) -> e.preventDefault()
   self.ondblclick     = ->
-  gl.canvas.requestPointerLock unadjustedMovement : on
-  gl.canvas.requestFullscreen  navigationUI : "hide"
+      gl.canvas.requestPointerLock unadjustedMovement : on
+      gl.canvas.requestFullscreen  navigationUI : "hide"
 
   document.onfullscreenchange  = 
   document.onpointerlockchange = ->
-  plock = @pointerLockElement or @fullscreenElement
+      plock = @pointerLockElement or @fullscreenElement
 
   self.onpointerdown  = (e) ->
-  if e.button is 2 then draging = 1
-  else rotate  = 1
+      if e.button is 2 then draging = 1
+      else rotate  = 1
 
   self.onpointerout   =
   self.onpointerup    = -> draging = rotate = 0
   self.onpointermove  = (e) => 
-  if  plock or rotate or draging
+      if  plock or rotate or draging
 
-      { movementX: x, movementY: y } = e
+          { movementX: x, movementY: y } = e
 
-      if  rotate
-          @rotateX y / -100 if y
-          @rotateY x / -100 if x
+          if  rotate
+              @rotateX y / -100 if y
+              @rotateY x / -100 if x
 
-      if  draging
-          @translate(
-              x / (INNER_WIDTH /10),
-              y / (INNER_HEIGHT/15)
-          )
-      @upload()
+          if  draging
+              @translate(
+                  x / (INNER_WIDTH /10),
+                  y / (INNER_HEIGHT/15)
+              )
+          @upload()
 
-  0
+      0
 
   class GLDraw        extends Pointer
 
-      @byteLength         : 8 * 4
+  @byteLength         : 8 * 4
 
-      INDEX_NEEDSUP       : 0
+  INDEX_NEEDSUP       : 0
 
-      INDEX_COUNT         : 1
+  INDEX_COUNT         : 1
 
-      INDEX_TYPE          : 2
+  INDEX_TYPE          : 2
 
-      INDEX_OFFSET        : 3
+  INDEX_OFFSET        : 3
 
-      INDEX_BEGIN         : 4
+  INDEX_BEGIN         : 4
 
-      INDEX_LENGTH        : 5
+  INDEX_LENGTH        : 5
 
-      INDEX_ATTRLEN       : 6
+  INDEX_ATTRLEN       : 6
 
-      INDEX_BOFFSET       : 7
+  INDEX_BOFFSET       : 7
 
-      classId             : @classId
+  classId             : @classId
 
-      @fromOptions        : ( options = {} ) ->
+  @fromOptions        : ( options = {} ) ->
   Object.assign new this(), options
 
-      Object.defineProperties GLDraw::,
+  Object.defineProperties GLDraw::,
 
   pointsCount : 
-  get : -> u32[ @begin + @INDEX_COUNT ]
-  set : (v) -> u32[ @begin + @INDEX_COUNT ] = v
+      get : -> u32[ @begin + @INDEX_COUNT ]
+      set : (v) -> u32[ @begin + @INDEX_COUNT ] = v
 
   drawType :
-  get : -> u32[ @begin + @INDEX_TYPE ]
-  set : (v) -> u32[ @begin + @INDEX_TYPE ] = v                
+      get : -> u32[ @begin + @INDEX_TYPE ]
+      set : (v) -> u32[ @begin + @INDEX_TYPE ] = v                
 
   globalOffset : 
-  get : -> u32[ @begin + @INDEX_BOFFSET ]
-  set : (v) -> u32[ @begin + @INDEX_BOFFSET ] = v
+      get : -> u32[ @begin + @INDEX_BOFFSET ]
+      set : (v) -> u32[ @begin + @INDEX_BOFFSET ] = v
 
   uploadOffset : 
-  get : -> u32[ @begin + @INDEX_OFFSET ]
-  set : (v) -> u32[ @begin + @INDEX_OFFSET ] = v
+      get : -> u32[ @begin + @INDEX_OFFSET ]
+      set : (v) -> u32[ @begin + @INDEX_OFFSET ] = v
 
   uploadBegin :
-  get : -> u32[ @begin + @INDEX_BEGIN ]
-  set : (v) -> u32[ @begin + @INDEX_BEGIN ] = v
+      get : -> u32[ @begin + @INDEX_BEGIN ]
+      set : (v) -> u32[ @begin + @INDEX_BEGIN ] = v
 
   uploadLength :
-  get : -> u32[ @begin + @INDEX_LENGTH ]
-  set : (v) -> u32[ @begin + @INDEX_LENGTH ] = v
+      get : -> u32[ @begin + @INDEX_LENGTH ]
+      set : (v) -> u32[ @begin + @INDEX_LENGTH ] = v
 
   drawBuffer :
-  get : -> new Float32Array buffer, @globalOffset, @uploadLength
+      get : -> new Float32Array buffer, @globalOffset, @uploadLength
 
-      vertex  : (i) ->
+  vertex  : (i) ->
   byteOffset = @globalOffset + ( i * 32 )
   new Float32Array buffer, byteOffset, 3
 
-      color   : (i) ->
+  color   : (i) ->
   byteOffset = @globalOffset + ( i * 32 ) + 16
   new Float32Array buffer, byteOffset, 4
 
@@ -1772,6 +1922,7 @@ self.name = "window";
   classes.register(Space = (function() {
     class Space extends Pointer {
       init() {
+        return super.init();
         this.pointsPerType = Math.trunc(this.maxPointsCount / 3);
         this.pointsStart = this.pointsPerType * 0 + 2;
         this.linesStart = this.pointsPerType * 1;
@@ -1848,7 +1999,7 @@ self.name = "window";
         return offset;
       }
 
-      malloc(drawType, shape) {
+      mallo2c(drawType, shape) {
         var draw, dstByteOffset, length, pointsCount, srcOffset;
         pointsCount = shape.pointCount;
         dstByteOffset = this.append(drawType, pointsCount);
@@ -2098,6 +2249,7 @@ self.name = "window";
     };
     this.createDisplay = function() {
       gl = createCanvas().getContext("webgl2");
+      return;
       space = new Space();
       initialProgram();
       createFrustrum();
