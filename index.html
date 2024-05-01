@@ -69,7 +69,7 @@
 
         const matter = Matter.create({
             position : [ 0, -20, 0 ],
-            color : [ 1, 0, 0, 1],
+            color : [ 1, 0, 0, 0],
             vertices : [
                 3,   0,  3,
                 10,   0,  3,
@@ -85,7 +85,7 @@
 
         const matter2 = Matter.create({
             position : [ 0, 1, 0 ],
-            color : [ 1, 0, 1, 1],
+            color : [ 1, 0, 1],
             vertices : [
                 67,   60,   0,
                 67,   90,  30,
@@ -99,7 +99,8 @@
         for (let m of Matter.allocs())
             console.warn( space.adopt( m ) )
 
-        console.log(matter.childs.at(2))
+        console.log(matter)
+        console.log(matter.childs)
 
 
         addEventListener( "contextrestored", function () {

@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_GLBUFFER, Color, Draw, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERLENGTH, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, RGBA, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vertices, XYZ, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, bindgetFloat32, bindgetUint32, bindgetUint8, bindsetFloat32, bindsetUint32, bindsetUint8, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, findChilds, findChildsPtri, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsPtri, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterLength, getIterOffset, getLength, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc2, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterLength, setIterOffset, setLength, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_GLBUFFER, Color, Draw, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERLENGTH, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vector3, Vertices, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, bindgetFloat32, bindgetUint32, bindgetUint8, bindsetFloat32, bindsetUint32, bindsetUint8, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, findChilds, findChildsPtri, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsPtri, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterLength, getIterOffset, getLength, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc2, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterLength, setIterOffset, setLength, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -394,6 +394,11 @@ self.name = "window";
     var name1;
     return f32[name1 = u32[HEADER_BEGIN + this] + index] || (f32[name1] = fn.call(this));
   };
+  fillFloat32 = function(value, start = 0, count) {
+    start += u32[HEADER_BEGIN + this];
+    f32.fill(value, start, start + count);
+    return this;
+  };
   bindgetFloat32 = function(index = 0) {
     return function() {
       return f32[u32[HEADER_BEGIN + this] + index];
@@ -418,6 +423,11 @@ self.name = "window";
     var name1;
     return u32[name1 = u32[HEADER_BEGIN + this] + index] || (u32[name1] = fn.call(this));
   };
+  fillUint32 = function(value, start = 0, count) {
+    start += u32[HEADER_BEGIN + this];
+    u32.fill(value, start, start + count);
+    return this;
+  };
   bindgetUint32 = function(index = 0) {
     return function() {
       return u32[u32[HEADER_BEGIN + this] + index];
@@ -441,6 +451,11 @@ self.name = "window";
   orUint8 = function(index = 0, fn) {
     var name1;
     return ui8[name1 = u32[this] + index] || (ui8[name1] = fn.call(this));
+  };
+  fillUint8 = function(value, start = 0, count) {
+    start += u32[this];
+    ui8.fill(value, start, start + count);
+    return this;
   };
   bindgetUint8 = function(index = 0) {
     return function() {
@@ -802,7 +817,10 @@ self.name = "window";
         } else {
           this.malloc(byteLength);
         }
-        return setarrayFloat32.call(this, array);
+        if (array) {
+          setarrayFloat32.call(this, array);
+        }
+        return this;
       }
 
       static create() {
@@ -840,96 +858,73 @@ self.name = "window";
     return Pointer;
 
   }).call(this));
-  classes.register(XYZ = (function() {
-    class XYZ extends Pointer {
-      sinX() {
-        return orFloat32.call(this, 4, function() {
-          return Math.sin(this.x);
-        });
+  classes.register(Vector3 = (function() {
+    class Vector3 extends Pointer {
+      getX() {
+        return getFloat32.call(this, 0);
       }
 
-      cosX() {
-        return orFloat32.call(this, 5, function() {
-          return Math.cos(this.x);
-        });
+      getY() {
+        return getFloat32.call(this, 1);
       }
 
-      sinY() {
-        return orFloat32.call(this, 6, function() {
-          return Math.sin(this.y);
-        });
+      getZ() {
+        return getFloat32.call(this, 2);
       }
 
-      cosY() {
-        return orFloat32.call(this, 7, function() {
-          return Math.cos(this.y);
-        });
+      setX(v) {
+        return setFloat32.call(this, 0, v);
       }
 
-      sinZ() {
-        return orFloat32.call(this, 8, function() {
-          return Math.sin(this.z);
-        });
+      setY(v) {
+        return setFloat32.call(this, 1, v);
       }
 
-      cosZ() {
-        return orFloat32.call(this, 9, function() {
-          return Math.cos(this.z);
-        });
+      setZ(v) {
+        return setFloat32.call(this, 2, v);
       }
 
     };
 
-    XYZ.byteLength = 9 * XYZ.BPE;
+    Vector3.byteLength = 3 * Vector3.BPE;
 
-    Object.defineProperties(XYZ.prototype, {
+    Object.defineProperties(Vector3.prototype, {
       x: {
-        get: bindgetFloat32(0),
-        set: bindsetFloat32(0)
+        get: Vector3.prototype.getX,
+        set: Vector3.prototype.setX
       },
       y: {
-        get: bindgetFloat32(1),
-        set: bindsetFloat32(1)
+        get: Vector3.prototype.getY,
+        set: Vector3.prototype.setY
       },
       z: {
-        get: bindgetFloat32(2),
-        set: bindsetFloat32(2)
-      },
-      tarray: {
-        get: function() {
-          return subarrayFloat32.call(this, 0, 3);
-        }
-      },
-      cossins: {
-        get: function() {
-          return {
-            sinX: this.sinX(),
-            sinY: this.sinY(),
-            sinZ: this.sinZ(),
-            cosX: this.cosX(),
-            cosY: this.cosY(),
-            cosZ: this.cosZ()
-          };
-        }
+        get: Vector3.prototype.getZ,
+        set: Vector3.prototype.setZ
       }
     });
 
-    return XYZ;
+    return Vector3;
 
   }).call(this));
-  classes.register(RGBA = (function() {
-    class RGBA extends Pointer {
+  classes.register(Color = (function() {
+    class Color extends Pointer {
       toObject() {
         var alpha, blue, green, red;
         [red, green, blue, alpha] = this.f32;
         return {red, green, blue, alpha};
       }
 
+      set([r, g, b, a = 1]) {
+        return super.set([r, g, b, a]);
+      }
+
     };
 
-    RGBA.byteLength = 4 * RGBA.BPE;
+    Color.prototype.name = "color";
 
-    Object.defineProperties(RGBA.prototype, {
+    Color.byteLength = 4 * Color.BPE;
+
+    Object.defineProperties(Color.prototype, {
       f32: {
         get: newFloat32Array
       },
@@ -969,39 +964,111 @@ self.name = "window";
       }
     });
 
-    return RGBA;
+    return Color;
 
   }).call(this));
   classes.register(Position = (function() {
-    class Position extends XYZ {};
+    class Position extends Vector3 {};
 
     Position.prototype.name = "position";
 
     return Position;
 
   }).call(this));
-  classes.register(Rotation = (function() {
-    class Rotation extends XYZ {};
-
-    Rotation.prototype.name = "rotation";
-
-    return Rotation;
-
-  }).call(this));
   classes.register(Scale = (function() {
-    class Scale extends XYZ {};
+    class Scale extends Vector3 {};
 
     Scale.prototype.name = "scale";
 
     return Scale;
 
   }).call(this));
-  classes.register(Color = (function() {
-    class Color extends RGBA {};
+  classes.register(Rotation = (function() {
+    class Rotation extends Pointer {
+      getX() {
+        return getFloat32.call(this, 0);
+      }
 
-    Color.prototype.name = "color";
+      sinX() {
+        return getFloat32.call(this, 1);
+      }
 
-    return Color;
+      cosX() {
+        return getFloat32.call(this, 2);
+      }
+
+      getY() {
+        return getFloat32.call(this, 3);
+      }
+
+      sinY() {
+        return getFloat32.call(this, 4);
+      }
+
+      cosY() {
+        return getFloat32.call(this, 5);
+      }
+
+      getZ() {
+        return getFloat32.call(this, 6);
+      }
+
+      sinZ() {
+        return getFloat32.call(this, 7);
+      }
+
+      cosZ() {
+        return getFloat32.call(this, 8);
+      }
+
+      setX(v) {
+        fillUint32.call(this, 0, 3);
+        setFloat32.call(this, v, 0);
+        setFloat32.call(this, Math.sin(v), 1);
+        return setFloat32.call(this, Math.cos(v), 2);
+      }
+
+      setY(v) {
+        fillUint32.call(this, 3, 3);
+        setFloat32.call(this, v, 3);
+        setFloat32.call(this, Math.sin(v), 4);
+        return setFloat32.call(this, Math.cos(v), 5);
+      }
+
+      setZ(v) {
+        fillUint32.call(this, 6, 3);
+        setFloat32.call(this, v, 6);
+        setFloat32.call(this, Math.sin(v), 7);
+        return setFloat32.call(this, Math.cos(v), 8);
+      }
+
+      set(v) {
+        super.set() && ([this.x, this.y, this.z] = v);
+        return this;
+      }
+
+    };
+
+    Rotation.prototype.name = "rotation";
+
+    Rotation.byteLength = 9 * Rotation.BPE;
+
+    Object.defineProperties(Rotation.prototype, {
+      x: {
+        get: Rotation.prototype.getX,
+        set: Rotation.prototype.setX
+      },
+      y: {
+        get: Rotation.prototype.getY,
+        set: Rotation.prototype.setY
+      },
+      z: {
+        get: Rotation.prototype.getZ,
+        set: Rotation.prototype.setZ
+      }
+    });
+
+    return Rotation;
 
   }).call(this));
   classes.register(Vertices = (function() {

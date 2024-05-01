@@ -355,7 +355,7 @@ do  self.init   = ->
     subarrayUint8       = ( begin = 0, count ) -> 
         begin += u32[ this ]
         ui8.subarray( begin, begin + count )
-    
+        
     setFloat32          = ( value, index = 0 ) ->
         f32[ u32[ HEADER_BEGIN + this ] + index ] = value
 
@@ -364,6 +364,10 @@ do  self.init   = ->
 
     orFloat32           = ( index = 0, fn ) ->
         f32[ u32[ HEADER_BEGIN + this ] + index ] ||= fn.call this
+
+    fillFloat32         = ( value, start = 0, count ) ->
+        start += u32[ HEADER_BEGIN + this ]
+        f32.fill value, start, start + count ; this
 
     bindgetFloat32      = ( index = 0 ) ->
         -> f32[ u32[ HEADER_BEGIN + this ] + index ]
@@ -383,6 +387,10 @@ do  self.init   = ->
     orUint32            = ( index = 0, fn ) -> 
         u32[ u32[ HEADER_BEGIN + this ] + index ] ||= fn.call this
 
+    fillUint32          = ( value, start = 0, count ) ->
+        start += u32[ HEADER_BEGIN + this ]
+        u32.fill value, start, start + count ; this
+
     bindgetUint32       = ( index = 0 ) ->
         -> u32[ u32[ HEADER_BEGIN + this ] + index ]
 
@@ -400,6 +408,10 @@ do  self.init   = ->
 
     orUint8             = ( index = 0, fn ) ->
         ui8[ u32[ this ] + index ] ||= fn.call this
+
+    fillUint8           = ( value, start = 0, count ) ->
+        start += u32[ this ]
+        ui8.fill value, start, start + count ; this
 
     bindgetUint8        = ( index = 0 ) ->
         -> ui8[ u32[ this ] + index ]
@@ -753,7 +765,8 @@ do  self.init   = ->
                 
             if !byteLength then return this
             else this.malloc byteLength
-            return setarrayFloat32.call this, array
+            setarrayFloat32.call this, array if array
+            return this
 
         adopt       : setParent
 
@@ -769,38 +782,36 @@ do  self.init   = ->
 
             tarray  : get : newFloat32Array
 
-    classes.register class XYZ          extends Pointer
+    classes.register class Vector3      extends Pointer
 
-        @byteLength : 9 * @BPE
+        @byteLength : 3 * @BPE
 
-        sinX : -> orFloat32.call this, 4, -> Math.sin @x
-        cosX : -> orFloat32.call this, 5, -> Math.cos @x
+        getX : -> getFloat32.call this, 0
+        getY : -> getFloat32.call this, 1
+        getZ : -> getFloat32.call this, 2
 
-        sinY : -> orFloat32.call this, 6, -> Math.sin @y
-        cosY : -> orFloat32.call this, 7, -> Math.cos @y
+        setX : (v) -> setFloat32.call this, 0, v
+        setY : (v) -> setFloat32.call this, 1, v
+        setZ : (v) -> setFloat32.call this, 2, v
 
-        sinZ : -> orFloat32.call this, 8, -> Math.sin @z
-        cosZ : -> orFloat32.call this, 9, -> Math.cos @z
+        Object.defineProperties Vector3::,
+            x : get : Vector3::getX , set : Vector3::setX
+            y : get : Vector3::getY , set : Vector3::setY
+            z : get : Vector3::getZ , set : Vector3::setZ
 
-        Object.defineProperties XYZ::,
-            x : get : bindgetFloat32(0), set : bindsetFloat32(0)
-            y : get : bindgetFloat32(1), set : bindsetFloat32(1)
-            z : get : bindgetFloat32(2), set : bindsetFloat32(2)
+    classes.register class Color        extends Pointer
 
-            tarray  : get : -> subarrayFloat32.call this, 0, 3
-            cossins : get : ->
-                sinX : @sinX(), sinY : @sinY(), sinZ : @sinZ(),
-                cosX : @cosX(), cosY : @cosY(), cosZ : @cosZ()
-
-    classes.register class RGBA         extends Pointer
+        name        : "color"
 
         @byteLength : 4 * @BPE
 
-        toObject : ->
+        toObject    : ->
             [ red, green, blue, alpha ] = @f32
             { red, green, blue, alpha }
 
-        Object.defineProperties RGBA::,
+        set         : ( [ r, g, b, a = 1 ] ) -> super [ r, g, b, a ]
+
+        Object.defineProperties Color::,
             f32 : get : newFloat32Array
             ui8 : get : -> Uint8Array.from @f32, (v) -> v * 0xff
             hex : get : -> "0x" + [ ...@ui8 ].map( (v) -> v.toString(16).padStart(2,0) ).join("")
@@ -809,21 +820,56 @@ do  self.init   = ->
             css : get : -> "rgba( #{@rgb.join(', ')}, #{@obj.alpha} )"
             obj : get : -> @toObject()
 
-    classes.register class Position     extends XYZ
+    classes.register class Position     extends Vector3
 
         name        : "position"
 
-    classes.register class Rotation     extends XYZ
+    classes.register class Scale        extends Vector3
+
+        name        : "scale"
+
+    classes.register class Rotation     extends Pointer
 
         name        : "rotation"
 
-    classes.register class Scale        extends XYZ
+        @byteLength : 9 * @BPE
 
-        name        : "scale"
-        
-    classes.register class Color        extends RGBA
+        getX : -> getFloat32.call this, 0
+        sinX : -> getFloat32.call this, 1
+        cosX : -> getFloat32.call this, 2
 
-        name        : "color"
+        getY : -> getFloat32.call this, 3
+        sinY : -> getFloat32.call this, 4
+        cosY : -> getFloat32.call this, 5
+
+        getZ : -> getFloat32.call this, 6
+        sinZ : -> getFloat32.call this, 7
+        cosZ : -> getFloat32.call this, 8
+
+        setX : (v) ->
+            fillUint32.call this, 0, 3
+            setFloat32.call this, v, 0
+            setFloat32.call this, Math.sin(v), 1
+            setFloat32.call this, Math.cos(v), 2
+
+        setY : (v) ->
+            fillUint32.call this, 3, 3
+            setFloat32.call this, v, 3
+            setFloat32.call this, Math.sin(v), 4
+            setFloat32.call this, Math.cos(v), 5
+            
+        setZ : (v) ->
+            fillUint32.call this, 6, 3
+            setFloat32.call this, v, 6
+            setFloat32.call this, Math.sin(v), 7
+            setFloat32.call this, Math.cos(v), 8            
+
+        set  : ( v ) -> super() and [ @x, @y, @z ] = v ; @
+
+        Object.defineProperties Rotation::,
+            x : get : Rotation::getX , set : Rotation::setX
+            y : get : Rotation::getY , set : Rotation::setY
+            z : get : Rotation::getZ , set : Rotation::setZ       
 
     classes.register class Vertices     extends Pointer
 
