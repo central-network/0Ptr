@@ -805,8 +805,8 @@ self.name = "window";
         return setarrayFloat32.call(this, array);
       }
 
-      static create(props) {
-        return new this(null, props);
+      static create() {
+        return new this(null, ...arguments);
       }
 
     };
@@ -841,7 +841,44 @@ self.name = "window";
 
   }).call(this));
   classes.register(XYZ = (function() {
-    class XYZ extends Pointer {};
+    class XYZ extends Pointer {
+      sinX() {
+        return orFloat32.call(this, 4, function() {
+          return Math.sin(this.x);
+        });
+      }
+
+      cosX() {
+        return orFloat32.call(this, 5, function() {
+          return Math.cos(this.x);
+        });
+      }
+
+      sinY() {
+        return orFloat32.call(this, 6, function() {
+          return Math.sin(this.y);
+        });
+      }
+
+      cosY() {
+        return orFloat32.call(this, 7, function() {
+          return Math.cos(this.y);
+        });
+      }
+
+      sinZ() {
+        return orFloat32.call(this, 8, function() {
+          return Math.sin(this.z);
+        });
+      }
+
+      cosZ() {
+        return orFloat32.call(this, 9, function() {
+          return Math.cos(this.z);
+        });
+      }
+
+    };
 
     XYZ.byteLength = 9 * XYZ.BPE;
 
@@ -858,46 +895,21 @@ self.name = "window";
         get: bindgetFloat32(2),
         set: bindsetFloat32(2)
       },
-      sinX: {
+      tarray: {
         get: function() {
-          return orFloat32.call(this, 4, function() {
-            return Math.sin(this.x);
-          });
+          return subarrayFloat32.call(this, 0, 3);
         }
       },
-      cosX: {
+      cossins: {
         get: function() {
-          return orFloat32.call(this, 5, function() {
-            return Math.cos(this.x);
-          });
-        }
-      },
-      sinY: {
-        get: function() {
-          return orFloat32.call(this, 6, function() {
-            return Math.sin(this.y);
-          });
-        }
-      },
-      cosY: {
-        get: function() {
-          return orFloat32.call(this, 7, function() {
-            return Math.cos(this.y);
-          });
-        }
-      },
-      sinZ: {
-        get: function() {
-          return orFloat32.call(this, 8, function() {
-            return Math.sin(this.z);
-          });
-        }
-      },
-      cosZ: {
-        get: function() {
-          return orFloat32.call(this, 9, function() {
-            return Math.cos(this.z);
-          });
+          return {
+            sinX: this.sinX(),
+            sinY: this.sinY(),
+            sinZ: this.sinZ(),
+            cosX: this.cosX(),
+            cosY: this.cosY(),
+            cosZ: this.cosZ()
+          };
         }
       }
     });
@@ -906,25 +918,16 @@ self.name = "window";
 
   }).call(this));
   classes.register(RGBA = (function() {
-    class RGBA extends Pointer {};
+    class RGBA extends Pointer {
+      toObject() {
+        var alpha, blue, green, red;
+        [red, green, blue, alpha] = this.f32;
+        return {red, green, blue, alpha};
+      }
+
+    };
 
     RGBA.byteLength = 4 * RGBA.BPE;
-
-    RGBA.prototype.getRed = bindgetFloat32(0);
-
-    RGBA.prototype.setRed = bindsetFloat32(0);
-
-    RGBA.prototype.getGreen = bindgetFloat32(1);
-
-    RGBA.prototype.setGreen = bindsetFloat32(1);
-
-    RGBA.prototype.getBlue = bindgetFloat32(2);
-
-    RGBA.prototype.setBlue = bindsetFloat32(2);
-
-    RGBA.prototype.getAlpha = bindgetFloat32(3);
-
-    RGBA.prototype.setAlpha = bindsetFloat32(3);
 
     Object.defineProperties(RGBA.prototype, {
       f32: {
@@ -956,7 +959,12 @@ self.name = "window";
       },
       css: {
         get: function() {
-          return `rgba( ${this.rgb.join(', ')}, ${this.getAlpha()} )`;
+          return `rgba( ${this.rgb.join(', ')}, ${this.obj.alpha} )`;
+        }
+      },
+      obj: {
+        get: function() {
+          return this.toObject();
         }
       }
     });
@@ -997,7 +1005,16 @@ self.name = "window";
 
   }).call(this));
   classes.register(Vertices = (function() {
-    class Vertices extends Pointer {};
+    class Vertices extends Pointer {
+      vertex(index = 0) {
+        return subarrayFloat32(index * 3, 3);
+      }
+
+      vertices(index = 0, count = 1) {
+        return subarrayFloat32(index * 3, count * 3);
+      }
+
+    };
 
     Vertices.prototype.name = "vertices";
 
@@ -1046,15 +1063,6 @@ self.name = "window";
       set: (function(v) {
         return u32[this.begin + 3] = v;
       })
-    }
-  });
-  Object.defineProperties(Vertices.prototype, {
-    at: {
-      value: function(i) {
-        var begin;
-        begin = this.begin + i * 3;
-        return f32.subarray(begin, begin + 3);
-      }
     }
   });
   classes.register(Matter = (function() {

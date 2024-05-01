@@ -746,7 +746,7 @@ do  self.init   = ->
 
             return @
 
-        set  : ( array = [] ) ->
+        set         : ( array = [] ) ->
             unless  byteLength = getByteLength this
                 if !byteLength = @constructor.byteLength
                     byteLength = array.length * @BPE
@@ -759,7 +759,7 @@ do  self.init   = ->
 
         @allocs     : getAllocs
 
-        @create     : ( props ) -> new this null, props
+        @create     : -> new this null, arguments...
 
         Object.defineProperties Pointer::,
             
@@ -773,58 +773,67 @@ do  self.init   = ->
 
         @byteLength : 9 * @BPE
 
+        sinX : -> orFloat32.call this, 4, -> Math.sin @x
+        cosX : -> orFloat32.call this, 5, -> Math.cos @x
+
+        sinY : -> orFloat32.call this, 6, -> Math.sin @y
+        cosY : -> orFloat32.call this, 7, -> Math.cos @y
+
+        sinZ : -> orFloat32.call this, 8, -> Math.sin @z
+        cosZ : -> orFloat32.call this, 9, -> Math.cos @z
+
         Object.defineProperties XYZ::,
-            x    : get : bindgetFloat32(0), set : bindsetFloat32(0)
-            y    : get : bindgetFloat32(1), set : bindsetFloat32(1)
-            z    : get : bindgetFloat32(2), set : bindsetFloat32(2)
+            x : get : bindgetFloat32(0), set : bindsetFloat32(0)
+            y : get : bindgetFloat32(1), set : bindsetFloat32(1)
+            z : get : bindgetFloat32(2), set : bindsetFloat32(2)
 
-            sinX : get : -> orFloat32.call this, 4, -> Math.sin @x
-            cosX : get : -> orFloat32.call this, 5, -> Math.cos @x
-
-            sinY : get : -> orFloat32.call this, 6, -> Math.sin @y
-            cosY : get : -> orFloat32.call this, 7, -> Math.cos @y
-
-            sinZ : get : -> orFloat32.call this, 8, -> Math.sin @z
-            cosZ : get : -> orFloat32.call this, 9, -> Math.cos @z
+            tarray  : get : -> subarrayFloat32.call this, 0, 3
+            cossins : get : ->
+                sinX : @sinX(), sinY : @sinY(), sinZ : @sinZ(),
+                cosX : @cosX(), cosY : @cosY(), cosZ : @cosZ()
 
     classes.register class RGBA         extends Pointer
 
         @byteLength : 4 * @BPE
 
-        getRed   : bindgetFloat32 0
-        setRed   : bindsetFloat32 0
-
-        getGreen : bindgetFloat32 1
-        setGreen : bindsetFloat32 1
-
-        getBlue  : bindgetFloat32 2
-        setBlue  : bindsetFloat32 2
-
-        getAlpha : bindgetFloat32 3
-        setAlpha : bindsetFloat32 3
+        toObject : ->
+            [ red, green, blue, alpha ] = @f32
+            { red, green, blue, alpha }
 
         Object.defineProperties RGBA::,
-            f32  : get : newFloat32Array
-            ui8  : get : -> Uint8Array.from @f32, (v) -> v * 0xff
-            hex  : get : -> "0x" + [ ...@ui8 ].map( (v) -> v.toString(16).padStart(2,0) ).join("")
-            u32  : get : -> parseInt @hex, 16
-            rgb  : get : -> Array.from @ui8.subarray 0, 3
-            css  : get : -> "rgba( #{@rgb.join(', ')}, #{@getAlpha()} )"
+            f32 : get : newFloat32Array
+            ui8 : get : -> Uint8Array.from @f32, (v) -> v * 0xff
+            hex : get : -> "0x" + [ ...@ui8 ].map( (v) -> v.toString(16).padStart(2,0) ).join("")
+            u32 : get : -> parseInt @hex, 16
+            rgb : get : -> Array.from @ui8.subarray 0, 3
+            css : get : -> "rgba( #{@rgb.join(', ')}, #{@obj.alpha} )"
+            obj : get : -> @toObject()
 
     classes.register class Position     extends XYZ
-        name : "position"
+
+        name        : "position"
 
     classes.register class Rotation     extends XYZ
-        name : "rotation"
+
+        name        : "rotation"
 
     classes.register class Scale        extends XYZ
-        name : "scale"
+
+        name        : "scale"
         
     classes.register class Color        extends RGBA
-        name : "color"
+
+        name        : "color"
 
     classes.register class Vertices     extends Pointer
-        name : "vertices"
+
+        name        : "vertices"
+
+        vertex      : ( index = 0 ) ->
+            subarrayFloat32 index * 3, 3
+
+        vertices    : ( index = 0, count = 1 ) ->
+            subarrayFloat32 index * 3, count * 3
 
     classes.register class Draw         extends Pointer
         name : "draw"
@@ -841,11 +850,6 @@ do  self.init   = ->
 
         count   : get : (-> u32[ @begin + 3 ]), set : ((v) -> u32[ @begin + 3 ] = v)
 
-    Object.defineProperties Vertices::  ,
-
-        at  : value : ( i ) ->
-            begin = @begin + i * 3
-            f32.subarray begin, begin + 3 
                 
     classes.register class Matter       extends Pointer
 
