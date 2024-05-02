@@ -375,7 +375,7 @@ do  self.init   = ->
         begin += u32[ this ]
         ui8.subarray( begin, begin + count )
         
-    setFloat32          = ( value, index = 0 ) ->
+    setFloat32          = ( index, value ) ->
         f32[ u32[ HEADER_BEGIN + this ] + index ] = value
 
     getFloat32          = ( index = 0 ) ->
@@ -388,16 +388,10 @@ do  self.init   = ->
         start += u32[ HEADER_BEGIN + this ]
         f32.fill value, start, start + count ; this
 
-    bindgetFloat32      = ( index = 0 ) ->
-        -> f32[ u32[ HEADER_BEGIN + this ] + index ]
-
-    bindsetFloat32      = ( index = 0 ) ->
-        ( value ) -> f32[ u32[ HEADER_BEGIN + this ] + index ] = value
-        
     setarrayFloat32     = ( array, begin = 0 ) -> 
         f32.set array, begin + u32[ HEADER_BEGIN + this ] ; this
 
-    setUint32           = ( value, index = 0 ) -> 
+    setUint32           = ( index, value ) -> 
         u32[ u32[ HEADER_BEGIN + this ] + index ] = value
 
     getUint32           = ( index = 0 ) -> 
@@ -410,16 +404,10 @@ do  self.init   = ->
         start += u32[ HEADER_BEGIN + this ]
         u32.fill value, start, start + count ; this
 
-    bindgetUint32       = ( index = 0 ) ->
-        -> u32[ u32[ HEADER_BEGIN + this ] + index ]
-
-    bindsetUint32       = ( index = 0 ) ->
-        ( value ) -> u32[ u32[ HEADER_BEGIN + this ] + index ] = value
-
     setarrayUint32      = ( array, begin = 0 ) -> 
         u32.set array, begin + u32[ HEADER_BEGIN + this ] ; this
 
-    setUint8            = ( value, index = 0 ) -> 
+    setUint8            = ( index, value ) -> 
         ui8[ u32[ this ] + index ] = value
 
     getUint8            = ( index = 0 ) -> 
@@ -431,12 +419,6 @@ do  self.init   = ->
     fillUint8           = ( value, start = 0, count ) ->
         start += u32[ this ]
         ui8.fill value, start, start + count ; this
-
-    bindgetUint8        = ( index = 0 ) ->
-        -> ui8[ u32[ this ] + index ]
-
-    bindsetUint8        = ( index = 0 ) ->
-        ( value ) -> ui8[ u32[ this ] + index ] = value
 
     setarrayUint8       = ( array, begin = 0 ) -> 
         ui8.set array, begin + u32[ this ] ; this
@@ -917,21 +899,21 @@ do  self.init   = ->
 
         setX : (v) ->
             fillUint32.call this, 0, 3
-            setFloat32.call this, v, 0
-            setFloat32.call this, Math.sin(v), 1
-            setFloat32.call this, Math.cos(v), 2
+            setFloat32.call this, 0, v
+            setFloat32.call this, 1, Math.sin(v)
+            setFloat32.call this, 2, Math.cos(v)
 
         setY : (v) ->
             fillUint32.call this, 3, 3
-            setFloat32.call this, v, 3
-            setFloat32.call this, Math.sin(v), 4
-            setFloat32.call this, Math.cos(v), 5
+            setFloat32.call this, 3, v
+            setFloat32.call this, 4, Math.sin(v)
+            setFloat32.call this, 5, Math.cos(v)
             
         setZ : (v) ->
             fillUint32.call this, 6, 3
-            setFloat32.call this, v, 6
-            setFloat32.call this, Math.sin(v), 7
-            setFloat32.call this, Math.cos(v), 8            
+            setFloat32.call this, 6, v
+            setFloat32.call this, 7, Math.sin(v)
+            setFloat32.call this, 8, Math.cos(v)            
 
         set  : ( v ) -> super() and [ @x, @y, @z ] = v ; @
 
@@ -1843,33 +1825,129 @@ do  self.init   = ->
     classes.register class VertexShader extends Shader
 
         @shaderType     : WebGL2RenderingContext.VERTEX_SHADER
+        
+        
+        GL_POINTS       : WebGL2RenderingContext.POINTS
+
+        GL_LINES        : WebGL2RenderingContext.LINES
+
+        GL_TRIANGLES    : WebGL2RenderingContext.TRIANGLES
+
+
+        INDEX_TRIANGLES_COUNT   : 0
+
+        INDEX_TRIANGLES_ALLOC   : 1
+        
+        INDEX_TRIANGLES_START   : 2
+
+
+        INDEX_LINES_COUNT       : 3
+
+        INDEX_LINES_ALLOC       : 4
+        
+        INDEX_LINES_START       : 5
+
+
+        INDEX_POINTS_COUNT      : 6
+        
+        INDEX_POINTS_ALLOC      : 7
+        
+        INDEX_POINTS_START      : 8
+
+
+        INDEX_ALLOC_BYTELENGTH_PER_TYPE   : 9 
+
+        INDEX_ALLOC_LENGTH_PER_POINT      : 10
+        
+        INDEX_ALLOC_BYTELENGTH_PER_POINT  : 11
+
+        INDEX_DRAWBUFFER_STARTS           : 12
 
         Object.defineProperties VertexShader::,
             glBuffer    : get : VertexShader::getGLBuffer , set : VertexShader::setGLBuffer
-            source      : get : Shader::getSource , set : VertexShader::setSource            
             drawBuffer  : get : newFloat32Array
+            stats       : get : VertexShader::getStats            
+
+        index           : getIndex
+
+        getStats        : ->
+            BYTELENGTH_PER_TYPE  : getUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_TYPE
+            BYTELENGTH_PER_POINT : getUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
+            LENGTH_PER_POINT     : getUint32.call this, @INDEX_ALLOC_LENGTH_PER_POINT
+
+            triangles :
+                alloc : getUint32.call this, @INDEX_TRIANGLES_ALLOC
+                start : getUint32.call this, @INDEX_TRIANGLES_START
+                count : getUint32.call this, @INDEX_TRIANGLES_COUNT
+            
+            lines     :
+                alloc : getUint32.call this, @INDEX_LINES_ALLOC
+                start : getUint32.call this, @INDEX_LINES_START
+                count : getUint32.call this, @INDEX_LINES_COUNT
+            
+            points    :
+                alloc : getUint32.call this, @INDEX_POINTS_ALLOC
+                start : getUint32.call this, @INDEX_POINTS_START
+                count : getUint32.call this, @INDEX_POINTS_COUNT                
+
+        alloc           : ( type, pointCount ) ->
+            byteLength = pointCount * getUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
+            length     = pointCount * getUint32.call this, @INDEX_ALLOC_LENGTH_PER_POINT
+            
+            index = @index switch type
+                when @GL_LINES      then @INDEX_LINES_COUNT
+                when @GL_POINTS     then @INDEX_POINTS_COUNT
+                when @GL_TRIANGLES  then @INDEX_TRIANGLES_COUNT
+                else throw /UNKNOWN_DRAW_TYPE/ + type
+
+            Atomics.add u32, index, pointCount
+            Atomics.add u32, index + 1, byteLength
             
         attach          : -> super @parent.glVShader = @glShader
 
         create          : ( definitions ) ->            
             attibuteByteLength = 0
-
             for key, def of definitions when def.is.match /attr/
                 attibuteByteLength += def.length * @BPE
+            attibuteByteLength += 4 - attibuteByteLength % 4
+            
+            drawByteAlloc  = attibuteByteLength * @GPU_ATTRIBUTE_COUNT
+            drawByteAlloc -= drawByteAlloc % 3
+            
+            @malloc drawByteAlloc
+            
+            typeByteAlloc  = drawByteAlloc / 3
+            typeByteAlloc -= typeByteAlloc % attibuteByteLength
+            typeDrawCount  = typeByteAlloc / attibuteByteLength
 
-            @malloc @GPU_ATTRIBUTE_COUNT * attibuteByteLength
-            @setBuffer @gl.createBuffer()
+            paddingAlloc  = @INDEX_DRAWBUFFER_STARTS * @BPE
+            paddingCount  = Math.max 1, Math.ceil paddingAlloc / attibuteByteLength
 
-        setSource       : ( source ) ->
+            setUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_TYPE   , typeByteAlloc
+            setUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_POINT  , attibuteByteLength
+            setUint32.call this, @INDEX_ALLOC_LENGTH_PER_POINT      , attibuteByteLength / 4
+
+            setUint32.call this, @INDEX_TRIANGLES_START , paddingCount 
+            setUint32.call this, @INDEX_TRIANGLES_ALLOC , paddingAlloc 
+            
+            setUint32.call this, @INDEX_LINES_START     , typeDrawCount 
+            setUint32.call this, @INDEX_LINES_ALLOC     , typeByteAlloc 
+            
+            setUint32.call this, @INDEX_POINTS_START    , typeDrawCount * 2 
+            setUint32.call this, @INDEX_POINTS_ALLOC    , typeByteAlloc * 2 
+            
+            @glBuffer = @gl.createBuffer()            
+            
+            @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
+            @gl.bufferData @gl.ARRAY_BUFFER, drawByteAlloc, @gl.STATIC_DRAW
+
+            this
+
+        compile       : ( source ) ->
             super source 
             return this if @glBuffer
             @create @parseSource source
 
-        setBuffer       : ( @glBuffer ) ->
-            @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
-            @gl.bufferData @gl.ARRAY_BUFFER, @drawBuffer, @gl.STATIC_DRAW
-
-            #todo attib length done make mallocs
 
         parseSource     : ( source = @source ) ->
             canvas = new OffscreenCanvas 0, 0

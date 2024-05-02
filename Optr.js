@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_GLBUFFER, Color, Draw, FragmentShader, Frustrum, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERLENGTH, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Texture, UV, Vector3, VertexShader, Vertices, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, bindgetFloat32, bindgetUint32, bindgetUint8, bindsetFloat32, bindsetUint32, bindsetUint8, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, findChild, findChilds, findChildsPtri, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsPtri, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterLength, getIterOffset, getLength, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc2, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterLength, setIterOffset, setLength, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_GLBUFFER, Color, Draw, FragmentShader, Frustrum, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERLENGTH, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Texture, UV, Vector3, VertexShader, Vertices, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, findChild, findChilds, findChildsPtri, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsPtri, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterLength, getIterOffset, getLength, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc2, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterLength, setIterOffset, setLength, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -401,7 +401,7 @@ self.name = "window";
     begin += u32[this];
     return ui8.subarray(begin, begin + count);
   };
-  setFloat32 = function(value, index = 0) {
+  setFloat32 = function(index, value) {
     return f32[u32[HEADER_BEGIN + this] + index] = value;
   };
   getFloat32 = function(index = 0) {
@@ -416,21 +416,11 @@ self.name = "window";
     f32.fill(value, start, start + count);
     return this;
   };
-  bindgetFloat32 = function(index = 0) {
-    return function() {
-      return f32[u32[HEADER_BEGIN + this] + index];
-    };
-  };
-  bindsetFloat32 = function(index = 0) {
-    return function(value) {
-      return f32[u32[HEADER_BEGIN + this] + index] = value;
-    };
-  };
   setarrayFloat32 = function(array, begin = 0) {
     f32.set(array, begin + u32[HEADER_BEGIN + this]);
     return this;
   };
-  setUint32 = function(value, index = 0) {
+  setUint32 = function(index, value) {
     return u32[u32[HEADER_BEGIN + this] + index] = value;
   };
   getUint32 = function(index = 0) {
@@ -445,21 +435,11 @@ self.name = "window";
     u32.fill(value, start, start + count);
     return this;
   };
-  bindgetUint32 = function(index = 0) {
-    return function() {
-      return u32[u32[HEADER_BEGIN + this] + index];
-    };
-  };
-  bindsetUint32 = function(index = 0) {
-    return function(value) {
-      return u32[u32[HEADER_BEGIN + this] + index] = value;
-    };
-  };
   setarrayUint32 = function(array, begin = 0) {
     u32.set(array, begin + u32[HEADER_BEGIN + this]);
     return this;
   };
-  setUint8 = function(value, index = 0) {
+  setUint8 = function(index, value) {
     return ui8[u32[this] + index] = value;
   };
   getUint8 = function(index = 0) {
@@ -473,16 +453,6 @@ self.name = "window";
     start += u32[this];
     ui8.fill(value, start, start + count);
     return this;
-  };
-  bindgetUint8 = function(index = 0) {
-    return function() {
-      return ui8[u32[this] + index];
-    };
-  };
-  bindsetUint8 = function(index = 0) {
-    return function(value) {
-      return ui8[u32[this] + index] = value;
-    };
   };
   setarrayUint8 = function(array, begin = 0) {
     ui8.set(array, begin + u32[this]);
@@ -1100,23 +1070,23 @@ self.name = "window";
 
       setX(v) {
         fillUint32.call(this, 0, 3);
-        setFloat32.call(this, v, 0);
-        setFloat32.call(this, Math.sin(v), 1);
-        return setFloat32.call(this, Math.cos(v), 2);
+        setFloat32.call(this, 0, v);
+        setFloat32.call(this, 1, Math.sin(v));
+        return setFloat32.call(this, 2, Math.cos(v));
       }
 
       setY(v) {
         fillUint32.call(this, 3, 3);
-        setFloat32.call(this, v, 3);
-        setFloat32.call(this, Math.sin(v), 4);
-        return setFloat32.call(this, Math.cos(v), 5);
+        setFloat32.call(this, 3, v);
+        setFloat32.call(this, 4, Math.sin(v));
+        return setFloat32.call(this, 5, Math.cos(v));
       }
 
       setZ(v) {
         fillUint32.call(this, 6, 3);
-        setFloat32.call(this, v, 6);
-        setFloat32.call(this, Math.sin(v), 7);
-        return setFloat32.call(this, Math.cos(v), 8);
+        setFloat32.call(this, 6, v);
+        setFloat32.call(this, 7, Math.sin(v));
+        return setFloat32.call(this, 8, Math.cos(v));
       }
 
       set(v) {
@@ -2134,12 +2104,55 @@ self.name = "window";
   }).call(this));
   classes.register(VertexShader = (function() {
     class VertexShader extends Shader {
+      getStats() {
+        return {
+          BYTELENGTH_PER_TYPE: getUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_TYPE),
+          BYTELENGTH_PER_POINT: getUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_POINT),
+          LENGTH_PER_POINT: getUint32.call(this, this.INDEX_ALLOC_LENGTH_PER_POINT),
+          triangles: {
+            alloc: getUint32.call(this, this.INDEX_TRIANGLES_ALLOC),
+            start: getUint32.call(this, this.INDEX_TRIANGLES_START),
+            count: getUint32.call(this, this.INDEX_TRIANGLES_COUNT)
+          },
+          lines: {
+            alloc: getUint32.call(this, this.INDEX_LINES_ALLOC),
+            start: getUint32.call(this, this.INDEX_LINES_START),
+            count: getUint32.call(this, this.INDEX_LINES_COUNT)
+          },
+          points: {
+            alloc: getUint32.call(this, this.INDEX_POINTS_ALLOC),
+            start: getUint32.call(this, this.INDEX_POINTS_START),
+            count: getUint32.call(this, this.INDEX_POINTS_COUNT)
+          }
+        };
+      }
+
+      alloc(type, pointCount) {
+        var byteLength, index, length;
+        byteLength = pointCount * getUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_POINT);
+        length = pointCount * getUint32.call(this, this.INDEX_ALLOC_LENGTH_PER_POINT);
+        index = this.index((function() {
+          switch (type) {
+            case this.GL_LINES:
+              return this.INDEX_LINES_COUNT;
+            case this.GL_POINTS:
+              return this.INDEX_POINTS_COUNT;
+            case this.GL_TRIANGLES:
+              return this.INDEX_TRIANGLES_COUNT;
+            default:
+              throw /UNKNOWN_DRAW_TYPE/ + type;
+          }
+        }).call(this));
+        Atomics.add(u32, index, pointCount);
+        return Atomics.add(u32, index + 1, byteLength);
+      }
+
       attach() {
         return super.attach(this.parent.glVShader = this.glShader);
       }
 
       create(definitions) {
-        var attibuteByteLength, def, key;
+        var attibuteByteLength, def, drawByteAlloc, key, paddingAlloc, paddingCount, typeByteAlloc, typeDrawCount;
         attibuteByteLength = 0;
         for (key in definitions) {
           def = definitions[key];
@@ -2147,25 +2160,38 @@ self.name = "window";
             attibuteByteLength += def.length * this.BPE;
           }
         }
-        this.malloc(this.GPU_ATTRIBUTE_COUNT * attibuteByteLength);
-        return this.setBuffer(this.gl.createBuffer());
+        attibuteByteLength += 4 - attibuteByteLength % 4;
+        drawByteAlloc = attibuteByteLength * this.GPU_ATTRIBUTE_COUNT;
+        drawByteAlloc -= drawByteAlloc % 3;
+        this.malloc(drawByteAlloc);
+        typeByteAlloc = drawByteAlloc / 3;
+        typeByteAlloc -= typeByteAlloc % attibuteByteLength;
+        typeDrawCount = typeByteAlloc / attibuteByteLength;
+        paddingAlloc = this.INDEX_DRAWBUFFER_STARTS * this.BPE;
+        paddingCount = Math.max(1, Math.ceil(paddingAlloc / attibuteByteLength));
+        setUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_TYPE, typeByteAlloc);
+        setUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_POINT, attibuteByteLength);
+        setUint32.call(this, this.INDEX_ALLOC_LENGTH_PER_POINT, attibuteByteLength / 4);
+        setUint32.call(this, this.INDEX_TRIANGLES_START, paddingCount);
+        setUint32.call(this, this.INDEX_TRIANGLES_ALLOC, paddingAlloc);
+        setUint32.call(this, this.INDEX_LINES_START, typeDrawCount);
+        setUint32.call(this, this.INDEX_LINES_ALLOC, typeByteAlloc);
+        setUint32.call(this, this.INDEX_POINTS_START, typeDrawCount * 2);
+        setUint32.call(this, this.INDEX_POINTS_ALLOC, typeByteAlloc * 2);
+        this.glBuffer = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, drawByteAlloc, this.gl.STATIC_DRAW);
+        return this;
       }
 
-      setSource(source) {
-        super.setSource(source);
+      compile(source) {
+        super.compile(source);
         if (this.glBuffer) {
           return this;
         }
         return this.create(this.parseSource(source));
       }
 
-      setBuffer(glBuffer) {
-        this.glBuffer = glBuffer;
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer);
-        return this.gl.bufferData(this.gl.ARRAY_BUFFER, this.drawBuffer, this.gl.STATIC_DRAW);
-      }
-
-      //todo attib length done make mallocs
       parseSource(source = this.source) {
         var attrib, attribs, buf, canvas, definitions, i, info, j, k, len, len1, lengthOf, m, ref, shader, shader2, source2, uniform, uniforms, v;
         canvas = new OffscreenCanvas(0, 0);
@@ -2306,19 +2332,52 @@ self.name = "window";
 
     VertexShader.shaderType = WebGL2RenderingContext.VERTEX_SHADER;
 
+    VertexShader.prototype.GL_POINTS = WebGL2RenderingContext.POINTS;
+
+    VertexShader.prototype.GL_LINES = WebGL2RenderingContext.LINES;
+
+    VertexShader.prototype.GL_TRIANGLES = WebGL2RenderingContext.TRIANGLES;
+
+    VertexShader.prototype.INDEX_TRIANGLES_COUNT = 0;
+
+    VertexShader.prototype.INDEX_TRIANGLES_ALLOC = 1;
+
+    VertexShader.prototype.INDEX_TRIANGLES_START = 2;
+
+    VertexShader.prototype.INDEX_LINES_COUNT = 3;
+
+    VertexShader.prototype.INDEX_LINES_ALLOC = 4;
+
+    VertexShader.prototype.INDEX_LINES_START = 5;
+
+    VertexShader.prototype.INDEX_POINTS_COUNT = 6;
+
+    VertexShader.prototype.INDEX_POINTS_ALLOC = 7;
+
+    VertexShader.prototype.INDEX_POINTS_START = 8;
+
+    VertexShader.prototype.INDEX_ALLOC_BYTELENGTH_PER_TYPE = 9;
+
+    VertexShader.prototype.INDEX_ALLOC_LENGTH_PER_POINT = 10;
+
+    VertexShader.prototype.INDEX_ALLOC_BYTELENGTH_PER_POINT = 11;
+
+    VertexShader.prototype.INDEX_DRAWBUFFER_STARTS = 12;
+
     Object.defineProperties(VertexShader.prototype, {
       glBuffer: {
         get: VertexShader.prototype.getGLBuffer,
         set: VertexShader.prototype.setGLBuffer
       },
-      source: {
-        get: Shader.prototype.getSource,
-        set: VertexShader.prototype.setSource
-      },
       drawBuffer: {
         get: newFloat32Array
+      },
+      stats: {
+        get: VertexShader.prototype.getStats
       }
     });
+
+    VertexShader.prototype.index = getIndex;
 
     return VertexShader;
 
