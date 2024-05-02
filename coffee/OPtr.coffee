@@ -37,9 +37,9 @@ do  self.init   = ->
     buffers = []
 
     classes.register = ( Class ) ->
-        unless @includes Class
-            @push Class 
-        Class.classIndex = @indexOf Class
+        if -1 is i = @indexOf Class
+            i += @push Class 
+        Class.classIndex = i
 
     shaders.register = ( WebGLObject ) ->
         unless @includes WebGLObject
@@ -168,12 +168,12 @@ do  self.init   = ->
     getParentPtri       = ( ptri       ) -> 
         u32[ HEADER_PARENTPTRI + ptri ]
     
-    setParent           = ( ptri, v    ) ->
-        u32[ HEADER_PARENTPTRI + ptri ] = v or this
+    setParent           = ( ptri    ) ->
+        u32[ HEADER_PARENTPTRI + ptri ] = this
 
-    getParent           = ( ptri = @   ) -> 
+    getParent           = -> 
         new ( classes[ u32[ HEADER_CLASSINDEX + (
-                ptrp = u32[ HEADER_PARENTPTRI + ptri ]
+                ptrp = u32[ HEADER_PARENTPTRI + this ]
         ) ] ] )( ptrp ) 
 
     getChilds           = ( ptri = @   ) -> 
@@ -197,21 +197,31 @@ do  self.init   = ->
 
         list
 
-    findChilds          = ( ptri, test ) -> 
+    findChilds          = ( Class ) -> 
+        ptri = parseInt this
         ptrj = Atomics.load u32, 1
+        clsi = Class.classIndex
         list = new Array() ; i = 0
 
-        ci = if test.isPtr  then classes.indexOf test
-        else if test.isPtri then u32[ HEADER_CLASSINDEX + test ]
-        else if !isNaN test then test
-        else throw /FILTER_TEST_FAILED/
 
         while ptrj -= 16
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
-            continue if u32[ HEADER_CLASSINDEX + ptrj ] - ci
-            list[ i ] = new ( classes[ ci ] )( ptrj ) ; ++i
+            continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
+            list[ i ] = new ( classes[ clsi ] )( ptrj ) ; ++i
 
         list
+
+    findChild           = ( Class ) -> 
+        ptri = parseInt this
+        ptrj = Atomics.load u32, 1
+        clsi = Class.classIndex
+
+        while ptrj -= 16
+            continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+            continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
+            return new ( classes[ clsi ] )( ptrj )
+
+        undefined
 
     findChildsPtri      = ( ptri, test ) -> 
         ptrj = Atomics.load u32, 1
@@ -313,11 +323,11 @@ do  self.init   = ->
             u = u16[ HEADER_RESVINDEX2 + ptri * 2 + i ]
         ) ; u
 
-    getResvUint8        = ( ptri, i    ) -> 
-        ui8[ HEADER_RESVINDEX1 + ptri * 4 + i ]
+    getResvUint8        = ( i    ) -> 
+        ui8[ HEADER_RESVINDEX1 + this * 4 + i ]
     
-    setResvUint8        = ( ptri, i, v ) -> 
-        ui8[ HEADER_RESVINDEX1 + ptri * 4 + i ] = v
+    setResvUint8        = ( i, v ) -> 
+        ui8[ HEADER_RESVINDEX1 + this * 4 + i ] = v
     
     addResvUint8        = ( ptri, i, v ) -> 
         ui8[ HEADER_RESVINDEX1 + ptri * 4 + i ] = v + (
@@ -338,11 +348,20 @@ do  self.init   = ->
     newFloat32Array     = ( byteOffset = 0, length ) -> 
         new Float32Array buffer, u32[ this ] + byteOffset, length or u32[ HEADER_LENGTH + this ]
 
+    ptrFloat32Array     = ( byteOffset = 0, length ) -> 
+        new Float32Array buffer, this * 4, length or 16
+
     newUint32Array      = ( byteOffset = 0, length ) -> 
         new Uint32Array buffer, u32[ this ] + byteOffset, length or u32[ HEADER_LENGTH + this ]
 
+    ptrUint32Array      = ( byteOffset = 0, length ) -> 
+        new Uint32Array buffer, this * 4, length or 16
+
     newUint8Array       = ( byteOffset = 0, length ) -> 
         new Uint8Array buffer, u32[ this ] + byteOffset, length or u32[ HEADER_LENGTH + this ]
+
+    ptrUint8Array       = ( byteOffset = 0, length ) -> 
+        new Uint8Array buffer, this * 4, length or 64
 
     subarrayFloat32     = ( begin = 0, count ) -> 
         begin += u32[ HEADER_BEGIN + this ]
@@ -512,7 +531,7 @@ do  self.init   = ->
     
 
 
-    malloc2              = ( constructor, byteLength ) ->
+    malloc2             = ( constructor, byteLength ) ->
         ptri        = Atomics.add i32, 1, 16
         classId     = constructor.classId
 
@@ -734,6 +753,8 @@ do  self.init   = ->
 
         BPE         : @BPE
 
+        scope       : [,]
+
         constructor : ->
             super arguments[0] || Atomics.add u32, 1, 16
             @init arguments[1] if isWindow
@@ -749,6 +770,7 @@ do  self.init   = ->
             this
 
         init        : ( props = {} ) ->
+
             if !getClassIndex this
                 setClassIndex this, this.constructor.classIndex
 
@@ -768,6 +790,11 @@ do  self.init   = ->
             setarrayFloat32.call this, array if array
             return this
 
+        storeObject : ( object ) ->
+            if -1 is i = @scope.indexOf object
+                i += @scope.push object
+            i
+
         adopt       : setParent
 
         @allocs     : getAllocs
@@ -781,6 +808,10 @@ do  self.init   = ->
             parent  : get : getParent
 
             tarray  : get : newFloat32Array
+
+            [ "|[Pointer]|" ] :
+                get : ptrUint32Array
+                set : ( ptr ) -> ptrUint32Array.call(this).set ptr
 
     classes.register class Vector3      extends Pointer
 
@@ -820,13 +851,51 @@ do  self.init   = ->
             css : get : -> "rgba( #{@rgb.join(', ')}, #{@obj.alpha} )"
             obj : get : -> @toObject()
 
+    classes.register class UV           extends Vector3
+
+        name        : "uv"
+
+    classes.register class Texture      extends Vector3
+
+        name        : "texture"
+
     classes.register class Position     extends Vector3
 
         name        : "position"
 
+        vertexAttribPointer : "position"
+
+        apply       : ( begin, count, stride, offset ) ->
+
+            [ tx, ty, tz ] = @tarray
+
+            while count--
+
+                i = ( count * stride + offset ) / 4
+
+                f32[  i  ] += tx
+                f32[ i+1 ] += ty
+                f32[ 2+i ] += tz
+
+            0
+
     classes.register class Scale        extends Vector3
 
         name        : "scale"
+
+        apply       : ( begin, count, stride, offset ) ->
+
+            [ sx, sy, sz ] = @tarray
+
+            while count--
+
+                i = ( count * stride + offset ) / 4
+
+                f32[  i  ] *= sx
+                f32[ i+1 ] *= sy
+                f32[ 2+i ] *= sz
+
+            0
 
     classes.register class Rotation     extends Pointer
 
@@ -866,6 +935,22 @@ do  self.init   = ->
 
         set  : ( v ) -> super() and [ @x, @y, @z ] = v ; @
 
+        apply : ( begin, count, stride, offset ) ->
+
+            [   x, sinX, cosX,
+                y, sinY, cosY,
+                z, sinZ, cosZ,  ] = @tarray
+
+            while count--
+            
+                i = ( count * stride + offset ) / 4
+
+                f32[  i  ] *= sinX * cosX
+                f32[ i+1 ] *= cosY * sinY
+                f32[ 2+i ] *= sinZ * cosZ
+
+            0
+
         Object.defineProperties Rotation::,
             x : get : Rotation::getX , set : Rotation::setX
             y : get : Rotation::getY , set : Rotation::setY
@@ -874,6 +959,38 @@ do  self.init   = ->
     classes.register class Vertices     extends Pointer
 
         name        : "vertices"
+
+        copy        : ( start, begin, count, stride, offset ) ->
+
+            byteOffset      = begin * @BPE
+            byteLength      = count * @BPE * 3
+            dstByteOffset   = start * @BPE + offset
+
+            while count--
+                ui8.copyWithin dstByteOffset, byteOffset, byteOffset + 12
+
+                byteOffset -= 12
+                dstByteOffset -= stride
+
+            0
+
+        transform   : ( begin, count ) ->
+
+            #todo buffer alloc required 'cause of stride and offset
+            @copy 1
+
+            if  rotation = findInheritable.call this, "rotation"
+                rotation . apply begin, count
+
+            #todo must read rotated, not original begin 
+            if  position = findInheritable.call this, "position"
+                position . apply begin, count
+
+            if  scale    = findInheritable.call this, "scale"
+                scale    . apply begin, count
+
+            0
+
 
         vertex      : ( index = 0 ) ->
             subarrayFloat32 index * 3, 3
@@ -900,6 +1017,14 @@ do  self.init   = ->
     classes.register class Matter       extends Pointer
 
         self.Matter     = Matter
+                
+    classes.register class Frustrum     extends Pointer
+
+        name : "frustrum"
+
+    classes.register class PointSize    extends Pointer
+
+        name : "pointSize"
 
     ###
     class Shape         extends Pointer
@@ -1318,8 +1443,6 @@ do  self.init   = ->
             byteOffset = @globalOffset + ( i * 32 ) + 16
             new Float32Array buffer, byteOffset, 4
 
-    ###
-
     classes.register class Shader extends Pointer
 
         INDEX_IS_ATTACHED     : 0 #ui8
@@ -1630,186 +1753,311 @@ do  self.init   = ->
 
         fShader : yes
         
-    classes.register class Space    extends Pointer
+    ###
 
-        self.Space                  = this
+    classes.register class Shader extends Pointer
 
-        @byteLength                 : BYTELENGTH_GLBUFFER + 16 * 4
+        Object.defineProperties Shader::,
+            gl        : get : Shader::getGLContext, set : Shader::setGLContext
+            glProgram : get : Shader::getGLProgram, set : Shader::setGLProgram
+            glShader  : get : Shader::getGLShader , set : Shader::setGLShader
+            glBuffer  : get : Shader::getGLBuffer , set : Shader::setGLBuffer            
 
-    
-        INDEX_POINTS_BEGIN          : 0
+        Object.defineProperties Shader::,
+            source   : get : Shader::getSource  , set : Shader::setSource
+            active   : get : Shader::getActive  , set : Shader::setActive
 
-        INDEX_LINES_BEGIN           : 1
+        getGLContext    : ->
+            @scope[ getResvUint8.call this, 0 ] or @gl = @parent.gl
 
-        INDEX_TRIANGES_BEGIN        : 4
+        setGLContext    : ( webGL2RenderingContext ) ->
+            setResvUint8.call this, 0, @storeObject webGL2RenderingContext
 
+        getGLProgram    : ->
+            @scope[ getResvUint8.call this, 1 ] or @glProgram = @parent.glProgram
 
-        INDEX_POINTS_COUNT          : 2
+        setGLProgram    : ( webGLProgram ) ->
+            setResvUint8.call this, 1, @storeObject webGLProgram   
+            
+        getGLBuffer     : ->
+            @scope[ getResvUint8.call this, 2 ]
 
-        INDEX_LINES_COUNT           : 3
+        setGLBuffer     : ( webGLBuffer ) ->
+            setResvUint8.call this, 2, @storeObject webGLBuffer
 
-        INDEX_TRIANGES_COUNT        : 6
+        getGLShader     : ->
+            @scope[ getResvUint8.call this, 3 ]
 
+        setGLShader     : ( webGLShader ) ->
+            setResvUint8.call this, 3, @storeObject webGLShader
 
-        INDEX_POINTS_OFFSET         : 5
+        getActive       : ->
+            getResvUint8.call this, 4
 
-        INDEX_LINES_OFFSET          : 6
+        setActive       : ( bool ) ->
+            setResvUint8.call this, 4, bool
 
-        INDEX_TRIANGES_OFFSET       : 9
+        getSource       : ->
+            @glShader and @gl.getShaderSource @glShader 
 
+        setSource       : ( source ) ->
+            definitions = @parseSource source
 
-        INDEX_TYPELENGTH            : 2
+            #todo create buffer and do
 
-        INDEX_DRAW_BEGIN            : 16
+            this
+                .destroy()
+                .compile( source )
+                .attach()
+        
+        compile          : ( source ) ->
+            glShader = @gl.createShader @constructor.shaderType
 
+            @gl.shaderSource glShader, source
+            @gl.compileShader glShader
 
-        itemsPerPoint               : 8
+            unless @gl.getShaderParameter glShader, @gl.COMPILE_STATUS
+                info = @gl.getShaderInfoLog glShader
+                throw "Could not compile WebGL shader. \n\n#{info}"
+            else @glShader = glShader
+                
+            this
 
-        bytesPerPoint               : 4 * Space::itemsPerPoint
+        attach          : ->
+            @active = 1 ; this
 
-        drawByteOffset              : 4 * Space::INDEX_DRAW_BEGIN
+        detach          : ->
+            @gl.detachShader @glProgram, @glShader
+            @active = 0 ; this
 
-        drawByteLength              : BYTELENGTH_GLBUFFER - BYTELENGTH_GLBUFFER % Space::bytesPerPoint
+        destroy         : ->
+            return this unless @glShader
 
-        drawableLength              : Space::drawByteLength / 4
-
-        maxPointsCount              : Space::drawByteLength / Space::bytesPerPoint
-
-
-        Object.defineProperties Space::,
-
-            drawBuffer      :
-                get : -> new Float32Array buffer, @byteOffset + @drawByteOffset, @drawableLength
-                set : (v) -> @drawBuffer.set v
-
-            pointsStart     :
-                get : -> u32[ @begin ]
-                set : (v) -> u32[ @begin ] = v
-
-            linesStart      :
-                get : -> u32[ @begin + 1 ]
-                set : (v) -> u32[ @begin + 1 ] = v
-
-            trianglesStart  :
-                get : -> u32[ @begin + 4 ]
-                set : (v) -> u32[ @begin + 4 ] = v
-
-            pointsPerType   :
-                get : -> u32[ @begin + 2 ]
-                set : (v) -> u32[ @begin + 2 ] = v
-
-            pointsCount     :
-                get : -> u32[ @begin + 5 ]
-                set : (v) -> u32[ @begin + 5 ] = v
-
-            linesCount      :
-                get : -> u32[ @begin + 6 ]
-                set : (v) -> u32[ @begin + 6 ] = v
-
-            trianglesCount  :
-                get : -> u32[ @begin + 7 ]
-                set : (v) -> u32[ @begin + 7 ] = v
-
-            pointsOffset    :
-                get : -> u32[ @begin + 8 ]
-                set : (v) -> u32[ @begin + 8 ] = v
-
-            linesOffset     :
-                get : -> u32[ @begin + 9 ]
-                set : (v) -> u32[ @begin + 9 ] = v
-
-            trianglesOffset :
-                get : -> u32[ @begin + 10 ]
-                set : (v) -> u32[ @begin + 10 ] = v
-
-
-        init            : ->
-            return super()
-
-            @pointsPerType = Math.trunc @maxPointsCount / 3
-
-            @pointsStart     = @pointsPerType * 0 + 2
-            @linesStart      = @pointsPerType * 1
-            @trianglesStart  = @pointsPerType * 2
-
-            @pointsOffset    = @bytesPerPoint * 2
-            @linesOffset     = @bytesPerPoint * @pointsPerType
-            @trianglesOffset = @bytesPerPoint * @pointsPerType * 2
+            @gl.detachShader @glProgram, @glShader if @active
+            @gl.deleteShader @glShader
 
             this
 
-        drawArrays : ->
-            if  count = @trianglesCount
-                gl.drawArrays gl.TRIANGLES, @trianglesStart, count
 
-            if  count = @linesCount
-                gl.drawArrays gl.TRIANGLES, @linesStart, count
+    classes.register class FragmentShader extends Shader
+
+        @shaderType     : WebGL2RenderingContext.FRAGMENT_SHADER
+
+        attach          : -> super @parent.glFShader = @glShader
+
+
+    classes.register class VertexShader extends Shader
+
+        @byteLength     : 8 * @BPE
+
+        @shaderType     : WebGL2RenderingContext.VERTEX_SHADER
+
+        attach          : -> super @parent.glVShader = @glShader
+
+        parseSource     : ( source ) ->
+            canvas = new OffscreenCanvas 0, 0
+            gl = canvas.getContext "webgl2"
+
+            program = gl.createProgram()
+            shader  = gl.createShader gl.VERTEX_SHADER
+            
+            gl.shaderSource shader, source
+            gl.compileShader shader
+            
+            unless gl.getShaderParameter shader, gl.COMPILE_STATUS
+                info = gl.getShaderInfoLog shader
+                throw "Could not compile WebGL shader. \n\n#{info}"
                 
-            if  count = @pointsCount
-                gl.drawArrays gl.TRIANGLES, @pointsStart, count
+            shader2  = gl.createShader 35632
+            source2  = "void main() { gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); }"; 
+            
+            gl.shaderSource shader2, source2
+            gl.compileShader shader2
 
-        upload : -> for shape in Shape.allocs()
+            gl.attachShader program, shader
+            gl.attachShader program, shader2
 
-            continue unless shape.willUploadIfNeeded
+            gl.linkProgram program
 
-            gl.bufferSubData(
-                gl.ARRAY_BUFFER, draw.uploadOffset,
-                space.drawBuffer, draw.uploadBegin,
-                draw.uploadLength
-            ) for draw in GLDraw.allocs shape.ptri
+            gl.bindBuffer gl.ARRAY_BUFFER, buf = gl.createBuffer()
+            gl.bufferData gl.ARRAY_BUFFER, 256, gl.STATIC_DRAW
 
-            return this
+            gl.useProgram program
 
-        append : ( drawType, pointsCount ) ->
+            unless gl.getProgramParameter program, gl.LINK_STATUS
+                info = gl.getProgramInfoLog program
+                throw "Could not compile WebGL program. \n\n#{info}"
 
-            starts = switch drawType
-                when WebGL2RenderingContext.POINTS    then @pointsCount += pointsCount
-                when WebGL2RenderingContext.LINES     then @linesCount += pointsCount
-                when WebGL2RenderingContext.TRIANGLES then @trianglesCount += pointsCount
+            i = gl.getProgramParameter program, gl.ACTIVE_ATTRIBUTES
+            v = Object.values WebGL2RenderingContext
+            k = Object.keys WebGL2RenderingContext
 
-            offset = switch drawType
-                when WebGL2RenderingContext.POINTS    then @pointsOffset
-                when WebGL2RenderingContext.LINES     then @linesOffset
-                when WebGL2RenderingContext.TRIANGLES then @trianglesOffset
+            lengthOf =
+                vec4 : 4
+                vec3 : 3
+                vec2 : 2
+                mat4 : 4 * 4
+                mat3 : 3 * 3
 
-            length = pointsCount * @bytesPerPoint 
+            ATTRIBS_LENGTH = 0
+            ATTRIBS_BYTELENGTH = 0
 
-            finish = switch drawType
-                when WebGL2RenderingContext.POINTS    then @pointsOffset += length
-                when WebGL2RenderingContext.LINES     then @linesOffset += length
-                when WebGL2RenderingContext.TRIANGLES then @trianglesOffset += length
+            attribs = while i--
+                attrib              = gl.getActiveAttrib program, i
+                attrib.is           = "attribute"
+                attrib.kind         = k.at v.indexOf attrib.type
+                attrib.class        = classes.find (c) -> c::name is attrib.name
+                attrib.location     = gl.getAttribLocation program, attrib.name
+                attrib.typeof       = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_TYPE
+                attrib.kindof       = k.at v.indexOf attrib.typeof 
+                attrib.offset       = ATTRIBS_BYTELENGTH
+                attrib.length       = lengthOf[ attrib.kind.split(/_/).at(-1).toLowerCase() ]
+                
+                ATTRIBS_LENGTH     += attrib.length
+                ATTRIBS_BYTELENGTH  = ATTRIBS_LENGTH * 4
 
-            offset
-    
-        mallo2c      : ( drawType, shape ) ->
-            pointsCount = shape.pointCount
-            dstByteOffset = @append drawType, pointsCount
-            srcOffset = dstByteOffset / 4
-            length = pointsCount * @itemsPerPoint
+                attrib
 
-            draw = GLDraw.fromOptions {
-                drawType ,
-                pointsCount ,
-                globalOffset : dstByteOffset + @drawBuffer . byteOffset
-                uploadOffset : dstByteOffset , uploadBegin : srcOffset
-                uploadLength : length
-                parent : shape.ptri
-            }
+            for attrib in attribs
+                attrib.stride       = ATTRIBS_BYTELENGTH
+                gl.enableVertexAttribArray i = attrib.location
 
-            shape.markNeedsUpdate = 1
-
-            draws[ draws.length ] = Object.defineProperties( draw,
-                upload : value : gl.bufferSubData.bind(
-                    gl, gl.ARRAY_BUFFER, draw.uploadOffset, @drawBuffer, 
-                    draw.uploadBegin, draw.uploadLength
+                gl.vertexAttribPointer(
+                    attrib.location, attrib.length, attrib.typeof, 
+                    attrib.isNormalized, attrib.stride, attrib.offset
                 )
-            )
+
+                attrib.isEnabled    = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_ENABLED
+                attrib.isNormalized = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
+                attrib.integer      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_INTEGER
+                attrib.divisor      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_DIVISOR                
+
+                gl.disableVertexAttribArray i
+
+
+            i = gl.getProgramParameter program, gl.ACTIVE_UNIFORMS
+            uniforms = while i--
+                uniform             = gl.getActiveUniform program, i
+                uniform.is          = "uniform"
+                uniform.kind        = k.at v.indexOf uniform.type
+                uniform.class       = classes.find (c) -> c::name is uniform.name
+                uniform.location    = gl.getUniformLocation program, uniform.name
+                uniform.uploader    = switch uniform.kind
+                    when "FLOAT_MAT4"           then "uniformMatrix4fv"
+                    when "FLOAT_MAT3"           then "uniformMatrix3fv"
+                    when "FLOAT_MAT2"           then "uniformMatrix2fv"
+                    when "FLOAT_MAT2x3"         then "uniformMatrix2x3fv"
+                    when "FLOAT_MAT2x4"         then "uniformMatrix2x4fv"
+                    when "FLOAT_MAT3x2"         then "uniformMatrix3x2fv"
+                    when "FLOAT_MAT3x4"         then "uniformMatrix3x4fv"
+                    when "FLOAT_MAT4x2"         then "uniformMatrix4x2fv"
+                    when "FLOAT_MAT3x3"         then "uniformMatrix4x3fv"
+                    when "FLOAT"                then "uniform1f"
+                    when "INT"                  then "uniform1iv"
+                    when "UNSIGNED_INT"         then "uniform1uiv"
+                    when "UNSIGNED_INT_VEC2"    then "uniform2uiv"
+                    when "UNSIGNED_INT_VEC3"    then "uniform3uiv"
+                    when "UNSIGNED_INT_VEC4"    then "uniform4uiv"
+                uniform
+
+            gl.detachShader program, shader
+            gl.detachShader program, shader2
+
+            gl.deleteShader shader
+            gl.deleteShader shader2
+            gl.deleteProgram program
+            gl.deleteBuffer buf
+
+            shader = shader2 = gl =
+            program = canvas = null
+            definitions = new Object
+
+            for v in [ uniforms... , ...attribs ]
+                definitions[ v.name ] = v
+
+            definitions
+
+
+    classes.register class Space    extends Pointer
+
+        self.Space      = this
+
+        Object.defineProperties Space::,
+            gl        : get : Space::getGLContext, set : Space::setGLContext
+            glProgram : get : Space::getGLProgram, set : Space::setGLProgram
+            glVShader : get : Space::getGLVShader, set : Space::setGLVShader
+            glFShader : get : Space::getGLFShader, set : Space::setGLFShader
+
+            vShader   : get : -> findChilds.call( this, VertexShader ).find (s) -> s.active
+            fShader   : get : -> findChilds.call( this, FragmentShader ).find (s) -> s.active
+
+        init            : ->
+            super arguments...
+            return this if !isWindow or @gl
+
+            @createContext()
+            @createShaders()
+
+        getGLContext    : ->
+            @scope[ getResvUint8.call this, 0 ]
+
+        setGLContext    : ( webGL2RenderingContext ) ->
+            setResvUint8.call this, 0, @storeObject webGL2RenderingContext
+
+        getGLProgram    : ->
+            @scope[ getResvUint8.call this, 1 ] or @glProgram = @gl.createProgram()
+
+        setGLProgram    : ( webGLProgram ) ->
+            setResvUint8.call this, 1, @storeObject webGLProgram
+            
+        getGLVShader    : ->
+            @scope[ getResvUint8.call this, 2 ]
+
+        setGLVShader    : ( webGLShader ) ->
+            @vShader.detach() if @glVShader
+            @gl.attachShader @glProgram, webGLShader
+            setResvUint8.call this, 2, @storeObject webGLShader
+            
+        getGLFShader    : ->
+            @scope[ getResvUint8.call this, 3 ]
+
+        setGLFShader    : ( webGLShader ) ->
+            @fShader.detach() if @glFShader
+            @gl.attachShader @glProgram, webGLShader
+            setResvUint8.call this, 3, @storeObject webGLShader
+            
+        createContext   : ->
+            canvas                  = document.createElement "canvas"
+            canvas.width            = RATIO_PIXEL * INNER_WIDTH
+            canvas.height           = RATIO_PIXEL * INNER_HEIGHT
+            canvas.style.width      = CSS.px INNER_WIDTH
+            canvas.style.height     = CSS.px INNER_HEIGHT
+            canvas.style.inset      = CSS.px 0
+            canvas.style.position   = "fixed"
+    
+            @gl = document.body
+                . appendChild canvas
+                . getContext "webgl2"
+
+            this
+
+        createShaders    : ->
+            for script in [ ...document.scripts ].filter (s) -> s.type.match /shader/i
+                if  script.text.match /gl_Position/                
+
+                    @adopt shader = new VertexShader
+                    shader.source = script.text
+                    #log definitions, script
+
+            this
 
     self.addEventListener "DOMContentLoaded"    , ->
 
         frame = 0
         epoch = 0
         rendering = 0
+
+        return
 
         checkUploads    = ->
             for shape in Shape.allocs()
@@ -1889,9 +2137,6 @@ do  self.init   = ->
             frustrum . listenWindow()
 
         @createDisplay  = ->
-            gl = createCanvas()
-                .getContext "webgl2"
-
             return;
             space = new Space()
 

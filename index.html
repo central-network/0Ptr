@@ -36,14 +36,16 @@
         uniform  float pointSize;
 
         attribute vec4 color;
-        attribute vec4 position;
+        attribute vec4 uv;
+        attribute vec3 position;
+        attribute vec2 texture;
 
         varying vec4 ql_Color;
 
         void main() {
-            gl_Position = frustrum * vec4( vec3(position), 1.0 );
+            gl_Position = frustrum * vec4( position, 1.0 );
             gl_PointSize = pointSize;
-            ql_Color = color;
+            ql_Color = color * uv + vec4(texture, 1.0, 1.0);
         }
     </script>
     <script type="x-shader/x-fragment">
@@ -65,7 +67,7 @@
 
         const space = new Space()
 
-        console.log(space)
+        console.warn(space)
 
         const matter = Matter.create({
             position : [ 0, -20, 0 ],
@@ -97,10 +99,8 @@
         })
 
         for (let m of Matter.allocs())
-            console.warn( space.adopt( m ) )
+            space.adopt( m )
 
-        console.log(matter)
-        console.log(matter.childs)
 
 
         addEventListener( "contextrestored", function () {

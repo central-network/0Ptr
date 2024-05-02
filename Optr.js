@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_GLBUFFER, Color, Draw, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERLENGTH, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Vector3, Vertices, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, bindgetFloat32, bindgetUint32, bindgetUint8, bindsetFloat32, bindsetUint32, bindsetUint8, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, findChilds, findChildsPtri, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsPtri, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterLength, getIterOffset, getLength, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc2, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterLength, setIterOffset, setLength, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_GLBUFFER, Color, Draw, FragmentShader, Frustrum, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERLENGTH, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Texture, UV, Vector3, VertexShader, Vertices, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, bindgetFloat32, bindgetUint32, bindgetUint8, bindsetFloat32, bindsetUint32, bindsetUint8, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, findChild, findChilds, findChildsPtri, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsPtri, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterLength, getIterOffset, getLength, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc2, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterLength, setIterOffset, setLength, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -41,10 +41,11 @@ self.name = "window";
   classes = [];
   buffers = [];
   classes.register = function(Class) {
-    if (!this.includes(Class)) {
-      this.push(Class);
+    var i;
+    if (-1 === (i = this.indexOf(Class))) {
+      i += this.push(Class);
     }
-    return Class.classIndex = this.indexOf(Class);
+    return Class.classIndex = i;
   };
   shaders.register = function(WebGLObject) {
     if (!this.includes(WebGLObject)) {
@@ -162,12 +163,12 @@ self.name = "window";
   getParentPtri = function(ptri) {
     return u32[HEADER_PARENTPTRI + ptri];
   };
-  setParent = function(ptri, v) {
-    return u32[HEADER_PARENTPTRI + ptri] = v || this;
+  setParent = function(ptri) {
+    return u32[HEADER_PARENTPTRI + ptri] = this;
   };
-  getParent = function(ptri = this) {
+  getParent = function() {
     var ptrp;
-    return new classes[u32[HEADER_CLASSINDEX + (ptrp = u32[HEADER_PARENTPTRI + ptri])]](ptrp);
+    return new classes[u32[HEADER_CLASSINDEX + (ptrp = u32[HEADER_PARENTPTRI + this])]](ptrp);
   };
   getChilds = function(ptri = this) {
     var i, list, ptrj;
@@ -197,33 +198,40 @@ self.name = "window";
     }
     return list;
   };
-  findChilds = function(ptri, test) {
-    var ci, i, list, ptrj;
+  findChilds = function(Class) {
+    var clsi, i, list, ptri, ptrj;
+    ptri = parseInt(this);
     ptrj = Atomics.load(u32, 1);
+    clsi = Class.classIndex;
     list = new Array();
     i = 0;
-    ci = (function() {
-      if (test.isPtr) {
-        return classes.indexOf(test);
-      } else if (test.isPtri) {
-        return u32[HEADER_CLASSINDEX + test];
-      } else if (!isNaN(test)) {
-        return test;
-      } else {
-        throw /FILTER_TEST_FAILED/;
-      }
-    })();
     while (ptrj -= 16) {
       if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
         continue;
       }
-      if (u32[HEADER_CLASSINDEX + ptrj] - ci) {
+      if (u32[HEADER_CLASSINDEX + ptrj] - clsi) {
         continue;
       }
-      list[i] = new classes[ci](ptrj);
+      list[i] = new classes[clsi](ptrj);
       ++i;
     }
     return list;
+  };
+  findChild = function(Class) {
+    var clsi, ptri, ptrj;
+    ptri = parseInt(this);
+    ptrj = Atomics.load(u32, 1);
+    clsi = Class.classIndex;
+    while (ptrj -= 16) {
+      if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
+        continue;
+      }
+      if (u32[HEADER_CLASSINDEX + ptrj] - clsi) {
+        continue;
+      }
+      return new classes[clsi](ptrj);
+    }
+    return void 0;
   };
   findChildsPtri = function(ptri, test) {
     var ci, i, list, ptrj;
@@ -341,11 +349,11 @@ self.name = "window";
     u16[HEADER_RESVINDEX2 + ptri * 2 + i] = v + (u = u16[HEADER_RESVINDEX2 + ptri * 2 + i]);
     return u;
   };
-  getResvUint8 = function(ptri, i) {
-    return ui8[HEADER_RESVINDEX1 + ptri * 4 + i];
+  getResvUint8 = function(i) {
+    return ui8[HEADER_RESVINDEX1 + this * 4 + i];
   };
-  setResvUint8 = function(ptri, i, v) {
-    return ui8[HEADER_RESVINDEX1 + ptri * 4 + i] = v;
+  setResvUint8 = function(i, v) {
+    return ui8[HEADER_RESVINDEX1 + this * 4 + i] = v;
   };
   addResvUint8 = function(ptri, i, v) {
     var u;
@@ -366,11 +374,20 @@ self.name = "window";
   newFloat32Array = function(byteOffset = 0, length) {
     return new Float32Array(buffer, u32[this] + byteOffset, length || u32[HEADER_LENGTH + this]);
   };
+  ptrFloat32Array = function(byteOffset = 0, length) {
+    return new Float32Array(buffer, this * 4, length || 16);
+  };
   newUint32Array = function(byteOffset = 0, length) {
     return new Uint32Array(buffer, u32[this] + byteOffset, length || u32[HEADER_LENGTH + this]);
   };
+  ptrUint32Array = function(byteOffset = 0, length) {
+    return new Uint32Array(buffer, this * 4, length || 16);
+  };
   newUint8Array = function(byteOffset = 0, length) {
     return new Uint8Array(buffer, u32[this] + byteOffset, length || u32[HEADER_LENGTH + this]);
+  };
+  ptrUint8Array = function(byteOffset = 0, length) {
+    return new Uint8Array(buffer, this * 4, length || 64);
   };
   subarrayFloat32 = function(begin = 0, count) {
     begin += u32[HEADER_BEGIN + this];
@@ -823,6 +840,14 @@ self.name = "window";
         return this;
       }
 
+      storeObject(object) {
+        var i;
+        if (-1 === (i = this.scope.indexOf(object))) {
+          i += this.scope.push(object);
+        }
+        return i;
+      }
+
       static create() {
         return new this(null, ...arguments);
       }
@@ -839,6 +864,8 @@ self.name = "window";
 
     Pointer.prototype.BPE = Pointer.BPE;
 
+    Pointer.prototype.scope = [, ];
+
     Pointer.prototype.adopt = setParent;
 
     Pointer.allocs = getAllocs;
@@ -852,6 +879,12 @@ self.name = "window";
       },
       tarray: {
         get: newFloat32Array
+      },
+      ["|[Pointer]|"]: {
+        get: ptrUint32Array,
+        set: function(ptr) {
+          return ptrUint32Array.call(this).set(ptr);
+        }
       }
     });
 
@@ -967,16 +1000,60 @@ self.name = "window";
     return Color;
 
   }).call(this));
+  classes.register(UV = (function() {
+    class UV extends Vector3 {};
+
+    UV.prototype.name = "uv";
+
+    return UV;
+
+  }).call(this));
+  classes.register(Texture = (function() {
+    class Texture extends Vector3 {};
+
+    Texture.prototype.name = "texture";
+
+    return Texture;
+
+  }).call(this));
   classes.register(Position = (function() {
-    class Position extends Vector3 {};
+    class Position extends Vector3 {
+      apply(begin, count, stride, offset) {
+        var i, tx, ty, tz;
+        [tx, ty, tz] = this.tarray;
+        while (count--) {
+          i = (count * stride + offset) / 4;
+          f32[i] += tx;
+          f32[i + 1] += ty;
+          f32[2 + i] += tz;
+        }
+        return 0;
+      }
+
+    };
 
     Position.prototype.name = "position";
+
+    Position.prototype.vertexAttribPointer = "position";
 
     return Position;
 
   }).call(this));
   classes.register(Scale = (function() {
-    class Scale extends Vector3 {};
+    class Scale extends Vector3 {
+      apply(begin, count, stride, offset) {
+        var i, sx, sy, sz;
+        [sx, sy, sz] = this.tarray;
+        while (count--) {
+          i = (count * stride + offset) / 4;
+          f32[i] *= sx;
+          f32[i + 1] *= sy;
+          f32[2 + i] *= sz;
+        }
+        return 0;
+      }
+
+    };
 
     Scale.prototype.name = "scale";
 
@@ -1047,6 +1124,18 @@ self.name = "window";
         return this;
       }
 
+      apply(begin, count, stride, offset) {
+        var cosX, cosY, cosZ, i, sinX, sinY, sinZ, x, y, z;
+        [x, sinX, cosX, y, sinY, cosY, z, sinZ, cosZ] = this.tarray;
+        while (count--) {
+          i = (count * stride + offset) / 4;
+          f32[i] *= sinX * cosX;
+          f32[i + 1] *= cosY * sinY;
+          f32[2 + i] *= sinZ * cosZ;
+        }
+        return 0;
+      }
+
     };
 
     Rotation.prototype.name = "rotation";
@@ -1073,6 +1162,36 @@ self.name = "window";
   }).call(this));
   classes.register(Vertices = (function() {
     class Vertices extends Pointer {
+      copy(start, begin, count, stride, offset) {
+        var byteLength, byteOffset, dstByteOffset;
+        byteOffset = begin * this.BPE;
+        byteLength = count * this.BPE * 3;
+        dstByteOffset = start * this.BPE + offset;
+        while (count--) {
+          ui8.copyWithin(dstByteOffset, byteOffset, byteOffset + 12);
+          byteOffset -= 12;
+          dstByteOffset -= stride;
+        }
+        return 0;
+      }
+
+      transform(begin, count) {
+        var position, rotation, scale;
+        //todo buffer alloc required 'cause of stride and offset
+        this.copy(1);
+        if (rotation = findInheritable.call(this, "rotation")) {
+          rotation.apply(begin, count);
+        }
+        //todo must read rotated, not original begin 
+        if (position = findInheritable.call(this, "position")) {
+          position.apply(begin, count);
+        }
+        if (scale = findInheritable.call(this, "scale")) {
+          scale.apply(begin, count);
+        }
+        return 0;
+      }
+
       vertex(index = 0) {
         return subarrayFloat32(index * 3, 3);
       }
@@ -1138,6 +1257,22 @@ self.name = "window";
     self.Matter = Matter;
 
     return Matter;
+
+  }).call(this));
+  classes.register(Frustrum = (function() {
+    class Frustrum extends Pointer {};
+
+    Frustrum.prototype.name = "frustrum";
+
+    return Frustrum;
+
+  }).call(this));
+  classes.register(PointSize = (function() {
+    class PointSize extends Pointer {};
+
+    PointSize.prototype.name = "pointSize";
+
+    return PointSize;
 
   }).call(this));
   /*
@@ -1557,673 +1692,714 @@ self.name = "window";
   byteOffset = @globalOffset + ( i * 32 ) + 16
   new Float32Array buffer, byteOffset, 4
 
+  classes.register class Shader extends Pointer
+
+  INDEX_IS_ATTACHED     : 0 #ui8
+  INDEX_GLSHADER_INDEX  : 1
+
+  @typeof : ( source ) ->
+  if !source.match /gl_Program/
+      return WebGL2RenderingContext.FRAGMENT_SHADER
+  return WebGL2RenderingContext.VERTEX_SHADER
+
+  @getDefault : -> @allocs()[0]
+
+  @fromSource : ( source ) ->
+  if  WebGL2RenderingContext.VERTEX_SHADER is @typeof source
+      return new vShader
+  return new fShader
+
+  @createScope : ( scope ) ->
+
+  defaultVShader = no
+  defaultFShader = no
+
+  for s in scripts.find (s) -> s.type.match /x-shader/i
+
+      shader = if s.text.match /gl_Program/
+          new vShader null, scope
+      else new fShader null, scope
+
+      shader . compile s.text 
+
+      if !defaultVShader and shader.vShader
+          defaultVShader = shader 
+
+      if !defaultFShader and shader.fShader
+          defaultFShader = shader 
+
+  scope
+
+  compile : ( source ) ->
+  shader = gl.createShader @type
+
+  gl.shaderSource shader, source
+  gl.compileShader shader
+
+  unless gl.getShaderParameter shader, gl.COMPILE_STATUS
+      info = gl.getShaderInfoLog shader
+      throw "Could not compile WebGL program. \n\n#{info}"
+
+  @glShader = shader
+
+  @resolve()
+
+  resolve : -> this
+
+  Object.defineProperties Shader::,
+
+  isAttached      :
+      get : -> u32[ this + @HINDEX_RESV0 ]
+      set : (v) -> u32[ this + @HINDEX_RESV0 ] = v
+
+  glShader        :
+      get : -> shaders[ u32[ this + @HINDEX_RESV1 ] ]
+      set : (v) -> u32[ this + @HINDEX_RESV1 ] = shaders.register v
+
+  classes.register class vShader extends Shader
+  name : "vShader"
+  type : WebGL2RenderingContext.VERTEX_SHADER
+
+  vShader : yes
+
+  INDEX_GLBUFFER_BOUND  : 0 #ui8
+  INDEX_GLBUFFER_INDEX  : 1
+  INDEX_BYTES_PER_ATTR  : 2
+
+  INDEX_POINTS_START    : 1 #u32 
+  INDEX_POINTS_COUNT    : 2 
+  INDEX_POINTS_OFFSET   : 3 
+
+  INDEX_LINES_START     : 4 
+  INDEX_LINES_COUNT     : 5 
+  INDEX_LINES_OFFSET    : 6 
+
+  INDEX_TRIANGLES_START : 7 
+  INDEX_TRIANGLES_COUNT : 8 
+  INDEX_TRIANGLES_OFFSET: 9 
+
+  INDEX_DRAW_BEGIN      : 16
+
+  init : ->
+  @BYTES_PER_ATTRIBUTE = 32
+
+  length           = @byteLength / 4
+  typeLength       = Math.trunc length / 3 
+  typeByteLength   = typeLength * 4
+  typeAttribLength = typeByteLength / @BYTES_PER_ATTRIBUTE
+
+  @pointsStart     = 2 #for initial alloc
+  @linesStart      = typeAttribLength
+  @trianglesStart  = typeAttribLength * 2
+
+  @pointsOffset    = 2 * @BYTES_PER_ATTRIBUTE
+  @linesOffset     = typeByteLength * 2
+  @trianglesOffset = typeByteLength * 3 
+
+  compile : ( source ) ->
+  super source
+
+  buffer = gl.createBuffer()
+
+  gl.bindBuffer gl.ARRAY_BUFFER, buffer
+  gl.bufferData gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW
+
+  @glBuffer = buffer
+  @isBinded = 1
+
+  this
+
+  attach : ( program ) ->
+  gl.attachShader program, @glShader
+  @isAttached = 1
+
+  this
+
+  resolve : ->
+
+  resolveUniform  = ( uniform ) ->
+      ( data, transpose = off ) ->    switch uniform.kind
+          when "FLOAT_MAT4"           then gl.uniformMatrix4fv  .bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT3"           then gl.uniformMatrix3fv  .bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT2"           then gl.uniformMatrix2fv  .bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT2x3"         then gl.uniformMatrix2x3fv.bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT2x4"         then gl.uniformMatrix2x4fv.bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT3x2"         then gl.uniformMatrix3x2fv.bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT3x4"         then gl.uniformMatrix3x4fv.bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT4x2"         then gl.uniformMatrix4x2fv.bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT3x3"         then gl.uniformMatrix4x3fv.bind gl, uniform.location, transpose, data
+          when "FLOAT"                then gl.uniform1f         .bind gl, uniform.location, data
+          when "INT"                  then gl.uniform1iv        .bind gl, uniform.location, data
+          when "UNSIGNED_INT"         then gl.uniform1uiv       .bind gl, uniform.location, data
+          when "UNSIGNED_INT_VEC2"    then gl.uniform2uiv       .bind gl, uniform.location, data
+          when "UNSIGNED_INT_VEC3"    then gl.uniform3uiv       .bind gl, uniform.location, data
+          when "UNSIGNED_INT_VEC4"    then gl.uniform4uiv       .bind gl, uniform.location, data
+
+  resolveDefines  = ->
+      i = gl.getProgramParameter program, gl.ACTIVE_ATTRIBUTES
+      v = Object.values WebGL2RenderingContext
+      k = Object.keys WebGL2RenderingContext
+
+      lengthOf =
+          vec4 : 4
+          vec3 : 3
+          vec2 : 2
+          mat4 : 4 * 4
+          mat3 : 3 * 3
+
+      attribs = while i--
+          attrib              = gl.getActiveAttrib program, i
+          attrib.is           = "attribute"
+          attrib.location     = gl.getAttribLocation program, attrib.name
+          attrib.isEnabled    = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_ENABLED
+          attrib.binding      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING
+          attrib.typeof       = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_TYPE
+          attrib.kindof       = k.at v.indexOf attrib.typeof 
+          attrib.isNormalized = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
+          attrib.stride       = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_STRIDE
+          attrib.integer      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_INTEGER
+          attrib.divisor      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_DIVISOR
+          attrib.kind         = k.at v.indexOf attrib.type
+          attrib.offset       = ATTRIBS_BYTELENGTH
+          attrib.length       = lengthOf[ attrib.kind.split(/_/).at(-1).toLowerCase() ]
+
+          ATTRIBS_LENGTH     += attrib.length
+          ATTRIBS_BYTELENGTH  = ATTRIBS_LENGTH * 4
+          attrib
+
+      for attrib in attribs
+          attrib.stride       = ATTRIBS_BYTELENGTH
+          attrib.enable       = gl.enableVertexAttribArray.bind gl, attrib.location
+          attrib.rebind       = gl.vertexAttribPointer.bind(
+              gl, attrib.location, attrib.length, attrib.typeof, 
+              attrib.isNormalized, attrib.stride, attrib.offset
+          )
+
+          Object.defineProperties defines[ attrib.name ] = attrib, value :
+              get : -> gl.getVertexAttrib @location, gl.CURRENT_VERTEX_ATTRIB
+
+      i = gl.getProgramParameter program, gl.ACTIVE_UNIFORMS
+      uniforms = while i--
+          uniform             = gl.getActiveUniform program, i
+          uniform.is          = "uniform"
+          uniform.kind        = k.at v.indexOf uniform.type
+          uniform.location    = gl.getUniformLocation program, uniform.name
+          uniform.bindUpload  = resolveUniform uniform 
+
+          Object.defineProperties defines[ uniform.name ] = uniform, value :
+              get : -> gl.getUniform program, @location
+              set : ( data ) -> @bindUpload( data )()
+
+  resolveDefines()
+
+  allocPoints     : ( matter ) ->
+  byteOffset = @pointsOffset
+  pointCount = matter.vertices.count
+  byteLength = pointCount * @BYTES_PER_ATTRIBUTE
+
+  begin = byteOffset / 4
+  count = byteLength / 4 
+
+  @pointsCount += pointCount
+  @pointsOffset += byteLength
+
+  Object.assign new Draw( null, matter.shader = this ), {
+      begin, count, offset: byteOffset,
+      type : WebGL2RenderingContext.POINTS
+  }
+
+  allocLines      : ( matter ) ->
+  byteOffset = @linesOffset
+  pointCount = matter.vertices.count
+  byteLength = pointCount * @BYTES_PER_ATTRIBUTE
+
+  begin = byteOffset / 4
+  count = byteLength / 4 
+
+  @linesCount += pointCount
+  @linesOffset += byteLength
+
+  Object.assign new Draw( null, matter.shader = this ), {
+      begin, count, offset: byteOffset,
+      type : WebGL2RenderingContext.LINES
+  }
+
+  allocTriangles  : ( matter ) ->
+  byteOffset = @trianglesOffset
+  pointCount = matter.vertices.count
+  byteLength = pointCount * @BYTES_PER_ATTRIBUTE
+
+  begin = byteOffset / 4
+  count = byteLength / 4 
+
+  @trianglesCount += pointCount
+  @trianglesOffset += byteLength
+
+  Object.assign new Draw( null, matter.shader = this ), {
+      begin, count, offset: byteOffset,
+      type : WebGL2RenderingContext.TRIANGLES
+  }
+
+  Object.defineProperties vShader::,
+
+  drawBuffer      :
+  get : -> new Float32Array buffer, @byteOffset, BYTELENGTH_GLBUFFER/4
+
+  BYTES_PER_ATTRIBUTE :
+  get : -> ui8[ @byteOffset + @INDEX_BYTES_PER_ATTR ]
+  set : (v) -> ui8[ @byteOffset + @INDEX_BYTES_PER_ATTR ] = v
+
+  isBinded        :
+  get : -> ui8[ @byteOffset + @INDEX_GLBUFFER_BOUND ]
+  set : (v) -> ui8[ @byteOffset + @INDEX_GLBUFFER_BOUND ] = v
+
+  glBuffer        :
+  get : -> buffers[ ui8[ @byteOffset + @INDEX_GLBUFFER_INDEX ] ]
+  set : (v) -> ui8[ @byteOffset + @INDEX_GLBUFFER_INDEX ] = buffers.register v
+
+  pointsStart     :
+  get : -> u32[ @begin + @INDEX_POINTS_START ]
+  set : ( v ) -> u32[ @begin + @INDEX_POINTS_START ] = v
+
+  linesStart      :
+  get : -> u32[ @begin + @INDEX_LINES_START ]
+  set : ( v ) -> u32[ @begin + @INDEX_LINES_START ] = v
+
+  trianglesStart  :
+  get : -> u32[ @begin + @INDEX_TRIANGLES_START ]
+  set : ( v ) -> u32[ @begin + @INDEX_TRIANGLES_START ] = v
+
+  pointsCount     :
+  get : -> u32[ @begin + @INDEX_POINTS_COUNT ]
+  set : ( v ) -> u32[ @begin + @INDEX_POINTS_COUNT ] = v
+
+  linesCount      :
+  get : -> u32[ @begin + @INDEX_LINES_COUNT ]
+  set : ( v ) -> u32[ @begin + @INDEX_LINES_COUNT ] = v
+
+  trianglesCount  :
+  get : -> u32[ @begin + @INDEX_TRIANGLES_COUNT ]
+  set : ( v ) -> u32[ @begin + @INDEX_TRIANGLES_COUNT ] = v
+
+  pointsOffset    :
+  get : -> u32[ @begin + @INDEX_POINTS_OFFSET ]
+  set : ( v ) -> u32[ @begin + @INDEX_POINTS_OFFSET ] = v
+
+  linesOffset     :
+  get : -> u32[ @begin + @INDEX_LINES_OFFSET ]
+  set : ( v ) -> u32[ @begin + @INDEX_LINES_OFFSET ] = v
+
+  trianglesOffset :
+  get : -> u32[ @begin + @INDEX_TRIANGLES_OFFSET ]
+  set : ( v ) -> u32[ @begin + @INDEX_TRIANGLES_OFFSET ] = v
+
+  classes.register class fShader  extends Shader
+  name : "fShader"
+  type : WebGL2RenderingContext.FRAGMENT_SHADER
+
+  fShader : yes
+
   */
   classes.register(Shader = (function() {
     class Shader extends Pointer {
-      static typeof(source) {
-        if (!source.match(/gl_Program/)) {
-          return WebGL2RenderingContext.FRAGMENT_SHADER;
-        }
-        return WebGL2RenderingContext.VERTEX_SHADER;
+      getGLContext() {
+        return this.scope[getResvUint8.call(this, 0)] || (this.gl = this.parent.gl);
       }
 
-      static getDefault() {
-        return this.allocs()[0];
+      setGLContext(webGL2RenderingContext) {
+        return setResvUint8.call(this, 0, this.storeObject(webGL2RenderingContext));
       }
 
-      static fromSource(source) {
-        if (WebGL2RenderingContext.VERTEX_SHADER === this.typeof(source)) {
-          return new vShader;
-        }
-        return new fShader;
+      getGLProgram() {
+        return this.scope[getResvUint8.call(this, 1)] || (this.glProgram = this.parent.glProgram);
       }
 
-      static createScope(scope) {
-        var defaultFShader, defaultVShader, j, len, ref, s, shader;
-        defaultVShader = false;
-        defaultFShader = false;
-        ref = scripts.find(function(s) {
-          return s.type.match(/x-shader/i);
-        });
-        for (j = 0, len = ref.length; j < len; j++) {
-          s = ref[j];
-          shader = s.text.match(/gl_Program/) ? new vShader(null, scope) : new fShader(null, scope);
-          shader.compile(s.text);
-          if (!defaultVShader && shader.vShader) {
-            defaultVShader = shader;
-          }
-          if (!defaultFShader && shader.fShader) {
-            defaultFShader = shader;
-          }
-        }
-        return scope;
+      setGLProgram(webGLProgram) {
+        return setResvUint8.call(this, 1, this.storeObject(webGLProgram));
+      }
+
+      getGLBuffer() {
+        return this.scope[getResvUint8.call(this, 2)];
+      }
+
+      setGLBuffer(webGLBuffer) {
+        return setResvUint8.call(this, 2, this.storeObject(webGLBuffer));
+      }
+
+      getGLShader() {
+        return this.scope[getResvUint8.call(this, 3)];
+      }
+
+      setGLShader(webGLShader) {
+        return setResvUint8.call(this, 3, this.storeObject(webGLShader));
+      }
+
+      getActive() {
+        return getResvUint8.call(this, 4);
+      }
+
+      setActive(bool) {
+        return setResvUint8.call(this, 4, bool);
+      }
+
+      getSource() {
+        return this.glShader && this.gl.getShaderSource(this.glShader);
+      }
+
+      setSource(source) {
+        var definitions;
+        definitions = this.parseSource(source);
+        //todo create buffer and do
+        return this.destroy().compile(source).attach();
       }
 
       compile(source) {
-        var info, shader;
-        shader = gl.createShader(this.type);
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-          info = gl.getShaderInfoLog(shader);
-          throw `Could not compile WebGL program. \n\n${info}`;
+        var glShader, info;
+        glShader = this.gl.createShader(this.constructor.shaderType);
+        this.gl.shaderSource(glShader, source);
+        this.gl.compileShader(glShader);
+        if (!this.gl.getShaderParameter(glShader, this.gl.COMPILE_STATUS)) {
+          info = this.gl.getShaderInfoLog(glShader);
+          throw `Could not compile WebGL shader. \n\n${info}`;
+        } else {
+          this.glShader = glShader;
         }
-        this.glShader = shader;
-        return this.resolve();
+        return this;
       }
 
-      resolve() {
+      attach() {
+        this.active = 1;
+        return this;
+      }
+
+      detach() {
+        this.gl.detachShader(this.glProgram, this.glShader);
+        this.active = 0;
+        return this;
+      }
+
+      destroy() {
+        if (!this.glShader) {
+          return this;
+        }
+        if (this.active) {
+          this.gl.detachShader(this.glProgram, this.glShader);
+        }
+        this.gl.deleteShader(this.glShader);
         return this;
       }
 
     };
 
-    Shader.prototype.INDEX_IS_ATTACHED = 0; //ui8
-
-    Shader.prototype.INDEX_GLSHADER_INDEX = 1;
-
     Object.defineProperties(Shader.prototype, {
-      isAttached: {
-        get: function() {
-          return u32[this + this.HINDEX_RESV0];
-        },
-        set: function(v) {
-          return u32[this + this.HINDEX_RESV0] = v;
-        }
+      gl: {
+        get: Shader.prototype.getGLContext,
+        set: Shader.prototype.setGLContext
+      },
+      glProgram: {
+        get: Shader.prototype.getGLProgram,
+        set: Shader.prototype.setGLProgram
       },
       glShader: {
-        get: function() {
-          return shaders[u32[this + this.HINDEX_RESV1]];
-        },
-        set: function(v) {
-          return u32[this + this.HINDEX_RESV1] = shaders.register(v);
-        }
+        get: Shader.prototype.getGLShader,
+        set: Shader.prototype.setGLShader
+      },
+      glBuffer: {
+        get: Shader.prototype.getGLBuffer,
+        set: Shader.prototype.setGLBuffer
+      }
+    });
+
+    Object.defineProperties(Shader.prototype, {
+      source: {
+        get: Shader.prototype.getSource,
+        set: Shader.prototype.setSource
+      },
+      active: {
+        get: Shader.prototype.getActive,
+        set: Shader.prototype.setActive
       }
     });
 
     return Shader;
 
   }).call(this));
-  classes.register(vShader = (function() {
-    class vShader extends Shader {
-      init() {
-        var length, typeAttribLength, typeByteLength, typeLength;
-        this.BYTES_PER_ATTRIBUTE = 32;
-        length = this.byteLength / 4;
-        typeLength = Math.trunc(length / 3);
-        typeByteLength = typeLength * 4;
-        typeAttribLength = typeByteLength / this.BYTES_PER_ATTRIBUTE;
-        this.pointsStart = 2; //for initial alloc
-        this.linesStart = typeAttribLength;
-        this.trianglesStart = typeAttribLength * 2;
-        this.pointsOffset = 2 * this.BYTES_PER_ATTRIBUTE;
-        this.linesOffset = typeByteLength * 2;
-        return this.trianglesOffset = typeByteLength * 3;
-      }
-
-      compile(source) {
-        super.compile(source);
-        buffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW);
-        this.glBuffer = buffer;
-        this.isBinded = 1;
-        return this;
-      }
-
-      attach(program) {
-        gl.attachShader(program, this.glShader);
-        this.isAttached = 1;
-        return this;
-      }
-
-      resolve() {
-        var resolveDefines, resolveUniform;
-        resolveUniform = function(uniform) {
-          return function(data, transpose = false) {
-            switch (uniform.kind) {
-              case "FLOAT_MAT4":
-                return gl.uniformMatrix4fv.bind(gl, uniform.location, transpose, data);
-              case "FLOAT_MAT3":
-                return gl.uniformMatrix3fv.bind(gl, uniform.location, transpose, data);
-              case "FLOAT_MAT2":
-                return gl.uniformMatrix2fv.bind(gl, uniform.location, transpose, data);
-              case "FLOAT_MAT2x3":
-                return gl.uniformMatrix2x3fv.bind(gl, uniform.location, transpose, data);
-              case "FLOAT_MAT2x4":
-                return gl.uniformMatrix2x4fv.bind(gl, uniform.location, transpose, data);
-              case "FLOAT_MAT3x2":
-                return gl.uniformMatrix3x2fv.bind(gl, uniform.location, transpose, data);
-              case "FLOAT_MAT3x4":
-                return gl.uniformMatrix3x4fv.bind(gl, uniform.location, transpose, data);
-              case "FLOAT_MAT4x2":
-                return gl.uniformMatrix4x2fv.bind(gl, uniform.location, transpose, data);
-              case "FLOAT_MAT3x3":
-                return gl.uniformMatrix4x3fv.bind(gl, uniform.location, transpose, data);
-              case "FLOAT":
-                return gl.uniform1f.bind(gl, uniform.location, data);
-              case "INT":
-                return gl.uniform1iv.bind(gl, uniform.location, data);
-              case "UNSIGNED_INT":
-                return gl.uniform1uiv.bind(gl, uniform.location, data);
-              case "UNSIGNED_INT_VEC2":
-                return gl.uniform2uiv.bind(gl, uniform.location, data);
-              case "UNSIGNED_INT_VEC3":
-                return gl.uniform3uiv.bind(gl, uniform.location, data);
-              case "UNSIGNED_INT_VEC4":
-                return gl.uniform4uiv.bind(gl, uniform.location, data);
-            }
-          };
-        };
-        resolveDefines = function() {
-          var attrib, attribs, i, j, k, len, lengthOf, uniform, uniforms, v;
-          i = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
-          v = Object.values(WebGL2RenderingContext);
-          k = Object.keys(WebGL2RenderingContext);
-          lengthOf = {
-            vec4: 4,
-            vec3: 3,
-            vec2: 2,
-            mat4: 4 * 4,
-            mat3: 3 * 3
-          };
-          attribs = (function() {
-            var results;
-            results = [];
-            while (i--) {
-              attrib = gl.getActiveAttrib(program, i);
-              attrib.is = "attribute";
-              attrib.location = gl.getAttribLocation(program, attrib.name);
-              attrib.isEnabled = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
-              attrib.binding = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
-              attrib.typeof = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_TYPE);
-              attrib.kindof = k.at(v.indexOf(attrib.typeof));
-              attrib.isNormalized = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED);
-              attrib.stride = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_STRIDE);
-              attrib.integer = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_INTEGER);
-              attrib.divisor = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_DIVISOR);
-              attrib.kind = k.at(v.indexOf(attrib.type));
-              attrib.offset = ATTRIBS_BYTELENGTH;
-              attrib.length = lengthOf[attrib.kind.split(/_/).at(-1).toLowerCase()];
-              ATTRIBS_LENGTH += attrib.length;
-              ATTRIBS_BYTELENGTH = ATTRIBS_LENGTH * 4;
-              results.push(attrib);
-            }
-            return results;
-          })();
-          for (j = 0, len = attribs.length; j < len; j++) {
-            attrib = attribs[j];
-            attrib.stride = ATTRIBS_BYTELENGTH;
-            attrib.enable = gl.enableVertexAttribArray.bind(gl, attrib.location);
-            attrib.rebind = gl.vertexAttribPointer.bind(gl, attrib.location, attrib.length, attrib.typeof, attrib.isNormalized, attrib.stride, attrib.offset);
-            Object.defineProperties(defines[attrib.name] = attrib, {
-              value: {
-                get: function() {
-                  return gl.getVertexAttrib(this.location, gl.CURRENT_VERTEX_ATTRIB);
-                }
-              }
-            });
-          }
-          i = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
-          return uniforms = (function() {
-            var results;
-            results = [];
-            while (i--) {
-              uniform = gl.getActiveUniform(program, i);
-              uniform.is = "uniform";
-              uniform.kind = k.at(v.indexOf(uniform.type));
-              uniform.location = gl.getUniformLocation(program, uniform.name);
-              uniform.bindUpload = resolveUniform(uniform);
-              results.push(Object.defineProperties(defines[uniform.name] = uniform, {
-                value: {
-                  get: function() {
-                    return gl.getUniform(program, this.location);
-                  },
-                  set: function(data) {
-                    return this.bindUpload(data)();
-                  }
-                }
-              }));
-            }
-            return results;
-          })();
-        };
-        return resolveDefines();
-      }
-
-      allocPoints(matter) {
-        var begin, byteLength, byteOffset, count, pointCount;
-        byteOffset = this.pointsOffset;
-        pointCount = matter.vertices.count;
-        byteLength = pointCount * this.BYTES_PER_ATTRIBUTE;
-        begin = byteOffset / 4;
-        count = byteLength / 4;
-        this.pointsCount += pointCount;
-        this.pointsOffset += byteLength;
-        return Object.assign(new Draw(null, matter.shader = this), {
-          begin,
-          count,
-          offset: byteOffset,
-          type: WebGL2RenderingContext.POINTS
-        });
-      }
-
-      allocLines(matter) {
-        var begin, byteLength, byteOffset, count, pointCount;
-        byteOffset = this.linesOffset;
-        pointCount = matter.vertices.count;
-        byteLength = pointCount * this.BYTES_PER_ATTRIBUTE;
-        begin = byteOffset / 4;
-        count = byteLength / 4;
-        this.linesCount += pointCount;
-        this.linesOffset += byteLength;
-        return Object.assign(new Draw(null, matter.shader = this), {
-          begin,
-          count,
-          offset: byteOffset,
-          type: WebGL2RenderingContext.LINES
-        });
-      }
-
-      allocTriangles(matter) {
-        var begin, byteLength, byteOffset, count, pointCount;
-        byteOffset = this.trianglesOffset;
-        pointCount = matter.vertices.count;
-        byteLength = pointCount * this.BYTES_PER_ATTRIBUTE;
-        begin = byteOffset / 4;
-        count = byteLength / 4;
-        this.trianglesCount += pointCount;
-        this.trianglesOffset += byteLength;
-        return Object.assign(new Draw(null, matter.shader = this), {
-          begin,
-          count,
-          offset: byteOffset,
-          type: WebGL2RenderingContext.TRIANGLES
-        });
+  classes.register(FragmentShader = (function() {
+    class FragmentShader extends Shader {
+      attach() {
+        return super.attach(this.parent.glFShader = this.glShader);
       }
 
     };
 
-    vShader.prototype.name = "vShader";
+    FragmentShader.shaderType = WebGL2RenderingContext.FRAGMENT_SHADER;
 
-    vShader.prototype.type = WebGL2RenderingContext.VERTEX_SHADER;
-
-    vShader.prototype.vShader = true;
-
-    vShader.prototype.INDEX_GLBUFFER_BOUND = 0; //ui8
-
-    vShader.prototype.INDEX_GLBUFFER_INDEX = 1;
-
-    vShader.prototype.INDEX_BYTES_PER_ATTR = 2;
-
-    vShader.prototype.INDEX_POINTS_START = 1; //u32 
-
-    vShader.prototype.INDEX_POINTS_COUNT = 2;
-
-    vShader.prototype.INDEX_POINTS_OFFSET = 3;
-
-    vShader.prototype.INDEX_LINES_START = 4;
-
-    vShader.prototype.INDEX_LINES_COUNT = 5;
-
-    vShader.prototype.INDEX_LINES_OFFSET = 6;
-
-    vShader.prototype.INDEX_TRIANGLES_START = 7;
-
-    vShader.prototype.INDEX_TRIANGLES_COUNT = 8;
-
-    vShader.prototype.INDEX_TRIANGLES_OFFSET = 9;
-
-    vShader.prototype.INDEX_DRAW_BEGIN = 16;
-
-    return vShader;
+    return FragmentShader;
 
   }).call(this));
-  Object.defineProperties(vShader.prototype, {
-    drawBuffer: {
-      get: function() {
-        return new Float32Array(buffer, this.byteOffset, BYTELENGTH_GLBUFFER / 4);
+  classes.register(VertexShader = (function() {
+    class VertexShader extends Shader {
+      attach() {
+        return super.attach(this.parent.glVShader = this.glShader);
       }
-    },
-    BYTES_PER_ATTRIBUTE: {
-      get: function() {
-        return ui8[this.byteOffset + this.INDEX_BYTES_PER_ATTR];
-      },
-      set: function(v) {
-        return ui8[this.byteOffset + this.INDEX_BYTES_PER_ATTR] = v;
-      }
-    },
-    isBinded: {
-      get: function() {
-        return ui8[this.byteOffset + this.INDEX_GLBUFFER_BOUND];
-      },
-      set: function(v) {
-        return ui8[this.byteOffset + this.INDEX_GLBUFFER_BOUND] = v;
-      }
-    },
-    glBuffer: {
-      get: function() {
-        return buffers[ui8[this.byteOffset + this.INDEX_GLBUFFER_INDEX]];
-      },
-      set: function(v) {
-        return ui8[this.byteOffset + this.INDEX_GLBUFFER_INDEX] = buffers.register(v);
-      }
-    },
-    pointsStart: {
-      get: function() {
-        return u32[this.begin + this.INDEX_POINTS_START];
-      },
-      set: function(v) {
-        return u32[this.begin + this.INDEX_POINTS_START] = v;
-      }
-    },
-    linesStart: {
-      get: function() {
-        return u32[this.begin + this.INDEX_LINES_START];
-      },
-      set: function(v) {
-        return u32[this.begin + this.INDEX_LINES_START] = v;
-      }
-    },
-    trianglesStart: {
-      get: function() {
-        return u32[this.begin + this.INDEX_TRIANGLES_START];
-      },
-      set: function(v) {
-        return u32[this.begin + this.INDEX_TRIANGLES_START] = v;
-      }
-    },
-    pointsCount: {
-      get: function() {
-        return u32[this.begin + this.INDEX_POINTS_COUNT];
-      },
-      set: function(v) {
-        return u32[this.begin + this.INDEX_POINTS_COUNT] = v;
-      }
-    },
-    linesCount: {
-      get: function() {
-        return u32[this.begin + this.INDEX_LINES_COUNT];
-      },
-      set: function(v) {
-        return u32[this.begin + this.INDEX_LINES_COUNT] = v;
-      }
-    },
-    trianglesCount: {
-      get: function() {
-        return u32[this.begin + this.INDEX_TRIANGLES_COUNT];
-      },
-      set: function(v) {
-        return u32[this.begin + this.INDEX_TRIANGLES_COUNT] = v;
-      }
-    },
-    pointsOffset: {
-      get: function() {
-        return u32[this.begin + this.INDEX_POINTS_OFFSET];
-      },
-      set: function(v) {
-        return u32[this.begin + this.INDEX_POINTS_OFFSET] = v;
-      }
-    },
-    linesOffset: {
-      get: function() {
-        return u32[this.begin + this.INDEX_LINES_OFFSET];
-      },
-      set: function(v) {
-        return u32[this.begin + this.INDEX_LINES_OFFSET] = v;
-      }
-    },
-    trianglesOffset: {
-      get: function() {
-        return u32[this.begin + this.INDEX_TRIANGLES_OFFSET];
-      },
-      set: function(v) {
-        return u32[this.begin + this.INDEX_TRIANGLES_OFFSET] = v;
-      }
-    }
-  });
-  classes.register(fShader = (function() {
-    class fShader extends Shader {};
 
-    fShader.prototype.name = "fShader";
+      parseSource(source) {
+        var attrib, attribs, buf, canvas, definitions, i, info, j, k, len, len1, lengthOf, m, ref, shader, shader2, source2, uniform, uniforms, v;
+        canvas = new OffscreenCanvas(0, 0);
+        gl = canvas.getContext("webgl2");
+        program = gl.createProgram();
+        shader = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          info = gl.getShaderInfoLog(shader);
+          throw `Could not compile WebGL shader. \n\n${info}`;
+        }
+        shader2 = gl.createShader(35632);
+        source2 = "void main() { gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); }";
+        gl.shaderSource(shader2, source2);
+        gl.compileShader(shader2);
+        gl.attachShader(program, shader);
+        gl.attachShader(program, shader2);
+        gl.linkProgram(program);
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf = gl.createBuffer());
+        gl.bufferData(gl.ARRAY_BUFFER, 256, gl.STATIC_DRAW);
+        gl.useProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          info = gl.getProgramInfoLog(program);
+          throw `Could not compile WebGL program. \n\n${info}`;
+        }
+        i = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+        v = Object.values(WebGL2RenderingContext);
+        k = Object.keys(WebGL2RenderingContext);
+        lengthOf = {
+          vec4: 4,
+          vec3: 3,
+          vec2: 2,
+          mat4: 4 * 4,
+          mat3: 3 * 3
+        };
+        ATTRIBS_LENGTH = 0;
+        ATTRIBS_BYTELENGTH = 0;
+        attribs = (function() {
+          var results;
+          results = [];
+          while (i--) {
+            attrib = gl.getActiveAttrib(program, i);
+            attrib.is = "attribute";
+            attrib.kind = k.at(v.indexOf(attrib.type));
+            attrib.class = classes.find(function(c) {
+              return c.prototype.name === attrib.name;
+            });
+            attrib.location = gl.getAttribLocation(program, attrib.name);
+            attrib.typeof = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_TYPE);
+            attrib.kindof = k.at(v.indexOf(attrib.typeof));
+            attrib.offset = ATTRIBS_BYTELENGTH;
+            attrib.length = lengthOf[attrib.kind.split(/_/).at(-1).toLowerCase()];
+            ATTRIBS_LENGTH += attrib.length;
+            ATTRIBS_BYTELENGTH = ATTRIBS_LENGTH * 4;
+            results.push(attrib);
+          }
+          return results;
+        })();
+        for (j = 0, len = attribs.length; j < len; j++) {
+          attrib = attribs[j];
+          attrib.stride = ATTRIBS_BYTELENGTH;
+          gl.enableVertexAttribArray(i = attrib.location);
+          gl.vertexAttribPointer(attrib.location, attrib.length, attrib.typeof, attrib.isNormalized, attrib.stride, attrib.offset);
+          attrib.isEnabled = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_ENABLED);
+          attrib.isNormalized = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED);
+          attrib.integer = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_INTEGER);
+          attrib.divisor = gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_DIVISOR);
+          gl.disableVertexAttribArray(i);
+        }
+        i = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+        uniforms = (function() {
+          var results;
+          results = [];
+          while (i--) {
+            uniform = gl.getActiveUniform(program, i);
+            uniform.is = "uniform";
+            uniform.kind = k.at(v.indexOf(uniform.type));
+            uniform.class = classes.find(function(c) {
+              return c.prototype.name === uniform.name;
+            });
+            uniform.location = gl.getUniformLocation(program, uniform.name);
+            uniform.uploader = (function() {
+              switch (uniform.kind) {
+                case "FLOAT_MAT4":
+                  return "uniformMatrix4fv";
+                case "FLOAT_MAT3":
+                  return "uniformMatrix3fv";
+                case "FLOAT_MAT2":
+                  return "uniformMatrix2fv";
+                case "FLOAT_MAT2x3":
+                  return "uniformMatrix2x3fv";
+                case "FLOAT_MAT2x4":
+                  return "uniformMatrix2x4fv";
+                case "FLOAT_MAT3x2":
+                  return "uniformMatrix3x2fv";
+                case "FLOAT_MAT3x4":
+                  return "uniformMatrix3x4fv";
+                case "FLOAT_MAT4x2":
+                  return "uniformMatrix4x2fv";
+                case "FLOAT_MAT3x3":
+                  return "uniformMatrix4x3fv";
+                case "FLOAT":
+                  return "uniform1f";
+                case "INT":
+                  return "uniform1iv";
+                case "UNSIGNED_INT":
+                  return "uniform1uiv";
+                case "UNSIGNED_INT_VEC2":
+                  return "uniform2uiv";
+                case "UNSIGNED_INT_VEC3":
+                  return "uniform3uiv";
+                case "UNSIGNED_INT_VEC4":
+                  return "uniform4uiv";
+              }
+            })();
+            results.push(uniform);
+          }
+          return results;
+        })();
+        gl.detachShader(program, shader);
+        gl.detachShader(program, shader2);
+        gl.deleteShader(shader);
+        gl.deleteShader(shader2);
+        gl.deleteProgram(program);
+        gl.deleteBuffer(buf);
+        shader = shader2 = gl = program = canvas = null;
+        definitions = new Object;
+        ref = [...uniforms, ...attribs];
+        for (m = 0, len1 = ref.length; m < len1; m++) {
+          v = ref[m];
+          definitions[v.name] = v;
+        }
+        return definitions;
+      }
 
-    fShader.prototype.type = WebGL2RenderingContext.FRAGMENT_SHADER;
+    };
 
-    fShader.prototype.fShader = true;
+    VertexShader.byteLength = 8 * VertexShader.BPE;
 
-    return fShader;
+    VertexShader.shaderType = WebGL2RenderingContext.VERTEX_SHADER;
+
+    return VertexShader;
 
   }).call(this));
   classes.register(Space = (function() {
     class Space extends Pointer {
       init() {
-        return super.init();
-        this.pointsPerType = Math.trunc(this.maxPointsCount / 3);
-        this.pointsStart = this.pointsPerType * 0 + 2;
-        this.linesStart = this.pointsPerType * 1;
-        this.trianglesStart = this.pointsPerType * 2;
-        this.pointsOffset = this.bytesPerPoint * 2;
-        this.linesOffset = this.bytesPerPoint * this.pointsPerType;
-        this.trianglesOffset = this.bytesPerPoint * this.pointsPerType * 2;
+        super.init(...arguments);
+        if (!isWindow || this.gl) {
+          return this;
+        }
+        this.createContext();
+        return this.createShaders();
+      }
+
+      getGLContext() {
+        return this.scope[getResvUint8.call(this, 0)];
+      }
+
+      setGLContext(webGL2RenderingContext) {
+        return setResvUint8.call(this, 0, this.storeObject(webGL2RenderingContext));
+      }
+
+      getGLProgram() {
+        return this.scope[getResvUint8.call(this, 1)] || (this.glProgram = this.gl.createProgram());
+      }
+
+      setGLProgram(webGLProgram) {
+        return setResvUint8.call(this, 1, this.storeObject(webGLProgram));
+      }
+
+      getGLVShader() {
+        return this.scope[getResvUint8.call(this, 2)];
+      }
+
+      setGLVShader(webGLShader) {
+        if (this.glVShader) {
+          this.vShader.detach();
+        }
+        this.gl.attachShader(this.glProgram, webGLShader);
+        return setResvUint8.call(this, 2, this.storeObject(webGLShader));
+      }
+
+      getGLFShader() {
+        return this.scope[getResvUint8.call(this, 3)];
+      }
+
+      setGLFShader(webGLShader) {
+        if (this.glFShader) {
+          this.fShader.detach();
+        }
+        this.gl.attachShader(this.glProgram, webGLShader);
+        return setResvUint8.call(this, 3, this.storeObject(webGLShader));
+      }
+
+      createContext() {
+        var canvas;
+        canvas = document.createElement("canvas");
+        canvas.width = RATIO_PIXEL * INNER_WIDTH;
+        canvas.height = RATIO_PIXEL * INNER_HEIGHT;
+        canvas.style.width = CSS.px(INNER_WIDTH);
+        canvas.style.height = CSS.px(INNER_HEIGHT);
+        canvas.style.inset = CSS.px(0);
+        canvas.style.position = "fixed";
+        this.gl = document.body.appendChild(canvas).getContext("webgl2");
         return this;
       }
 
-      drawArrays() {
-        var count;
-        if (count = this.trianglesCount) {
-          gl.drawArrays(gl.TRIANGLES, this.trianglesStart, count);
-        }
-        if (count = this.linesCount) {
-          gl.drawArrays(gl.TRIANGLES, this.linesStart, count);
-        }
-        if (count = this.pointsCount) {
-          return gl.drawArrays(gl.TRIANGLES, this.pointsStart, count);
-        }
-      }
-
-      upload() {
-        var draw, j, len, len1, m, ref, ref1, shape;
-        ref = Shape.allocs();
+      createShaders() {
+        var j, len, ref, script, shader;
+        ref = [...document.scripts].filter(function(s) {
+          return s.type.match(/shader/i);
+        });
         for (j = 0, len = ref.length; j < len; j++) {
-          shape = ref[j];
-          if (!shape.willUploadIfNeeded) {
-            continue;
+          script = ref[j];
+          if (script.text.match(/gl_Position/)) {
+            this.adopt(shader = new VertexShader);
+            shader.source = script.text;
           }
-          ref1 = GLDraw.allocs(shape.ptri);
-          for (m = 0, len1 = ref1.length; m < len1; m++) {
-            draw = ref1[m];
-            gl.bufferSubData(gl.ARRAY_BUFFER, draw.uploadOffset, space.drawBuffer, draw.uploadBegin, draw.uploadLength);
-          }
-          return this;
         }
-      }
-
-      append(drawType, pointsCount) {
-        var finish, length, offset, starts;
-        starts = (function() {
-          switch (drawType) {
-            case WebGL2RenderingContext.POINTS:
-              return this.pointsCount += pointsCount;
-            case WebGL2RenderingContext.LINES:
-              return this.linesCount += pointsCount;
-            case WebGL2RenderingContext.TRIANGLES:
-              return this.trianglesCount += pointsCount;
-          }
-        }).call(this);
-        offset = (function() {
-          switch (drawType) {
-            case WebGL2RenderingContext.POINTS:
-              return this.pointsOffset;
-            case WebGL2RenderingContext.LINES:
-              return this.linesOffset;
-            case WebGL2RenderingContext.TRIANGLES:
-              return this.trianglesOffset;
-          }
-        }).call(this);
-        length = pointsCount * this.bytesPerPoint;
-        finish = (function() {
-          switch (drawType) {
-            case WebGL2RenderingContext.POINTS:
-              return this.pointsOffset += length;
-            case WebGL2RenderingContext.LINES:
-              return this.linesOffset += length;
-            case WebGL2RenderingContext.TRIANGLES:
-              return this.trianglesOffset += length;
-          }
-        }).call(this);
-        return offset;
-      }
-
-      mallo2c(drawType, shape) {
-        var draw, dstByteOffset, length, pointsCount, srcOffset;
-        pointsCount = shape.pointCount;
-        dstByteOffset = this.append(drawType, pointsCount);
-        srcOffset = dstByteOffset / 4;
-        length = pointsCount * this.itemsPerPoint;
-        draw = GLDraw.fromOptions({
-          drawType,
-          pointsCount,
-          globalOffset: dstByteOffset + this.drawBuffer.byteOffset,
-          uploadOffset: dstByteOffset,
-          uploadBegin: srcOffset,
-          uploadLength: length,
-          parent: shape.ptri
-        });
-        shape.markNeedsUpdate = 1;
-        return draws[draws.length] = Object.defineProperties(draw, {
-          upload: {
-            value: gl.bufferSubData.bind(gl, gl.ARRAY_BUFFER, draw.uploadOffset, this.drawBuffer, draw.uploadBegin, draw.uploadLength)
-          }
-        });
+        return this;
       }
 
     };
 
     self.Space = Space;
 
-    Space.byteLength = BYTELENGTH_GLBUFFER + 16 * 4;
-
-    Space.prototype.INDEX_POINTS_BEGIN = 0;
-
-    Space.prototype.INDEX_LINES_BEGIN = 1;
-
-    Space.prototype.INDEX_TRIANGES_BEGIN = 4;
-
-    Space.prototype.INDEX_POINTS_COUNT = 2;
-
-    Space.prototype.INDEX_LINES_COUNT = 3;
-
-    Space.prototype.INDEX_TRIANGES_COUNT = 6;
-
-    Space.prototype.INDEX_POINTS_OFFSET = 5;
-
-    Space.prototype.INDEX_LINES_OFFSET = 6;
-
-    Space.prototype.INDEX_TRIANGES_OFFSET = 9;
-
-    Space.prototype.INDEX_TYPELENGTH = 2;
-
-    Space.prototype.INDEX_DRAW_BEGIN = 16;
-
-    Space.prototype.itemsPerPoint = 8;
-
-    Space.prototype.bytesPerPoint = 4 * Space.prototype.itemsPerPoint;
-
-    Space.prototype.drawByteOffset = 4 * Space.prototype.INDEX_DRAW_BEGIN;
-
-    Space.prototype.drawByteLength = BYTELENGTH_GLBUFFER - BYTELENGTH_GLBUFFER % Space.prototype.bytesPerPoint;
-
-    Space.prototype.drawableLength = Space.prototype.drawByteLength / 4;
-
-    Space.prototype.maxPointsCount = Space.prototype.drawByteLength / Space.prototype.bytesPerPoint;
-
     Object.defineProperties(Space.prototype, {
-      drawBuffer: {
+      gl: {
+        get: Space.prototype.getGLContext,
+        set: Space.prototype.setGLContext
+      },
+      glProgram: {
+        get: Space.prototype.getGLProgram,
+        set: Space.prototype.setGLProgram
+      },
+      glVShader: {
+        get: Space.prototype.getGLVShader,
+        set: Space.prototype.setGLVShader
+      },
+      glFShader: {
+        get: Space.prototype.getGLFShader,
+        set: Space.prototype.setGLFShader
+      },
+      vShader: {
         get: function() {
-          return new Float32Array(buffer, this.byteOffset + this.drawByteOffset, this.drawableLength);
-        },
-        set: function(v) {
-          return this.drawBuffer.set(v);
+          return findChilds.call(this, VertexShader).find(function(s) {
+            return s.active;
+          });
         }
       },
-      pointsStart: {
+      fShader: {
         get: function() {
-          return u32[this.begin];
-        },
-        set: function(v) {
-          return u32[this.begin] = v;
-        }
-      },
-      linesStart: {
-        get: function() {
-          return u32[this.begin + 1];
-        },
-        set: function(v) {
-          return u32[this.begin + 1] = v;
-        }
-      },
-      trianglesStart: {
-        get: function() {
-          return u32[this.begin + 4];
-        },
-        set: function(v) {
-          return u32[this.begin + 4] = v;
-        }
-      },
-      pointsPerType: {
-        get: function() {
-          return u32[this.begin + 2];
-        },
-        set: function(v) {
-          return u32[this.begin + 2] = v;
-        }
-      },
-      pointsCount: {
-        get: function() {
-          return u32[this.begin + 5];
-        },
-        set: function(v) {
-          return u32[this.begin + 5] = v;
-        }
-      },
-      linesCount: {
-        get: function() {
-          return u32[this.begin + 6];
-        },
-        set: function(v) {
-          return u32[this.begin + 6] = v;
-        }
-      },
-      trianglesCount: {
-        get: function() {
-          return u32[this.begin + 7];
-        },
-        set: function(v) {
-          return u32[this.begin + 7] = v;
-        }
-      },
-      pointsOffset: {
-        get: function() {
-          return u32[this.begin + 8];
-        },
-        set: function(v) {
-          return u32[this.begin + 8] = v;
-        }
-      },
-      linesOffset: {
-        get: function() {
-          return u32[this.begin + 9];
-        },
-        set: function(v) {
-          return u32[this.begin + 9] = v;
-        }
-      },
-      trianglesOffset: {
-        get: function() {
-          return u32[this.begin + 10];
-        },
-        set: function(v) {
-          return u32[this.begin + 10] = v;
+          return findChilds.call(this, FragmentShader).find(function(s) {
+            return s.active;
+          });
         }
       }
     });
@@ -2236,6 +2412,7 @@ self.name = "window";
     frame = 0;
     epoch = 0;
     rendering = 0;
+    return;
     checkUploads = function() {
       var draw, j, len, ref, results, shape;
       ref = Shape.allocs();
@@ -2323,7 +2500,6 @@ self.name = "window";
       return frustrum.listenWindow();
     };
     this.createDisplay = function() {
-      gl = createCanvas().getContext("webgl2");
       return;
       space = new Space();
       initialProgram();
