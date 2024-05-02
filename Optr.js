@@ -2138,23 +2138,8 @@ self.name = "window";
         return super.attach(this.parent.glVShader = this.glShader);
       }
 
-      create() {
-        gl.bindBuffer(gl.ARRAY_BUFFER, gBuffer = gl.createBuffer());
-        return gl.bufferData(gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW);
-      }
-
-      setSource(source) {
-        super.setSource(source);
-        if (this.glBuffer) {
-          return this;
-        }
-        return this.setBuffer(this.gl.createBuffer());
-      }
-
-      setBuffer(glBuffer) {
-        var attibuteByteLength, def, definitions, key;
-        this.glBuffer = glBuffer;
-        definitions = this.parseSource();
+      create(definitions) {
+        var attibuteByteLength, def, key;
         attibuteByteLength = 0;
         for (key in definitions) {
           def = definitions[key];
@@ -2162,7 +2147,22 @@ self.name = "window";
             attibuteByteLength += def.length * this.BPE;
           }
         }
-        return this.malloc(this.GPU_ATTRIBUTE_COUNT * attibuteByteLength);
+        this.malloc(this.GPU_ATTRIBUTE_COUNT * attibuteByteLength);
+        return this.setBuffer(this.gl.createBuffer());
+      }
+
+      setSource(source) {
+        super.setSource(source);
+        if (this.glBuffer) {
+          return this;
+        }
+        return this.create(this.parseSource(source));
+      }
+
+      setBuffer(glBuffer) {
+        this.glBuffer = glBuffer;
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer);
+        return this.gl.bufferData(this.gl.ARRAY_BUFFER, this.drawBuffer, this.gl.STATIC_DRAW);
       }
 
       //todo attib length done make mallocs

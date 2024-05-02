@@ -1851,23 +1851,23 @@ do  self.init   = ->
             
         attach          : -> super @parent.glVShader = @glShader
 
-        create          : ->
-            gl.bindBuffer gl.ARRAY_BUFFER, gBuffer = gl.createBuffer()
-            gl.bufferData gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW
-
-        setSource       : ( source ) ->
-            super source 
-            return this if @glBuffer
-            @setBuffer @gl.createBuffer()
-
-        setBuffer       : ( @glBuffer ) ->
-            definitions = @parseSource()
+        create          : ( definitions ) ->            
             attibuteByteLength = 0
 
             for key, def of definitions when def.is.match /attr/
                 attibuteByteLength += def.length * @BPE
 
             @malloc @GPU_ATTRIBUTE_COUNT * attibuteByteLength
+            @setBuffer @gl.createBuffer()
+
+        setSource       : ( source ) ->
+            super source 
+            return this if @glBuffer
+            @create @parseSource source
+
+        setBuffer       : ( @glBuffer ) ->
+            @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
+            @gl.bufferData @gl.ARRAY_BUFFER, @drawBuffer, @gl.STATIC_DRAW
 
             #todo attib length done make mallocs
 
