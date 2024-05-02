@@ -1861,16 +1861,26 @@ do  self.init   = ->
         
         INDEX_ALLOC_BYTELENGTH_PER_POINT  : 11
 
-        INDEX_DRAWBUFFER_STARTS           : 12
+
+        INDEX_DEFINITIONS_OBJECT          : 12
+
+        INDEX_DRAWBUFFER_STARTS           : 16
 
         Object.defineProperties VertexShader::,
             glBuffer    : get : VertexShader::getGLBuffer , set : VertexShader::setGLBuffer
             drawBuffer  : get : newFloat32Array
-            stats       : get : VertexShader::getStats            
+            stats       : get : VertexShader::dump
+            definitons  : get : VertexShader::getDefinitons , set : VertexShader::setDefinitons            
 
-        index           : getIndex
+        attach          : -> super @parent.glVShader = @glShader
 
-        getStats        : ->
+        getDefinitons   : ->
+            @scope[ getUint32.call this, @INDEX_DEFINITIONS_OBJECT ]
+        
+        setDefinitons   : ( object = {} ) ->
+            setUint32.call this, @INDEX_DEFINITIONS_OBJECT, @storeObject object
+
+        dump            : ->
             BYTELENGTH_PER_TYPE  : getUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_TYPE
             BYTELENGTH_PER_POINT : getUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
             LENGTH_PER_POINT     : getUint32.call this, @INDEX_ALLOC_LENGTH_PER_POINT
@@ -1894,7 +1904,7 @@ do  self.init   = ->
             byteLength = pointCount * getUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
             length     = pointCount * getUint32.call this, @INDEX_ALLOC_LENGTH_PER_POINT
             
-            index = @index switch type
+            index = getIndex.call this, switch type
                 when @GL_LINES      then @INDEX_LINES_COUNT
                 when @GL_POINTS     then @INDEX_POINTS_COUNT
                 when @GL_TRIANGLES  then @INDEX_TRIANGLES_COUNT
@@ -1903,9 +1913,8 @@ do  self.init   = ->
             Atomics.add u32, index, pointCount
             Atomics.add u32, index + 1, byteLength
             
-        attach          : -> super @parent.glVShader = @glShader
-
         create          : ( definitions ) ->            
+
             attibuteByteLength = 0
             for key, def of definitions when def.is.match /attr/
                 attibuteByteLength += def.length * @BPE
@@ -1920,8 +1929,10 @@ do  self.init   = ->
             typeByteAlloc -= typeByteAlloc % attibuteByteLength
             typeDrawCount  = typeByteAlloc / attibuteByteLength
 
-            paddingAlloc  = @INDEX_DRAWBUFFER_STARTS * @BPE
-            paddingCount  = Math.max 1, Math.ceil paddingAlloc / attibuteByteLength
+            paddingCount   = Math.max 1, Math.ceil( 
+                @INDEX_DRAWBUFFER_STARTS * @BPE / attibuteByteLength
+            )
+            paddingAlloc   = paddingCount * attibuteByteLength
 
             setUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_TYPE   , typeByteAlloc
             setUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_POINT  , attibuteByteLength
@@ -1936,10 +1947,10 @@ do  self.init   = ->
             setUint32.call this, @INDEX_POINTS_START    , typeDrawCount * 2 
             setUint32.call this, @INDEX_POINTS_ALLOC    , typeByteAlloc * 2 
             
-            @glBuffer = @gl.createBuffer()            
-            
-            @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
+            @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer = @gl.createBuffer()
             @gl.bufferData @gl.ARRAY_BUFFER, drawByteAlloc, @gl.STATIC_DRAW
+
+            @setDefinitons definitions
 
             this
 

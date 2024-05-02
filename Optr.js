@@ -2104,7 +2104,19 @@ self.name = "window";
   }).call(this));
   classes.register(VertexShader = (function() {
     class VertexShader extends Shader {
-      getStats() {
+      attach() {
+        return super.attach(this.parent.glVShader = this.glShader);
+      }
+
+      getDefinitons() {
+        return this.scope[getUint32.call(this, this.INDEX_DEFINITIONS_OBJECT)];
+      }
+
+      setDefinitons(object = {}) {
+        return setUint32.call(this, this.INDEX_DEFINITIONS_OBJECT, this.storeObject(object));
+      }
+
+      dump() {
         return {
           BYTELENGTH_PER_TYPE: getUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_TYPE),
           BYTELENGTH_PER_POINT: getUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_POINT),
@@ -2131,7 +2143,7 @@ self.name = "window";
         var byteLength, index, length;
         byteLength = pointCount * getUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_POINT);
         length = pointCount * getUint32.call(this, this.INDEX_ALLOC_LENGTH_PER_POINT);
-        index = this.index((function() {
+        index = getIndex.call(this, (function() {
           switch (type) {
             case this.GL_LINES:
               return this.INDEX_LINES_COUNT;
@@ -2145,10 +2157,6 @@ self.name = "window";
         }).call(this));
         Atomics.add(u32, index, pointCount);
         return Atomics.add(u32, index + 1, byteLength);
-      }
-
-      attach() {
-        return super.attach(this.parent.glVShader = this.glShader);
       }
 
       create(definitions) {
@@ -2167,8 +2175,8 @@ self.name = "window";
         typeByteAlloc = drawByteAlloc / 3;
         typeByteAlloc -= typeByteAlloc % attibuteByteLength;
         typeDrawCount = typeByteAlloc / attibuteByteLength;
-        paddingAlloc = this.INDEX_DRAWBUFFER_STARTS * this.BPE;
-        paddingCount = Math.max(1, Math.ceil(paddingAlloc / attibuteByteLength));
+        paddingCount = Math.max(1, Math.ceil(this.INDEX_DRAWBUFFER_STARTS * this.BPE / attibuteByteLength));
+        paddingAlloc = paddingCount * attibuteByteLength;
         setUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_TYPE, typeByteAlloc);
         setUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_POINT, attibuteByteLength);
         setUint32.call(this, this.INDEX_ALLOC_LENGTH_PER_POINT, attibuteByteLength / 4);
@@ -2178,9 +2186,9 @@ self.name = "window";
         setUint32.call(this, this.INDEX_LINES_ALLOC, typeByteAlloc);
         setUint32.call(this, this.INDEX_POINTS_START, typeDrawCount * 2);
         setUint32.call(this, this.INDEX_POINTS_ALLOC, typeByteAlloc * 2);
-        this.glBuffer = this.gl.createBuffer();
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer = this.gl.createBuffer());
         this.gl.bufferData(this.gl.ARRAY_BUFFER, drawByteAlloc, this.gl.STATIC_DRAW);
+        this.setDefinitons(definitions);
         return this;
       }
 
@@ -2362,7 +2370,9 @@ self.name = "window";
 
     VertexShader.prototype.INDEX_ALLOC_BYTELENGTH_PER_POINT = 11;
 
-    VertexShader.prototype.INDEX_DRAWBUFFER_STARTS = 12;
+    VertexShader.prototype.INDEX_DEFINITIONS_OBJECT = 12;
+
+    VertexShader.prototype.INDEX_DRAWBUFFER_STARTS = 16;
 
     Object.defineProperties(VertexShader.prototype, {
       glBuffer: {
@@ -2373,11 +2383,13 @@ self.name = "window";
         get: newFloat32Array
       },
       stats: {
-        get: VertexShader.prototype.getStats
+        get: VertexShader.prototype.dump
+      },
+      definitons: {
+        get: VertexShader.prototype.getDefinitons,
+        set: VertexShader.prototype.setDefinitons
       }
     });
-
-    VertexShader.prototype.index = getIndex;
 
     return VertexShader;
 
