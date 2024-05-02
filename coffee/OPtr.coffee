@@ -1757,11 +1757,12 @@ do  self.init   = ->
 
     classes.register class Shader extends Pointer
 
+        GPU_ATTRIBUTE_COUNT : 1e5 
+
         Object.defineProperties Shader::,
             gl        : get : Shader::getGLContext, set : Shader::setGLContext
             glProgram : get : Shader::getGLProgram, set : Shader::setGLProgram
             glShader  : get : Shader::getGLShader , set : Shader::setGLShader
-            glBuffer  : get : Shader::getGLBuffer , set : Shader::setGLBuffer            
 
         Object.defineProperties Shader::,
             source   : get : Shader::getSource  , set : Shader::setSource
@@ -1801,14 +1802,7 @@ do  self.init   = ->
             @glShader and @gl.getShaderSource @glShader 
 
         setSource       : ( source ) ->
-            definitions = @parseSource source
-
-            #todo create buffer and do
-
-            this
-                .destroy()
-                .compile( source )
-                .attach()
+            @destroy().compile( source ).attach()
         
         compile          : ( source ) ->
             glShader = @gl.createShader @constructor.shaderType
@@ -1848,13 +1842,36 @@ do  self.init   = ->
 
     classes.register class VertexShader extends Shader
 
-        @byteLength     : 8 * @BPE
-
         @shaderType     : WebGL2RenderingContext.VERTEX_SHADER
 
+        Object.defineProperties VertexShader::,
+            glBuffer    : get : VertexShader::getGLBuffer , set : VertexShader::setGLBuffer
+            source      : get : Shader::getSource , set : VertexShader::setSource            
+            drawBuffer  : get : newFloat32Array
+            
         attach          : -> super @parent.glVShader = @glShader
 
-        parseSource     : ( source ) ->
+        create          : ->
+            gl.bindBuffer gl.ARRAY_BUFFER, gBuffer = gl.createBuffer()
+            gl.bufferData gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW
+
+        setSource       : ( source ) ->
+            super source 
+            return this if @glBuffer
+            @setBuffer @gl.createBuffer()
+
+        setBuffer       : ( @glBuffer ) ->
+            definitions = @parseSource()
+            attibuteByteLength = 0
+
+            for key, def of definitions when def.is.match /attr/
+                attibuteByteLength += def.length * @BPE
+
+            @malloc @GPU_ATTRIBUTE_COUNT * attibuteByteLength
+
+            #todo attib length done make mallocs
+
+        parseSource     : ( source = @source ) ->
             canvas = new OffscreenCanvas 0, 0
             gl = canvas.getContext "webgl2"
 

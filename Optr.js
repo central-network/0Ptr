@@ -2047,9 +2047,6 @@ self.name = "window";
       }
 
       setSource(source) {
-        var definitions;
-        definitions = this.parseSource(source);
-        //todo create buffer and do
         return this.destroy().compile(source).attach();
       }
 
@@ -2091,6 +2088,8 @@ self.name = "window";
 
     };
 
+    Shader.prototype.GPU_ATTRIBUTE_COUNT = 1e5;
+
     Object.defineProperties(Shader.prototype, {
       gl: {
         get: Shader.prototype.getGLContext,
@@ -2103,10 +2102,6 @@ self.name = "window";
       glShader: {
         get: Shader.prototype.getGLShader,
         set: Shader.prototype.setGLShader
-      },
-      glBuffer: {
-        get: Shader.prototype.getGLBuffer,
-        set: Shader.prototype.setGLBuffer
       }
     });
 
@@ -2143,7 +2138,35 @@ self.name = "window";
         return super.attach(this.parent.glVShader = this.glShader);
       }
 
-      parseSource(source) {
+      create() {
+        gl.bindBuffer(gl.ARRAY_BUFFER, gBuffer = gl.createBuffer());
+        return gl.bufferData(gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW);
+      }
+
+      setSource(source) {
+        super.setSource(source);
+        if (this.glBuffer) {
+          return this;
+        }
+        return this.setBuffer(this.gl.createBuffer());
+      }
+
+      setBuffer(glBuffer) {
+        var attibuteByteLength, def, definitions, key;
+        this.glBuffer = glBuffer;
+        definitions = this.parseSource();
+        attibuteByteLength = 0;
+        for (key in definitions) {
+          def = definitions[key];
+          if (def.is.match(/attr/)) {
+            attibuteByteLength += def.length * this.BPE;
+          }
+        }
+        return this.malloc(this.GPU_ATTRIBUTE_COUNT * attibuteByteLength);
+      }
+
+      //todo attib length done make mallocs
+      parseSource(source = this.source) {
         var attrib, attribs, buf, canvas, definitions, i, info, j, k, len, len1, lengthOf, m, ref, shader, shader2, source2, uniform, uniforms, v;
         canvas = new OffscreenCanvas(0, 0);
         gl = canvas.getContext("webgl2");
@@ -2281,9 +2304,21 @@ self.name = "window";
 
     };
 
-    VertexShader.byteLength = 8 * VertexShader.BPE;
-
     VertexShader.shaderType = WebGL2RenderingContext.VERTEX_SHADER;
+
+    Object.defineProperties(VertexShader.prototype, {
+      glBuffer: {
+        get: VertexShader.prototype.getGLBuffer,
+        set: VertexShader.prototype.setGLBuffer
+      },
+      source: {
+        get: Shader.prototype.getSource,
+        set: VertexShader.prototype.setSource
+      },
+      drawBuffer: {
+        get: newFloat32Array
+      }
+    });
 
     return VertexShader;
 
