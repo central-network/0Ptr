@@ -11,6 +11,14 @@ do  self.init   = ->
     number = -> arguments[0].split("").reduce (a,b) ->
         ( b.charCodeAt() + ( a.charCodeAt?() or a ) )
     
+    Object.defineProperties Object, 
+        deleteProperty : value : ( target, prop ) ->
+            Reflect.defineProperty target, prop, value:0
+            Reflect.deleteProperty target, prop; target;
+
+        deleteProperties : value : ( target, props = [] ) ->
+            @deleteProperty target, p for p in props; target
+        
     threadId = null
     gl = null
     uuid = null
@@ -149,11 +157,11 @@ do  self.init   = ->
     setLength           = ( ptri, v    ) -> 
         u32[ HEADER_LENGTH + ptri ] = v
 
-    getBegin            = -> 
-        u32[ HEADER_BEGIN + this ]
+    getBegin            = ( ptri ) -> 
+        u32[ HEADER_BEGIN + ptri ]
 
-    getIndex            = ( index = 0 ) -> 
-        u32[ HEADER_BEGIN + this ] + index
+    getIndex            = ( ptri, index = 0 ) -> 
+        u32[ HEADER_BEGIN + ptri ] + index
     
     setBegin            = ( ptri, v    ) -> 
         u32[ HEADER_BEGIN + ptri ] = v
@@ -370,8 +378,8 @@ do  self.init   = ->
     ptrUint8Array       = ( byteOffset = 0, length ) -> 
         new Uint8Array buffer, this * 4, length or 64
 
-    subarrayFloat32     = ( begin = 0, count ) -> 
-        begin += u32[ HEADER_BEGIN + this ]
+    subarrayFloat32     = ( ptri, begin = 0, count ) -> 
+        begin += u32[ HEADER_BEGIN + ptri ]
         f32.subarray( begin, begin + count )
 
     subarrayUint32      = ( begin = 0, count ) -> 
@@ -739,6 +747,8 @@ do  self.init   = ->
 
         @byteLength : 0
 
+        TypedArray  : Float32Array
+
         @isPtr      : yes
 
         isPtri      : yes
@@ -808,7 +818,8 @@ do  self.init   = ->
 
             linked  : get : getLinked, set : setLinked
 
-            tarray  : get : newFloat32Array
+            tarray  : get : ( TypedArray = @TypedArray ) ->
+                new TypedArray buffer, getByteOffset(this), getLength(this)
 
             [ "|[Pointer]|" ] :
                 get : ptrUint32Array
@@ -993,17 +1004,13 @@ do  self.init   = ->
             0
 
 
-        vertex      : ( index = 0 ) ->
-            subarrayFloat32 index * 3, 3
-
-        vertices    : ( index = 0, count = 1 ) ->
-            subarrayFloat32 index * 3, count * 3
-
     classes.register class Draw         extends Pointer
 
         name        : "draw"
 
-        @byteLength : 4 * @BPE
+        TypedArray  : Uint32Array
+
+        @byteLength : 6 * @BPE
 
         getType     : -> getUint32.call this, 0
 
@@ -1021,6 +1028,14 @@ do  self.init   = ->
 
         setCount    : ( v ) -> setUint32.call this, 3, v
 
+        getBegin    : -> getUint32.call this, 4
+
+        setBegin    : ( v ) -> setUint32.call this, 4, v
+
+        getLength   : -> getUint32.call this, 5
+
+        setLength   : ( v ) -> setUint32.call this, 5, v
+
         Object.defineProperties Draw::,
             
             type    : get : Draw::getType   , set : Draw::setType
@@ -1030,6 +1045,12 @@ do  self.init   = ->
             start   : get : Draw::getStart  , set : Draw::setStart
 
             count   : get : Draw::getCount  , set : Draw::setCount
+
+            begin   : get : Draw::getBegin  , set : Draw::setBegin
+
+            length  : get : Draw::getLength , set : Draw::setLength
+
+            pointCount : get : -> @linked.pointCount
                 
     classes.register class Matter       extends Pointer
 
@@ -1037,11 +1058,59 @@ do  self.init   = ->
 
         Object.defineProperties Matter::,
 
-            triangleCount   : get : -> @pointCount / 3
-            
-            pointCount      : get : -> getLength( @vertices ) / 3
+            info            : get : ->
 
-            vertices        : get : -> findChild.call( this, Vertices )
+                counts      : counts =
+
+                    points  : getLength( this ) / 3
+
+                    lines   : -1 + getLength( this ) / 3
+
+                    triangles : Math.trunc getLength( this ) / 9
+
+                offset      : @offsets()
+
+                shapes      :
+
+                    points      : if !i = 0 then while i < counts.points then @point i++
+                    
+                    lines       : if !i = 0 then while i < counts.lines then @line i++
+
+                    triangles   : if !i = 0 then while i < counts.triangles then @triangle i++
+
+            vertices        : Object.getOwnPropertyDescriptor Pointer::, "tarray"
+
+            pointCount      : get : -> getLength( this ) / 3
+
+        Object.deleteProperties Matter::, [ "tarray", "linked" ]
+
+        @create : ( props = {} ) ->
+            matter = new this
+
+            if  props.vertices
+                matter.set props.vertices
+                delete props.vertices
+
+            matter . init props
+
+        vertex      : ( index = 0, count = 1 ) ->
+            subarrayFloat32 this, 3 * index, 3 * count
+
+        point       : Matter::vertex
+
+        line        : ( index = 0 ) -> 
+            subarrayFloat32 this, 3 * index, 6
+
+        triangle    : ( index = 0 ) -> 
+            subarrayFloat32 this, 9 * index, 9
+
+        offsets     : ( index = 0, count = @pointCount ) ->
+            begin      : b = index * 3 + getBegin this
+            length     : l = count * 3
+            end        : l + b
+            byteOffset : @BPE * b
+            byteLength : @BPE * l
+
                 
     classes.register class Frustrum     extends Pointer
 
@@ -1793,6 +1862,8 @@ do  self.init   = ->
             source   : get : Shader::getSource  , set : Shader::setSource
             active   : get : Shader::getActive  , set : Shader::setActive
 
+        Object.deleteProperties Shader::, [ "linked" ]
+
         getGLContext    : ->
             @storage[ getResvUint8.call this, 0 ] or @gl = @parent.gl
 
@@ -1955,8 +2026,8 @@ do  self.init   = ->
                 else throw /UNKNOWN_DRAW_TYPE/ + type
 
             draw.type   = type
-            draw.length = length
-            draw.begin  = getUint32.call( this, index+2 ) + addUint32.call this, index, pointCount
+            draw.count  = length
+            draw.start  = getUint32.call( this, index+2 ) + addUint32.call this, index, pointCount
             draw.offset = addUint32.call( this, index+1, byteLength )
             return warn draw, index, draw.offset/4
             
@@ -2157,6 +2228,9 @@ do  self.init   = ->
 
             vShader   : get : -> findChilds.call( this, VertexShader ).find (s) -> s.active
             fShader   : get : -> findChilds.call( this, FragmentShader ).find (s) -> s.active            
+
+        Object.deleteProperties Space::, [ "tarray", "linked", "parent" ]
+
 
         add             : ( ptr ) ->
             super ptr

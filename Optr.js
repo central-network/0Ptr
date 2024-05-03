@@ -19,6 +19,27 @@ self.name = "window";
       return b.charCodeAt() + ((typeof a.charCodeAt === "function" ? a.charCodeAt() : void 0) || a);
     });
   };
+  Object.defineProperties(Object, {
+    deleteProperty: {
+      value: function(target, prop) {
+        Reflect.defineProperty(target, prop, {
+          value: 0
+        });
+        Reflect.deleteProperty(target, prop);
+        return target;
+      }
+    },
+    deleteProperties: {
+      value: function(target, props = []) {
+        var j, len, p;
+        for (j = 0, len = props.length; j < len; j++) {
+          p = props[j];
+          this.deleteProperty(target, p);
+        }
+        return target;
+      }
+    }
+  });
   threadId = null;
   gl = null;
   uuid = null;
@@ -143,11 +164,11 @@ self.name = "window";
   setLength = function(ptri, v) {
     return u32[HEADER_LENGTH + ptri] = v;
   };
-  getBegin = function() {
-    return u32[HEADER_BEGIN + this];
+  getBegin = function(ptri) {
+    return u32[HEADER_BEGIN + ptri];
   };
-  getIndex = function(index = 0) {
-    return u32[HEADER_BEGIN + this] + index;
+  getIndex = function(ptri, index = 0) {
+    return u32[HEADER_BEGIN + ptri] + index;
   };
   setBegin = function(ptri, v) {
     return u32[HEADER_BEGIN + ptri] = v;
@@ -394,8 +415,8 @@ self.name = "window";
   ptrUint8Array = function(byteOffset = 0, length) {
     return new Uint8Array(buffer, this * 4, length || 64);
   };
-  subarrayFloat32 = function(begin = 0, count) {
-    begin += u32[HEADER_BEGIN + this];
+  subarrayFloat32 = function(ptri, begin = 0, count) {
+    begin += u32[HEADER_BEGIN + ptri];
     return f32.subarray(begin, begin + count);
   };
   subarrayUint32 = function(begin = 0, count) {
@@ -840,6 +861,8 @@ self.name = "window";
 
     Pointer.byteLength = 0;
 
+    Pointer.prototype.TypedArray = Float32Array;
+
     Pointer.isPtr = true;
 
     Pointer.prototype.isPtri = true;
@@ -871,7 +894,9 @@ self.name = "window";
         set: setLinked
       },
       tarray: {
-        get: newFloat32Array
+        get: function(TypedArray = this.TypedArray) {
+          return new TypedArray(buffer, getByteOffset(this), getLength(this));
+        }
       },
       ["|[Pointer]|"]: {
         get: ptrUint32Array,
@@ -1185,14 +1210,6 @@ self.name = "window";
         return 0;
       }
 
-      vertex(index = 0) {
-        return subarrayFloat32(index * 3, 3);
-      }
-
-      vertices(index = 0, count = 1) {
-        return subarrayFloat32(index * 3, count * 3);
-      }
-
     };
 
     Vertices.prototype.name = "vertices";
@@ -1234,11 +1251,29 @@ self.name = "window";
         return setUint32.call(this, 3, v);
       }
 
+      getBegin() {
+        return getUint32.call(this, 4);
+      }
+
+      setBegin(v) {
+        return setUint32.call(this, 4, v);
+      }
+
+      getLength() {
+        return getUint32.call(this, 5);
+      }
+
+      setLength(v) {
+        return setUint32.call(this, 5, v);
+      }
+
     };
 
     Draw.prototype.name = "draw";
 
-    Draw.byteLength = 4 * Draw.BPE;
+    Draw.prototype.TypedArray = Uint32Array;
+
+    Draw.byteLength = 6 * Draw.BPE;
 
     Object.defineProperties(Draw.prototype, {
       type: {
@@ -1256,6 +1291,19 @@ self.name = "window";
       count: {
         get: Draw.prototype.getCount,
         set: Draw.prototype.setCount
+      },
+      begin: {
+        get: Draw.prototype.getBegin,
+        set: Draw.prototype.setBegin
+      },
+      length: {
+        get: Draw.prototype.getLength,
+        set: Draw.prototype.setLength
+      },
+      pointCount: {
+        get: function() {
+          return this.linked.pointCount;
+        }
       }
     });
 
@@ -1263,27 +1311,101 @@ self.name = "window";
 
   }).call(this));
   classes.register(Matter = (function() {
-    class Matter extends Pointer {};
+    class Matter extends Pointer {
+      static create(props = {}) {
+        var matter;
+        matter = new this;
+        if (props.vertices) {
+          matter.set(props.vertices);
+          delete props.vertices;
+        }
+        return matter.init(props);
+      }
+
+      vertex(index = 0, count = 1) {
+        return subarrayFloat32(this, 3 * index, 3 * count);
+      }
+
+      line(index = 0) {
+        return subarrayFloat32(this, 3 * index, 6);
+      }
+
+      triangle(index = 0) {
+        return subarrayFloat32(this, 9 * index, 9);
+      }
+
+      offsets(index = 0, count = this.pointCount) {
+        var b, l;
+        return {
+          begin: b = index * 3 + getBegin(this),
+          length: l = count * 3,
+          end: l + b,
+          byteOffset: this.BPE * b,
+          byteLength: this.BPE * l
+        };
+      }
+
+    };
 
     self.Matter = Matter;
 
     Object.defineProperties(Matter.prototype, {
-      triangleCount: {
+      info: {
         get: function() {
-          return this.pointCount / 3;
+          var counts, i;
+          return {
+            counts: counts = {
+              points: getLength(this) / 3,
+              lines: -1 + getLength(this) / 3,
+              triangles: Math.trunc(getLength(this) / 9)
+            },
+            offset: this.offsets(),
+            shapes: {
+              points: (function() {
+                var results;
+                if (!(i = 0)) {
+                  results = [];
+                  while (i < counts.points) {
+                    results.push(this.point(i++));
+                  }
+                  return results;
+                }
+              }).call(this),
+              lines: (function() {
+                var results;
+                if (!(i = 0)) {
+                  results = [];
+                  while (i < counts.lines) {
+                    results.push(this.line(i++));
+                  }
+                  return results;
+                }
+              }).call(this),
+              triangles: (function() {
+                var results;
+                if (!(i = 0)) {
+                  results = [];
+                  while (i < counts.triangles) {
+                    results.push(this.triangle(i++));
+                  }
+                  return results;
+                }
+              }).call(this)
+            }
+          };
         }
       },
+      vertices: Object.getOwnPropertyDescriptor(Pointer.prototype, "tarray"),
       pointCount: {
         get: function() {
-          return getLength(this.vertices) / 3;
-        }
-      },
-      vertices: {
-        get: function() {
-          return findChild.call(this, Vertices);
+          return getLength(this) / 3;
         }
       }
     });
+
+    Object.deleteProperties(Matter.prototype, ["tarray", "linked"]);
+
+    Matter.prototype.point = Matter.prototype.vertex;
 
     return Matter;
 
@@ -2145,6 +2267,8 @@ self.name = "window";
       }
     });
 
+    Object.deleteProperties(Shader.prototype, ["linked"]);
+
     return Shader;
 
   }).call(this));
@@ -2216,8 +2340,8 @@ self.name = "window";
           }
         }).call(this);
         draw.type = type;
-        draw.length = length;
-        draw.begin = getUint32.call(this, index + 2) + addUint32.call(this, index, pointCount);
+        draw.count = length;
+        draw.start = getUint32.call(this, index + 2) + addUint32.call(this, index, pointCount);
         draw.offset = addUint32.call(this, index + 1, byteLength);
         return warn(draw, index, draw.offset / 4);
         draw.linked = this;
@@ -2589,6 +2713,8 @@ self.name = "window";
         }
       }
     });
+
+    Object.deleteProperties(Space.prototype, ["tarray", "linked", "parent"]);
 
     return Space;
 
