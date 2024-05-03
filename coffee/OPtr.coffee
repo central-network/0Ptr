@@ -1010,48 +1010,60 @@ do  self.init   = ->
 
         TypedArray  : Uint32Array
 
-        @byteLength : 6 * @BPE
+        @byteLength : 8 * @BPE
 
-        getType     : -> getUint32.call this, 0
+        getDrawType     : -> getUint32.call this, 0
 
-        setType     : ( v ) -> setUint32.call this, 0, v
+        setDrawType     : ( v ) -> setUint32.call this, 0, v
 
-        getOffset   : -> getUint32.call this, 1
+        getDrawOffset   : -> getUint32.call this, 1
 
-        setOffset   : ( v ) -> setUint32.call this, 1, v
+        setDrawOffset   : ( v ) -> setUint32.call this, 1, v
 
-        getStart    : -> getUint32.call this, 2
+        getDrawStart    : -> getUint32.call this, 2
 
-        setStart    : ( v ) -> setUint32.call this, 2, v
+        setDrawStart    : ( v ) -> setUint32.call this, 2, v
 
-        getCount    : -> getUint32.call this, 3
+        getDrawCount    : -> getUint32.call this, 3
 
-        setCount    : ( v ) -> setUint32.call this, 3, v
+        setDrawCount    : ( v ) -> setUint32.call this, 3, v
 
-        getBegin    : -> getUint32.call this, 4
+        getBegin        : -> getUint32.call this, 4
 
-        setBegin    : ( v ) -> setUint32.call this, 4, v
+        setBegin        : ( v ) -> setUint32.call this, 4, v
 
-        getLength   : -> getUint32.call this, 5
+        getLength       : -> getUint32.call this, 5
 
-        setLength   : ( v ) -> setUint32.call this, 5, v
+        setLength       : ( v ) -> setUint32.call this, 5, v
+
+        getByteOffset   : -> getUint32.call this, 6
+
+        setByteOffset   : ( v ) -> setUint32.call this, 6, v
+
+        getByteLength   : -> getUint32.call this, 7
+
+        setByteLength   : ( v ) -> setUint32.call this, 7, v
 
         Object.defineProperties Draw::,
+        
+            drawType    : get : Draw::getDrawType   , set : Draw::setDrawType
+
+            drawOffset  : get : Draw::getDrawOffset , set : Draw::setDrawOffset
             
-            type    : get : Draw::getType   , set : Draw::setType
+            drawStart   : get : Draw::getDrawStart  , set : Draw::setDrawStart
 
-            offset  : get : Draw::getOffset , set : Draw::setOffset
+            drawCount   : get : Draw::getDrawCount  , set : Draw::setDrawCount
+
+            begin       : get : Draw::getBegin      , set : Draw::setBegin
+
+            length      : get : Draw::getLength     , set : Draw::setLength
+
+            byteOffset  : get : Draw::getByteOffset , set : Draw::setByteOffset
             
-            start   : get : Draw::getStart  , set : Draw::setStart
+            byteLength  : get : Draw::getByteLength , set : Draw::setByteLength
 
-            count   : get : Draw::getCount  , set : Draw::setCount
+            pointCount  : get : -> @linked.pointCount
 
-            begin   : get : Draw::getBegin  , set : Draw::setBegin
-
-            length  : get : Draw::getLength , set : Draw::setLength
-
-            pointCount : get : -> @linked.pointCount
-                
     classes.register class Matter       extends Pointer
 
         self.Matter     = Matter
@@ -2025,17 +2037,15 @@ do  self.init   = ->
                 when @GL_TRIANGLES  then @INDEX_TRIANGLES_COUNT
                 else throw /UNKNOWN_DRAW_TYPE/ + type
 
-            draw.type   = type
-            draw.count  = length
-            draw.start  = getUint32.call( this, index+2 ) + addUint32.call this, index, pointCount
-            draw.offset = addUint32.call( this, index+1, byteLength )
-            return warn draw, index, draw.offset/4
-            
-            draw.linked = this
-
-            log draw
-            
-            draw
+            Object.assign draw,
+                drawType   : type
+                drawCount  : pointCount
+                drawStart  : getUint32.call( this, index+2 ) + addUint32.call this, index, pointCount
+                drawOffset : offset = addUint32.call( this, index+1, byteLength ) - getByteOffset(this)
+                begin      : begin = getBegin( this ) + offset / 4 
+                length     : length
+                byteOffset : begin * 4
+                byteLength : length * 4
 
         drawTriangles   : ( shape ) ->
             draw = new Draw()

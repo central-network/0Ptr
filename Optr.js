@@ -1219,35 +1219,35 @@ self.name = "window";
   }).call(this));
   classes.register(Draw = (function() {
     class Draw extends Pointer {
-      getType() {
+      getDrawType() {
         return getUint32.call(this, 0);
       }
 
-      setType(v) {
+      setDrawType(v) {
         return setUint32.call(this, 0, v);
       }
 
-      getOffset() {
+      getDrawOffset() {
         return getUint32.call(this, 1);
       }
 
-      setOffset(v) {
+      setDrawOffset(v) {
         return setUint32.call(this, 1, v);
       }
 
-      getStart() {
+      getDrawStart() {
         return getUint32.call(this, 2);
       }
 
-      setStart(v) {
+      setDrawStart(v) {
         return setUint32.call(this, 2, v);
       }
 
-      getCount() {
+      getDrawCount() {
         return getUint32.call(this, 3);
       }
 
-      setCount(v) {
+      setDrawCount(v) {
         return setUint32.call(this, 3, v);
       }
 
@@ -1267,30 +1267,46 @@ self.name = "window";
         return setUint32.call(this, 5, v);
       }
 
+      getByteOffset() {
+        return getUint32.call(this, 6);
+      }
+
+      setByteOffset(v) {
+        return setUint32.call(this, 6, v);
+      }
+
+      getByteLength() {
+        return getUint32.call(this, 7);
+      }
+
+      setByteLength(v) {
+        return setUint32.call(this, 7, v);
+      }
+
     };
 
     Draw.prototype.name = "draw";
 
     Draw.prototype.TypedArray = Uint32Array;
 
-    Draw.byteLength = 6 * Draw.BPE;
+    Draw.byteLength = 8 * Draw.BPE;
 
     Object.defineProperties(Draw.prototype, {
-      type: {
-        get: Draw.prototype.getType,
-        set: Draw.prototype.setType
+      drawType: {
+        get: Draw.prototype.getDrawType,
+        set: Draw.prototype.setDrawType
       },
-      offset: {
-        get: Draw.prototype.getOffset,
-        set: Draw.prototype.setOffset
+      drawOffset: {
+        get: Draw.prototype.getDrawOffset,
+        set: Draw.prototype.setDrawOffset
       },
-      start: {
-        get: Draw.prototype.getStart,
-        set: Draw.prototype.setStart
+      drawStart: {
+        get: Draw.prototype.getDrawStart,
+        set: Draw.prototype.setDrawStart
       },
-      count: {
-        get: Draw.prototype.getCount,
-        set: Draw.prototype.setCount
+      drawCount: {
+        get: Draw.prototype.getDrawCount,
+        set: Draw.prototype.setDrawCount
       },
       begin: {
         get: Draw.prototype.getBegin,
@@ -1299,6 +1315,14 @@ self.name = "window";
       length: {
         get: Draw.prototype.getLength,
         set: Draw.prototype.setLength
+      },
+      byteOffset: {
+        get: Draw.prototype.getByteOffset,
+        set: Draw.prototype.setByteOffset
+      },
+      byteLength: {
+        get: Draw.prototype.getByteLength,
+        set: Draw.prototype.setByteLength
       },
       pointCount: {
         get: function() {
@@ -2323,7 +2347,7 @@ self.name = "window";
       }
 
       alloc(draw, type = this.GL_LINES) {
-        var byteLength, index, length, pointCount;
+        var begin, byteLength, index, length, offset, pointCount;
         pointCount = draw.linked.pointCount;
         byteLength = pointCount * getUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_POINT);
         length = pointCount * getUint32.call(this, this.INDEX_ALLOC_LENGTH_PER_POINT);
@@ -2339,14 +2363,16 @@ self.name = "window";
               throw /UNKNOWN_DRAW_TYPE/ + type;
           }
         }).call(this);
-        draw.type = type;
-        draw.count = length;
-        draw.start = getUint32.call(this, index + 2) + addUint32.call(this, index, pointCount);
-        draw.offset = addUint32.call(this, index + 1, byteLength);
-        return warn(draw, index, draw.offset / 4);
-        draw.linked = this;
-        log(draw);
-        return draw;
+        return Object.assign(draw, {
+          drawType: type,
+          drawCount: pointCount,
+          drawStart: getUint32.call(this, index + 2) + addUint32.call(this, index, pointCount),
+          drawOffset: offset = addUint32.call(this, index + 1, byteLength) - getByteOffset(this),
+          begin: begin = getBegin(this) + offset / 4,
+          length: length,
+          byteOffset: begin * 4,
+          byteLength: length * 4
+        });
       }
 
       drawTriangles(shape) {
