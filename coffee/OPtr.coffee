@@ -1074,8 +1074,8 @@ do  self.init   = ->
 
             pointCount      : get : -> getLength( this ) / 3
 
-            draws           : get : -> findLinkeds this, Draw                
-
+            draws           : get : -> findLinkeds this, Draw
+            
         Object.deleteProperties Matter::, [ "tarray", "linked" ]
 
         @create : ( props = {} ) ->
@@ -1845,13 +1845,15 @@ do  self.init   = ->
 
         GPU_ATTRIBUTE_COUNT : 1e5 
 
+        isShader            : yes
+
         Object.defineProperties Shader::,
             gl          : get : Shader::parentGLContext  , set : Shader::setGLContext
             glProgram   : get : Shader::parentGLProgram  , set : Shader::setGLProgram
 
         Object.defineProperties Shader::,
-            source      : get : Shader::getSource          , set : Shader::setSource
             active      : get : Shader::getActive          , set : Shader::setActive
+            source      : get : Shader::getSource          , set : Shader::setSource
 
         Object.deleteProperties Shader::, [ "linked" ]
 
@@ -1887,6 +1889,9 @@ do  self.init   = ->
         setGLContext        : ( webGL2RenderingContext ) ->
             setResvUint8 this, 2, @store webGL2RenderingContext
 
+
+
+
         getGLProgram        : ->
             @storage[ getResvUint8 this, 3 ]
 
@@ -1900,7 +1905,19 @@ do  self.init   = ->
         createGLProgram     : ->
             @storage[ getResvUint8 this, 3 ] or
             @glProgram = @gl.createProgram()
+
+        activeGLProgram     : ->
+            #? space searching an glProgram
+            if  storei = getResvUint8 this, 3
+                return @storage[ storei ]
             
+            programs = findChildsRecursive this, Program
+
+            return unless programs.length
+            unless program = programs.find (s) -> s.active 
+                program = programs.at 0
+            @glProgram = program.glProgram
+
             
         getGLBuffer         : ->
             @storage[ getResvUint8 this, 4 ]
@@ -2017,10 +2034,12 @@ do  self.init   = ->
 
         setSource       : ( source ) ->
             @compile @gl.shaderSource @glShader, source
-            
-        compile          : ->
-            @attach @gl.compileShader @glShader
 
+            
+
+        compile         : ->
+            @attach @gl.compileShader @glShader
+            
         attach          : ->
             @active = 1
             @gl.attachShader @glProgram, @glShader ; this
@@ -2032,6 +2051,7 @@ do  self.init   = ->
         destroy         : ->
             @detach()
             @gl.deleteShader @glShader ; this
+
 
     classes.register class FragmentShader extends Shader
 
@@ -2404,27 +2424,105 @@ do  self.init   = ->
             glFShader   : get : Shader::parentGLFShader  , set : Shader::setGLFShader
             glBuffer    : get : Shader::parentGLBuffer   , set : Shader::setGLBuffer
 
+
+    classes.register class Program extends Pointer
+
+        LINK_STATUS     : WebGL2RenderingContext.LINK_STATUS
+
+        Object.defineProperties Program::,
+            gl          : get : Shader::parentGLContext  , set : Shader::setGLContext
+            glProgram   : get : Shader::createGLProgram  , set : Shader::setGLProgram
+            glVShader   : get : Shader::activeGLVShader  , set : Shader::setGLVShader
+            glFShader   : get : Shader::activeGLFShader  , set : Shader::setGLFShader
+            glBuffer    : get : Shader::activeGLBuffer   , set : Shader::setGLBuffer
+
+        Object.defineProperties Program::,
+            isLinked    : get : Program::getIsLinked     , set : Program::setIsLinked
+            inUse       : get : Program::getInUse        , set : Program::setInUse
+
+        Object.defineProperties Program::,
+            vShader     : get : -> findChildsRecursive( this, VertexShader ).find (s) -> s.active
+            fShader     : get : -> findChildsRecursive( this, FragmentShader ).find (s) -> s.active 
+            shaders     : get : -> @childs.filter (s) -> s.isShader
+            
+        Object.deleteProperties Program::, [ "linked", "tarray" ]
+
+        use             : ->
+            if !getResvUint8 this, 1
+
+                @link() if !getResvUint8 this, 0
+                @gl.useProgram @glProgram
+
+                if  this - ptri = @parent.program
+                    @parent.program.inUse = 0
+
+                setResvUint8 this, 1, 1
+            1
+
+        getParameter    : ( parameter ) ->
+            @gl.getProgramParameter @glProgram, parameter
+
+        infoLog         : ->
+            @gl.getProgramInfoLog @glProgram
+
+        link            : ->
+            if !isLinked = getResvUint8 this, 0
+
+                @gl.linkProgram @glProgram
+
+                if !@getParameter @LINK_STATUS
+                    throw @infoLog()
+
+                if  this - ptri = @parent.program
+                    setResvUint8 ptri, 0, 0
+
+                setResvUint8 this, 0, isLinked = 1
+
+            isLinked
+
+        getIsLinked     : ->
+            getResvUint8 this, 0
+
+        setIsLinked     : ( state ) ->
+            @gl.linkProgram @glProgram if state
+            getResvUint8 this, 0, state ; state
+
+        getInUse  : ->
+            getResvUint8 this, 1
+
+        setInUse  : ( state ) ->
+            setResvUint8 this, 1, state ; this
+
+
+
     classes.register class Space    extends Pointer
 
         self.Space      = this
 
         Object.defineProperties Space::,
             gl          : get : Shader::createGLContext  , set : Shader::setGLContext
-            glProgram   : get : Shader::createGLProgram  , set : Shader::setGLProgram
+            glProgram   : get : Shader::activeGLProgram  , set : Shader::setGLProgram
             glVShader   : get : Shader::activeGLVShader  , set : Shader::setGLVShader
             glFShader   : get : Shader::activeGLFShader  , set : Shader::setGLFShader
             glBuffer    : get : Shader::activeGLBuffer   , set : Shader::setGLBuffer
 
         Object.defineProperties Space::,
+            active      : get : Shader::getActive        , set : Shader::setActive            
+
+        Object.defineProperties Space::,
             vShader     : get : -> findChildsRecursive( this, VertexShader ).find (s) -> s.active
             fShader     : get : -> findChildsRecursive( this, FragmentShader ).find (s) -> s.active 
+            program     : get : ->
+                programs = findChildsRecursive this, Program 
+                return unless programs.length
+
+                unless program = programs.find (s) -> s.inUse
+                    program = programs.find (s) -> s.isLinked 
+                program or programs.at(0)
+
             created     :
                 get     :     -> getResvUint8( this, 1 )          
                 set     : (v) -> setResvUint8( this, 1, v )          
-
-            active      :
-                get     :     -> getResvUint8( this, 0 )          
-                set     : (v) -> setResvUint8( this, 0, v )          
 
         Object.deleteProperties Space::, [ "tarray", "linked", "parent" ]
 
@@ -2438,20 +2536,22 @@ do  self.init   = ->
 
         init            : ->
             unless super( arguments... ).created
-                @createShaders( @created = 1 )
-            this
 
-        createShaders    : ->
-            throw /THREADS_CAN_NOT_CREATE_SHADERS/ unless isWindow
+                @created = 1
+                throw /THREAD/ unless isWindow
 
-            for script in VertexShader.DocumentScripts
-                @add shader = new VertexShader
-                shader.source = script.text
-                shader.create shader.parseSource()
+                setParent new Program(), this
 
-            for script in FragmentShader.DocumentScripts
-                @add shader = new FragmentShader
-                shader.source = script.text
+                for script in VertexShader.DocumentScripts
+                    @program.add shader = new VertexShader
+                    shader.source = script.text
+                    shader.create shader.parseSource()
+
+                for script in FragmentShader.DocumentScripts
+                    @program.add shader = new FragmentShader
+                    shader.source = script.text
+
+                @program.use()
 
             this
 

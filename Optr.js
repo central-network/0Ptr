@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_GLBUFFER, Color, Draw, FragmentShader, Frustrum, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Texture, UV, Vector3, VertexShader, Vertices, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc2, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_GLBUFFER, Color, Draw, FragmentShader, Frustrum, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, Program, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Texture, UV, Vector3, VertexShader, Vertices, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc2, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -2185,6 +2185,24 @@ self.name = "window";
         return this.storage[getResvUint8(this, 3)] || (this.glProgram = this.gl.createProgram());
       }
 
+      activeGLProgram() {
+        var programs, storei;
+        //? space searching an glProgram
+        if (storei = getResvUint8(this, 3)) {
+          return this.storage[storei];
+        }
+        programs = findChildsRecursive(this, Program);
+        if (!programs.length) {
+          return;
+        }
+        if (!(program = programs.find(function(s) {
+          return s.active;
+        }))) {
+          program = programs.at(0);
+        }
+        return this.glProgram = program.glProgram;
+      }
+
       getGLBuffer() {
         return this.storage[getResvUint8(this, 4)];
       }
@@ -2354,6 +2372,8 @@ self.name = "window";
 
     Shader.prototype.GPU_ATTRIBUTE_COUNT = 1e5;
 
+    Shader.prototype.isShader = true;
+
     Object.defineProperties(Shader.prototype, {
       gl: {
         get: Shader.prototype.parentGLContext,
@@ -2366,13 +2386,13 @@ self.name = "window";
     });
 
     Object.defineProperties(Shader.prototype, {
-      source: {
-        get: Shader.prototype.getSource,
-        set: Shader.prototype.setSource
-      },
       active: {
         get: Shader.prototype.getActive,
         set: Shader.prototype.setActive
+      },
+      source: {
+        get: Shader.prototype.getSource,
+        set: Shader.prototype.setSource
       }
     });
 
@@ -2877,51 +2897,74 @@ self.name = "window";
     return Draw;
 
   }).call(this));
-  classes.register(Space = (function() {
-    class Space extends Pointer {
-      add(ptr) {
-        super.add(ptr);
-        if (ptr.drawable) {
-          this.vShader.draw(ptr);
+  classes.register(Program = (function() {
+    class Program extends Pointer {
+      use() {
+        var ptri;
+        if (!getResvUint8(this, 1)) {
+          if (!getResvUint8(this, 0)) {
+            this.link();
+          }
+          this.gl.useProgram(this.glProgram);
+          if (this - (ptri = this.parent.program)) {
+            this.parent.program.inUse = 0;
+          }
+          setResvUint8(this, 1, 1);
         }
-        return this;
+        return 1;
       }
 
-      init() {
-        if (!super.init(...arguments).created) {
-          this.createShaders(this.created = 1);
-        }
-        return this;
+      getParameter(parameter) {
+        return this.gl.getProgramParameter(this.glProgram, parameter);
       }
 
-      createShaders() {
-        var j, len, len1, m, ref, ref1, script, shader;
-        if (!isWindow) {
-          throw /THREADS_CAN_NOT_CREATE_SHADERS/;
+      infoLog() {
+        return this.gl.getProgramInfoLog(this.glProgram);
+      }
+
+      link() {
+        var isLinked, ptri;
+        if (!(isLinked = getResvUint8(this, 0))) {
+          this.gl.linkProgram(this.glProgram);
+          if (!this.getParameter(this.LINK_STATUS)) {
+            throw this.infoLog();
+          }
+          if (this - (ptri = this.parent.program)) {
+            setResvUint8(ptri, 0, 0);
+          }
+          setResvUint8(this, 0, isLinked = 1);
         }
-        ref = VertexShader.DocumentScripts;
-        for (j = 0, len = ref.length; j < len; j++) {
-          script = ref[j];
-          this.add(shader = new VertexShader);
-          shader.source = script.text;
-          shader.create(shader.parseSource());
+        return isLinked;
+      }
+
+      getIsLinked() {
+        return getResvUint8(this, 0);
+      }
+
+      setIsLinked(state) {
+        if (state) {
+          this.gl.linkProgram(this.glProgram);
         }
-        ref1 = FragmentShader.DocumentScripts;
-        for (m = 0, len1 = ref1.length; m < len1; m++) {
-          script = ref1[m];
-          this.add(shader = new FragmentShader);
-          shader.source = script.text;
-        }
+        getResvUint8(this, 0, state);
+        return state;
+      }
+
+      getInUse() {
+        return getResvUint8(this, 1);
+      }
+
+      setInUse(state) {
+        setResvUint8(this, 1, state);
         return this;
       }
 
     };
 
-    self.Space = Space;
+    Program.prototype.LINK_STATUS = WebGL2RenderingContext.LINK_STATUS;
 
-    Object.defineProperties(Space.prototype, {
+    Object.defineProperties(Program.prototype, {
       gl: {
-        get: Shader.prototype.createGLContext,
+        get: Shader.prototype.parentGLContext,
         set: Shader.prototype.setGLContext
       },
       glProgram: {
@@ -2942,6 +2985,116 @@ self.name = "window";
       }
     });
 
+    Object.defineProperties(Program.prototype, {
+      isLinked: {
+        get: Program.prototype.getIsLinked,
+        set: Program.prototype.setIsLinked
+      },
+      inUse: {
+        get: Program.prototype.getInUse,
+        set: Program.prototype.setInUse
+      }
+    });
+
+    Object.defineProperties(Program.prototype, {
+      vShader: {
+        get: function() {
+          return findChildsRecursive(this, VertexShader).find(function(s) {
+            return s.active;
+          });
+        }
+      },
+      fShader: {
+        get: function() {
+          return findChildsRecursive(this, FragmentShader).find(function(s) {
+            return s.active;
+          });
+        }
+      },
+      shaders: {
+        get: function() {
+          return this.childs.filter(function(s) {
+            return s.isShader;
+          });
+        }
+      }
+    });
+
+    Object.deleteProperties(Program.prototype, ["linked", "tarray"]);
+
+    return Program;
+
+  }).call(this));
+  classes.register(Space = (function() {
+    class Space extends Pointer {
+      add(ptr) {
+        super.add(ptr);
+        if (ptr.drawable) {
+          this.vShader.draw(ptr);
+        }
+        return this;
+      }
+
+      init() {
+        var j, len, len1, m, ref, ref1, script, shader;
+        if (!super.init(...arguments).created) {
+          this.created = 1;
+          if (!isWindow) {
+            throw /THREAD/;
+          }
+          setParent(new Program(), this);
+          ref = VertexShader.DocumentScripts;
+          for (j = 0, len = ref.length; j < len; j++) {
+            script = ref[j];
+            this.program.add(shader = new VertexShader);
+            shader.source = script.text;
+            shader.create(shader.parseSource());
+          }
+          ref1 = FragmentShader.DocumentScripts;
+          for (m = 0, len1 = ref1.length; m < len1; m++) {
+            script = ref1[m];
+            this.program.add(shader = new FragmentShader);
+            shader.source = script.text;
+          }
+          this.program.use();
+        }
+        return this;
+      }
+
+    };
+
+    self.Space = Space;
+
+    Object.defineProperties(Space.prototype, {
+      gl: {
+        get: Shader.prototype.createGLContext,
+        set: Shader.prototype.setGLContext
+      },
+      glProgram: {
+        get: Shader.prototype.activeGLProgram,
+        set: Shader.prototype.setGLProgram
+      },
+      glVShader: {
+        get: Shader.prototype.activeGLVShader,
+        set: Shader.prototype.setGLVShader
+      },
+      glFShader: {
+        get: Shader.prototype.activeGLFShader,
+        set: Shader.prototype.setGLFShader
+      },
+      glBuffer: {
+        get: Shader.prototype.activeGLBuffer,
+        set: Shader.prototype.setGLBuffer
+      }
+    });
+
+    Object.defineProperties(Space.prototype, {
+      active: {
+        get: Shader.prototype.getActive,
+        set: Shader.prototype.setActive
+      }
+    });
+
     Object.defineProperties(Space.prototype, {
       vShader: {
         get: function() {
@@ -2957,20 +3110,29 @@ self.name = "window";
           });
         }
       },
+      program: {
+        get: function() {
+          var programs;
+          programs = findChildsRecursive(this, Program);
+          if (!programs.length) {
+            return;
+          }
+          if (!(program = programs.find(function(s) {
+            return s.inUse;
+          }))) {
+            program = programs.find(function(s) {
+              return s.isLinked;
+            });
+          }
+          return program || programs.at(0);
+        }
+      },
       created: {
         get: function() {
           return getResvUint8(this, 1);
         },
         set: function(v) {
           return setResvUint8(this, 1, v);
-        }
-      },
-      active: {
-        get: function() {
-          return getResvUint8(this, 0);
-        },
-        set: function(v) {
-          return setResvUint8(this, 0, v);
         }
       }
     });
