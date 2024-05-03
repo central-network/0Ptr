@@ -1345,7 +1345,7 @@ self.name = "window";
                 if (!(i = 0)) {
                   results = [];
                   while (i < counts.points) {
-                    results.push(this.point(i++));
+                    results.push(this.vertex(i++));
                   }
                   return results;
                 }

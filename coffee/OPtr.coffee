@@ -1064,7 +1064,7 @@ do  self.init   = ->
 
                 shapes      :
 
-                    points      : if !i = 0 then while i < counts.points then @point i++
+                    points      : if !i = 0 then while i < counts.points then @vertex i++
                     
                     lines       : if !i = 0 then while i < counts.lines then @line i++
 
