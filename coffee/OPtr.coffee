@@ -128,34 +128,34 @@ do  self.init   = ->
     HEADER_LINKEDPTRI   =  7; HEADER_INDEXCOUNT++ #? 7
     HEADER_ITEROFFSET   =  6; HEADER_INDEXCOUNT++ #? 6
 
-    HEADER_NEEDRECALC   = 32; HEADER_INDEXCOUNT++ #? 32
-    HEADER_NEEDUPLOAD   = 33; #* ptri * 4 + HEADER_NEEDUPLOAD
-    HEADER_TRANSLATED   = 34; #* ptri * 4 + HEADER_CALCVERTEX
-    HEADER_FRAGMENTED   = 35; #* ptri * 4 + HEADER_PAINTCOLOR
+    HEADER_NEEDRECALC   =  7 * 4    ; HEADER_INDEXCOUNT++ #? 32
+    HEADER_NEEDUPLOAD   =  7 * 4 + 1; #* ptri * 4 + HEADER_NEEDUPLOAD
+    HEADER_TRANSLATED   =  7 * 4 + 2; #* ptri * 4 + HEADER_CALCVERTEX
+    HEADER_FRAGMENTED   =  7 * 4 + 3; #* ptri * 4 + HEADER_PAINTCOLOR
 
-    HEADER_RESVINDEX4   =  9; HEADER_INDEXCOUNT++ #? 9 
-    HEADER_RESVINDEX2   = 18; #* ptri * 2 + HEADER_RESVINDEX2
-    HEADER_RESVINDEX1   = 27; #* ptri * 4 + HEADER_RESVINDEX1
+    HEADER_RESVINDEX4   =  8; HEADER_INDEXCOUNT++ #? 9 
+    HEADER_RESVINDEX2   =  8 * 2; #* ptri * 2 + HEADER_RESVINDEX2
+    HEADER_RESVINDEX1   =  8 * 4; #* ptri * 4 + HEADER_RESVINDEX1
 
 
 
-    getByteOffset       = ( ptri       ) -> 
+    getByteOffset       = ( ptri ) -> 
         u32[ ptri ]
     
-    setByteOffset       = ( ptri, v    ) -> 
-        u32[ ptri ] = v
+    setByteOffset       = ( ptri, byteOffset ) -> 
+        u32[ ptri ] = byteOffset
 
-    getByteLength       = ( ptri       ) -> 
+    getByteLength       = ( ptri ) -> 
         u32[ HEADER_BYTELENGTH + ptri ]
     
-    setByteLength       = ( ptri, v    ) -> 
-        u32[ HEADER_BYTELENGTH + ptri ] = v
+    setByteLength       = ( ptri, byteLength ) -> 
+        u32[ HEADER_BYTELENGTH + ptri ] = byteLength
 
-    getLength           = ( ptri       ) -> 
+    getLength           = ( ptri ) -> 
         u32[ HEADER_LENGTH + ptri ]
     
-    setLength           = ( ptri, v    ) -> 
-        u32[ HEADER_LENGTH + ptri ] = v
+    setLength           = ( ptri, length ) -> 
+        u32[ HEADER_LENGTH + ptri ] = length
 
     getBegin            = ( ptri ) -> 
         u32[ HEADER_BEGIN + ptri ]
@@ -163,77 +163,66 @@ do  self.init   = ->
     getIndex            = ( ptri, index = 0 ) -> 
         u32[ HEADER_BEGIN + ptri ] + index
     
-    setBegin            = ( ptri, v    ) -> 
-        u32[ HEADER_BEGIN + ptri ] = v
+    setBegin            = ( ptri, begin ) -> 
+        u32[ HEADER_BEGIN + ptri ] = begin
 
-    getClassIndex       = ( ptri       ) -> 
+    getClassIndex       = ( ptri ) -> 
         u32[ HEADER_CLASSINDEX + ptri ]
     
-    setClassIndex       = ( ptri, v    ) -> 
-        u32[ HEADER_CLASSINDEX + ptri ] = v
+    setClassIndex       = ( ptri, clsi ) -> 
+        u32[ HEADER_CLASSINDEX + ptri ] = clsi
     
-    getClass            = ( ptri       ) -> 
+    getClass            = ( ptri ) -> 
         classes[ u32[ HEADER_CLASSINDEX + ptri ] ]
 
-    getParentPtri       = ( ptri       ) -> 
+    getParentPtri       = ( ptri ) -> 
         u32[ HEADER_PARENTPTRI + ptri ]
     
-    getLinkedPtri       = (             ) -> 
-        u32[ HEADER_LINKEDPTRI + this ]
+    getLinkedPtri       = ( ptri ) -> 
+        u32[ HEADER_LINKEDPTRI + ptri ]
     
-    setParent           = ( ptri    ) ->
-        u32[ HEADER_PARENTPTRI + ptri ] = this
+    setParent           = ( ptri, ptrj ) ->
+        u32[ HEADER_PARENTPTRI + ptri ] = ptrj
     
-    setLinked           = ( ptri    ) ->
-        u32[ HEADER_LINKEDPTRI + this ] = ptri
+    setLinked           = ( ptri, ptrj ) ->
+        u32[ HEADER_LINKEDPTRI + ptri ] = ptrj
 
-    getParent           = -> 
-        new ( classes[ u32[ HEADER_CLASSINDEX + (
-                ptrp = u32[ HEADER_PARENTPTRI + this ]
-        ) ] ] )( ptrp ) 
+    getParent           = ( ptri ) -> 
+        return unless ptrj = u32[ HEADER_PARENTPTRI + ptri ] 
+        Class = classes[ u32[ HEADER_CLASSINDEX + ptrj ] ]
+        return new Class ptrj
 
-    getLinked           = -> 
-        new ( classes[ u32[ HEADER_CLASSINDEX + (
-                link = u32[ HEADER_LINKEDPTRI + this ]
-        ) ] ] )( link ) 
+    getLinked           = ( ptri ) ->
+        return unless ptrj = u32[ HEADER_LINKEDPTRI + ptri ] 
+        Class = classes[ u32[ HEADER_CLASSINDEX + ptrj ] ]
+        return new Class ptrj
 
     findLinkeds         = ( ptri, Class ) ->
-        ptrj = Atomics.load u32, 1
+        ptrj = u32[1]
         clsi = Class.classIndex
         list = new Array() ; i = 0
 
         while ptrj -= 16
             continue if u32[ HEADER_LINKEDPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
-            list[ i ] = new ( classes[ clsi ] )( ptrj ) ; ++i
+            list[ i++ ] = new ( classes[ clsi ] ) ptrj 
 
         list
 
 
-    getChilds           = ( ptri = @   ) -> 
-        ptrj = Atomics.load u32, 1
+    getChilds           = ( ptri ) -> 
+        ptrj = u32[1]
         list = new Array() ; i = 0
 
         while ptrj -= 16
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
-            list[ i ] = new ( classes[ u32[ HEADER_CLASSINDEX + ptrj ] ] )( ptrj )
-            i++
+            Class = classes[ u32[ HEADER_CLASSINDEX + ptrj ] ]
+            list[ i++ ] = new Class ptrj
         
         list
 
-    getChildsPtri       = ( ptri       ) -> 
-        ptrj = Atomics.load u32, 1
-        list = new Array() ; i = 0
-
-        while ptrj -= 16
-            continue if ptri - u32[ HEADER_PARENTPTRI + ptrj ]
-            list[ i ] = ptrj ; i++
-
-        list
-
-    findChilds          = ( Class ) -> 
-        ptri = parseInt this
-        ptrj = Atomics.load u32, 1
+    findChilds          = ( ptri, Class ) -> 
+        ptrj = u32[1]
         clsi = Class.classIndex
         list = new Array() ; i = 0
 
@@ -244,9 +233,8 @@ do  self.init   = ->
 
         list
 
-    findChild           = ( Class ) -> 
-        ptri = parseInt this
-        ptrj = Atomics.load u32, 1
+    findChild           = ( ptri, Class ) -> 
+        ptrj = u32[1]
         clsi = Class.classIndex
 
         while ptrj -= 16
@@ -257,7 +245,7 @@ do  self.init   = ->
         undefined
 
     findChildRecursive  = ( ptri, Class, clsi ) -> 
-        ptrN = Atomics.load u32, 1
+        ptrN = u32[1]
         clsi = clsi or Class.classIndex
 
         ptrj = ptrN
@@ -275,7 +263,7 @@ do  self.init   = ->
         undefined
 
     findChildsRecursive = ( ptri, Class, clsi, childs = [] ) -> 
-        ptrN = Atomics.load u32, 1
+        ptrN = u32[1]
         clsi = clsi or Class.classIndex
 
         ptrj = ptrN
@@ -293,7 +281,7 @@ do  self.init   = ->
         childs
 
     findChildsPtri      = ( ptri, test ) -> 
-        ptrj = Atomics.load u32, 1
+        ptrj = u32[1]
         list = new Array() ; i = 0
 
         ci = if test.isPtr  then classes.indexOf test
@@ -308,9 +296,9 @@ do  self.init   = ->
 
         list
 
-    getAllocs           = ->
-        clsi = this.classIndex
-        ptrj = Atomics.load u32, 1
+    getAllocs           = ( ptri ) ->
+        clsi = ptri.classIndex
+        ptrj = u32[1]
         list = new Array() ; i = 0
 
         while ptrj -= 16
@@ -386,15 +374,15 @@ do  self.init   = ->
             u = u16[ HEADER_RESVINDEX2 + ptri * 2 + i ]
         ) ; u
 
-    getResvUint8        = ( i    ) -> 
-        ui8[ HEADER_RESVINDEX1 + this * 4 + i ]
+    getResvUint8        = ( ptri, i    ) -> 
+        ui8[ HEADER_RESVINDEX1 + i + ( ptri * 4 ) ]
     
-    setResvUint8        = ( i, v ) -> 
-        ui8[ HEADER_RESVINDEX1 + this * 4 + i ] = v
+    setResvUint8        = ( ptri, i, v ) -> 
+        ui8[ HEADER_RESVINDEX1 + i + ( ptri * 4 ) ] = v
     
     addResvUint8        = ( ptri, i, v ) -> 
-        ui8[ HEADER_RESVINDEX1 + ptri * 4 + i ] = v + (
-            u = ui8[ HEADER_RESVINDEX1 + ptri * 4 + i ]
+        ui8[ HEADER_RESVINDEX1 + i + ( ptri * 4 ) ] = v + (
+            u = ui8[ HEADER_RESVINDEX1 + i + ( ptri * 4 ) ]
         ) ; u
 
     getResvFloat32      = ( ptri, i    ) -> 
@@ -408,88 +396,88 @@ do  self.init   = ->
             u = f32[ HEADER_RESVINDEX4 + ptri + i ]
         ) ; u
 
-    newFloat32Array     = ( byteOffset = 0, length ) -> 
-        new Float32Array buffer, u32[ this ] + byteOffset, length or u32[ HEADER_LENGTH + this ]
+    newFloat32Array     = ( ptri, byteOffset = 0, length ) -> 
+        new Float32Array buffer, u32[ ptri ] + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
 
-    ptrFloat32Array     = ( byteOffset = 0, length ) -> 
-        new Float32Array buffer, this * 4, length or 16
+    ptrFloat32Array     = ( ptri, byteOffset = 0, length ) -> 
+        new Float32Array buffer, ptri * 4, length or 16
 
-    newUint32Array      = ( byteOffset = 0, length ) -> 
-        new Uint32Array buffer, u32[ this ] + byteOffset, length or u32[ HEADER_LENGTH + this ]
+    newUint32Array      = ( ptri, byteOffset = 0, length ) -> 
+        new Uint32Array buffer, u32[ ptri ] + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
 
-    ptrUint32Array      = ( byteOffset = 0, length ) -> 
-        new Uint32Array buffer, this * 4, length or 16
+    ptrUint32Array      = ( ptri, byteOffset = 0, length ) -> 
+        new Uint32Array buffer, ptri * 4, length or 16
 
-    newUint8Array       = ( byteOffset = 0, length ) -> 
-        new Uint8Array buffer, u32[ this ] + byteOffset, length or u32[ HEADER_LENGTH + this ]
+    newUint8Array       = ( ptri, byteOffset = 0, length ) -> 
+        new Uint8Array buffer, u32[ ptri ] + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
 
-    ptrUint8Array       = ( byteOffset = 0, length ) -> 
-        new Uint8Array buffer, this * 4, length or 64
+    ptrUint8Array       = ( ptri, byteOffset = 0, length ) -> 
+        new Uint8Array buffer, ptri * 4, length or 64
 
     subarrayFloat32     = ( ptri, begin = 0, count ) -> 
         begin += u32[ HEADER_BEGIN + ptri ]
         f32.subarray( begin, begin + count )
 
-    subarrayUint32      = ( begin = 0, count ) -> 
-        begin += u32[ HEADER_BEGIN + this ]
+    subarrayUint32      = ( ptri, begin = 0, count ) -> 
+        begin += u32[ HEADER_BEGIN + ptri ]
         u32.subarray( begin, begin + count )
 
-    subarrayUint8       = ( begin = 0, count ) -> 
-        begin += u32[ this ]
+    subarrayUint8       = ( ptri, begin = 0, count ) -> 
+        begin += u32[ ptri ]
         ui8.subarray( begin, begin + count )
         
-    setFloat32          = ( index, value ) ->
-        f32[ u32[ HEADER_BEGIN + this ] + index ] = value
+    setFloat32          = ( ptri, index, value ) ->
+        f32[ u32[ HEADER_BEGIN + ptri ] + index ] = value
 
-    getFloat32          = ( index = 0 ) ->
-        f32[ u32[ HEADER_BEGIN + this ] + index ]
+    getFloat32          = ( ptri, index = 0 ) ->
+        f32[ u32[ HEADER_BEGIN + ptri ] + index ]
 
-    orFloat32           = ( index = 0, fn ) ->
-        f32[ u32[ HEADER_BEGIN + this ] + index ] ||= fn.call this
+    orFloat32           = ( ptri, index = 0, fn ) ->
+        f32[ u32[ HEADER_BEGIN + ptri ] + index ] ||= fn.call ptri
 
-    fillFloat32         = ( value, start = 0, count ) ->
-        start += u32[ HEADER_BEGIN + this ]
-        f32.fill value, start, start + count ; this
+    fillFloat32         = ( ptri, value, start = 0, count ) ->
+        start += u32[ HEADER_BEGIN + ptri ]
+        f32.fill value, start, start + count ; ptri
 
-    setarrayFloat32     = ( array, begin = 0 ) -> 
-        f32.set array, begin + u32[ HEADER_BEGIN + this ] ; this
+    setarrayFloat32     = ( ptri, array, begin = 0 ) -> 
+        f32.set array, begin + u32[ HEADER_BEGIN + ptri ] ; ptri
 
-    addUint32           = ( index, value ) ->
-        u32[ u32[ HEADER_BEGIN + this ] + index ] = value + (
-            v = u32[ u32[ HEADER_BEGIN + this ] + index ]
+    addUint32           = ( ptri, index, value ) ->
+        u32[ u32[ HEADER_BEGIN + ptri ] + index ] = value + (
+            v = u32[ u32[ HEADER_BEGIN + ptri ] + index ]
         ) ; v
     
-    setUint32           = ( index, value ) -> 
-        u32[ u32[ HEADER_BEGIN + this ] + index ] = value
+    setUint32           = ( ptri, index, value ) -> 
+        u32[ u32[ HEADER_BEGIN + ptri ] + index ] = value
 
-    getUint32           = ( index = 0 ) -> 
-        u32[ u32[ HEADER_BEGIN + this ] + index ]
+    getUint32           = ( ptri, index = 0 ) -> 
+        u32[ u32[ HEADER_BEGIN + ptri ] + index ]
 
-    orUint32            = ( index = 0, fn ) -> 
-        u32[ u32[ HEADER_BEGIN + this ] + index ] ||= fn.call this
+    orUint32            = ( ptri, index = 0, fn ) -> 
+        u32[ u32[ HEADER_BEGIN + ptri ] + index ] ||= fn.call ptri
 
-    fillUint32          = ( value, start = 0, count ) ->
-        start += u32[ HEADER_BEGIN + this ]
-        u32.fill value, start, start + count ; this
+    fillUint32          = ( ptri, value, start = 0, count ) ->
+        start += u32[ HEADER_BEGIN + ptri ]
+        u32.fill value, start, start + count ; ptri
 
-    setarrayUint32      = ( array, begin = 0 ) -> 
-        u32.set array, begin + u32[ HEADER_BEGIN + this ] ; this
+    setarrayUint32      = ( ptri, array, begin = 0 ) -> 
+        u32.set array, begin + u32[ HEADER_BEGIN + ptri ] ; ptri
 
-    setUint8            = ( index, value ) -> 
-        ui8[ u32[ this ] + index ] = value
+    setUint8            = ( ptri, index, value ) -> 
+        ui8[ u32[ ptri ] + index ] = value
 
-    getUint8            = ( index = 0 ) -> 
-        ui8[ u32[ this ] + index ]
+    getUint8            = ( ptri, index = 0 ) -> 
+        ui8[ u32[ ptri ] + index ]
 
-    orUint8             = ( index = 0, fn ) ->
-        ui8[ u32[ this ] + index ] ||= fn.call this
+    orUint8             = ( ptri, index = 0, fn ) ->
+        ui8[ u32[ ptri ] + index ] ||= fn.call ptri
 
-    fillUint8           = ( value, start = 0, count ) ->
-        start += u32[ this ]
-        ui8.fill value, start, start + count ; this
+    fillUint8           = ( ptri, value, start = 0, count ) ->
+        start += u32[ ptri ]
+        ui8.fill value, start, start + count ; ptri
 
-    setarrayUint8       = ( array, begin = 0 ) -> 
-        ui8.set array, begin + u32[ this ] ; this
+    setarrayUint8       = ( ptri, array, begin = 0 ) -> 
+        ui8.set array, begin + u32[ ptri ] ; ptri
         
 
     state       = ( state ) ->
@@ -840,9 +828,10 @@ do  self.init   = ->
                 if !byteLength = @constructor.byteLength
                     byteLength = array.length * @BPE
                 
-            if !byteLength then return this
-            else this.malloc byteLength
-            setarrayFloat32.call this, array if array
+            if !byteLength then return @
+            else @malloc byteLength
+            setarrayFloat32 this, array if array
+
             return this
 
         store       : ( object ) ->
@@ -850,40 +839,41 @@ do  self.init   = ->
                 i += @storage.push object
             i
 
-        add         : setParent
+        add         : ( ptr ) -> setParent ptr, this
 
-        link        : setLinked
-
-        @allocs     : getAllocs
+        @allocs     : -> getAllocs this
 
         @create     : -> new this null, arguments...
 
         Object.defineProperties Pointer::,
             
-            childs  : get : getChilds 
+            childs  : get : -> getChilds this
 
-            parent  : get : getParent, set : (v) -> setParent.call v, this
+            parent  :
+                get : -> getParent this
+                set : ( ptri ) -> setParent this, ptri
 
-            linked  : get : getLinked, set : setLinked
+            linked  :
+                get : -> getLinked this
+                set : ( ptri ) -> setLinked this, ptri
 
-            tarray  : get : ( TypedArray = @TypedArray ) ->
-                new TypedArray buffer, getByteOffset(this), getLength(this)
+            tarray  :
+                get : -> new this.TypedArray buffer, getByteOffset(this), getLength(this)
 
             [ "|[Pointer]|" ] :
-                get : ptrUint32Array
-                set : ( ptr ) -> ptrUint32Array.call(this).set ptr
+                get : -> ptrUint32Array this
 
     classes.register class Vector3      extends Pointer
 
         @byteLength : 3 * @BPE
 
-        getX : -> getFloat32.call this, 0
-        getY : -> getFloat32.call this, 1
-        getZ : -> getFloat32.call this, 2
+        getX : -> getFloat32 this, 0
+        getY : -> getFloat32 this, 1
+        getZ : -> getFloat32 this, 2
 
-        setX : (v) -> setFloat32.call this, 0, v
-        setY : (v) -> setFloat32.call this, 1, v
-        setZ : (v) -> setFloat32.call this, 2, v
+        setX : (v) -> setFloat32 this, 0, v
+        setY : (v) -> setFloat32 this, 1, v
+        setZ : (v) -> setFloat32 this, 2, v
 
         Object.defineProperties Vector3::,
             x : get : Vector3::getX , set : Vector3::setX
@@ -963,35 +953,35 @@ do  self.init   = ->
 
         @byteLength : 9 * @BPE
 
-        getX : -> getFloat32.call this, 0
-        sinX : -> getFloat32.call this, 1
-        cosX : -> getFloat32.call this, 2
+        getX : -> getFloat32 this, 0
+        sinX : -> getFloat32 this, 1
+        cosX : -> getFloat32 this, 2
 
-        getY : -> getFloat32.call this, 3
-        sinY : -> getFloat32.call this, 4
-        cosY : -> getFloat32.call this, 5
+        getY : -> getFloat32 this, 3
+        sinY : -> getFloat32 this, 4
+        cosY : -> getFloat32 this, 5
 
-        getZ : -> getFloat32.call this, 6
-        sinZ : -> getFloat32.call this, 7
-        cosZ : -> getFloat32.call this, 8
+        getZ : -> getFloat32 this, 6
+        sinZ : -> getFloat32 this, 7
+        cosZ : -> getFloat32 this, 8
 
         setX : (v) ->
-            fillUint32.call this, 0, 3
-            setFloat32.call this, 0, v
-            setFloat32.call this, 1, Math.sin(v)
-            setFloat32.call this, 2, Math.cos(v)
+            fillUint32 this, 0, 3
+            setFloat32 this, 0, v
+            setFloat32 this, 1, Math.sin(v)
+            setFloat32 this, 2, Math.cos(v)
 
         setY : (v) ->
-            fillUint32.call this, 3, 3
-            setFloat32.call this, 3, v
-            setFloat32.call this, 4, Math.sin(v)
-            setFloat32.call this, 5, Math.cos(v)
+            fillUint32 this, 3, 3
+            setFloat32 this, 3, v
+            setFloat32 this, 4, Math.sin(v)
+            setFloat32 this, 5, Math.cos(v)
             
         setZ : (v) ->
-            fillUint32.call this, 6, 3
-            setFloat32.call this, 6, v
-            setFloat32.call this, 7, Math.sin(v)
-            setFloat32.call this, 8, Math.cos(v)            
+            fillUint32 this, 6, 3
+            setFloat32 this, 6, v
+            setFloat32 this, 7, Math.sin(v)
+            setFloat32 this, 8, Math.cos(v)            
 
         set  : ( v ) -> super() and [ @x, @y, @z ] = v ; @
 
@@ -1039,14 +1029,14 @@ do  self.init   = ->
             #todo buffer alloc required 'cause of stride and offset
             @copy 1
 
-            if  rotation = findInheritable.call this, "rotation"
+            if  rotation = findInheritable this, "rotation"
                 rotation . apply begin, count
 
             #todo must read rotated, not original begin 
-            if  position = findInheritable.call this, "position"
+            if  position = findInheritable this, "position"
                 position . apply begin, count
 
-            if  scale    = findInheritable.call this, "scale"
+            if  scale    = findInheritable this, "scale"
                 scale    . apply begin, count
 
             0
@@ -1084,7 +1074,7 @@ do  self.init   = ->
 
             pointCount      : get : -> getLength( this ) / 3
 
-            drawings        : get : -> findLinkeds this, Draw                
+            draws           : get : -> findLinkeds this, Draw                
 
         Object.deleteProperties Matter::, [ "tarray", "linked" ]
 
@@ -1099,8 +1089,6 @@ do  self.init   = ->
 
         vertex      : ( index = 0, count = 1 ) ->
             subarrayFloat32 this, 3 * index, 3 * count
-
-        point       : Matter::vertex
 
         line        : ( index = 0 ) -> 
             subarrayFloat32 this, 3 * index, 6
@@ -1869,14 +1857,14 @@ do  self.init   = ->
 
 
         getGLContext        : ->
-            @storage[ getResvUint8.call this, 2 ]
+            @storage[ getResvUint8 this, 2 ]
 
         parentGLContext     : ->
-            @storage[ getResvUint8.call this, 2 ] or
+            @storage[ getResvUint8 this, 2 ] or
             @gl = @parent.gl
 
         createGLContext     : ->
-            if  storei = getResvUint8.call this, 2
+            if  storei = getResvUint8 this, 2
                 return @storage[ storei ]
 
             throw /DONOT_CREATE_GL/ unless isWindow
@@ -1897,33 +1885,32 @@ do  self.init   = ->
                 . getContext "webgl2" 
 
         setGLContext        : ( webGL2RenderingContext ) ->
-            setResvUint8.call this, 2, @store webGL2RenderingContext
+            setResvUint8 this, 2, @store webGL2RenderingContext
 
         getGLProgram        : ->
-            @storage[ getResvUint8.call this, 3 ]
+            @storage[ getResvUint8 this, 3 ]
 
         setGLProgram        : ( webGLProgram ) ->
-            setResvUint8.call this, 3, @store webGLProgram 
+            setResvUint8 this, 3, @store webGLProgram 
 
         parentGLProgram    : ->
-            @storage[ getResvUint8.call this, 3 ] or
+            @storage[ getResvUint8 this, 3 ] or
             @glProgram = @parent.glProgram
 
         createGLProgram     : ->
-            @storage[ getResvUint8.call this, 3 ] or
+            @storage[ getResvUint8 this, 3 ] or
             @glProgram = @gl.createProgram()
-
             
             
         getGLBuffer         : ->
-            @storage[ getResvUint8.call this, 4 ]
+            @storage[ getResvUint8 this, 4 ]
 
         setGLBuffer         : ( webGLBuffer ) ->
-            setResvUint8.call this, 4, @store webGLBuffer
+            setResvUint8 this, 4, @store webGLBuffer
 
         activeGLBuffer      : ->
             #? space searching an glBuffer
-            if  storei = getResvUint8.call this, 4
+            if  storei = getResvUint8 this, 4
                 return @storage[ storei ]
             
             vShaders = findChildsRecursive this, VertexShader
@@ -1935,44 +1922,44 @@ do  self.init   = ->
 
         createGLBuffer      : ->
             #? vertex shader creates new buffer
-            @storage[ getResvUint8.call this, 4 ] or
+            @storage[ getResvUint8 this, 4 ] or
             @glBuffer = @gl.createBuffer()
 
         parentGLBuffer      : ->
             #? draw looks vertex shaders buffer
-            @storage[ getResvUint8.call this, 4 ] or
+            @storage[ getResvUint8 this, 4 ] or
             @glBuffer = @parent.glBuffer
 
         getGLShader         : ->
-            @storage[ getResvUint8.call this, 5 ]
+            @storage[ getResvUint8 this, 5 ]
 
         setGLShader         : ( webGLShader ) ->
             if @isVShader 
                 @setGLVShader webGLShader 
             else @setGLFShader webGLShader
 
-            setResvUint8.call this, 5, @store webGLShader
+            setResvUint8 this, 5, @store webGLShader
 
 
         getGLVShader        : ->
-            @storage[ getResvUint8.call this, 6 ]
+            @storage[ getResvUint8 this, 6 ]
 
         setGLVShader        : ( webGLShader ) ->
-            setResvUint8.call this, 6, @store webGLShader
+            setResvUint8 this, 6, @store webGLShader
 
         createGLVShader     : ->
             #? vertexShader creating new one
-            @storage[ getResvUint8.call this, 6 ] or
+            @storage[ getResvUint8 this, 6 ] or
             @glShader = @gl.createShader @gl.VERTEX_SHADER
 
         parentGLVShader     : ->
             #? matter or draw searching glVShader
-            @storage[ getResvUint8.call this, 6 ] or
+            @storage[ getResvUint8 this, 6 ] or
             @glVShader = @parent.glVShader or @parent.parent.glVShader
 
         activeGLVShader     : ->
             #? space searching an glVShader
-            if  storei = getResvUint8.call this, 6
+            if  storei = getResvUint8 this, 6
                 return @storage[ storei ]
             
             shaders = findChildsRecursive this, VertexShader
@@ -1986,22 +1973,22 @@ do  self.init   = ->
 
 
         getGLFShader        : ->
-            @storage[ getResvUint8.call this, 7 ]
+            @storage[ getResvUint8 this, 7 ]
 
         setGLFShader        : ( webGLShader ) ->
-            setResvUint8.call this, 7, @store webGLShader
+            setResvUint8 this, 7, @store webGLShader
 
         createGLFShader     : ->
-            @storage[ getResvUint8.call this, 7 ] or
+            @storage[ getResvUint8 this, 7 ] or
             @glShader = @gl.createShader @gl.FRAGMENT_SHADER
 
         parentGLFShader     : ->
-            @storage[ getResvUint8.call this, 7 ] or
+            @storage[ getResvUint8 this, 7 ] or
             @glFShader = @parent.glFShader or @parent.parent.glFShader
 
         activeGLFShader     : ->
             #? space searching an glFShader
-            if  storei = getResvUint8.call this, 7
+            if  storei = getResvUint8 this, 7
                 return @storage[ storei ]
                 
             shaders = findChildsRecursive this, FragmentShader
@@ -2012,17 +1999,17 @@ do  self.init   = ->
             @glFShader = shader.glShader
 
         getActive       : ->
-            getResvUint8.call this, 0
+            getResvUint8 this, 0
 
         setActive       : ( v ) ->
-            setResvUint8.call this, 0, v
+            setResvUint8 this, 0, v
 
 
         getBinded       : ->
-            getResvUint8.call this, 1
+            getResvUint8 this, 1
 
         setBinded       : ( v ) ->
-            setResvUint8.call this, 1, v
+            setResvUint8 this, 1, v
 
 
         getSource       : ->
@@ -2139,34 +2126,34 @@ do  self.init   = ->
             return super()
 
         getDefinitons   : ->
-            @storage[ getUint32.call this, @INDEX_DEFINITIONS_OBJECT ]
+            @storage[ getUint32 this, @INDEX_DEFINITIONS_OBJECT ]
         
         setDefinitons   : ( object = {} ) ->
-            setUint32.call this, @INDEX_DEFINITIONS_OBJECT, @store object
+            setUint32 this, @INDEX_DEFINITIONS_OBJECT, @store object
 
         dump            : ->
-            BYTELENGTH_PER_TYPE  : getUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_TYPE
-            BYTELENGTH_PER_POINT : getUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
-            LENGTH_PER_POINT     : getUint32.call this, @INDEX_ALLOC_LENGTH_PER_POINT
+            BYTELENGTH_PER_TYPE  : getUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_TYPE
+            BYTELENGTH_PER_POINT : getUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
+            LENGTH_PER_POINT     : getUint32 this, @INDEX_ALLOC_LENGTH_PER_POINT
 
             triangles :
-                alloc : getUint32.call this, @INDEX_TRIANGLES_ALLOC
-                start : getUint32.call this, @INDEX_TRIANGLES_START
-                count : getUint32.call this, @INDEX_TRIANGLES_COUNT
+                alloc : getUint32 this, @INDEX_TRIANGLES_ALLOC
+                start : getUint32 this, @INDEX_TRIANGLES_START
+                count : getUint32 this, @INDEX_TRIANGLES_COUNT
             
             lines     :
-                alloc : getUint32.call this, @INDEX_LINES_ALLOC
-                start : getUint32.call this, @INDEX_LINES_START
-                count : getUint32.call this, @INDEX_LINES_COUNT
+                alloc : getUint32 this, @INDEX_LINES_ALLOC
+                start : getUint32 this, @INDEX_LINES_START
+                count : getUint32 this, @INDEX_LINES_COUNT
             
             points    :
-                alloc : getUint32.call this, @INDEX_POINTS_ALLOC
-                start : getUint32.call this, @INDEX_POINTS_START
-                count : getUint32.call this, @INDEX_POINTS_COUNT                
+                alloc : getUint32 this, @INDEX_POINTS_ALLOC
+                start : getUint32 this, @INDEX_POINTS_START
+                count : getUint32 this, @INDEX_POINTS_COUNT                
 
         draw            : ( shape, type = @LINES ) ->
-            byteLength = shape.pointCount * getUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
-            length     = shape.pointCount * getUint32.call this, @INDEX_ALLOC_LENGTH_PER_POINT
+            byteLength = shape.pointCount * getUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
+            length     = shape.pointCount * getUint32 this, @INDEX_ALLOC_LENGTH_PER_POINT
 
             index = switch type
                 when @LINES      then @INDEX_LINES_COUNT
@@ -2177,8 +2164,8 @@ do  self.init   = ->
             Object.assign new Draw(),
                 drawType   : type
                 drawCount  : shape.pointCount
-                drawStart  : getUint32.call( this, index+2 ) + addUint32.call this, index, shape.pointCount
-                drawOffset : offset = addUint32.call( this, index+1, byteLength ) - getByteOffset(this)
+                drawStart  : getUint32( this, index+2 ) + addUint32 this, index, shape.pointCount
+                drawOffset : offset = addUint32( this, index+1, byteLength ) - getByteOffset(this)
                 readBegin  : begin = offset / 4 
                 readLength : length
                 byteOffset : getByteOffset(this) + begin * 4
@@ -2207,20 +2194,20 @@ do  self.init   = ->
             )
             paddingAlloc   = paddingCount * attibuteByteLength
 
-            setUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_TYPE   , typeByteAlloc
-            setUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_POINT  , attibuteByteLength
-            setUint32.call this, @INDEX_ALLOC_LENGTH_PER_POINT      , attibuteByteLength / 4
+            setUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_TYPE   , typeByteAlloc
+            setUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_POINT  , attibuteByteLength
+            setUint32 this, @INDEX_ALLOC_LENGTH_PER_POINT      , attibuteByteLength / 4
 
-            setUint32.call this, @INDEX_TRIANGLES_START , paddingCount 
-            setUint32.call this, @INDEX_TRIANGLES_ALLOC , paddingAlloc 
+            setUint32 this, @INDEX_TRIANGLES_START , paddingCount 
+            setUint32 this, @INDEX_TRIANGLES_ALLOC , paddingAlloc 
             
-            setUint32.call this, @INDEX_LINES_START     , typeDrawCount 
-            setUint32.call this, @INDEX_LINES_ALLOC     , typeByteAlloc 
+            setUint32 this, @INDEX_LINES_START     , typeDrawCount 
+            setUint32 this, @INDEX_LINES_ALLOC     , typeByteAlloc 
             
-            setUint32.call this, @INDEX_POINTS_START    , typeDrawCount * 2 
-            setUint32.call this, @INDEX_POINTS_ALLOC    , typeByteAlloc * 2 
+            setUint32 this, @INDEX_POINTS_START    , typeDrawCount * 2 
+            setUint32 this, @INDEX_POINTS_ALLOC    , typeByteAlloc * 2 
             
-            @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer = @gl.createBuffer()
+            @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
             @gl.bufferData @gl.ARRAY_BUFFER, drawByteAlloc, @gl.STATIC_DRAW
 
             @setDefinitons definitions
@@ -2358,37 +2345,37 @@ do  self.init   = ->
 
         @byteLength     : 8 * @BPE
 
-        getDrawType     : -> getUint32.call this, 0
+        getDrawType     : -> getUint32 this, 0
 
-        setDrawType     : ( v ) -> setUint32.call this, 0, v
+        setDrawType     : ( v ) -> setUint32 this, 0, v
 
-        getDrawOffset   : -> getUint32.call this, 1
+        getDrawOffset   : -> getUint32 this, 1
 
-        setDrawOffset   : ( v ) -> setUint32.call this, 1, v
+        setDrawOffset   : ( v ) -> setUint32 this, 1, v
 
-        getDrawStart    : -> getUint32.call this, 2
+        getDrawStart    : -> getUint32 this, 2
 
-        setDrawStart    : ( v ) -> setUint32.call this, 2, v
+        setDrawStart    : ( v ) -> setUint32 this, 2, v
 
-        getDrawCount    : -> getUint32.call this, 3
+        getDrawCount    : -> getUint32 this, 3
 
-        setDrawCount    : ( v ) -> setUint32.call this, 3, v
+        setDrawCount    : ( v ) -> setUint32 this, 3, v
 
-        getReadBegin    : -> getUint32.call this, 4
+        getReadBegin    : -> getUint32 this, 4
 
-        setReadBegin    : ( v ) -> setUint32.call this, 4, v
+        setReadBegin    : ( v ) -> setUint32 this, 4, v
 
-        getReadLength   : -> getUint32.call this, 5
+        getReadLength   : -> getUint32 this, 5
 
-        setReadLength   : ( v ) -> setUint32.call this, 5, v
+        setReadLength   : ( v ) -> setUint32 this, 5, v
 
-        getByteOffset   : -> getUint32.call this, 6
+        getByteOffset   : -> getUint32 this, 6
 
-        setByteOffset   : ( v ) -> setUint32.call this, 6, v
+        setByteOffset   : ( v ) -> setUint32 this, 6, v
 
-        getByteLength   : -> getUint32.call this, 7
+        getByteLength   : -> getUint32 this, 7
 
-        setByteLength   : ( v ) -> setUint32.call this, 7, v
+        setByteLength   : ( v ) -> setUint32 this, 7, v
 
         Object.defineProperties Draw::,
         
@@ -2432,12 +2419,12 @@ do  self.init   = ->
             vShader     : get : -> findChildsRecursive( this, VertexShader ).find (s) -> s.active
             fShader     : get : -> findChildsRecursive( this, FragmentShader ).find (s) -> s.active 
             created     :
-                get     :     -> getResvUint8.call( this, 1 )          
-                set     : (v) -> setResvUint8.call( this, 1, v )          
+                get     :     -> getResvUint8( this, 1 )          
+                set     : (v) -> setResvUint8( this, 1, v )          
 
             active      :
-                get     :     -> getResvUint8.call( this, 0 )          
-                set     : (v) -> setResvUint8.call( this, 0, v )          
+                get     :     -> getResvUint8( this, 0 )          
+                set     : (v) -> setResvUint8( this, 0, v )          
 
         Object.deleteProperties Space::, [ "tarray", "linked", "parent" ]
 

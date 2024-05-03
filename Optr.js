@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_GLBUFFER, Color, Draw, FragmentShader, Frustrum, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Texture, UV, Vector3, VertexShader, Vertices, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsPtri, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc2, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_GLBUFFER, Color, Draw, FragmentShader, Frustrum, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Matter, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Shader, Space, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Texture, UV, Vector3, VertexShader, Vertices, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc2, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -137,32 +137,32 @@ self.name = "window";
   HEADER_INDEXCOUNT++; //? 7
   HEADER_ITEROFFSET = 6;
   HEADER_INDEXCOUNT++; //? 6
-  HEADER_NEEDRECALC = 32;
+  HEADER_NEEDRECALC = 7 * 4;
   HEADER_INDEXCOUNT++; //? 32
-  HEADER_NEEDUPLOAD = 33;
-  HEADER_TRANSLATED = 34;
-  HEADER_FRAGMENTED = 35;
-  HEADER_RESVINDEX4 = 9;
+  HEADER_NEEDUPLOAD = 7 * 4 + 1;
+  HEADER_TRANSLATED = 7 * 4 + 2;
+  HEADER_FRAGMENTED = 7 * 4 + 3;
+  HEADER_RESVINDEX4 = 8;
   HEADER_INDEXCOUNT++; //? 9 
-  HEADER_RESVINDEX2 = 18;
-  HEADER_RESVINDEX1 = 27;
+  HEADER_RESVINDEX2 = 8 * 2;
+  HEADER_RESVINDEX1 = 8 * 4;
   getByteOffset = function(ptri) {
     return u32[ptri];
   };
-  setByteOffset = function(ptri, v) {
-    return u32[ptri] = v;
+  setByteOffset = function(ptri, byteOffset) {
+    return u32[ptri] = byteOffset;
   };
   getByteLength = function(ptri) {
     return u32[HEADER_BYTELENGTH + ptri];
   };
-  setByteLength = function(ptri, v) {
-    return u32[HEADER_BYTELENGTH + ptri] = v;
+  setByteLength = function(ptri, byteLength) {
+    return u32[HEADER_BYTELENGTH + ptri] = byteLength;
   };
   getLength = function(ptri) {
     return u32[HEADER_LENGTH + ptri];
   };
-  setLength = function(ptri, v) {
-    return u32[HEADER_LENGTH + ptri] = v;
+  setLength = function(ptri, length) {
+    return u32[HEADER_LENGTH + ptri] = length;
   };
   getBegin = function(ptri) {
     return u32[HEADER_BEGIN + ptri];
@@ -170,14 +170,14 @@ self.name = "window";
   getIndex = function(ptri, index = 0) {
     return u32[HEADER_BEGIN + ptri] + index;
   };
-  setBegin = function(ptri, v) {
-    return u32[HEADER_BEGIN + ptri] = v;
+  setBegin = function(ptri, begin) {
+    return u32[HEADER_BEGIN + ptri] = begin;
   };
   getClassIndex = function(ptri) {
     return u32[HEADER_CLASSINDEX + ptri];
   };
-  setClassIndex = function(ptri, v) {
-    return u32[HEADER_CLASSINDEX + ptri] = v;
+  setClassIndex = function(ptri, clsi) {
+    return u32[HEADER_CLASSINDEX + ptri] = clsi;
   };
   getClass = function(ptri) {
     return classes[u32[HEADER_CLASSINDEX + ptri]];
@@ -185,26 +185,34 @@ self.name = "window";
   getParentPtri = function(ptri) {
     return u32[HEADER_PARENTPTRI + ptri];
   };
-  getLinkedPtri = function() {
-    return u32[HEADER_LINKEDPTRI + this];
+  getLinkedPtri = function(ptri) {
+    return u32[HEADER_LINKEDPTRI + ptri];
   };
-  setParent = function(ptri) {
-    return u32[HEADER_PARENTPTRI + ptri] = this;
+  setParent = function(ptri, ptrj) {
+    return u32[HEADER_PARENTPTRI + ptri] = ptrj;
   };
-  setLinked = function(ptri) {
-    return u32[HEADER_LINKEDPTRI + this] = ptri;
+  setLinked = function(ptri, ptrj) {
+    return u32[HEADER_LINKEDPTRI + ptri] = ptrj;
   };
-  getParent = function() {
-    var ptrp;
-    return new classes[u32[HEADER_CLASSINDEX + (ptrp = u32[HEADER_PARENTPTRI + this])]](ptrp);
+  getParent = function(ptri) {
+    var Class, ptrj;
+    if (!(ptrj = u32[HEADER_PARENTPTRI + ptri])) {
+      return;
+    }
+    Class = classes[u32[HEADER_CLASSINDEX + ptrj]];
+    return new Class(ptrj);
   };
-  getLinked = function() {
-    var link;
-    return new classes[u32[HEADER_CLASSINDEX + (link = u32[HEADER_LINKEDPTRI + this])]](link);
+  getLinked = function(ptri) {
+    var Class, ptrj;
+    if (!(ptrj = u32[HEADER_LINKEDPTRI + ptri])) {
+      return;
+    }
+    Class = classes[u32[HEADER_CLASSINDEX + ptrj]];
+    return new Class(ptrj);
   };
   findLinkeds = function(ptri, Class) {
     var clsi, i, list, ptrj;
-    ptrj = Atomics.load(u32, 1);
+    ptrj = u32[1];
     clsi = Class.classIndex;
     list = new Array();
     i = 0;
@@ -215,43 +223,27 @@ self.name = "window";
       if (u32[HEADER_CLASSINDEX + ptrj] - clsi) {
         continue;
       }
-      list[i] = new classes[clsi](ptrj);
-      ++i;
+      list[i++] = new classes[clsi](ptrj);
     }
     return list;
   };
-  getChilds = function(ptri = this) {
-    var i, list, ptrj;
-    ptrj = Atomics.load(u32, 1);
+  getChilds = function(ptri) {
+    var Class, i, list, ptrj;
+    ptrj = u32[1];
     list = new Array();
     i = 0;
     while (ptrj -= 16) {
       if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
         continue;
       }
-      list[i] = new classes[u32[HEADER_CLASSINDEX + ptrj]](ptrj);
-      i++;
+      Class = classes[u32[HEADER_CLASSINDEX + ptrj]];
+      list[i++] = new Class(ptrj);
     }
     return list;
   };
-  getChildsPtri = function(ptri) {
-    var i, list, ptrj;
-    ptrj = Atomics.load(u32, 1);
-    list = new Array();
-    i = 0;
-    while (ptrj -= 16) {
-      if (ptri - u32[HEADER_PARENTPTRI + ptrj]) {
-        continue;
-      }
-      list[i] = ptrj;
-      i++;
-    }
-    return list;
-  };
-  findChilds = function(Class) {
-    var clsi, i, list, ptri, ptrj;
-    ptri = parseInt(this);
-    ptrj = Atomics.load(u32, 1);
+  findChilds = function(ptri, Class) {
+    var clsi, i, list, ptrj;
+    ptrj = u32[1];
     clsi = Class.classIndex;
     list = new Array();
     i = 0;
@@ -267,10 +259,9 @@ self.name = "window";
     }
     return list;
   };
-  findChild = function(Class) {
-    var clsi, ptri, ptrj;
-    ptri = parseInt(this);
-    ptrj = Atomics.load(u32, 1);
+  findChild = function(ptri, Class) {
+    var clsi, ptrj;
+    ptrj = u32[1];
     clsi = Class.classIndex;
     while (ptrj -= 16) {
       if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
@@ -285,7 +276,7 @@ self.name = "window";
   };
   findChildRecursive = function(ptri, Class, clsi) {
     var ptr, ptrN, ptrj;
-    ptrN = Atomics.load(u32, 1);
+    ptrN = u32[1];
     clsi = clsi || Class.classIndex;
     ptrj = ptrN;
     while (ptrj -= 16) {
@@ -311,7 +302,7 @@ self.name = "window";
   };
   findChildsRecursive = function(ptri, Class, clsi, childs = []) {
     var ptr, ptrN, ptrj;
-    ptrN = Atomics.load(u32, 1);
+    ptrN = u32[1];
     clsi = clsi || Class.classIndex;
     ptrj = ptrN;
     while (ptrj -= 16) {
@@ -337,7 +328,7 @@ self.name = "window";
   };
   findChildsPtri = function(ptri, test) {
     var ci, i, list, ptrj;
-    ptrj = Atomics.load(u32, 1);
+    ptrj = u32[1];
     list = new Array();
     i = 0;
     ci = (function() {
@@ -363,10 +354,10 @@ self.name = "window";
     }
     return list;
   };
-  getAllocs = function() {
+  getAllocs = function(ptri) {
     var clsi, i, list, ptrj;
-    clsi = this.classIndex;
-    ptrj = Atomics.load(u32, 1);
+    clsi = ptri.classIndex;
+    ptrj = u32[1];
     list = new Array();
     i = 0;
     while (ptrj -= 16) {
@@ -445,15 +436,15 @@ self.name = "window";
     u16[HEADER_RESVINDEX2 + ptri * 2 + i] = v + (u = u16[HEADER_RESVINDEX2 + ptri * 2 + i]);
     return u;
   };
-  getResvUint8 = function(i) {
-    return ui8[HEADER_RESVINDEX1 + this * 4 + i];
+  getResvUint8 = function(ptri, i) {
+    return ui8[HEADER_RESVINDEX1 + i + (ptri * 4)];
   };
-  setResvUint8 = function(i, v) {
-    return ui8[HEADER_RESVINDEX1 + this * 4 + i] = v;
+  setResvUint8 = function(ptri, i, v) {
+    return ui8[HEADER_RESVINDEX1 + i + (ptri * 4)] = v;
   };
   addResvUint8 = function(ptri, i, v) {
     var u;
-    ui8[HEADER_RESVINDEX1 + ptri * 4 + i] = v + (u = ui8[HEADER_RESVINDEX1 + ptri * 4 + i]);
+    ui8[HEADER_RESVINDEX1 + i + (ptri * 4)] = v + (u = ui8[HEADER_RESVINDEX1 + i + (ptri * 4)]);
     return u;
   };
   getResvFloat32 = function(ptri, i) {
@@ -467,97 +458,97 @@ self.name = "window";
     f32[HEADER_RESVINDEX4 + ptri + i] = v + (u = f32[HEADER_RESVINDEX4 + ptri + i]);
     return u;
   };
-  newFloat32Array = function(byteOffset = 0, length) {
-    return new Float32Array(buffer, u32[this] + byteOffset, length || u32[HEADER_LENGTH + this]);
+  newFloat32Array = function(ptri, byteOffset = 0, length) {
+    return new Float32Array(buffer, u32[ptri] + byteOffset, length || u32[HEADER_LENGTH + ptri]);
   };
-  ptrFloat32Array = function(byteOffset = 0, length) {
-    return new Float32Array(buffer, this * 4, length || 16);
+  ptrFloat32Array = function(ptri, byteOffset = 0, length) {
+    return new Float32Array(buffer, ptri * 4, length || 16);
   };
-  newUint32Array = function(byteOffset = 0, length) {
-    return new Uint32Array(buffer, u32[this] + byteOffset, length || u32[HEADER_LENGTH + this]);
+  newUint32Array = function(ptri, byteOffset = 0, length) {
+    return new Uint32Array(buffer, u32[ptri] + byteOffset, length || u32[HEADER_LENGTH + ptri]);
   };
-  ptrUint32Array = function(byteOffset = 0, length) {
-    return new Uint32Array(buffer, this * 4, length || 16);
+  ptrUint32Array = function(ptri, byteOffset = 0, length) {
+    return new Uint32Array(buffer, ptri * 4, length || 16);
   };
-  newUint8Array = function(byteOffset = 0, length) {
-    return new Uint8Array(buffer, u32[this] + byteOffset, length || u32[HEADER_LENGTH + this]);
+  newUint8Array = function(ptri, byteOffset = 0, length) {
+    return new Uint8Array(buffer, u32[ptri] + byteOffset, length || u32[HEADER_LENGTH + ptri]);
   };
-  ptrUint8Array = function(byteOffset = 0, length) {
-    return new Uint8Array(buffer, this * 4, length || 64);
+  ptrUint8Array = function(ptri, byteOffset = 0, length) {
+    return new Uint8Array(buffer, ptri * 4, length || 64);
   };
   subarrayFloat32 = function(ptri, begin = 0, count) {
     begin += u32[HEADER_BEGIN + ptri];
     return f32.subarray(begin, begin + count);
   };
-  subarrayUint32 = function(begin = 0, count) {
-    begin += u32[HEADER_BEGIN + this];
+  subarrayUint32 = function(ptri, begin = 0, count) {
+    begin += u32[HEADER_BEGIN + ptri];
     return u32.subarray(begin, begin + count);
   };
-  subarrayUint8 = function(begin = 0, count) {
-    begin += u32[this];
+  subarrayUint8 = function(ptri, begin = 0, count) {
+    begin += u32[ptri];
     return ui8.subarray(begin, begin + count);
   };
-  setFloat32 = function(index, value) {
-    return f32[u32[HEADER_BEGIN + this] + index] = value;
+  setFloat32 = function(ptri, index, value) {
+    return f32[u32[HEADER_BEGIN + ptri] + index] = value;
   };
-  getFloat32 = function(index = 0) {
-    return f32[u32[HEADER_BEGIN + this] + index];
+  getFloat32 = function(ptri, index = 0) {
+    return f32[u32[HEADER_BEGIN + ptri] + index];
   };
-  orFloat32 = function(index = 0, fn) {
+  orFloat32 = function(ptri, index = 0, fn) {
     var name1;
-    return f32[name1 = u32[HEADER_BEGIN + this] + index] || (f32[name1] = fn.call(this));
+    return f32[name1 = u32[HEADER_BEGIN + ptri] + index] || (f32[name1] = fn.call(ptri));
   };
-  fillFloat32 = function(value, start = 0, count) {
-    start += u32[HEADER_BEGIN + this];
+  fillFloat32 = function(ptri, value, start = 0, count) {
+    start += u32[HEADER_BEGIN + ptri];
     f32.fill(value, start, start + count);
-    return this;
+    return ptri;
   };
-  setarrayFloat32 = function(array, begin = 0) {
-    f32.set(array, begin + u32[HEADER_BEGIN + this]);
-    return this;
+  setarrayFloat32 = function(ptri, array, begin = 0) {
+    f32.set(array, begin + u32[HEADER_BEGIN + ptri]);
+    return ptri;
   };
-  addUint32 = function(index, value) {
+  addUint32 = function(ptri, index, value) {
     var v;
-    u32[u32[HEADER_BEGIN + this] + index] = value + (v = u32[u32[HEADER_BEGIN + this] + index]);
+    u32[u32[HEADER_BEGIN + ptri] + index] = value + (v = u32[u32[HEADER_BEGIN + ptri] + index]);
     return v;
   };
-  setUint32 = function(index, value) {
-    return u32[u32[HEADER_BEGIN + this] + index] = value;
+  setUint32 = function(ptri, index, value) {
+    return u32[u32[HEADER_BEGIN + ptri] + index] = value;
   };
-  getUint32 = function(index = 0) {
-    return u32[u32[HEADER_BEGIN + this] + index];
+  getUint32 = function(ptri, index = 0) {
+    return u32[u32[HEADER_BEGIN + ptri] + index];
   };
-  orUint32 = function(index = 0, fn) {
+  orUint32 = function(ptri, index = 0, fn) {
     var name1;
-    return u32[name1 = u32[HEADER_BEGIN + this] + index] || (u32[name1] = fn.call(this));
+    return u32[name1 = u32[HEADER_BEGIN + ptri] + index] || (u32[name1] = fn.call(ptri));
   };
-  fillUint32 = function(value, start = 0, count) {
-    start += u32[HEADER_BEGIN + this];
+  fillUint32 = function(ptri, value, start = 0, count) {
+    start += u32[HEADER_BEGIN + ptri];
     u32.fill(value, start, start + count);
-    return this;
+    return ptri;
   };
-  setarrayUint32 = function(array, begin = 0) {
-    u32.set(array, begin + u32[HEADER_BEGIN + this]);
-    return this;
+  setarrayUint32 = function(ptri, array, begin = 0) {
+    u32.set(array, begin + u32[HEADER_BEGIN + ptri]);
+    return ptri;
   };
-  setUint8 = function(index, value) {
-    return ui8[u32[this] + index] = value;
+  setUint8 = function(ptri, index, value) {
+    return ui8[u32[ptri] + index] = value;
   };
-  getUint8 = function(index = 0) {
-    return ui8[u32[this] + index];
+  getUint8 = function(ptri, index = 0) {
+    return ui8[u32[ptri] + index];
   };
-  orUint8 = function(index = 0, fn) {
+  orUint8 = function(ptri, index = 0, fn) {
     var name1;
-    return ui8[name1 = u32[this] + index] || (ui8[name1] = fn.call(this));
+    return ui8[name1 = u32[ptri] + index] || (ui8[name1] = fn.call(ptri));
   };
-  fillUint8 = function(value, start = 0, count) {
-    start += u32[this];
+  fillUint8 = function(ptri, value, start = 0, count) {
+    start += u32[ptri];
     ui8.fill(value, start, start + count);
-    return this;
+    return ptri;
   };
-  setarrayUint8 = function(array, begin = 0) {
-    ui8.set(array, begin + u32[this]);
-    return this;
+  setarrayUint8 = function(ptri, array, begin = 0) {
+    ui8.set(array, begin + u32[ptri]);
+    return ptri;
   };
   state = function(state) {
     if (!arguments.length) {
@@ -910,7 +901,7 @@ self.name = "window";
           this.malloc(byteLength);
         }
         if (array) {
-          setarrayFloat32.call(this, array);
+          setarrayFloat32(this, array);
         }
         return this;
       }
@@ -921,6 +912,14 @@ self.name = "window";
           i += this.storage.push(object);
         }
         return i;
+      }
+
+      add(ptr) {
+        return setParent(ptr, this);
+      }
+
+      static allocs() {
+        return getAllocs(this);
       }
 
       static create() {
@@ -943,35 +942,36 @@ self.name = "window";
 
     Pointer.prototype.storage = [, ];
 
-    Pointer.prototype.add = setParent;
-
-    Pointer.prototype.link = setLinked;
-
-    Pointer.allocs = getAllocs;
-
     Object.defineProperties(Pointer.prototype, {
       childs: {
-        get: getChilds
+        get: function() {
+          return getChilds(this);
+        }
       },
       parent: {
-        get: getParent,
-        set: function(v) {
-          return setParent.call(v, this);
+        get: function() {
+          return getParent(this);
+        },
+        set: function(ptri) {
+          return setParent(this, ptri);
         }
       },
       linked: {
-        get: getLinked,
-        set: setLinked
+        get: function() {
+          return getLinked(this);
+        },
+        set: function(ptri) {
+          return setLinked(this, ptri);
+        }
       },
       tarray: {
-        get: function(TypedArray = this.TypedArray) {
-          return new TypedArray(buffer, getByteOffset(this), getLength(this));
+        get: function() {
+          return new this.TypedArray(buffer, getByteOffset(this), getLength(this));
         }
       },
       ["|[Pointer]|"]: {
-        get: ptrUint32Array,
-        set: function(ptr) {
-          return ptrUint32Array.call(this).set(ptr);
+        get: function() {
+          return ptrUint32Array(this);
         }
       }
     });
@@ -982,27 +982,27 @@ self.name = "window";
   classes.register(Vector3 = (function() {
     class Vector3 extends Pointer {
       getX() {
-        return getFloat32.call(this, 0);
+        return getFloat32(this, 0);
       }
 
       getY() {
-        return getFloat32.call(this, 1);
+        return getFloat32(this, 1);
       }
 
       getZ() {
-        return getFloat32.call(this, 2);
+        return getFloat32(this, 2);
       }
 
       setX(v) {
-        return setFloat32.call(this, 0, v);
+        return setFloat32(this, 0, v);
       }
 
       setY(v) {
-        return setFloat32.call(this, 1, v);
+        return setFloat32(this, 1, v);
       }
 
       setZ(v) {
-        return setFloat32.call(this, 2, v);
+        return setFloat32(this, 2, v);
       }
 
     };
@@ -1151,60 +1151,60 @@ self.name = "window";
   classes.register(Rotation = (function() {
     class Rotation extends Pointer {
       getX() {
-        return getFloat32.call(this, 0);
+        return getFloat32(this, 0);
       }
 
       sinX() {
-        return getFloat32.call(this, 1);
+        return getFloat32(this, 1);
       }
 
       cosX() {
-        return getFloat32.call(this, 2);
+        return getFloat32(this, 2);
       }
 
       getY() {
-        return getFloat32.call(this, 3);
+        return getFloat32(this, 3);
       }
 
       sinY() {
-        return getFloat32.call(this, 4);
+        return getFloat32(this, 4);
       }
 
       cosY() {
-        return getFloat32.call(this, 5);
+        return getFloat32(this, 5);
       }
 
       getZ() {
-        return getFloat32.call(this, 6);
+        return getFloat32(this, 6);
       }
 
       sinZ() {
-        return getFloat32.call(this, 7);
+        return getFloat32(this, 7);
       }
 
       cosZ() {
-        return getFloat32.call(this, 8);
+        return getFloat32(this, 8);
       }
 
       setX(v) {
-        fillUint32.call(this, 0, 3);
-        setFloat32.call(this, 0, v);
-        setFloat32.call(this, 1, Math.sin(v));
-        return setFloat32.call(this, 2, Math.cos(v));
+        fillUint32(this, 0, 3);
+        setFloat32(this, 0, v);
+        setFloat32(this, 1, Math.sin(v));
+        return setFloat32(this, 2, Math.cos(v));
       }
 
       setY(v) {
-        fillUint32.call(this, 3, 3);
-        setFloat32.call(this, 3, v);
-        setFloat32.call(this, 4, Math.sin(v));
-        return setFloat32.call(this, 5, Math.cos(v));
+        fillUint32(this, 3, 3);
+        setFloat32(this, 3, v);
+        setFloat32(this, 4, Math.sin(v));
+        return setFloat32(this, 5, Math.cos(v));
       }
 
       setZ(v) {
-        fillUint32.call(this, 6, 3);
-        setFloat32.call(this, 6, v);
-        setFloat32.call(this, 7, Math.sin(v));
-        return setFloat32.call(this, 8, Math.cos(v));
+        fillUint32(this, 6, 3);
+        setFloat32(this, 6, v);
+        setFloat32(this, 7, Math.sin(v));
+        return setFloat32(this, 8, Math.cos(v));
       }
 
       set(v) {
@@ -1267,14 +1267,14 @@ self.name = "window";
         var position, rotation, scale;
         //todo buffer alloc required 'cause of stride and offset
         this.copy(1);
-        if (rotation = findInheritable.call(this, "rotation")) {
+        if (rotation = findInheritable(this, "rotation")) {
           rotation.apply(begin, count);
         }
         //todo must read rotated, not original begin 
-        if (position = findInheritable.call(this, "position")) {
+        if (position = findInheritable(this, "position")) {
           position.apply(begin, count);
         }
-        if (scale = findInheritable.call(this, "scale")) {
+        if (scale = findInheritable(this, "scale")) {
           scale.apply(begin, count);
         }
         return 0;
@@ -1380,7 +1380,7 @@ self.name = "window";
           return getLength(this) / 3;
         }
       },
-      drawings: {
+      draws: {
         get: function() {
           return findLinkeds(this, Draw);
         }
@@ -1388,8 +1388,6 @@ self.name = "window";
     });
 
     Object.deleteProperties(Matter.prototype, ["tarray", "linked"]);
-
-    Matter.prototype.point = Matter.prototype.vertex;
 
     return Matter;
 
@@ -2138,16 +2136,16 @@ self.name = "window";
   classes.register(Shader = (function() {
     class Shader extends Pointer {
       getGLContext() {
-        return this.storage[getResvUint8.call(this, 2)];
+        return this.storage[getResvUint8(this, 2)];
       }
 
       parentGLContext() {
-        return this.storage[getResvUint8.call(this, 2)] || (this.gl = this.parent.gl);
+        return this.storage[getResvUint8(this, 2)] || (this.gl = this.parent.gl);
       }
 
       createGLContext() {
         var canvas, storei;
-        if (storei = getResvUint8.call(this, 2)) {
+        if (storei = getResvUint8(this, 2)) {
           return this.storage[storei];
         }
         if (!isWindow) {
@@ -2168,37 +2166,37 @@ self.name = "window";
       }
 
       setGLContext(webGL2RenderingContext) {
-        return setResvUint8.call(this, 2, this.store(webGL2RenderingContext));
+        return setResvUint8(this, 2, this.store(webGL2RenderingContext));
       }
 
       getGLProgram() {
-        return this.storage[getResvUint8.call(this, 3)];
+        return this.storage[getResvUint8(this, 3)];
       }
 
       setGLProgram(webGLProgram) {
-        return setResvUint8.call(this, 3, this.store(webGLProgram));
+        return setResvUint8(this, 3, this.store(webGLProgram));
       }
 
       parentGLProgram() {
-        return this.storage[getResvUint8.call(this, 3)] || (this.glProgram = this.parent.glProgram);
+        return this.storage[getResvUint8(this, 3)] || (this.glProgram = this.parent.glProgram);
       }
 
       createGLProgram() {
-        return this.storage[getResvUint8.call(this, 3)] || (this.glProgram = this.gl.createProgram());
+        return this.storage[getResvUint8(this, 3)] || (this.glProgram = this.gl.createProgram());
       }
 
       getGLBuffer() {
-        return this.storage[getResvUint8.call(this, 4)];
+        return this.storage[getResvUint8(this, 4)];
       }
 
       setGLBuffer(webGLBuffer) {
-        return setResvUint8.call(this, 4, this.store(webGLBuffer));
+        return setResvUint8(this, 4, this.store(webGLBuffer));
       }
 
       activeGLBuffer() {
         var storei, vShaders;
         //? space searching an glBuffer
-        if (storei = getResvUint8.call(this, 4)) {
+        if (storei = getResvUint8(this, 4)) {
           return this.storage[storei];
         }
         vShaders = findChildsRecursive(this, VertexShader);
@@ -2215,16 +2213,16 @@ self.name = "window";
 
       createGLBuffer() {
         //? vertex shader creates new buffer
-        return this.storage[getResvUint8.call(this, 4)] || (this.glBuffer = this.gl.createBuffer());
+        return this.storage[getResvUint8(this, 4)] || (this.glBuffer = this.gl.createBuffer());
       }
 
       parentGLBuffer() {
         //? draw looks vertex shaders buffer
-        return this.storage[getResvUint8.call(this, 4)] || (this.glBuffer = this.parent.glBuffer);
+        return this.storage[getResvUint8(this, 4)] || (this.glBuffer = this.parent.glBuffer);
       }
 
       getGLShader() {
-        return this.storage[getResvUint8.call(this, 5)];
+        return this.storage[getResvUint8(this, 5)];
       }
 
       setGLShader(webGLShader) {
@@ -2233,31 +2231,31 @@ self.name = "window";
         } else {
           this.setGLFShader(webGLShader);
         }
-        return setResvUint8.call(this, 5, this.store(webGLShader));
+        return setResvUint8(this, 5, this.store(webGLShader));
       }
 
       getGLVShader() {
-        return this.storage[getResvUint8.call(this, 6)];
+        return this.storage[getResvUint8(this, 6)];
       }
 
       setGLVShader(webGLShader) {
-        return setResvUint8.call(this, 6, this.store(webGLShader));
+        return setResvUint8(this, 6, this.store(webGLShader));
       }
 
       createGLVShader() {
         //? vertexShader creating new one
-        return this.storage[getResvUint8.call(this, 6)] || (this.glShader = this.gl.createShader(this.gl.VERTEX_SHADER));
+        return this.storage[getResvUint8(this, 6)] || (this.glShader = this.gl.createShader(this.gl.VERTEX_SHADER));
       }
 
       parentGLVShader() {
         //? matter or draw searching glVShader
-        return this.storage[getResvUint8.call(this, 6)] || (this.glVShader = this.parent.glVShader || this.parent.parent.glVShader);
+        return this.storage[getResvUint8(this, 6)] || (this.glVShader = this.parent.glVShader || this.parent.parent.glVShader);
       }
 
       activeGLVShader() {
         var shader, storei;
         //? space searching an glVShader
-        if (storei = getResvUint8.call(this, 6)) {
+        if (storei = getResvUint8(this, 6)) {
           return this.storage[storei];
         }
         shaders = findChildsRecursive(this, VertexShader);
@@ -2273,25 +2271,25 @@ self.name = "window";
       }
 
       getGLFShader() {
-        return this.storage[getResvUint8.call(this, 7)];
+        return this.storage[getResvUint8(this, 7)];
       }
 
       setGLFShader(webGLShader) {
-        return setResvUint8.call(this, 7, this.store(webGLShader));
+        return setResvUint8(this, 7, this.store(webGLShader));
       }
 
       createGLFShader() {
-        return this.storage[getResvUint8.call(this, 7)] || (this.glShader = this.gl.createShader(this.gl.FRAGMENT_SHADER));
+        return this.storage[getResvUint8(this, 7)] || (this.glShader = this.gl.createShader(this.gl.FRAGMENT_SHADER));
       }
 
       parentGLFShader() {
-        return this.storage[getResvUint8.call(this, 7)] || (this.glFShader = this.parent.glFShader || this.parent.parent.glFShader);
+        return this.storage[getResvUint8(this, 7)] || (this.glFShader = this.parent.glFShader || this.parent.parent.glFShader);
       }
 
       activeGLFShader() {
         var shader, storei;
         //? space searching an glFShader
-        if (storei = getResvUint8.call(this, 7)) {
+        if (storei = getResvUint8(this, 7)) {
           return this.storage[storei];
         }
         shaders = findChildsRecursive(this, FragmentShader);
@@ -2307,19 +2305,19 @@ self.name = "window";
       }
 
       getActive() {
-        return getResvUint8.call(this, 0);
+        return getResvUint8(this, 0);
       }
 
       setActive(v) {
-        return setResvUint8.call(this, 0, v);
+        return setResvUint8(this, 0, v);
       }
 
       getBinded() {
-        return getResvUint8.call(this, 1);
+        return getResvUint8(this, 1);
       }
 
       setBinded(v) {
-        return setResvUint8.call(this, 1, v);
+        return setResvUint8(this, 1, v);
       }
 
       getSource() {
@@ -2436,40 +2434,40 @@ self.name = "window";
       }
 
       getDefinitons() {
-        return this.storage[getUint32.call(this, this.INDEX_DEFINITIONS_OBJECT)];
+        return this.storage[getUint32(this, this.INDEX_DEFINITIONS_OBJECT)];
       }
 
       setDefinitons(object = {}) {
-        return setUint32.call(this, this.INDEX_DEFINITIONS_OBJECT, this.store(object));
+        return setUint32(this, this.INDEX_DEFINITIONS_OBJECT, this.store(object));
       }
 
       dump() {
         return {
-          BYTELENGTH_PER_TYPE: getUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_TYPE),
-          BYTELENGTH_PER_POINT: getUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_POINT),
-          LENGTH_PER_POINT: getUint32.call(this, this.INDEX_ALLOC_LENGTH_PER_POINT),
+          BYTELENGTH_PER_TYPE: getUint32(this, this.INDEX_ALLOC_BYTELENGTH_PER_TYPE),
+          BYTELENGTH_PER_POINT: getUint32(this, this.INDEX_ALLOC_BYTELENGTH_PER_POINT),
+          LENGTH_PER_POINT: getUint32(this, this.INDEX_ALLOC_LENGTH_PER_POINT),
           triangles: {
-            alloc: getUint32.call(this, this.INDEX_TRIANGLES_ALLOC),
-            start: getUint32.call(this, this.INDEX_TRIANGLES_START),
-            count: getUint32.call(this, this.INDEX_TRIANGLES_COUNT)
+            alloc: getUint32(this, this.INDEX_TRIANGLES_ALLOC),
+            start: getUint32(this, this.INDEX_TRIANGLES_START),
+            count: getUint32(this, this.INDEX_TRIANGLES_COUNT)
           },
           lines: {
-            alloc: getUint32.call(this, this.INDEX_LINES_ALLOC),
-            start: getUint32.call(this, this.INDEX_LINES_START),
-            count: getUint32.call(this, this.INDEX_LINES_COUNT)
+            alloc: getUint32(this, this.INDEX_LINES_ALLOC),
+            start: getUint32(this, this.INDEX_LINES_START),
+            count: getUint32(this, this.INDEX_LINES_COUNT)
           },
           points: {
-            alloc: getUint32.call(this, this.INDEX_POINTS_ALLOC),
-            start: getUint32.call(this, this.INDEX_POINTS_START),
-            count: getUint32.call(this, this.INDEX_POINTS_COUNT)
+            alloc: getUint32(this, this.INDEX_POINTS_ALLOC),
+            start: getUint32(this, this.INDEX_POINTS_START),
+            count: getUint32(this, this.INDEX_POINTS_COUNT)
           }
         };
       }
 
       draw(shape, type = this.LINES) {
         var begin, byteLength, index, length, offset;
-        byteLength = shape.pointCount * getUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_POINT);
-        length = shape.pointCount * getUint32.call(this, this.INDEX_ALLOC_LENGTH_PER_POINT);
+        byteLength = shape.pointCount * getUint32(this, this.INDEX_ALLOC_BYTELENGTH_PER_POINT);
+        length = shape.pointCount * getUint32(this, this.INDEX_ALLOC_LENGTH_PER_POINT);
         index = (function() {
           switch (type) {
             case this.LINES:
@@ -2485,8 +2483,8 @@ self.name = "window";
         return Object.assign(new Draw(), {
           drawType: type,
           drawCount: shape.pointCount,
-          drawStart: getUint32.call(this, index + 2) + addUint32.call(this, index, shape.pointCount),
-          drawOffset: offset = addUint32.call(this, index + 1, byteLength) - getByteOffset(this),
+          drawStart: getUint32(this, index + 2) + addUint32(this, index, shape.pointCount),
+          drawOffset: offset = addUint32(this, index + 1, byteLength) - getByteOffset(this),
           readBegin: begin = offset / 4,
           readLength: length,
           byteOffset: getByteOffset(this) + begin * 4,
@@ -2514,16 +2512,16 @@ self.name = "window";
         typeDrawCount = typeByteAlloc / attibuteByteLength;
         paddingCount = Math.max(1, Math.ceil(this.INDEX_DRAWBUFFER_STARTS * this.BPE / attibuteByteLength));
         paddingAlloc = paddingCount * attibuteByteLength;
-        setUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_TYPE, typeByteAlloc);
-        setUint32.call(this, this.INDEX_ALLOC_BYTELENGTH_PER_POINT, attibuteByteLength);
-        setUint32.call(this, this.INDEX_ALLOC_LENGTH_PER_POINT, attibuteByteLength / 4);
-        setUint32.call(this, this.INDEX_TRIANGLES_START, paddingCount);
-        setUint32.call(this, this.INDEX_TRIANGLES_ALLOC, paddingAlloc);
-        setUint32.call(this, this.INDEX_LINES_START, typeDrawCount);
-        setUint32.call(this, this.INDEX_LINES_ALLOC, typeByteAlloc);
-        setUint32.call(this, this.INDEX_POINTS_START, typeDrawCount * 2);
-        setUint32.call(this, this.INDEX_POINTS_ALLOC, typeByteAlloc * 2);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer = this.gl.createBuffer());
+        setUint32(this, this.INDEX_ALLOC_BYTELENGTH_PER_TYPE, typeByteAlloc);
+        setUint32(this, this.INDEX_ALLOC_BYTELENGTH_PER_POINT, attibuteByteLength);
+        setUint32(this, this.INDEX_ALLOC_LENGTH_PER_POINT, attibuteByteLength / 4);
+        setUint32(this, this.INDEX_TRIANGLES_START, paddingCount);
+        setUint32(this, this.INDEX_TRIANGLES_ALLOC, paddingAlloc);
+        setUint32(this, this.INDEX_LINES_START, typeDrawCount);
+        setUint32(this, this.INDEX_LINES_ALLOC, typeByteAlloc);
+        setUint32(this, this.INDEX_POINTS_START, typeDrawCount * 2);
+        setUint32(this, this.INDEX_POINTS_ALLOC, typeByteAlloc * 2);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glBuffer);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, drawByteAlloc, this.gl.STATIC_DRAW);
         this.setDefinitons(definitions);
         return this;
@@ -2742,67 +2740,67 @@ self.name = "window";
   classes.register(Draw = (function() {
     class Draw extends Pointer {
       getDrawType() {
-        return getUint32.call(this, 0);
+        return getUint32(this, 0);
       }
 
       setDrawType(v) {
-        return setUint32.call(this, 0, v);
+        return setUint32(this, 0, v);
       }
 
       getDrawOffset() {
-        return getUint32.call(this, 1);
+        return getUint32(this, 1);
       }
 
       setDrawOffset(v) {
-        return setUint32.call(this, 1, v);
+        return setUint32(this, 1, v);
       }
 
       getDrawStart() {
-        return getUint32.call(this, 2);
+        return getUint32(this, 2);
       }
 
       setDrawStart(v) {
-        return setUint32.call(this, 2, v);
+        return setUint32(this, 2, v);
       }
 
       getDrawCount() {
-        return getUint32.call(this, 3);
+        return getUint32(this, 3);
       }
 
       setDrawCount(v) {
-        return setUint32.call(this, 3, v);
+        return setUint32(this, 3, v);
       }
 
       getReadBegin() {
-        return getUint32.call(this, 4);
+        return getUint32(this, 4);
       }
 
       setReadBegin(v) {
-        return setUint32.call(this, 4, v);
+        return setUint32(this, 4, v);
       }
 
       getReadLength() {
-        return getUint32.call(this, 5);
+        return getUint32(this, 5);
       }
 
       setReadLength(v) {
-        return setUint32.call(this, 5, v);
+        return setUint32(this, 5, v);
       }
 
       getByteOffset() {
-        return getUint32.call(this, 6);
+        return getUint32(this, 6);
       }
 
       setByteOffset(v) {
-        return setUint32.call(this, 6, v);
+        return setUint32(this, 6, v);
       }
 
       getByteLength() {
-        return getUint32.call(this, 7);
+        return getUint32(this, 7);
       }
 
       setByteLength(v) {
-        return setUint32.call(this, 7, v);
+        return setUint32(this, 7, v);
       }
 
     };
@@ -2961,18 +2959,18 @@ self.name = "window";
       },
       created: {
         get: function() {
-          return getResvUint8.call(this, 1);
+          return getResvUint8(this, 1);
         },
         set: function(v) {
-          return setResvUint8.call(this, 1, v);
+          return setResvUint8(this, 1, v);
         }
       },
       active: {
         get: function() {
-          return getResvUint8.call(this, 0);
+          return getResvUint8(this, 0);
         },
         set: function(v) {
-          return setResvUint8.call(this, 0, v);
+          return setResvUint8(this, 0, v);
         }
       }
     });
