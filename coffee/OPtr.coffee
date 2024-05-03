@@ -197,6 +197,19 @@ do  self.init   = ->
                 link = u32[ HEADER_LINKEDPTRI + this ]
         ) ] ] )( link ) 
 
+    findLinkeds         = ( ptri, Class ) ->
+        ptrj = Atomics.load u32, 1
+        clsi = Class.classIndex
+        list = new Array() ; i = 0
+
+        while ptrj -= 16
+            continue if u32[ HEADER_LINKEDPTRI + ptrj ] - ptri
+            continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
+            list[ i ] = new ( classes[ clsi ] )( ptrj ) ; ++i
+
+        list
+
+
     getChilds           = ( ptri = @   ) -> 
         ptrj = Atomics.load u32, 1
         list = new Array() ; i = 0
@@ -224,7 +237,6 @@ do  self.init   = ->
         clsi = Class.classIndex
         list = new Array() ; i = 0
 
-
         while ptrj -= 16
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
@@ -243,6 +255,42 @@ do  self.init   = ->
             return new ( classes[ clsi ] )( ptrj )
 
         undefined
+
+    findChildRecursive  = ( ptri, Class, clsi ) -> 
+        ptrN = Atomics.load u32, 1
+        clsi = clsi or Class.classIndex
+
+        ptrj = ptrN
+        while ptrj -= 16
+            continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+            continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi                
+            return new Class ptrj
+
+        ptrj = ptrN
+        while ptrj -= 16 
+            continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+            continue unless ptr = findChildRecursive ptrj, Class, clsi
+            return ptr
+
+        undefined
+
+    findChildsRecursive = ( ptri, Class, clsi, childs = [] ) -> 
+        ptrN = Atomics.load u32, 1
+        clsi = clsi or Class.classIndex
+
+        ptrj = ptrN
+        while ptrj -= 16
+            continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+            continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi                
+            childs.push new Class ptrj
+
+        ptrj = ptrN
+        while ptrj -= 16 
+            continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+            continue unless ptr = findChildsRecursive ptrj, Class, clsi, childs
+            childs.push ptr
+
+        childs
 
     findChildsPtri      = ( ptri, test ) -> 
         ptrj = Atomics.load u32, 1
@@ -1004,69 +1052,11 @@ do  self.init   = ->
             0
 
 
-    classes.register class Draw         extends Pointer
-
-        name        : "draw"
-
-        TypedArray  : Uint32Array
-
-        @byteLength : 8 * @BPE
-
-        getDrawType     : -> getUint32.call this, 0
-
-        setDrawType     : ( v ) -> setUint32.call this, 0, v
-
-        getDrawOffset   : -> getUint32.call this, 1
-
-        setDrawOffset   : ( v ) -> setUint32.call this, 1, v
-
-        getDrawStart    : -> getUint32.call this, 2
-
-        setDrawStart    : ( v ) -> setUint32.call this, 2, v
-
-        getDrawCount    : -> getUint32.call this, 3
-
-        setDrawCount    : ( v ) -> setUint32.call this, 3, v
-
-        getBegin        : -> getUint32.call this, 4
-
-        setBegin        : ( v ) -> setUint32.call this, 4, v
-
-        getLength       : -> getUint32.call this, 5
-
-        setLength       : ( v ) -> setUint32.call this, 5, v
-
-        getByteOffset   : -> getUint32.call this, 6
-
-        setByteOffset   : ( v ) -> setUint32.call this, 6, v
-
-        getByteLength   : -> getUint32.call this, 7
-
-        setByteLength   : ( v ) -> setUint32.call this, 7, v
-
-        Object.defineProperties Draw::,
-        
-            drawType    : get : Draw::getDrawType   , set : Draw::setDrawType
-
-            drawOffset  : get : Draw::getDrawOffset , set : Draw::setDrawOffset
-            
-            drawStart   : get : Draw::getDrawStart  , set : Draw::setDrawStart
-
-            drawCount   : get : Draw::getDrawCount  , set : Draw::setDrawCount
-
-            begin       : get : Draw::getBegin      , set : Draw::setBegin
-
-            length      : get : Draw::getLength     , set : Draw::setLength
-
-            byteOffset  : get : Draw::getByteOffset , set : Draw::setByteOffset
-            
-            byteLength  : get : Draw::getByteLength , set : Draw::setByteLength
-
-            pointCount  : get : -> @linked.pointCount
-
     classes.register class Matter       extends Pointer
 
-        self.Matter     = Matter
+        self.Matter         = Matter
+
+        drawable            : yes
 
         Object.defineProperties Matter::,
 
@@ -1093,6 +1083,8 @@ do  self.init   = ->
             vertices        : Object.getOwnPropertyDescriptor Pointer::, "tarray"
 
             pointCount      : get : -> getLength( this ) / 3
+
+            drawings        : get : -> findLinkeds this, Draw                
 
         Object.deleteProperties Matter::, [ "tarray", "linked" ]
 
@@ -1866,98 +1858,230 @@ do  self.init   = ->
         GPU_ATTRIBUTE_COUNT : 1e5 
 
         Object.defineProperties Shader::,
-            gl        : get : Shader::getGLContext, set : Shader::setGLContext
-            glProgram : get : Shader::getGLProgram, set : Shader::setGLProgram
-            glShader  : get : Shader::getGLShader , set : Shader::setGLShader
+            gl          : get : Shader::parentGLContext  , set : Shader::setGLContext
+            glProgram   : get : Shader::parentGLProgram  , set : Shader::setGLProgram
 
         Object.defineProperties Shader::,
-            source   : get : Shader::getSource  , set : Shader::setSource
-            active   : get : Shader::getActive  , set : Shader::setActive
+            source      : get : Shader::getSource          , set : Shader::setSource
+            active      : get : Shader::getActive          , set : Shader::setActive
 
         Object.deleteProperties Shader::, [ "linked" ]
 
-        getGLContext    : ->
-            @storage[ getResvUint8.call this, 0 ] or @gl = @parent.gl
 
-        setGLContext    : ( webGL2RenderingContext ) ->
-            setResvUint8.call this, 0, @store webGL2RenderingContext
-
-        getGLProgram    : ->
-            @storage[ getResvUint8.call this, 1 ] or @glProgram = @parent.glProgram
-
-        setGLProgram    : ( webGLProgram ) ->
-            setResvUint8.call this, 1, @store webGLProgram   
-            
-        getGLBuffer     : ->
+        getGLContext        : ->
             @storage[ getResvUint8.call this, 2 ]
 
-        setGLBuffer     : ( webGLBuffer ) ->
-            setResvUint8.call this, 2, @store webGLBuffer
+        parentGLContext     : ->
+            @storage[ getResvUint8.call this, 2 ] or
+            @gl = @parent.gl
 
-        getGLShader     : ->
+        createGLContext     : ->
+            if  storei = getResvUint8.call this, 2
+                return @storage[ storei ]
+
+            throw /DONOT_CREATE_GL/ unless isWindow
+            canvas = document.createElement 'canvas'
+
+            Object.assign canvas, {
+                width   : RATIO_PIXEL * INNER_WIDTH
+                height  : RATIO_PIXEL * INNER_HEIGHT
+                style   :
+                    width      : CSS.px INNER_WIDTH
+                    height     : CSS.px INNER_HEIGHT
+                    inset      : CSS.px 0
+                    position   : "fixed"
+            } 
+    
+            @gl = document.body
+                . appendChild canvas
+                . getContext "webgl2" 
+
+        setGLContext        : ( webGL2RenderingContext ) ->
+            setResvUint8.call this, 2, @store webGL2RenderingContext
+
+        getGLProgram        : ->
             @storage[ getResvUint8.call this, 3 ]
 
-        setGLShader     : ( webGLShader ) ->
-            setResvUint8.call this, 3, @store webGLShader
+        setGLProgram        : ( webGLProgram ) ->
+            setResvUint8.call this, 3, @store webGLProgram 
+
+        parentGLProgram    : ->
+            @storage[ getResvUint8.call this, 3 ] or
+            @glProgram = @parent.glProgram
+
+        createGLProgram     : ->
+            @storage[ getResvUint8.call this, 3 ] or
+            @glProgram = @gl.createProgram()
+
+            
+            
+        getGLBuffer         : ->
+            @storage[ getResvUint8.call this, 4 ]
+
+        setGLBuffer         : ( webGLBuffer ) ->
+            setResvUint8.call this, 4, @store webGLBuffer
+
+        activeGLBuffer      : ->
+            #? space searching an glBuffer
+            if  storei = getResvUint8.call this, 4
+                return @storage[ storei ]
+            
+            vShaders = findChildsRecursive this, VertexShader
+
+            return unless vShaders.length
+            unless vShader = vShaders.find (s) -> s.active 
+                vShader = vShaders.at 0
+            @glBuffer = vShader.glBuffer
+
+        createGLBuffer      : ->
+            #? vertex shader creates new buffer
+            @storage[ getResvUint8.call this, 4 ] or
+            @glBuffer = @gl.createBuffer()
+
+        parentGLBuffer      : ->
+            #? draw looks vertex shaders buffer
+            @storage[ getResvUint8.call this, 4 ] or
+            @glBuffer = @parent.glBuffer
+
+        getGLShader         : ->
+            @storage[ getResvUint8.call this, 5 ]
+
+        setGLShader         : ( webGLShader ) ->
+            if @isVShader 
+                @setGLVShader webGLShader 
+            else @setGLFShader webGLShader
+
+            setResvUint8.call this, 5, @store webGLShader
+
+
+        getGLVShader        : ->
+            @storage[ getResvUint8.call this, 6 ]
+
+        setGLVShader        : ( webGLShader ) ->
+            setResvUint8.call this, 6, @store webGLShader
+
+        createGLVShader     : ->
+            #? vertexShader creating new one
+            @storage[ getResvUint8.call this, 6 ] or
+            @glShader = @gl.createShader @gl.VERTEX_SHADER
+
+        parentGLVShader     : ->
+            #? matter or draw searching glVShader
+            @storage[ getResvUint8.call this, 6 ] or
+            @glVShader = @parent.glVShader or @parent.parent.glVShader
+
+        activeGLVShader     : ->
+            #? space searching an glVShader
+            if  storei = getResvUint8.call this, 6
+                return @storage[ storei ]
+            
+            shaders = findChildsRecursive this, VertexShader
+
+            unless shaders.length
+                return undefined
+
+            unless shader = shaders.find (s) -> s.active 
+                shader = shaders.at 0
+            @glVShader = shader.glShader
+
+
+        getGLFShader        : ->
+            @storage[ getResvUint8.call this, 7 ]
+
+        setGLFShader        : ( webGLShader ) ->
+            setResvUint8.call this, 7, @store webGLShader
+
+        createGLFShader     : ->
+            @storage[ getResvUint8.call this, 7 ] or
+            @glShader = @gl.createShader @gl.FRAGMENT_SHADER
+
+        parentGLFShader     : ->
+            @storage[ getResvUint8.call this, 7 ] or
+            @glFShader = @parent.glFShader or @parent.parent.glFShader
+
+        activeGLFShader     : ->
+            #? space searching an glFShader
+            if  storei = getResvUint8.call this, 7
+                return @storage[ storei ]
+                
+            shaders = findChildsRecursive this, FragmentShader
+
+            return unless shaders.length
+            unless shader = shaders.find (s) -> s.active 
+                shader = shaders.at 0
+            @glFShader = shader.glShader
 
         getActive       : ->
-            getResvUint8.call this, 4
+            getResvUint8.call this, 0
 
-        setActive       : ( bool ) ->
-            setResvUint8.call this, 4, bool
+        setActive       : ( v ) ->
+            setResvUint8.call this, 0, v
+
+
+        getBinded       : ->
+            getResvUint8.call this, 1
+
+        setBinded       : ( v ) ->
+            setResvUint8.call this, 1, v
+
 
         getSource       : ->
-            @glShader and @gl.getShaderSource @glShader 
+            @gl.getShaderSource @glShader 
 
         setSource       : ( source ) ->
-            @destroy().compile( source ).attach()
-        
-        compile          : ( source ) ->
-            glShader = @gl.createShader @constructor.shaderType
-
-            @gl.shaderSource glShader, source
-            @gl.compileShader glShader
-
-            unless @gl.getShaderParameter glShader, @gl.COMPILE_STATUS
-                info = @gl.getShaderInfoLog glShader
-                throw "Could not compile WebGL shader. \n\n#{info}"
-            else @glShader = glShader
-                
-            this
+            @compile @gl.shaderSource @glShader, source
+            
+        compile          : ->
+            @attach @gl.compileShader @glShader
 
         attach          : ->
-            @active = 1 ; this
+            @active = 1
+            @gl.attachShader @glProgram, @glShader ; this
 
         detach          : ->
-            @gl.detachShader @glProgram, @glShader
-            @active = 0 ; this
+            @active = 0
+            @gl.detachShader @glProgram, @glShader ; this
 
         destroy         : ->
-            return this unless @glShader
-
-            @gl.detachShader @glProgram, @glShader if @active
-            @gl.deleteShader @glShader
-
-            this
-
+            @detach()
+            @gl.deleteShader @glShader ; this
 
     classes.register class FragmentShader extends Shader
 
-        @shaderType     : WebGL2RenderingContext.FRAGMENT_SHADER
+        shaderType      : WebGL2RenderingContext.FRAGMENT_SHADER
 
-        attach          : -> super @parent.glFShader = @glShader
+        isFShader       : yes
 
+        attach          : ->
+            return this if @active
+
+            if  fShader = @parent.fShader
+                fShader . detach()
+                
+            @parent . glFShader = @glShader
+
+            return super()
+
+        Object.defineProperties FragmentShader,
+            DocumentScripts : get : ->
+                [ ...document.scripts ].filter (s) -> s.text.match /gl_FragColor/
+
+        Object.defineProperties FragmentShader::,
+        
+            glShader    : get : Shader::createGLFShader   , set : Shader::setGLShader
 
     classes.register class VertexShader extends Shader
 
-        @shaderType     : WebGL2RenderingContext.VERTEX_SHADER
+        shaderType              : WebGL2RenderingContext.VERTEX_SHADER
         
+        isVShader               : yes
         
-        GL_POINTS       : WebGL2RenderingContext.POINTS
 
-        GL_LINES        : WebGL2RenderingContext.LINES
+        POINTS                  : WebGL2RenderingContext.POINTS
 
-        GL_TRIANGLES    : WebGL2RenderingContext.TRIANGLES
+        LINES                   : WebGL2RenderingContext.LINES
+
+        TRIANGLES               : WebGL2RenderingContext.TRIANGLES
 
 
         INDEX_TRIANGLES_COUNT   : 0
@@ -1992,12 +2116,27 @@ do  self.init   = ->
 
         INDEX_DRAWBUFFER_STARTS           : 16
 
-        Object.defineProperties VertexShader::,
-            glBuffer    : get : VertexShader::getGLBuffer , set : VertexShader::setGLBuffer
-            stats       : get : VertexShader::dump
-            definitons  : get : VertexShader::getDefinitons , set : VertexShader::setDefinitons            
+        Object.defineProperties VertexShader,
+            DocumentScripts : get : ->
+                [ ...document.scripts ].filter (s) -> s.text.match /gl_Position/
 
-        attach          : -> super @parent.glVShader = @glShader
+        Object.defineProperties VertexShader::,
+            stats       : get : VertexShader::dump
+            definitons  : get : VertexShader::getDefinitons , set : VertexShader::setDefinitons    
+            
+        Object.defineProperties VertexShader::,
+            glShader    : get : Shader::createGLVShader   , set : Shader::setGLShader
+            glBuffer    : get : Shader::createGLBuffer    , set : Shader::setGLBuffer
+
+        attach          : ->
+            return this if @active
+
+            if  vShader = @parent.vShader
+                vShader . detach()
+                
+            @parent . glVShader = @glShader
+
+            return super()
 
         getDefinitons   : ->
             @storage[ getUint32.call this, @INDEX_DEFINITIONS_OBJECT ]
@@ -2025,35 +2164,27 @@ do  self.init   = ->
                 start : getUint32.call this, @INDEX_POINTS_START
                 count : getUint32.call this, @INDEX_POINTS_COUNT                
 
-        alloc           : ( draw, type = @GL_LINES ) ->
-            pointCount = draw.linked.pointCount
-            byteLength = pointCount * getUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
-            length     = pointCount * getUint32.call this, @INDEX_ALLOC_LENGTH_PER_POINT
-
+        draw            : ( shape, type = @LINES ) ->
+            byteLength = shape.pointCount * getUint32.call this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
+            length     = shape.pointCount * getUint32.call this, @INDEX_ALLOC_LENGTH_PER_POINT
 
             index = switch type
-                when @GL_LINES      then @INDEX_LINES_COUNT
-                when @GL_POINTS     then @INDEX_POINTS_COUNT
-                when @GL_TRIANGLES  then @INDEX_TRIANGLES_COUNT
+                when @LINES      then @INDEX_LINES_COUNT
+                when @POINTS     then @INDEX_POINTS_COUNT
+                when @TRIANGLES  then @INDEX_TRIANGLES_COUNT
                 else throw /UNKNOWN_DRAW_TYPE/ + type
 
-            Object.assign draw,
+            Object.assign new Draw(),
                 drawType   : type
-                drawCount  : pointCount
-                drawStart  : getUint32.call( this, index+2 ) + addUint32.call this, index, pointCount
+                drawCount  : shape.pointCount
+                drawStart  : getUint32.call( this, index+2 ) + addUint32.call this, index, shape.pointCount
                 drawOffset : offset = addUint32.call( this, index+1, byteLength ) - getByteOffset(this)
-                begin      : begin = getBegin( this ) + offset / 4 
-                length     : length
-                byteOffset : begin * 4
+                readBegin  : begin = offset / 4 
+                readLength : length
+                byteOffset : getByteOffset(this) + begin * 4
                 byteLength : length * 4
-
-        drawTriangles   : ( shape ) ->
-            draw = new Draw()
-            
-            draw.parent = this
-            draw.linked = shape
-
-            @alloc draw, @GL_LINES
+                parent     : this
+                linked     : shape
             
         create          : ( definitions ) ->            
 
@@ -2095,12 +2226,6 @@ do  self.init   = ->
             @setDefinitons definitions
 
             this
-
-        compile       : ( source ) ->
-            super source 
-            return this if @glBuffer
-            @create @parseSource source
-
 
         parseSource     : ( source = @source ) ->
             canvas = new OffscreenCanvas 0, 0
@@ -2225,88 +2350,121 @@ do  self.init   = ->
 
             definitions
 
+    classes.register class Draw         extends Pointer
+
+        name            : "draw"
+
+        TypedArray      : Uint32Array
+
+        @byteLength     : 8 * @BPE
+
+        getDrawType     : -> getUint32.call this, 0
+
+        setDrawType     : ( v ) -> setUint32.call this, 0, v
+
+        getDrawOffset   : -> getUint32.call this, 1
+
+        setDrawOffset   : ( v ) -> setUint32.call this, 1, v
+
+        getDrawStart    : -> getUint32.call this, 2
+
+        setDrawStart    : ( v ) -> setUint32.call this, 2, v
+
+        getDrawCount    : -> getUint32.call this, 3
+
+        setDrawCount    : ( v ) -> setUint32.call this, 3, v
+
+        getReadBegin    : -> getUint32.call this, 4
+
+        setReadBegin    : ( v ) -> setUint32.call this, 4, v
+
+        getReadLength   : -> getUint32.call this, 5
+
+        setReadLength   : ( v ) -> setUint32.call this, 5, v
+
+        getByteOffset   : -> getUint32.call this, 6
+
+        setByteOffset   : ( v ) -> setUint32.call this, 6, v
+
+        getByteLength   : -> getUint32.call this, 7
+
+        setByteLength   : ( v ) -> setUint32.call this, 7, v
+
+        Object.defineProperties Draw::,
+        
+            drawType    : get : Draw::getDrawType   , set : Draw::setDrawType
+
+            drawOffset  : get : Draw::getDrawOffset , set : Draw::setDrawOffset
+            
+            drawStart   : get : Draw::getDrawStart  , set : Draw::setDrawStart
+
+            drawCount   : get : Draw::getDrawCount  , set : Draw::setDrawCount
+
+            readBegin   : get : Draw::getReadBegin  , set : Draw::setReadBegin
+
+            readLength  : get : Draw::getReadLength , set : Draw::setReadLength
+
+            byteOffset  : get : Draw::getByteOffset , set : Draw::setByteOffset
+            
+            byteLength  : get : Draw::getByteLength , set : Draw::setByteLength
+
+            pointCount  : get : -> @linked.pointCount
+
+        Object.defineProperties Draw::,
+            gl          : get : Shader::parentGLContext  , set : Shader::setGLContext
+            glProgram   : get : Shader::parentGLProgram  , set : Shader::setGLProgram
+            glVShader   : get : Shader::parentGLVShader  , set : Shader::setGLVShader
+            glFShader   : get : Shader::parentGLFShader  , set : Shader::setGLFShader
+            glBuffer    : get : Shader::parentGLBuffer   , set : Shader::setGLBuffer
 
     classes.register class Space    extends Pointer
 
         self.Space      = this
 
         Object.defineProperties Space::,
-            gl        : get : Space::getGLContext, set : Space::setGLContext
-            glProgram : get : Space::getGLProgram, set : Space::setGLProgram
-            glVShader : get : Space::getGLVShader, set : Space::setGLVShader
-            glFShader : get : Space::getGLFShader, set : Space::setGLFShader
+            gl          : get : Shader::createGLContext  , set : Shader::setGLContext
+            glProgram   : get : Shader::createGLProgram  , set : Shader::setGLProgram
+            glVShader   : get : Shader::activeGLVShader  , set : Shader::setGLVShader
+            glFShader   : get : Shader::activeGLFShader  , set : Shader::setGLFShader
+            glBuffer    : get : Shader::activeGLBuffer   , set : Shader::setGLBuffer
 
-            vShader   : get : -> findChilds.call( this, VertexShader ).find (s) -> s.active
-            fShader   : get : -> findChilds.call( this, FragmentShader ).find (s) -> s.active            
+        Object.defineProperties Space::,
+            vShader     : get : -> findChildsRecursive( this, VertexShader ).find (s) -> s.active
+            fShader     : get : -> findChildsRecursive( this, FragmentShader ).find (s) -> s.active 
+            created     :
+                get     :     -> getResvUint8.call( this, 1 )          
+                set     : (v) -> setResvUint8.call( this, 1, v )          
+
+            active      :
+                get     :     -> getResvUint8.call( this, 0 )          
+                set     : (v) -> setResvUint8.call( this, 0, v )          
 
         Object.deleteProperties Space::, [ "tarray", "linked", "parent" ]
 
-
         add             : ( ptr ) ->
             super ptr
-            return this unless @vShader            
-            @vShader.drawTriangles ptr
+
+            if  ptr.drawable
+                @vShader.draw ptr
+
             this    
 
         init            : ->
-            super arguments...
-
-            if !@gl and isWindow
-                @createContext()
-                @createShaders()
-
-            this
-
-        getGLContext    : ->
-            @storage[ getResvUint8.call this, 0 ]
-
-        setGLContext    : ( webGL2RenderingContext ) ->
-            setResvUint8.call this, 0, @store webGL2RenderingContext
-
-        getGLProgram    : ->
-            @storage[ getResvUint8.call this, 1 ] or @glProgram = @gl.createProgram()
-
-        setGLProgram    : ( webGLProgram ) ->
-            setResvUint8.call this, 1, @store webGLProgram
-            
-        getGLVShader    : ->
-            @storage[ getResvUint8.call this, 2 ]
-
-        setGLVShader    : ( webGLShader ) ->
-            @vShader.detach() if @glVShader
-            @gl.attachShader @glProgram, webGLShader
-            setResvUint8.call this, 2, @store webGLShader
-            
-        getGLFShader    : ->
-            @storage[ getResvUint8.call this, 3 ]
-
-        setGLFShader    : ( webGLShader ) ->
-            @fShader.detach() if @glFShader
-            @gl.attachShader @glProgram, webGLShader
-            setResvUint8.call this, 3, @store webGLShader
-            
-        createContext   : ->
-            canvas                  = document.createElement "canvas"
-            canvas.width            = RATIO_PIXEL * INNER_WIDTH
-            canvas.height           = RATIO_PIXEL * INNER_HEIGHT
-            canvas.style.width      = CSS.px INNER_WIDTH
-            canvas.style.height     = CSS.px INNER_HEIGHT
-            canvas.style.inset      = CSS.px 0
-            canvas.style.position   = "fixed"
-    
-            @gl = document.body
-                . appendChild canvas
-                . getContext "webgl2"
-
+            unless super( arguments... ).created
+                @createShaders( @created = 1 )
             this
 
         createShaders    : ->
-            for script in [ ...document.scripts ].filter (s) -> s.type.match /shader/i
-                if  script.text.match /gl_Position/                
+            throw /THREADS_CAN_NOT_CREATE_SHADERS/ unless isWindow
 
-                    @add shader = new VertexShader
-                    shader.source = script.text
-                    #log definitions, script
+            for script in VertexShader.DocumentScripts
+                @add shader = new VertexShader
+                shader.source = script.text
+                shader.create shader.parseSource()
+
+            for script in FragmentShader.DocumentScripts
+                @add shader = new FragmentShader
+                shader.source = script.text
 
             this
 
