@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_128MB, BYTELENGTH_GLBUFFER, Color, Context, DrawBuffer, FragmentShader, Frustrum, GLPointer, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Mesh, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, Program, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scene, Shader, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Texture, UV, Vector3, VertexShader, Vertices, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getPointer, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, malloc2, mallocs, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_128MB, BYTELENGTH_GLBUFFER, Color, Context, DrawBuffer, FragmentShader, Frustrum, GLPointer, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Mesh, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, Program, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scene, Shader, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Texture, UV, Vector3, VertexShader, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getPointer, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, mallocs, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setbufferFloat32, setbufferUint32, setbufferUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -524,7 +524,7 @@ self.name = "window";
     f32.fill(value, start, start + count);
     return ptri;
   };
-  setarrayFloat32 = function(ptri, array, begin = 0) {
+  setbufferFloat32 = function(ptri, array, begin = 0) {
     f32.set(array, begin + u32[HEADER_BEGIN + ptri]);
     return ptri;
   };
@@ -548,7 +548,7 @@ self.name = "window";
     u32.fill(value, start, start + count);
     return ptri;
   };
-  setarrayUint32 = function(ptri, array, begin = 0) {
+  setbufferUint32 = function(ptri, array, begin = 0) {
     u32.set(array, begin + u32[HEADER_BEGIN + ptri]);
     return ptri;
   };
@@ -567,7 +567,7 @@ self.name = "window";
     ui8.fill(value, start, start + count);
     return ptri;
   };
-  setarrayUint8 = function(ptri, array, begin = 0) {
+  setbufferUint8 = function(ptri, array, begin = 0) {
     ui8.set(array, begin + u32[ptri]);
     return ptri;
   };
@@ -665,208 +665,12 @@ self.name = "window";
     Atomics.add(u32, 1, HEADER_INDEXCOUNT);
     state(THREADS_NULL);
   }
-  malloc2 = function(constructor, byteLength) {
-    var BYTES_PER_ELEMENT, allocLength, begin, byteOffset, classId, length, ptri;
-    ptri = Atomics.add(i32, 1, HEADER_INDEXCOUNT);
-    classId = constructor.classId;
-    if (byteLength != null ? byteLength : byteLength = constructor.byteLength) {
-      BYTES_PER_ELEMENT = constructor.TypedArray.BYTES_PER_ELEMENT || constructor.BYTES_PER_ELEMENT;
-      length = (allocLength = byteLength) / BYTES_PER_ELEMENT;
-      byteLength += 8 - (byteLength % 8);
-      byteOffset = Atomics.add(i32, 0, byteLength);
-      begin = byteOffset / BYTES_PER_ELEMENT;
-      Atomics.add(i32, 0, 8 - byteLength % 8);
-      Atomics.store(i32, ptri + HINDEX_BYTEOFFSET, byteOffset);
-      Atomics.store(i32, ptri + HINDEX_BYTELENGTH, allocLength);
-      Atomics.store(i32, ptri + HINDEX_LENGTH, length);
-      Atomics.store(i32, ptri + HINDEX_BEGIN, begin);
-    }
-    Atomics.store(i32, ptri + HINDEX_PTRI, ptri);
-    Atomics.store(i32, ptri + HINDEX_CLASSID, classId);
-    return ptri;
-  };
   self.emit = function(event, detail) {
     return self.dispatchEvent(new CustomEvent(event, {detail}));
   };
   pipe.emit = function(event, detail) {
     return this.postMessage(event);
   };
-  /*
-  class Pointer       extends Number
-
-  @byteLength : 0
-
-  @subclasses : []
-
-  @TypedArray : Float32Array
-
-  Object.defineProperty this  , "classId",
-  configurable: on
-  get : -> Object.defineProperty( this, "classId",
-      value : classes.register( this )
-  ).classId
-
-  Object.defineProperty this::, "byteOffset",
-  get : -> Atomics.load i32, @ptri + HINDEX_BYTEOFFSET
-
-  Object.defineProperty this::, "classId",
-  get : -> Atomics.load i32, @ptri + HINDEX_CLASSID
-
-  Object.defineProperty this::, "byteLength",
-  get : -> Atomics.load i32, @ptri + HINDEX_BYTELENGTH
-
-  Object.defineProperty this::, "length",
-  get : -> Atomics.load i32, @ptri + HINDEX_LENGTH
-
-  Object.defineProperty this::, "ptri",
-  get : -> Atomics.load i32, this
-
-  Object.defineProperty this::, "begin",
-  get : -> Atomics.load i32, @ptri + HINDEX_BEGIN
-
-  Object.defineProperty this::, "isGL",
-  get : -> Atomics.load i32, @ptri + HINDEX_ISGL
-  set : (v) -> Atomics.store i32, @ptri + HINDEX_ISGL, v
-
-  Object.defineProperty this::, "parent",
-  get : -> Atomics.load i32, @ptri + HINDEX_PARENT
-  set : (v) -> Atomics.store i32, @ptri + HINDEX_PARENT, parseInt v
-
-  Object.defineProperty this::, "children",
-  get : -> 
-      ptri = Atomics.load i32, 1
-      test = this.ptri
-
-      children = []
-      while OFFSET_PTR <= ptri -= 16
-          unless test - Atomics.load i32, ptri + HINDEX_PARENT
-              classId = Atomics.load i32, ptri + HINDEX_CLASSID
-              children.push new (classes[ classId ])( ptri )
-      children
-
-  Object.defineProperty this::, "iterCount",
-  get : -> Atomics.load u32, @ptri + HINDEX_ITER_COUNT
-  set : (v) -> Atomics.store u32, @ptri + HINDEX_ITER_COUNT, v
-
-  Object.defineProperty this::, "typedArray",
-  get : -> new this.constructor.TypedArray buffer, @byteOffset, @length
-
-  @allocs     : ( parent ) ->
-  ptri = Atomics.load i32, 1
-  classId = @classId
-
-  while OFFSET_PTR <= ptri -= 16        
-      continue unless classId is Atomics.load i32, ptri + HINDEX_CLASSID
-      continue if parent and parent isnt Atomics.load i32, ptri + HINDEX_PARENT
-      object = new this ptri
-
-  @malloc     : ( constructor, byteLength ) ->
-  @classId
-  offset = @byteLength
-  mod = offset % 4
-  offset += 4 - mod
-  byteLength ?= constructor.byteLength
-  byteLength += 4 - byteLength % 4
-
-  @subclasses.push {
-      constructor : constructor
-      offset : offset
-      byteLength : byteLength
-      index : @subclasses.length
-      classId : constructor.classId
-  }
-
-  Object.defineProperty this::, constructor.label, {
-      get : constructor::get offset 
-      set : constructor::set offset 
-  }
-
-  @byteLength += byteLength
-  offset
-
-  constructor : ( ptri, parent ) ->
-  unless ptri = parseInt super ptri
-      ptri = malloc @constructor
-      return new @constructor ptri, parent 
-
-  @parent = parent if parent
-
-  @init ptri
-
-  set         : ( value, index = 0 ) ->
-  @typedArray.set value, index ; this
-
-  init        : -> this
-
-  subarray    : ( begin, end ) ->
-  new @constructor.TypedArray buffer, @byteOffset + begin * 4, end - begin
-
-  class Position      extends Pointer
-
-  @byteLength : 4 * 4
-
-  @label      : "position"
-
-  get : ( offset ) -> ->
-  new Float32Array buffer, @byteOffset + offset, 3
-
-  set : ( offset ) -> ( value ) ->
-  f32.set value, ( @byteOffset + offset ) / 4
-
-  class Color         extends Pointer
-
-  @byteLength : 4 * 4
-
-  @label : "color"
-
-  get : ( offset ) -> ->
-  new Float32Array buffer, @byteOffset + offset, 4
-
-  set : ( offset ) -> ( value ) ->
-  f32.set value, ( @byteOffset + offset ) / 4
-
-  class Rotation      extends Pointer
-
-  @byteLength : 4 * 4
-
-  @label : "rotation"
-
-  get : ( offset ) -> ->
-  new Float32Array buffer, @byteOffset + offset, 3
-
-  set : ( offset ) -> ( value ) ->
-  f32.set value, ( @byteOffset + offset ) / 4
-
-  class Scale         extends Pointer
-
-  @byteLength : 3 * 4
-
-  @label      : "scale"
-
-  get : ( offset ) -> ->
-  new Float32Array buffer, @byteOffset + offset, 3
-
-  set : ( offset ) -> ( value ) ->
-  f32.set value, ( @byteOffset + offset ) / 4
-
-  class Vertices      extends Pointer
-
-  @label          : "vertices"
-
-  Object.defineProperties this::,
-  pointCount  : get : ->
-      @length / 3
-
-  get : ( offset ) -> ->
-  ptri = dvw.getInt32 @byteOffset + @OFFSET_VERTICES, LE
-  return new Vertices ptri if ptri ; null
-
-  set : ( offset ) -> ( value ) ->
-  ptri = malloc Vertices, value.length * 4
-  dvw.setInt32 @byteOffset + @OFFSET_VERTICES, ptri, LE
-  f32.set value, i32[ ptri + HINDEX_BEGIN ]
-
-  */
   classes.register(Pointer = (function() {
     class Pointer extends Number {
       constructor() {
@@ -878,12 +682,12 @@ self.name = "window";
 
       malloc(byteLength) {
         var byteOffset;
-        byteLength = byteLength || this.constructor.byteLength;
         byteOffset = Atomics.add(u32, 0, byteLength);
         Atomics.add(u32, 0, 8 - byteLength % 8);
         setBegin(this, byteOffset / this.BPE);
         setLength(this, byteLength / this.BPE);
         setByteOffset(this, byteOffset);
+        setByteLength(this, byteLength);
         return this;
       }
 
@@ -918,12 +722,9 @@ self.name = "window";
         }
         if (!byteLength) {
           return this;
-        } else {
-          this.malloc(byteLength);
         }
-        if (array) {
-          setarrayFloat32(this, array);
-        }
+        this.malloc(byteLength);
+        setbufferFloat32(this, array);
         return this;
       }
 
@@ -977,15 +778,7 @@ self.name = "window";
           return setParent(this, ptri);
         }
       },
-      linked: {
-        get: function() {
-          return getLinked(this);
-        },
-        set: function(ptri) {
-          return setLinked(this, ptri);
-        }
-      },
-      tarray: {
+      buffer: {
         get: function() {
           return new this.TypedArray(buffer, getByteOffset(this), getLength(this));
         }
@@ -1044,6 +837,8 @@ self.name = "window";
         set: Vector3.prototype.setZ
       }
     });
+
+    Object.deleteProperties(Vector3.prototype, ["childs"]);
 
     return Vector3;
 
@@ -1106,6 +901,8 @@ self.name = "window";
       }
     });
 
+    Object.deleteProperties(Color.prototype, ["childs"]);
+
     return Color;
 
   }).call(this));
@@ -1129,7 +926,7 @@ self.name = "window";
     class Position extends Vector3 {
       apply(begin, count, stride, offset) {
         var i, tx, ty, tz;
-        [tx, ty, tz] = this.tarray;
+        [tx, ty, tz] = this.buffer;
         while (count--) {
           i = (count * stride + offset) / 4;
           f32[i] += tx;
@@ -1152,7 +949,7 @@ self.name = "window";
     class Scale extends Vector3 {
       apply(begin, count, stride, offset) {
         var i, sx, sy, sz;
-        [sx, sy, sz] = this.tarray;
+        [sx, sy, sz] = this.buffer;
         while (count--) {
           i = (count * stride + offset) / 4;
           f32[i] *= sx;
@@ -1235,7 +1032,7 @@ self.name = "window";
 
       apply(begin, count, stride, offset) {
         var cosX, cosY, cosZ, i, sinX, sinY, sinZ, x, y, z;
-        [x, sinX, cosX, y, sinY, cosY, z, sinZ, cosZ] = this.tarray;
+        [x, sinX, cosX, y, sinY, cosY, z, sinZ, cosZ] = this.buffer;
         while (count--) {
           i = (count * stride + offset) / 4;
           f32[i] *= sinX * cosX;
@@ -1266,46 +1063,9 @@ self.name = "window";
       }
     });
 
+    Object.deleteProperties(Rotation.prototype, ["childs"]);
+
     return Rotation;
-
-  }).call(this));
-  classes.register(Vertices = (function() {
-    class Vertices extends Pointer {
-      copy(start, begin, count, stride, offset) {
-        var byteLength, byteOffset, dstByteOffset;
-        byteOffset = begin * this.BPE;
-        byteLength = count * this.BPE * 3;
-        dstByteOffset = start * this.BPE + offset;
-        while (count--) {
-          ui8.copyWithin(dstByteOffset, byteOffset, byteOffset + 12);
-          byteOffset -= 12;
-          dstByteOffset -= stride;
-        }
-        return 0;
-      }
-
-      transform(begin, count) {
-        var position, rotation, scale;
-        //todo buffer alloc required 'cause of stride and offset
-        this.copy(1);
-        if (rotation = findInheritable(this, "rotation")) {
-          rotation.apply(begin, count);
-        }
-        //todo must read rotated, not original begin 
-        if (position = findInheritable(this, "position")) {
-          position.apply(begin, count);
-        }
-        if (scale = findInheritable(this, "scale")) {
-          scale.apply(begin, count);
-        }
-        return 0;
-      }
-
-    };
-
-    Vertices.prototype.name = "vertices";
-
-    return Vertices;
 
   }).call(this));
   classes.register(Mesh = (function() {
@@ -1341,6 +1101,36 @@ self.name = "window";
           byteOffset: this.BPE * b,
           byteLength: this.BPE * l
         };
+      }
+
+      copy(start, begin, count, stride, offset) {
+        var byteLength, byteOffset, dstByteOffset;
+        byteOffset = begin * this.BPE;
+        byteLength = count * this.BPE * 3;
+        dstByteOffset = start * this.BPE + offset;
+        while (count--) {
+          ui8.copyWithin(dstByteOffset, byteOffset, byteOffset + 12);
+          byteOffset -= 12;
+          dstByteOffset -= stride;
+        }
+        return 0;
+      }
+
+      transform(begin, count) {
+        var position, rotation, scale;
+        //todo buffer alloc required 'cause of stride and offset
+        this.copy(1);
+        if (rotation = findInheritable(this, "rotation")) {
+          rotation.apply(begin, count);
+        }
+        //todo must read rotated, not original begin 
+        if (position = findInheritable(this, "position")) {
+          position.apply(begin, count);
+        }
+        if (scale = findInheritable(this, "scale")) {
+          scale.apply(begin, count);
+        }
+        return 0;
       }
 
     };
@@ -1395,7 +1185,6 @@ self.name = "window";
           };
         }
       },
-      vertices: Object.getOwnPropertyDescriptor(Pointer.prototype, "tarray"),
       pointCount: {
         get: function() {
           return getLength(this) / 3;
@@ -1405,10 +1194,18 @@ self.name = "window";
         get: function() {
           return findLinkeds(this, Draw);
         }
+      },
+      byteLength: {
+        get: function() {
+          return getByteLength(this);
+        }
+      },
+      byteOffset: {
+        get: function() {
+          return getByteOffset(this);
+        }
       }
     });
-
-    Object.deleteProperties(Mesh.prototype, ["tarray", "linked"]);
 
     return Mesh;
 
@@ -1813,7 +1610,7 @@ self.name = "window";
 
   }).call(this));
   /*
-      class Shape         extends Pointer
+  class Shape         extends Pointer
 
   self.Shape      = this
 
@@ -1868,7 +1665,7 @@ self.name = "window";
       byteOffset = i32[ ptri + HINDEX_BYTEOFFSET ] + index * 4 * 3
       new Float32Array buffer, byteOffset, 3
 
-      class Matrix4       extends Pointer
+  class Matrix4       extends Pointer
 
   @byteLength         : 16
 
@@ -1915,10 +1712,10 @@ self.name = "window";
       s = Math.sin r
 
       @multiply Float32Array.of(
-           1,  0,  0,  0,
-           0,  c,  s,  0,
-           0, -s,  c,  0,
-           0,  0,  0,  1,
+          1,  0,  0,  0,
+          0,  c,  s,  0,
+          0, -s,  c,  0,
+          0,  0,  0,  1,
       )
 
   rotateY             : ( r = 0 ) ->
@@ -1926,10 +1723,10 @@ self.name = "window";
       s = Math.sin r
 
       @multiply Float32Array.of(
-           c,  s,  0,  0,
+          c,  s,  0,  0,
           -s,  c,  0,  0,
-           0,  0,  1,  0,
-           0,  0,  0,  1,
+          0,  0,  1,  0,
+          0,  0,  0,  1,
       )
 
   rotateZ             : ( r = 0 ) ->
@@ -1937,18 +1734,18 @@ self.name = "window";
       s = Math.sin r
 
       @multiply Float32Array.of(
-           c,  0, -s,  0,
-           0,  1,  0,  0,
-           s,  0,  c,  0,
-           0,  0,  0,  1,
+          c,  0, -s,  0,
+          0,  1,  0,  0,
+          s,  0,  c,  0,
+          0,  0,  0,  1,
       )
 
   scale               : ( x = 1, y = 1, z = 1 ) ->
       @multiply Float32Array.of(
-           x,  0,  0,  0,
-           0,  y,  0,  0,
-           0,  0,  z,  0,
-           0,  0,  0,  1,
+          x,  0,  0,  0,
+          0,  y,  0,  0,
+          0,  0,  z,  0,
+          0,  0,  0,  1,
       )
 
   multiply            : ( mat4 ) ->
@@ -1999,7 +1796,7 @@ self.name = "window";
           get : -> f32.subarray @begin, @begin + 16
           set : (v) -> f32.set v, @begin
 
-      class Frustrum      extends Matrix4
+  class Frustrum      extends Matrix4
 
   @byteLength         : 4 * 28
 
@@ -2167,7 +1964,7 @@ self.name = "window";
 
           0
 
-      class GLDraw        extends Pointer
+  class GLDraw        extends Pointer
 
   @byteLength         : 8 * 4
 
@@ -2229,7 +2026,7 @@ self.name = "window";
       byteOffset = @globalOffset + ( i * 32 ) + 16
       new Float32Array buffer, byteOffset, 4
 
-      classes.register class Shader extends Pointer
+  classes.register class Shader extends Pointer
 
   INDEX_IS_ATTACHED     : 0 #ui8
   INDEX_GLSHADER_INDEX  : 1
@@ -2293,7 +2090,7 @@ self.name = "window";
           get : -> shaders[ u32[ this + @HINDEX_RESV1 ] ]
           set : (v) -> u32[ this + @HINDEX_RESV1 ] = shaders.register v
 
-      classes.register class vShader extends Shader
+  classes.register class vShader extends Shader
   name : "vShader"
   type : WebGL2RenderingContext.VERTEX_SHADER
 
@@ -2477,7 +2274,7 @@ self.name = "window";
           type : WebGL2RenderingContext.TRIANGLES
       }
 
-      Object.defineProperties vShader::,
+  Object.defineProperties vShader::,
 
   drawBuffer      :
       get : -> new Float32Array buffer, @byteOffset, BYTELENGTH_GLBUFFER/4
@@ -2530,13 +2327,13 @@ self.name = "window";
       get : -> u32[ @begin + @INDEX_TRIANGLES_OFFSET ]
       set : ( v ) -> u32[ @begin + @INDEX_TRIANGLES_OFFSET ] = v
 
-      classes.register class fShader  extends Shader
+  classes.register class fShader  extends Shader
   name : "fShader"
   type : WebGL2RenderingContext.FRAGMENT_SHADER
 
   fShader : yes
 
-      classes.register class Shader extends Pointer
+  classes.register class Shader extends Pointer
 
   GPU_ATTRIBUTE_COUNT : 1e5 
 
@@ -2736,7 +2533,7 @@ self.name = "window";
       @detach()
       @gl.deleteShader @glShader ; this
 
-      classes.register class FragmentShader extends Shader
+  classes.register class FragmentShader extends Shader
 
   shaderType      : WebGL2RenderingContext.FRAGMENT_SHADER
 
@@ -2762,7 +2559,7 @@ self.name = "window";
 
       glShader    : get : Shader::createGLFShader   , set : Shader::setGLShader
 
-      classes.register class VertexShader extends Shader
+  classes.register class VertexShader extends Shader
 
   shaderType              : WebGL2RenderingContext.VERTEX_SHADER
 
@@ -3039,7 +2836,7 @@ self.name = "window";
 
       definitions
 
-      classes.register class Draw         extends Pointer
+  classes.register class Draw         extends Pointer
 
   name            : "draw"
 
@@ -3106,7 +2903,7 @@ self.name = "window";
       glFShader   : get : Shader::parentGLFShader  , set : Shader::setGLFShader
       glBuffer    : get : Shader::parentGLBuffer   , set : Shader::setGLBuffer
 
-      classes.register class Space    extends Pointer
+  classes.register class Space    extends Pointer
 
   self.Space      = this
 
@@ -3135,7 +2932,7 @@ self.name = "window";
           get     :     -> getResvUint8( this, 1 )          
           set     : (v) -> setResvUint8( this, 1, v )          
 
-  Object.deleteProperties Space::, [ "tarray", "linked", "parent" ]
+  Object.deleteProperties Space::, [ "buffer", "linked", "parent" ]
 
   add             : ( ptr ) ->
       super ptr
@@ -3165,6 +2962,179 @@ self.name = "window";
           @program.use()
 
       this
+  class Pointer       extends Number
+
+  @byteLength : 0
+
+  @subclasses : []
+
+  @TypedArray : Float32Array
+
+  Object.defineProperty this  , "classId",
+      configurable: on
+      get : -> Object.defineProperty( this, "classId",
+          value : classes.register( this )
+      ).classId
+
+  Object.defineProperty this::, "byteOffset",
+      get : -> Atomics.load i32, @ptri + HINDEX_BYTEOFFSET
+
+  Object.defineProperty this::, "classId",
+      get : -> Atomics.load i32, @ptri + HINDEX_CLASSID
+
+  Object.defineProperty this::, "byteLength",
+      get : -> Atomics.load i32, @ptri + HINDEX_BYTELENGTH
+
+  Object.defineProperty this::, "length",
+      get : -> Atomics.load i32, @ptri + HINDEX_LENGTH
+
+  Object.defineProperty this::, "ptri",
+      get : -> Atomics.load i32, this
+
+  Object.defineProperty this::, "begin",
+      get : -> Atomics.load i32, @ptri + HINDEX_BEGIN
+
+  Object.defineProperty this::, "isGL",
+      get : -> Atomics.load i32, @ptri + HINDEX_ISGL
+      set : (v) -> Atomics.store i32, @ptri + HINDEX_ISGL, v
+
+  Object.defineProperty this::, "parent",
+      get : -> Atomics.load i32, @ptri + HINDEX_PARENT
+      set : (v) -> Atomics.store i32, @ptri + HINDEX_PARENT, parseInt v
+
+  Object.defineProperty this::, "children",
+      get : -> 
+          ptri = Atomics.load i32, 1
+          test = this.ptri
+
+          children = []
+          while OFFSET_PTR <= ptri -= 16
+              unless test - Atomics.load i32, ptri + HINDEX_PARENT
+                  classId = Atomics.load i32, ptri + HINDEX_CLASSID
+                  children.push new (classes[ classId ])( ptri )
+          children
+
+  Object.defineProperty this::, "iterCount",
+      get : -> Atomics.load u32, @ptri + HINDEX_ITER_COUNT
+      set : (v) -> Atomics.store u32, @ptri + HINDEX_ITER_COUNT, v
+
+  Object.defineProperty this::, "typedArray",
+      get : -> new this.constructor.TypedArray buffer, @byteOffset, @length
+
+  @allocs     : ( parent ) ->
+      ptri = Atomics.load i32, 1
+      classId = @classId
+
+      while OFFSET_PTR <= ptri -= 16        
+          continue unless classId is Atomics.load i32, ptri + HINDEX_CLASSID
+          continue if parent and parent isnt Atomics.load i32, ptri + HINDEX_PARENT
+          object = new this ptri
+
+  @malloc     : ( constructor, byteLength ) ->
+      @classId
+      offset = @byteLength
+      mod = offset % 4
+      offset += 4 - mod
+      byteLength ?= constructor.byteLength
+      byteLength += 4 - byteLength % 4
+
+      @subclasses.push {
+          constructor : constructor
+          offset : offset
+          byteLength : byteLength
+          index : @subclasses.length
+          classId : constructor.classId
+      }
+
+      Object.defineProperty this::, constructor.label, {
+          get : constructor::get offset 
+          set : constructor::set offset 
+      }
+
+      @byteLength += byteLength
+      offset
+
+  constructor : ( ptri, parent ) ->
+      unless ptri = parseInt super ptri
+          ptri = malloc @constructor
+          return new @constructor ptri, parent 
+
+      @parent = parent if parent
+
+      @init ptri
+
+  set         : ( value, index = 0 ) ->
+      @typedArray.set value, index ; this
+
+  init        : -> this
+
+  subarray    : ( begin, end ) ->
+      new @constructor.TypedArray buffer, @byteOffset + begin * 4, end - begin
+
+  class Position      extends Pointer
+
+  @byteLength : 4 * 4
+
+  @label      : "position"
+
+  get : ( offset ) -> ->
+      new Float32Array buffer, @byteOffset + offset, 3
+
+  set : ( offset ) -> ( value ) ->
+      f32.set value, ( @byteOffset + offset ) / 4
+
+  class Color         extends Pointer
+
+  @byteLength : 4 * 4
+
+  @label : "color"
+
+  get : ( offset ) -> ->
+      new Float32Array buffer, @byteOffset + offset, 4
+
+  set : ( offset ) -> ( value ) ->
+      f32.set value, ( @byteOffset + offset ) / 4
+
+  class Rotation      extends Pointer
+
+  @byteLength : 4 * 4
+
+  @label : "rotation"
+
+  get : ( offset ) -> ->
+      new Float32Array buffer, @byteOffset + offset, 3
+
+  set : ( offset ) -> ( value ) ->
+      f32.set value, ( @byteOffset + offset ) / 4
+
+  class Scale         extends Pointer
+
+  @byteLength : 3 * 4
+
+  @label      : "scale"
+
+  get : ( offset ) -> ->
+      new Float32Array buffer, @byteOffset + offset, 3
+
+  set : ( offset ) -> ( value ) ->
+      f32.set value, ( @byteOffset + offset ) / 4
+
+  class Vertices      extends Pointer
+
+  @label          : "vertices"
+
+  Object.defineProperties this::,
+      pointCount  : get : ->
+          @length / 3
+
+  get : ( offset ) -> ->
+      ptri = dvw.getInt32 @byteOffset + @OFFSET_VERTICES, LE
+      return new Vertices ptri if ptri ; null
+
+  set : ( offset ) -> ( value ) ->
+      ptri = malloc Vertices, value.length * 4
+      dvw.setInt32 @byteOffset + @OFFSET_VERTICES, ptri, LE
+      f32.set value, i32[ ptri + HINDEX_BEGIN ]
 
    */
   self.addEventListener("DOMContentLoaded", function() {
