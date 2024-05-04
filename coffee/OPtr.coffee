@@ -115,6 +115,7 @@ do  self.init   = ->
 
 
 
+    BYTELENGTH_128MB    = 512 * 512 * 512
 
     HEADER_INDEXCOUNT   =  0
 
@@ -137,7 +138,16 @@ do  self.init   = ->
     HEADER_RESVINDEX2   =  8 * 2; #* ptri * 2 + HEADER_RESVINDEX2
     HEADER_RESVINDEX1   =  8 * 4; #* ptri * 4 + HEADER_RESVINDEX1
 
+    if  HEADER_INDEXCOUNT > 32
+        throw /HEADER_INDEXCOUNT/
 
+    HEADER_INDEXCOUNT   = 32
+
+    self.mallocs        =
+         
+    mallocs             = ( ptri = HEADER_INDEXCOUNT ) ->
+        while ptr = getPointer ptri
+            ptri += HEADER_INDEXCOUNT ; ptr
 
     getByteOffset       = ( ptri ) -> 
         u32[ ptri ]
@@ -172,6 +182,11 @@ do  self.init   = ->
     setClassIndex       = ( ptri, clsi ) -> 
         u32[ HEADER_CLASSINDEX + ptri ] = clsi
     
+    getPointer          = ( ptri ) ->
+        if  clsi = u32[ HEADER_CLASSINDEX + ptri ]
+            return new (classes[ clsi ]) ptri
+        undefined
+
     getClass            = ( ptri ) -> 
         classes[ u32[ HEADER_CLASSINDEX + ptri ] ]
 
@@ -202,7 +217,7 @@ do  self.init   = ->
         clsi = Class.classIndex
         list = new Array() ; i = 0
 
-        while ptrj -= 16
+        while ptrj -= HEADER_INDEXCOUNT
             continue if u32[ HEADER_LINKEDPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
             list[ i++ ] = new ( classes[ clsi ] ) ptrj 
@@ -214,7 +229,7 @@ do  self.init   = ->
         ptrj = u32[1]
         list = new Array() ; i = 0
 
-        while ptrj -= 16
+        while ptrj -= HEADER_INDEXCOUNT
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             Class = classes[ u32[ HEADER_CLASSINDEX + ptrj ] ]
             list[ i++ ] = new Class ptrj
@@ -226,7 +241,7 @@ do  self.init   = ->
         clsi = Class.classIndex
         list = new Array() ; i = 0
 
-        while ptrj -= 16
+        while ptrj -= HEADER_INDEXCOUNT
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
             list[ i ] = new ( classes[ clsi ] )( ptrj ) ; ++i
@@ -237,7 +252,7 @@ do  self.init   = ->
         ptrj = u32[1]
         clsi = Class.classIndex
 
-        while ptrj -= 16
+        while ptrj -= HEADER_INDEXCOUNT
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
             return new ( classes[ clsi ] )( ptrj )
@@ -249,13 +264,13 @@ do  self.init   = ->
         clsi = clsi or Class.classIndex
 
         ptrj = ptrN
-        while ptrj -= 16
+        while ptrj -= HEADER_INDEXCOUNT
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi                
             return new Class ptrj
 
         ptrj = ptrN
-        while ptrj -= 16 
+        while ptrj -= HEADER_INDEXCOUNT 
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue unless ptr = findChildRecursive ptrj, Class, clsi
             return ptr
@@ -267,13 +282,13 @@ do  self.init   = ->
         clsi = clsi or Class.classIndex
 
         ptrj = ptrN
-        while ptrj -= 16
+        while ptrj -= HEADER_INDEXCOUNT
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi                
             childs.push new Class ptrj
 
         ptrj = ptrN
-        while ptrj -= 16 
+        while ptrj -= HEADER_INDEXCOUNT 
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue unless ptr = findChildsRecursive ptrj, Class, clsi, childs
             childs.push ptr
@@ -289,7 +304,7 @@ do  self.init   = ->
         else if !isNaN test then test
         else throw /FILTER_TEST_FAILED/
 
-        while ptrj -= 16
+        while ptrj -= HEADER_INDEXCOUNT
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - ci
             list[ i ] = ptrj ; i++
@@ -301,7 +316,7 @@ do  self.init   = ->
         ptrj = u32[1]
         list = new Array() ; i = 0
 
-        while ptrj -= 16
+        while ptrj -= HEADER_INDEXCOUNT
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
             list[ i ] = new ( classes[ clsi ] )( ptrj ) ; i+=1
 
@@ -400,19 +415,19 @@ do  self.init   = ->
         new Float32Array buffer, u32[ ptri ] + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
 
     ptrFloat32Array     = ( ptri, byteOffset = 0, length ) -> 
-        new Float32Array buffer, ptri * 4, length or 16
+        new Float32Array buffer, ptri * 4, length or HEADER_INDEXCOUNT
 
     newUint32Array      = ( ptri, byteOffset = 0, length ) -> 
         new Uint32Array buffer, u32[ ptri ] + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
 
     ptrUint32Array      = ( ptri, byteOffset = 0, length ) -> 
-        new Uint32Array buffer, ptri * 4, length or 16
+        new Uint32Array buffer, ptri * 4, length or HEADER_INDEXCOUNT
 
     newUint8Array       = ( ptri, byteOffset = 0, length ) -> 
         new Uint8Array buffer, u32[ ptri ] + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
 
     ptrUint8Array       = ( ptri, byteOffset = 0, length ) -> 
-        new Uint8Array buffer, ptri * 4, length or 64
+        new Uint8Array buffer, ptri * 4, length or HEADER_INDEXCOUNT * BPE
 
     subarrayFloat32     = ( ptri, begin = 0, count ) -> 
         begin += u32[ HEADER_BEGIN + ptri ]
@@ -491,7 +506,7 @@ do  self.init   = ->
         ptri = Atomics.load i32, 1
         test = 0
 
-        while OFFSET_PTR <= ptri -= 16        
+        while OFFSET_PTR <= ptri -= HEADER_INDEXCOUNT        
             continue unless Atomics.load i32, ptri + HINDEX_ISGL
             continue if Atomics.load i32, ptri + HINDEX_UPDATED
             
@@ -561,8 +576,8 @@ do  self.init   = ->
                 return Atomics.load i32, THREADS_STATE
             return Atomics.store i32, THREADS_STATE, state
 
-        Atomics.add u32, 0, 16 * 1e5
-        Atomics.add u32, 1, 16
+        Atomics.add u32, 0, HEADER_INDEXCOUNT * 1e5
+        Atomics.add u32, 1, HEADER_INDEXCOUNT
     
         state THREADS_NULL
 
@@ -570,7 +585,7 @@ do  self.init   = ->
 
 
     malloc2             = ( constructor, byteLength ) ->
-        ptri        = Atomics.add i32, 1, 16
+        ptri        = Atomics.add i32, 1, HEADER_INDEXCOUNT
         classId     = constructor.classId
 
         if  byteLength ?= constructor.byteLength
@@ -796,7 +811,7 @@ do  self.init   = ->
         storage     : [,]
 
         constructor : ->
-            super arguments[0] || Atomics.add u32, 1, 16
+            super arguments[0] || Atomics.add u32, 1, HEADER_INDEXCOUNT
             @init arguments[1] if isWindow
 
         malloc      : ( byteLength ) ->
@@ -1041,14 +1056,13 @@ do  self.init   = ->
 
             0
 
+    classes.register class Mesh         extends Pointer
 
-    classes.register class Matter       extends Pointer
-
-        self.Matter         = Matter
+        self.Mesh         = Mesh
 
         drawable            : yes
 
-        Object.defineProperties Matter::,
+        Object.defineProperties Mesh::,
 
             info            : get : ->
 
@@ -1076,7 +1090,7 @@ do  self.init   = ->
 
             draws           : get : -> findLinkeds this, Draw
             
-        Object.deleteProperties Matter::, [ "tarray", "linked" ]
+        Object.deleteProperties Mesh::, [ "tarray", "linked" ]
 
         @create : ( props = {} ) ->
             matter = new this
@@ -1103,7 +1117,6 @@ do  self.init   = ->
             byteOffset : @BPE * b
             byteLength : @BPE * l
 
-                
     classes.register class Frustrum     extends Pointer
 
         name : "frustrum"
@@ -1112,7 +1125,292 @@ do  self.init   = ->
 
         name : "pointSize"
 
-    ###
+
+
+
+    classes.register class GLPointer        extends Pointer
+
+        BYTEINDEX = 0
+
+        Object.defineProperties GLPointer::, 
+            glObject :
+                get  : GLPointer::getGLObject
+                set  : GLPointer::setGLObject
+
+            isActive :
+                get  : GLPointer::getIsActive
+                set  : GLPointer::setIsActive
+
+        setGLObject : ->
+            setResvUint8 this, 1, @store arguments[0]
+
+        getGLObject : ->
+            if  storei = getResvUint8 this, 1
+                return @storage[ storei ]
+                    
+            @glObject = @create()
+
+        setIsActive : ->
+            current = getResvUint8 this, 0
+            request = arguments[0]
+
+            if  request - current
+                
+                unless setResvUint8 this, 0, request
+                    @disable()
+                else @enable()
+
+            request
+
+        disable     : -> this
+
+        enable      : -> @bindContext().enable()
+
+    classes.register class Context          extends GLPointer
+
+        isContext           : yes
+
+        isOffscreen         : no
+
+        contextType         : "webgl2"
+
+        Object.defineProperties Context::,
+            
+            program         : Context::getProgram
+            
+            vertexShader    : Context::getVertexShader
+
+            fragmentShader  : Context::getFragmentShader
+
+            drawBuffer      : Context::getDrawBuffer
+
+        getProgram          : ->
+            programs = findChilds this, Program
+            unless program = programs.find (p) -> p.isActive
+                unless program = programs[0]
+                    setParent program = new Program, this
+            program
+
+        getVertexShader     : ->
+            shaders = findChilds this, VertexShader
+            unless shader = shaders.find (p) -> p.isActive
+                unless shader = shaders[0]
+                    setParent shader = new VertexShader, this
+            shader
+
+        getFragmentShader   : ->
+            shaders = findChilds this, FragmentShader
+            unless shader = shaders.find (p) -> p.isActive
+                unless shader = shaders[0]
+                    setParent shader = new FragmentShader, this
+            shader
+
+        getDrawBuffer       : ->
+            buffers = findChilds this, DrawBuffer
+            unless buffer = buffers.find (p) -> p.isActive
+                unless buffer = buffers[0]
+                    setParent buffer = new DrawBuffer, this
+            buffer
+
+        bindContext         : ->
+
+            gl = @glObject
+
+            Object.defineProperties this,
+
+                enable              : value : -> this
+
+                lastError           : get   : gl.getError.bind gl
+
+                hint                : value : gl.hint.bind gl
+
+                isEnabled           : value : gl.isEnabled.bind gl
+
+                readPixels          : value : gl.readPixels.bind gl
+
+                extension           : value : gl.getExtension.bind gl
+
+                getParameter        : value : gl.getParameter.bind gl
+
+                vertexAttrib        : value : gl.getVertexAttrib.bind gl
+
+                vertexAttribOffset  : value : gl.getVertexAttribOffset.bind gl
+                
+                contextAttributes   : get   : gl.getContextAttributes.bind gl
+
+                supportedExtensions : get   : gl.getSupportedExtensions.bind gl
+
+            this
+        
+        create              : ( width, height ) ->
+            width or= INNER_WIDTH
+            height or= INNER_HEIGHT
+            
+            element = if !@isOffscreen then @resize(
+                width, height, document.body.appendChild(
+                    document.createElement 'canvas')
+            ) else new OffscreenCanvas width, height
+
+            element.getContext @contextType
+
+        resize              : ( width, height, canvas ) ->
+            canvas ||= @glObject.canvas
+
+            Object.assign canvas, {
+                width   : RATIO_PIXEL * width
+                height  : RATIO_PIXEL * height
+                style   :
+                    width      : CSS.px width
+                    height     : CSS.px height
+                    inset      : CSS.px 0
+                    position   : "fixed"
+            }
+
+    classes.register class DrawBuffer       extends GLPointer
+
+        MAX_POINT_COUNT     : 1e5
+
+        BYTES_PER_POINT     : 32
+
+        isBuffer            : yes
+
+        USAGE               : WebGL2RenderingContext.STATIC_DRAW
+
+        create              : -> 
+               
+            byteLength      = @BYTES_PER_POINT * @MAX_POINT_COUNT         
+            @malloc         byteLength
+
+            gl              = @parent.glObject
+            glObject        = gl.createBuffer()
+
+            gl.bindBuffer   gl, glObject
+            gl.bufferData   gl.ARRAY_BUFFER, byteLength, @USAGE
+
+            glObject
+            
+        bindContext         : ->
+
+            gl              = @parent.glObject
+
+            glObject        = @glObject
+
+            Object.defineProperties this,
+
+                enable       : value : gl.bindBuffer.bind gl, glObject
+
+                delete       : value : gl.deleteBuffer.bind gl, glObject
+                
+                upload       : value : gl.bufferSubData.bind gl, gl.ARRAY_BUFFER
+
+                getParameter : value : gl.getBufferParameter.bind gl, glObject
+                
+            Object.defineProperties this,
+
+                bufferSize   : get   : gl.getBufferParameter.bind gl, glObject, gl.BUFFER_SIZE
+
+                bindingPoint : get   : gl.getBufferParameter.bind gl, glObject, gl.BUFFER_USAGE 
+
+            this
+            
+    classes.register class Program          extends GLPointer
+
+        isProgram           : yes
+
+        create              : -> @parent.glObject.createProgram()
+
+        bindContext         : ->
+
+            gl              = @parent.glObject
+
+            glObject        = @glObject
+
+            Object.defineProperties this,
+
+                enable       : value : gl.useProgram.bind gl, glObject
+
+                delete       : value : gl.deleteProgram.bind gl, glObject
+                
+                link         : value : gl.linkProgram.bind gl, glObject
+
+                validate     : value : gl.validateProgram.bind gl, glObject
+                
+            Object.defineProperties this,
+
+                isLinked             : get   : gl.getProgramParameter.bind gl, glObject, gl.LINK_STATUS 
+
+                infoLog              : get   : gl.getProgramInfoLog.bind gl, glObject
+
+                getParameter         : value : gl.getProgramParameter.bind gl, glObject
+
+                getAttachedShaders   : get   : gl.getAttachedShaders.bind gl, glObject
+
+                getActiveAttrib      : value : gl.getActiveAttrib.bind gl, glObject
+                
+                getActiveUniform     : value : gl.getActiveUniform.bind gl, glObject
+                
+                getAttribLocation    : value : gl.getAttribLocation.bind gl, glObject
+
+                getUniform           : value : gl.getUniform.bind gl, glObject
+
+                getUniformLocation   : value : gl.getUniformLocation.bind gl, glObject
+
+            this
+
+    classes.register class Shader           extends GLPointer
+
+        isShader            : yes
+
+        create              : -> @parent.glObject.createShader @shaderType
+
+        bindContext         : ->
+
+            gl              = @parent.glObject  
+
+            glObject        = @glObject
+            
+            glProgram       = @parent.program.glObject 
+
+            Object.defineProperties this,
+
+                enable      : value : gl.attachShader.bind gl, glProgram, glObject
+
+                compile     : value : gl.compileShader.bind gl, glProgram, glObject
+                
+                delete      : value : gl.deleteShader.bind gl, glObject
+                
+            Object.defineProperties this,
+
+                source          :
+
+                    get         : gl.getShaderSource.bind gl, glObject
+                    
+                    set         : gl.shaderSource.bind gl, glObject
+
+                infoLog         : get   : gl.getShaderInfoLog.bind gl, glObject
+
+                getParameter    : value : gl.getShaderParameter.bind gl, glObject
+
+                precisionFormat : value : gl.getShaderPrecisionFormat.bind gl, @shaderType
+
+    classes.register class VertexShader     extends Shader
+
+        isVertexShader      : yes
+
+        shaderType          : WebGL2RenderingContext.VERTEX_SHADER
+
+    classes.register class FragmentShader   extends Shader
+
+        isFragmentShader    : yes
+
+        shaderType          : WebGL2RenderingContext.FRAGMENT_SHADER
+
+
+    classes.register class Scene            extends Pointer
+        
+        self.Scene  = this
+
+###
     class Shape         extends Pointer
 
         self.Shape      = this
@@ -1615,7 +1913,7 @@ do  self.init   = ->
         INDEX_TRIANGLES_COUNT : 8 
         INDEX_TRIANGLES_OFFSET: 9 
 
-        INDEX_DRAW_BEGIN      : 16
+        INDEX_DRAW_BEGIN      : HEADER_INDEXCOUNT
 
         init : ->
             @BYTES_PER_ATTRIBUTE = 32
@@ -1839,7 +2137,6 @@ do  self.init   = ->
 
         fShader : yes
         
-    ###
 
     classes.register class Shader extends Pointer
 
@@ -2052,12 +2349,14 @@ do  self.init   = ->
             @detach()
             @gl.deleteShader @glShader ; this
 
-
     classes.register class FragmentShader extends Shader
 
         shaderType      : WebGL2RenderingContext.FRAGMENT_SHADER
 
         isFShader       : yes
+
+
+        getGLObject     : -> @glFragmentShader
 
         attach          : ->
             return this if @active
@@ -2134,6 +2433,9 @@ do  self.init   = ->
         Object.defineProperties VertexShader::,
             glShader    : get : Shader::createGLVShader   , set : Shader::setGLShader
             glBuffer    : get : Shader::createGLBuffer    , set : Shader::setGLBuffer
+
+
+        getGLObject     : -> @glVertexShader
 
         attach          : ->
             return this if @active
@@ -2230,6 +2532,7 @@ do  self.init   = ->
             @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
             @gl.bufferData @gl.ARRAY_BUFFER, drawByteAlloc, @gl.STATIC_DRAW
 
+
             @setDefinitons definitions
 
             this
@@ -2261,6 +2564,7 @@ do  self.init   = ->
 
             gl.bindBuffer gl.ARRAY_BUFFER, buf = gl.createBuffer()
             gl.bufferData gl.ARRAY_BUFFER, 256, gl.STATIC_DRAW
+
 
             gl.useProgram program
 
@@ -2348,6 +2652,9 @@ do  self.init   = ->
             gl.deleteProgram program
             gl.deleteBuffer buf
 
+            Space.limits = (await navigator.gpu.requestAdapter()).limits
+
+
             shader = shader2 = gl =
             program = canvas = null
             definitions = new Object
@@ -2424,77 +2731,6 @@ do  self.init   = ->
             glFShader   : get : Shader::parentGLFShader  , set : Shader::setGLFShader
             glBuffer    : get : Shader::parentGLBuffer   , set : Shader::setGLBuffer
 
-
-    classes.register class Program extends Pointer
-
-        LINK_STATUS     : WebGL2RenderingContext.LINK_STATUS
-
-        Object.defineProperties Program::,
-            gl          : get : Shader::parentGLContext  , set : Shader::setGLContext
-            glProgram   : get : Shader::createGLProgram  , set : Shader::setGLProgram
-            glVShader   : get : Shader::activeGLVShader  , set : Shader::setGLVShader
-            glFShader   : get : Shader::activeGLFShader  , set : Shader::setGLFShader
-            glBuffer    : get : Shader::activeGLBuffer   , set : Shader::setGLBuffer
-
-        Object.defineProperties Program::,
-            isLinked    : get : Program::getIsLinked     , set : Program::setIsLinked
-            inUse       : get : Program::getInUse        , set : Program::setInUse
-
-        Object.defineProperties Program::,
-            vShader     : get : -> findChildsRecursive( this, VertexShader ).find (s) -> s.active
-            fShader     : get : -> findChildsRecursive( this, FragmentShader ).find (s) -> s.active 
-            shaders     : get : -> @childs.filter (s) -> s.isShader
-            
-        Object.deleteProperties Program::, [ "linked", "tarray" ]
-
-        use             : ->
-            if !getResvUint8 this, 1
-
-                @link() if !getResvUint8 this, 0
-                @gl.useProgram @glProgram
-
-                if  this - ptri = @parent.program
-                    @parent.program.inUse = 0
-
-                setResvUint8 this, 1, 1
-            1
-
-        getParameter    : ( parameter ) ->
-            @gl.getProgramParameter @glProgram, parameter
-
-        infoLog         : ->
-            @gl.getProgramInfoLog @glProgram
-
-        link            : ->
-            if !isLinked = getResvUint8 this, 0
-
-                @gl.linkProgram @glProgram
-
-                if !@getParameter @LINK_STATUS
-                    throw @infoLog()
-
-                if  this - ptri = @parent.program
-                    setResvUint8 ptri, 0, 0
-
-                setResvUint8 this, 0, isLinked = 1
-
-            isLinked
-
-        getIsLinked     : ->
-            getResvUint8 this, 0
-
-        setIsLinked     : ( state ) ->
-            @gl.linkProgram @glProgram if state
-            getResvUint8 this, 0, state ; state
-
-        getInUse  : ->
-            getResvUint8 this, 1
-
-        setInUse  : ( state ) ->
-            setResvUint8 this, 1, state ; this
-
-
-
     classes.register class Space    extends Pointer
 
         self.Space      = this
@@ -2554,6 +2790,8 @@ do  self.init   = ->
                 @program.use()
 
             this
+
+###
 
     self.addEventListener "DOMContentLoaded"    , ->
 

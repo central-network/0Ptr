@@ -65,11 +65,11 @@
     <script>
         let red = 0.5, green = 0.3 , blue= 0.8, sign = 1, factor = 0.0025;
 
-        const space = new Space()
+        const scene = new Scene()
 
-        console.warn(space)
+        console.warn(scene)
 
-        const matter = Matter.create({
+        const mesh1 = Mesh.create({
             position : [ 0, -20, 0 ],
             color : [ 1, 0, 0, 0],
             vertices : [
@@ -86,7 +86,7 @@
         })
 
 
-        const matter2 = Matter.create({
+        const mesh2 = Mesh.create({
             rotation : [ 0, Math.PI, 0 ],
             scale : [ 1, 2, 1],
             vertices : [
@@ -96,11 +96,11 @@
             ]
         })
 
-        for (let m of Matter.allocs())
-            space.add( m )
+        for (let m of Mesh.allocs())
+            scene.add( m )
 
-        console.log(matter)
-        console.log(matter2)
+        console.log(mesh1)
+        console.log(mesh2)
 
 
 
