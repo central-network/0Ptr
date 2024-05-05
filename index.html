@@ -67,7 +67,6 @@
 
         const scene = new Scene()
 
-        console.warn(scene)
 
         const mesh1 = Mesh.create({
             position : [ 0, -20, 0 ],
@@ -99,8 +98,12 @@
         for (let m of Mesh.allocs())
             scene.add( m )
 
+        for (let o of scene)
+            console.log( "iterating:", o)
+
         console.log(mesh1)
         console.log(mesh2)
+        console.log(scene)
 
 
 

@@ -18,6 +18,9 @@ do  self.init   = ->
 
         deleteProperties : value : ( target, props = [] ) ->
             @deleteProperty target, p for p in props; target
+
+
+    Symbol.pointer = "|[Pointer]|"
         
     threadId = null
     gl = null
@@ -129,17 +132,19 @@ do  self.init   = ->
 
     HEADER_CLASSINDEX   =  4; HEADER_INDEXCOUNT++ #? 4
     HEADER_PARENTPTRI   =  5; HEADER_INDEXCOUNT++ #? 5
-    HEADER_LINKEDPTRI   =  7; HEADER_INDEXCOUNT++ #? 7
-    HEADER_ITEROFFSET   =  6; HEADER_INDEXCOUNT++ #? 6
+    HEADER_LINKEDPTRI   =  6; HEADER_INDEXCOUNT++ #? 7
+    HEADER_ITEROFFSET   =  7; HEADER_INDEXCOUNT++ #? 6
 
-    HEADER_NEEDRECALC   =  7 * 4    ; HEADER_INDEXCOUNT++ #? 32
-    HEADER_NEEDUPLOAD   =  7 * 4 + 1; #* ptri * 4 + HEADER_NEEDUPLOAD
-    HEADER_TRANSLATED   =  7 * 4 + 2; #* ptri * 4 + HEADER_CALCVERTEX
-    HEADER_FRAGMENTED   =  7 * 4 + 3; #* ptri * 4 + HEADER_PAINTCOLOR
+    HEADER_ITERATORI    =  8; HEADER_INDEXCOUNT++ #? 32
+    HEADER_ITERCLASSI   =  9; HEADER_INDEXCOUNT++ #? 32
+    HEADER_NEEDRECALC   =  10 * 4    ; HEADER_INDEXCOUNT++ #? 32
+    HEADER_NEEDUPLOAD   =  10 * 4 + 1; #* ptri * 4 + HEADER_NEEDUPLOAD
+    HEADER_TRANSLATED   =  10 * 4 + 2; #* ptri * 4 + HEADER_CALCVERTEX
+    HEADER_FRAGMENTED   =  10 * 4 + 3; #* ptri * 4 + HEADER_PAINTCOLOR
 
-    HEADER_RESVINDEX4   =  8; HEADER_INDEXCOUNT++ #? 9 
-    HEADER_RESVINDEX2   =  8 * 2; #* ptri * 2 + HEADER_RESVINDEX2
-    HEADER_RESVINDEX1   =  8 * 4; #* ptri * 4 + HEADER_RESVINDEX1
+    HEADER_RESVINDEX4   =  12; HEADER_INDEXCOUNT++ #? 9 
+    HEADER_RESVINDEX2   =  12 * 2; #* ptri * 2 + HEADER_RESVINDEX2
+    HEADER_RESVINDEX1   =  12 * 4; #* ptri * 4 + HEADER_RESVINDEX1
 
     if  HEADER_INDEXCOUNT > 32
         throw /HEADER_INDEXCOUNT/
@@ -185,6 +190,8 @@ do  self.init   = ->
     setClassIndex       = ( ptri, clsi ) -> 
         u32[ HEADER_CLASSINDEX + ptri ] = clsi
     
+
+    
     getPointer          = ( ptri ) ->
         if  clsi = u32[ HEADER_CLASSINDEX + ptri ]
             return new (classes[ clsi ]) ptri
@@ -227,16 +234,86 @@ do  self.init   = ->
 
         list
 
-    getChilds           = ( ptri ) -> 
+    getChilds           = ( ptri, Class ) -> 
         ptrj = u32[1]
         list = new Array() ; i = 0
 
-        while ptrj -= HEADER_INDEXCOUNT
-            continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
-            Class = classes[ u32[ HEADER_CLASSINDEX + ptrj ] ]
-            list[ i++ ] = new Class ptrj
+        if  Class
+            clsi = Class.classIndex
+            while ptrj -= HEADER_INDEXCOUNT
+                continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+                continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
+                Class = classes[ u32[ HEADER_CLASSINDEX + ptrj ] ]
+                list[ i++ ] = new Class ptrj
+
+        else
+            while ptrj -= HEADER_INDEXCOUNT
+                continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+                Class = classes[ u32[ HEADER_CLASSINDEX + ptrj ] ]
+                list[ i++ ] = new Class ptrj
         
         list
+    
+    getChildsCount      = ( ptri, clsi ) -> 
+        ptrj = u32[1]
+        i = 0
+
+        if  clsi
+            while ptrj -= HEADER_INDEXCOUNT
+                continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+                continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
+                i++
+
+        else
+            while ptrj -= HEADER_INDEXCOUNT
+                continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+                i++
+        
+        i
+
+    prepareIterator     = ( ptri, Class ) ->
+        Atomics.store u32, ptri + HEADER_ITERCLASSI, Class.classIndex if Class
+        Atomics.compareExchange u32, ptri + HEADER_ITERATORI, 0, u32.at 1
+        +ptri
+
+    finalizeIterator    = ( ptri ) ->
+        Atomics.store u32, ptri + HEADER_ITERCLASSI, 0
+        Atomics.store u32, ptri + HEADER_ITERATORI, 0
+        0
+
+    iteratePrepared     = ( ptri ) -> 
+        clsi = Atomics.load u32, ptri + HEADER_ITERCLASSI
+        ptrj = Atomics.sub u32, ptri + HEADER_ITERATORI, HEADER_INDEXCOUNT
+
+        if  ptrj is ptri
+            return iteratePrepared ptri
+
+        if !ptrj or u32[1] < ptrj
+            return finalizeIterator ptri
+
+
+        if  clsi
+            while ptrj -= HEADER_INDEXCOUNT
+                continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+                continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
+
+                next = ptrj - HEADER_INDEXCOUNT
+                if  next isnt Atomics.compareExchange u32, ptri + HEADER_ITERATORI, ptrj, next
+                    Atomics.store u32, ptri + HEADER_ITERATORI, ptrj
+                    Class = classes[ clsi ]
+                    return new Class ptrj
+
+        else
+            while ptrj -= HEADER_INDEXCOUNT
+                continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+                next = ptrj - HEADER_INDEXCOUNT
+
+                if  next isnt Atomics.compareExchange u32, ptri + HEADER_ITERATORI, ptrj, next
+                    Atomics.store u32, ptri + HEADER_ITERATORI, ptrj
+                    Class = classes[ u32[ HEADER_CLASSINDEX + ptrj ] ]
+                    return new Class ptrj
+            
+        0
 
     findChilds          = ( ptri, Class ) -> 
         ptrj = u32[1]
@@ -324,7 +401,7 @@ do  self.init   = ->
 
         list
 
-    getIterOffset       = ( ptri       ) -> 
+    getIterOffset       = ( ptri       ) ->
         u32[ HEADER_ITEROFFSET + ptri ]
     
     setIterOffset       = ( ptri, v    ) -> 
@@ -681,10 +758,23 @@ do  self.init   = ->
 
         @create     : -> new this null, arguments...
 
+        [ Symbol.iterator ] : ->
+
+            ptri = prepareIterator this, @constructor.iterate
+
+            next : ->
+                if  next = iteratePrepared ptri
+                    return value : next
+                return done : 1          
+
         Object.defineProperties Pointer::,
             
-            childs  : get : -> getChilds this
-
+            childs  : get : ->
+                childs = getChilds this
+                
+                unless Class = @constructor.iterate then childs
+                else childs.filter (ptr) -> ptr instanceof Class
+                    
             parent  :
                 get : -> getParent this
                 set : ( ptri ) -> setParent this, ptri
@@ -692,8 +782,9 @@ do  self.init   = ->
             buffer  :
                 get : -> new this.TypedArray buffer, getByteOffset(this), getLength(this)
 
-            [ "|[Pointer]|" ] :
-                get : -> ptrUint32Array this
+            [ Symbol.pointer  ] : get   : -> ptrUint32Array this
+
+
 
     classes.register class Vector3          extends Pointer
 
@@ -947,16 +1038,7 @@ do  self.init   = ->
 
     classes.register class GLPointer        extends Pointer
 
-        BYTEINDEX = 0
-
-        Object.defineProperties GLPointer::, 
-            glObject :
-                get  : GLPointer::getGLObject
-                set  : GLPointer::setGLObject
-
-            isActive :
-                get  : GLPointer::getIsActive
-                set  : GLPointer::setIsActive
+        BYTEINDEX   = 0
 
         setGLObject : ->
             setResvUint8 this, 1, @store arguments[0]
@@ -981,7 +1063,17 @@ do  self.init   = ->
 
         disable     : -> this
 
-        enable      : -> @bindContext().enable()
+        enable      : -> @bindContext().enable()                    
+
+        Object.defineProperties GLPointer::, 
+            glObject :
+                get  : GLPointer::getGLObject
+                set  : GLPointer::setGLObject
+
+            isActive :
+                get  : GLPointer::getIsActive
+                set  : GLPointer::setIsActive
+
 
     classes.register class Context          extends GLPointer
 
@@ -1323,6 +1415,8 @@ do  self.init   = ->
         
         self.Scene  = this
 
+        @iterate    : Mesh
+
         create      : ->
             super( arguments... )
 
@@ -1339,6 +1433,8 @@ do  self.init   = ->
                 @emit "contextready", { text: "hello oon2" }
                 @emit "contextrestored", { text: "hello oon2" }
             , 1000
+  
+
 
 
     ###
