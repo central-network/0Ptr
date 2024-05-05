@@ -137,14 +137,16 @@ do  self.init   = ->
 
     HEADER_ITERATORI    =  8; HEADER_INDEXCOUNT++ #? 32
     HEADER_ITERCLASSI   =  9; HEADER_INDEXCOUNT++ #? 32
+
     HEADER_NEEDRECALC   =  10 * 4    ; HEADER_INDEXCOUNT++ #? 32
     HEADER_NEEDUPLOAD   =  10 * 4 + 1; #* ptri * 4 + HEADER_NEEDUPLOAD
     HEADER_TRANSLATED   =  10 * 4 + 2; #* ptri * 4 + HEADER_CALCVERTEX
     HEADER_FRAGMENTED   =  10 * 4 + 3; #* ptri * 4 + HEADER_PAINTCOLOR
 
-    HEADER_RESVINDEX4   =  12; HEADER_INDEXCOUNT++ #? 9 
-    HEADER_RESVINDEX2   =  12 * 2; #* ptri * 2 + HEADER_RESVINDEX2
-    HEADER_RESVINDEX1   =  12 * 4; #* ptri * 4 + HEADER_RESVINDEX1
+    HEADER_RESVINDEX    =  12; HEADER_INDEXCOUNT++ #? 9 
+    HEADER_RESVINDEX4   =  HEADER_RESVINDEX;  
+    HEADER_RESVINDEX2   =  HEADER_RESVINDEX * 2; #* ptri * 2 + HEADER_RESVINDEX2
+    HEADER_RESVINDEX1   =  HEADER_RESVINDEX * 4; #* ptri * 4 + HEADER_RESVINDEX1
 
     if  HEADER_INDEXCOUNT > 32
         throw /HEADER_INDEXCOUNT/
@@ -446,54 +448,75 @@ do  self.init   = ->
     hitFragmented       = ( ptri       ) -> 
         Atomics.and ui8, HEADER_FRAGMENTED + ptri * 4, 0
 
+
     getResvUint32       = ( ptri, i    ) -> 
-        u32[ HEADER_RESVINDEX4 + ptri + i ]
+        index = i + ( HEADER_RESVINDEX + ptri )
+        u32[ index ]
     
     setResvUint32       = ( ptri, i, v ) -> 
-        u32[ HEADER_RESVINDEX4 + ptri + i ] = v
+        index = i + ( HEADER_RESVINDEX + ptri )
+        u32[ index ] = v
     
     addResvUint32       = ( ptri, i, v ) -> 
-        u32[ HEADER_RESVINDEX4 + ptri + i ] = v + (
-            u = u32[ HEADER_RESVINDEX4 + ptri + i ]
-        ) ; u
+        index = i + ( HEADER_RESVINDEX + ptri )
 
-    getResvUint16       = ( ptri, i    ) -> 
-        u16[ HEADER_RESVINDEX2 + ptri * 2 + i ]
+        value = u32[ index ]
+        u32[ index ] = value + v
+        value
+
+    getResvUint16       = ( ptri, i    ) ->
+        index = i + ( HEADER_RESVINDEX + ptri ) * 2
+        u16[ index ]
     
     setResvUint16       = ( ptri, i, v ) -> 
-        u16[ HEADER_RESVINDEX2 + ptri * 2 + i ] = v
+        index = i + ( HEADER_RESVINDEX + ptri ) * 2
+        u16[ index ] = v
     
     addResvUint16       = ( ptri, i, v ) -> 
-        u16[ HEADER_RESVINDEX2 + ptri * 2 + i ] = v + (
-            u = u16[ HEADER_RESVINDEX2 + ptri * 2 + i ]
-        ) ; u
+        i += ( HEADER_RESVINDEX + ptri ) * 2
+
+        value = u16[ index ]
+        u16[ index ] = value + v
+        value
 
     getResvUint8        = ( ptri, i    ) -> 
-        ui8[ HEADER_RESVINDEX1 + i + ( ptri * 4 ) ]
+        i += ( HEADER_RESVINDEX + ptri ) * 4
+        dvw.getUint8 i
     
     setResvUint8        = ( ptri, i, v ) -> 
-        ui8[ HEADER_RESVINDEX1 + i + ( ptri * 4 ) ] = v
+        i += ( HEADER_RESVINDEX + ptri ) * 4
+        dvw.setUint8 i, v
     
     hitResvUint8        = ( ptri, i = 0 ) -> 
-        byteOffset = HEADER_RESVINDEX1 + i + ptri * 4  
-        return 0 if ui8[ byteOffset ]
-        ui8[ byteOffset ] = 1
+        i += ( HEADER_RESVINDEX + ptri ) * 4
+
+        return 0 if dvw.getUint8 i
+        return ui8[ i ] = 1
     
     addResvUint8        = ( ptri, i, v ) -> 
-        ui8[ HEADER_RESVINDEX1 + i + ( ptri * 4 ) ] = v + (
-            u = ui8[ HEADER_RESVINDEX1 + i + ( ptri * 4 ) ]
-        ) ; u
+        i += ( HEADER_RESVINDEX + ptri ) * 4 
+        o = dvw.getUint8 i
+        dvw.setUint8 i, o + v
+        o
 
-    getResvFloat32      = ( ptri, i    ) -> 
-        f32[ HEADER_RESVINDEX4 + ptri + i ]
+
+    getResvFloat32      = ( ptri, i    ) ->
+        i += ( HEADER_RESVINDEX + ptri )
+
+        f32[ i ]
     
     setResvFloat32      = ( ptri, i, v ) -> 
-        f32[ HEADER_RESVINDEX4 + ptri + i ] = v
+        i += ( HEADER_RESVINDEX + ptri )
+
+        f32[ i ] = v
     
     addResvFloat32      = ( ptri, i, v ) -> 
-        f32[ HEADER_RESVINDEX4 + ptri + i ] = v + (
-            u = f32[ HEADER_RESVINDEX4 + ptri + i ]
-        ) ; u
+        i += ( HEADER_RESVINDEX + ptri )
+        
+        o = f32[ i ]
+        f32[ i ] = o + v
+        o
+
 
     newFloat32Array     = ( ptri, byteOffset = 0, length ) -> 
         new Float32Array buffer, u32.at( ptri ) + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
@@ -505,7 +528,8 @@ do  self.init   = ->
         new Uint32Array buffer, u32.at( ptri ) + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
 
     ptrUint32Array      = ( ptri, byteOffset = 0, length ) -> 
-        new Uint32Array buffer, ptri * 4, length or HEADER_INDEXCOUNT
+        byteOffset += ptri * 4
+        new Uint32Array buffer, byteOffset, length
 
     newUint8Array       = ( ptri, byteOffset = 0, length ) -> 
         new Uint8Array buffer, u32.at( ptri ) + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
@@ -556,11 +580,31 @@ do  self.init   = ->
             v = u32[ u32[ HEADER_BEGIN + ptri ] + index ]
         ) ; v
     
+
+
     setUint32           = ( ptri, index, value ) -> 
         u32[ u32[ HEADER_BEGIN + ptri ] + index ] = value
 
     getUint32           = ( ptri, index = 0 ) -> 
         u32[ u32[ HEADER_BEGIN + ptri ] + index ]
+    
+
+
+    getUint16           = ( ptri, index = 0 ) -> 
+        u16[ u32[ HEADER_BEGIN + ptri ] * 2 + index ]
+
+    setUint16           = ( ptri, index, value ) -> 
+        u16[ u32[ HEADER_BEGIN + ptri ] * 2 + index ] = value
+    
+
+
+    getUint64           = ( ptri, index = 0 ) -> 
+        Number u64[ u32[ HEADER_BEGIN + ptri ] / 2 + index ]
+
+    setUint64           = ( ptri, index = 0, value ) -> 
+        Number u64[ u32[ HEADER_BEGIN + ptri ] / 2 + index ] = BigInt value
+
+
 
     orUint32            = ( ptri, index = 0, fn ) -> 
         u32[ u32[ HEADER_BEGIN + ptri ] + index ] ||= fn.call ptri
@@ -659,7 +703,9 @@ do  self.init   = ->
     if  isWindow
         buffer = new SharedArrayBuffer 1e8
         i32 = new Int32Array buffer 
+        u16 = new Uint16Array buffer
         u32 = new Uint32Array buffer
+        u64 = new BigUint64Array buffer
         f32 = new Float32Array buffer
         dvw = new DataView buffer
         ui8 = new Uint8Array buffer
@@ -771,7 +817,7 @@ do  self.init   = ->
             
             childs  : get : ->
                 childs = getChilds this
-                
+
                 unless Class = @constructor.iterate then childs
                 else childs.filter (ptr) -> ptr instanceof Class
                     
@@ -782,7 +828,8 @@ do  self.init   = ->
             buffer  :
                 get : -> new this.TypedArray buffer, getByteOffset(this), getLength(this)
 
-            [ Symbol.pointer  ] : get   : -> ptrUint32Array this
+            [ Symbol.pointer  ] :
+                get : -> ptrUint32Array this, 0, HEADER_INDEXCOUNT
 
 
 
@@ -1074,7 +1121,6 @@ do  self.init   = ->
                 get  : GLPointer::getIsActive
                 set  : GLPointer::setIsActive
 
-
     classes.register class Context          extends GLPointer
 
         isContext           : yes
@@ -1085,19 +1131,22 @@ do  self.init   = ->
 
         Object.defineProperties Context::,
             
-            program         : Context::getProgram
+            program         : get : Context::getProgram
             
-            vertexShader    : Context::getVertexShader
+            vertexShader    : get : Context::getVertexShader
 
-            fragmentShader  : Context::getFragmentShader
+            fragmentShader  : get : Context::getFragmentShader
 
-            drawBuffer      : Context::getDrawBuffer
+            drawBuffer      : get : Context::getDrawBuffer
+
+        Object.deleteProperties Context::, [ "buffer" ]
 
         getProgram          : ->
             programs = findChilds this, Program
             unless program = programs.find (p) -> p.isActive
                 unless program = programs[0]
                     setParent program = new Program, this
+                    program.bindContext()
             program
 
         getVertexShader     : ->
@@ -1105,6 +1154,7 @@ do  self.init   = ->
             unless shader = shaders.find (p) -> p.isActive
                 unless shader = shaders[0]
                     setParent shader = new VertexShader, this
+                    shader.bindContext()
             shader
 
         getFragmentShader   : ->
@@ -1112,14 +1162,16 @@ do  self.init   = ->
             unless shader = shaders.find (p) -> p.isActive
                 unless shader = shaders[0]
                     setParent shader = new FragmentShader, this
+                    shader.bindContext()
             shader
 
         getDrawBuffer       : ->
             buffers = findChilds this, DrawBuffer
-            unless buffer = buffers.find (p) -> p.isActive
-                unless buffer = buffers[0]
-                    setParent buffer = new DrawBuffer, this
-            buffer
+            unless buffer_ = buffers.find (p) -> p.isActive
+                unless buffer_ = buffers[0]
+                    setParent buffer_ = new DrawBuffer, this
+                    buffer_.bindContext()
+            buffer_
 
         bindContext         : ->
 
@@ -1183,6 +1235,8 @@ do  self.init   = ->
 
         isBuffer            : yes
 
+        TARGET              : WebGL2RenderingContext.ARRAY_BUFFER
+
         USAGE               : WebGL2RenderingContext.STATIC_DRAW
 
         create              : -> 
@@ -1193,7 +1247,7 @@ do  self.init   = ->
             gl              = @parent.glObject
             glObject        = gl.createBuffer()
 
-            gl.bindBuffer   gl, glObject
+            gl.bindBuffer   gl.ARRAY_BUFFER, glObject
             gl.bufferData   gl.ARRAY_BUFFER, byteLength, @USAGE
 
             glObject
@@ -1212,13 +1266,13 @@ do  self.init   = ->
                 
                 upload       : value : gl.bufferSubData.bind gl, gl.ARRAY_BUFFER
 
-                getParameter : value : gl.getBufferParameter.bind gl, glObject
+                getParameter : value : gl.getBufferParameter.bind gl, @TARGET
                 
             Object.defineProperties this,
 
-                bufferSize   : get   : gl.getBufferParameter.bind gl, glObject, gl.BUFFER_SIZE
+                bufferSize   : get   : -> @getParameter gl.BUFFER_SIZE
 
-                bindingPoint : get   : gl.getBufferParameter.bind gl, glObject, gl.BUFFER_USAGE 
+                bindingPoint : get   : -> @getParameter gl.BUFFER_USAGE 
 
             this
             
@@ -1236,35 +1290,39 @@ do  self.init   = ->
 
             Object.defineProperties this,
 
-                enable       : value : gl.useProgram.bind gl, glObject
+                enable              : value : gl.useProgram.bind gl, glObject
 
-                delete       : value : gl.deleteProgram.bind gl, glObject
+                delete              : value : gl.deleteProgram.bind gl, glObject
                 
-                link         : value : gl.linkProgram.bind gl, glObject
+                link                : value : gl.linkProgram.bind gl, glObject
 
-                validate     : value : gl.validateProgram.bind gl, glObject
+                validate            : value : gl.validateProgram.bind gl, glObject
+
+                getParameter        : value : gl.getProgramParameter.bind gl, glObject
                 
+                getAttribLocation   : value : gl.getAttribLocation.bind gl, glObject
+
+                getUniform          : value : gl.getUniform.bind gl, glObject
+
+                getUniformLocation  : value : gl.getUniformLocation.bind gl, glObject  
+                
+                getActiveAttrib     : value : gl.getActiveAttrib.bind gl, glObject
+                
+                getActiveUniform    : value : gl.getActiveUniform.bind gl, glObject
+
+
             Object.defineProperties this,
 
-                isLinked             : get   : gl.getProgramParameter.bind gl, glObject, gl.LINK_STATUS 
+                isLinked             : get   : -> gl.getProgramParameter glObject, gl.LINK_STATUS 
 
-                infoLog              : get   : gl.getProgramInfoLog.bind gl, glObject
+                infoLog              : get   : -> gl.getProgramInfoLog glObject
 
-                getParameter         : value : gl.getProgramParameter.bind gl, glObject
+                attachedShaders      : get   : -> gl.getAttachedShaders glObject
 
-                getAttachedShaders   : get   : gl.getAttachedShaders.bind gl, glObject
-
-                getActiveAttrib      : value : gl.getActiveAttrib.bind gl, glObject
-                
-                getActiveUniform     : value : gl.getActiveUniform.bind gl, glObject
-                
-                getAttribLocation    : value : gl.getAttribLocation.bind gl, glObject
-
-                getUniform           : value : gl.getUniform.bind gl, glObject
-
-                getUniformLocation   : value : gl.getUniformLocation.bind gl, glObject
 
             this
+
+        Object.deleteProperties Program::, [ "buffer", "childs" ]
 
     classes.register class Shader           extends GLPointer
 
@@ -1402,37 +1460,131 @@ do  self.init   = ->
             @add new EventHandler().set arguments... 
 
         emit            : ( event, data = {} ) ->
-            @events.forEach (e) ->
+            @hitCallCount @events.forEach (e) ->
                 e.call data if e.name is event
 
-        create          : -> this
+        create              : -> this
+
+        getCallCount        : -> getResvUint32 this, 1
+        
+        hitCallCount        : -> addResvUint32 this, 1, 1
+
+        setCallCount        : -> setResvUint32 this, 1, arguments[0]        
 
         Object.defineProperties EventEmitter::,
 
-            events  : get : EventEmitter::getHandlers
+            events          : get : EventEmitter::getHandlers
+
+            callCount       :
+                get : EventEmitter::getCallCount
+                set : EventEmitter::setCallCount
+
 
     classes.register class Scene            extends EventEmitter
-        
+
         self.Scene  = this
 
-        @iterate    : Mesh
+        @byteLength : 28 * @BPE
+
+        #?@iterate  : Mesh
 
         create      : ->
-            super( arguments... )
+            super arguments...
 
-            @on "contextready", ( data ) ->
-                log "hello world, data:", data
-            , once : true
+            if !isWindow
+                throw "window"
 
-            @on "contextrestored", ( data ) ->
-                log "hello world, context restored:", data, this
+            @startTime = Date.now()
+            @isRendering = 1
 
-            @emit "contextready", { text: "hello oon" }
+            render = ( @epoch ) ->
+                @emit  "render"
+                requestAnimationFrame render
+
+            do render = render.bind this
+
+
+        getTimeStamp    : ->
+            getUint64( this, 0 ) + getUint32( this, 3 )
+
+
+        #?              BYTEOFFSET = 0
+
+        getStartTime    : -> getUint64 this, 0
+        
+        setStartTime    : -> setUint64 this, 0, arguments[0]
+
+
+
+        #?              BYTEOFFSET = 8
+
+        getFramePerSec  : -> getUint8 this, 8
+        
+        setFramePerSec  : -> setUint8 this, 8, arguments[0]
+
+
+        getIsRendering  : -> getUint8 this, 9
+        
+        setIsRendering  : -> setUint8 this, 9, arguments[0]
+
+
+
+        #?              BYTEOFFSET = 10
+
+
+        getDeltaTime    : -> getUint16 this, 5
+
+        setDeltaTime    : ( delta ) -> 
+            @fps = 1000 / setUint16 this, 5, delta
+
+
+
+        #?              BYTEOFFSET = 12
+
+        getEpochTime    : -> getUint32 this, 3
+        
+        setEpochTime    : ( epoch ) ->
+            @delta = -@epoch + setUint32 this, 3, epoch
+
+
+        #?              BYTEOFFSET = 16
+
+
+        Object.defineProperties Scene::,
+
+            now         :
+                get : Scene::getTimeStamp
+
+            fps         :
+                get : Scene::getFramePerSec
+                set : Scene::setFramePerSec
+
+            delta       :
+                get : Scene::getDeltaTime
+                set : Scene::setDeltaTime
+
+            epoch       :
+                get : Scene::getEpochTime
+                set : Scene::setEpochTime
+
+            startTime   :
+                get : Scene::getStartTime
+                set : Scene::setStartTime
+
+            isRendering :
+                get : Scene::getIsRendering
+                set : Scene::setIsRendering
+
+            context     :
+                get : ->
+                    contexts = findChilds this, Context
+                    unless context = contexts.find (p) -> p.isActive
+                        unless context = contexts[0]
+                            setParent context = new Context, this
+                    context                    
+
+
             
-            setTimeout =>
-                @emit "contextready", { text: "hello oon2" }
-                @emit "contextrestored", { text: "hello oon2" }
-            , 1000
   
 
 
@@ -3160,7 +3312,9 @@ do  self.init   = ->
         #log "bufferready:", buffer
         
         ui8 = new Uint8Array buffer
+        u16 = new Uint16Array buffer
         u32 = new Uint32Array buffer
+        u64 = new BigUint64Array buffer
         f32 = new Float32Array buffer
         dvw = new DataView buffer
         i32 = new Int32Array buffer

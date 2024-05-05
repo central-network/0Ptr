@@ -67,6 +67,16 @@
 
         const scene = new Scene()
 
+        scene.on( "render", function () {
+            if ( this.callCount % 125 === 0 )
+            console.log(
+                "calls:", this.callCount,
+                "fps:", this.fps,
+                "epoch", this.epoch,
+                "delta", this.delta
+            )
+        })
+
 
         const mesh1 = Mesh.create({
             position : [ 0, -20, 0 ],
