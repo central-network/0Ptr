@@ -44,6 +44,9 @@ do  self.init   = ->
     classes = []
     buffers = []
 
+    textEncoder = new TextEncoder()
+    textDecoder = new TextDecoder()
+
     classes.register = ( Class ) ->
         if -1 is i = @indexOf Class
             i += @push Class 
@@ -394,6 +397,11 @@ do  self.init   = ->
     setResvUint8        = ( ptri, i, v ) -> 
         ui8[ HEADER_RESVINDEX1 + i + ( ptri * 4 ) ] = v
     
+    hitResvUint8        = ( ptri, i = 0 ) -> 
+        byteOffset = HEADER_RESVINDEX1 + i + ptri * 4  
+        return 0 if ui8[ byteOffset ]
+        ui8[ byteOffset ] = 1
+    
     addResvUint8        = ( ptri, i, v ) -> 
         ui8[ HEADER_RESVINDEX1 + i + ( ptri * 4 ) ] = v + (
             u = ui8[ HEADER_RESVINDEX1 + i + ( ptri * 4 ) ]
@@ -440,6 +448,16 @@ do  self.init   = ->
         begin += u32[ ptri ]
         ui8.subarray( begin, begin + count )
         
+    detachUint8         = ( ptri, begin = 0, count ) -> 
+
+        begin += u32[ ptri ]
+        count or= u32[ ptri + HEADER_BYTELENGTH ]
+
+        array = new Uint8Array count
+        array . set ui8.subarray begin, begin + array.length
+        
+        array
+        
     setFloat32          = ( ptri, index, value ) ->
         f32[ u32[ HEADER_BEGIN + ptri ] + index ] = value
 
@@ -453,7 +471,7 @@ do  self.init   = ->
         start += u32[ HEADER_BEGIN + ptri ]
         f32.fill value, start, start + count ; ptri
 
-    setbufferFloat32    = ( ptri, array, begin = 0 ) -> 
+    setarrayFloat32     = ( ptri, array, begin = 0 ) -> 
         f32.set array, begin + u32[ HEADER_BEGIN + ptri ] ; ptri
 
     addUint32           = ( ptri, index, value ) ->
@@ -474,7 +492,7 @@ do  self.init   = ->
         start += u32[ HEADER_BEGIN + ptri ]
         u32.fill value, start, start + count ; ptri
 
-    setbufferUint32     = ( ptri, array, begin = 0 ) -> 
+    setarrayUint32      = ( ptri, array, begin = 0 ) -> 
         u32.set array, begin + u32[ HEADER_BEGIN + ptri ] ; ptri
 
     setUint8            = ( ptri, index, value ) -> 
@@ -490,9 +508,10 @@ do  self.init   = ->
         start += u32[ ptri ]
         ui8.fill value, start, start + count ; ptri
 
-    setbufferUint8      = ( ptri, array, begin = 0 ) -> 
+    setarrayUint8       = ( ptri, array, begin = 0 ) -> 
         ui8.set array, begin + u32[ ptri ] ; ptri
         
+
 
     state       = ( state ) ->
         unless arguments.length
@@ -636,9 +655,13 @@ do  self.init   = ->
                     byteLength = array.length * @BPE
                     
             return this unless byteLength
-            
+
             @malloc byteLength
-            setbufferFloat32 this, array
+
+            switch @TypedArray 
+                when Uint8Array
+                    setarrayUint8 this, array
+                else setarrayFloat32 this, array
 
             return this
 
@@ -939,7 +962,7 @@ do  self.init   = ->
                     
             @glObject = @create()
 
-        setIsActive : ->
+        setIsActive : ->            
             current = getResvUint8 this, 0
             request = arguments[0]
 
@@ -1194,9 +1217,124 @@ do  self.init   = ->
 
         shaderType          : WebGL2RenderingContext.FRAGMENT_SHADER
 
-    classes.register class Scene            extends Pointer
+    classes.register class TextPointer      extends Pointer
+
+        TypedArray          : Uint8Array
+
+        @BPE                : 1
+
+        BPE                 : @BPE
+
+        encoder             : new TextEncoder
+
+        decoder             : new TextDecoder
+
+        set                 : ( text ) ->
+            super @encoder.encode "#{text}" 
+
+        text                : ->
+            @decoder.decode detachUint8 this
+
+
+    classes.register class EventHandler     extends TextPointer
+
+        getHandler          : -> @storage[ getResvUint8 this, 0 ]
+
+        setHandler          : -> setResvUint8 this, 0, @store arguments[0]
+
+
+        getIsOnce           : -> getResvUint8 this, 1
+        
+        hitIsOnce           : -> hitResvUint8 this, 1
+
+        setIsOnce           : -> setResvUint8 this, 1, arguments[0]
+
+
+        getCallCount        : -> getResvUint32 this, 1
+        
+        hitCallCount        : -> addResvUint32 this, 1, 1
+
+        setCallCount        : -> setResvUint32 this, 1, arguments[0]
+
+        
+        call                : ->
+            if !@hitCallCount() or !@getIsOnce() 
+                @handler.call @parent, arguments...
+            0
+
+        set                 : ( event, handler, options ) ->
+            super event
+
+            if  options and options.once
+                @isOnce = 1
+
+            @handler = handler
+            
+            this
+
+        Object.deleteProperties EventHandler::, [ "childs" ]
+
+        Object.defineProperties EventHandler::,
+        
+            handler         :
+                get : EventHandler::getHandler
+                set : EventHandler::setHandler
+
+            isOnce          :
+                get : EventHandler::getIsOnce
+                set : EventHandler::setIsOnce
+
+            callCount       :
+                get : EventHandler::getCallCount
+                set : EventHandler::setCallCount
+
+            event           :
+                get : EventHandler::text
+
+    classes.register class EventEmitter     extends Pointer
+
+        init            : ->
+            if  hitResvUint8 super( arguments...), 0
+                @create()
+            this
+
+        getHandlers     : ->
+            findChilds this, EventHandler 
+
+        on              : ( event, handler, options ) ->
+            @add new EventHandler().set arguments... 
+
+        emit            : ( event, data = {} ) ->
+            @events.forEach (e) ->
+                e.call data if e.event is event
+
+        create          : -> this
+
+        Object.defineProperties EventEmitter::,
+
+            events  : get : EventEmitter::getHandlers
+
+    classes.register class Scene            extends EventEmitter
         
         self.Scene  = this
+
+        create      : ->
+            super( arguments... )
+
+            @on "contextready", ( data ) ->
+                log "hello world, data:", data
+            , once : true
+
+            @on "contextrestored", ( data ) ->
+                log "hello world, context restored:", data, this
+
+            @emit "contextready", { text: "hello oon" }
+            
+            setTimeout =>
+                @emit "contextready", { text: "hello oon2" }
+                @emit "contextrestored", { text: "hello oon2" }
+            , 1000
+
 
     ###
         class Shape         extends Pointer

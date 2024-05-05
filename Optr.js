@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_128MB, BYTELENGTH_GLBUFFER, Color, Context, DrawBuffer, FragmentShader, Frustrum, GLPointer, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Mesh, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, Program, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scene, Shader, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, Texture, UV, Vector3, VertexShader, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getPointer, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitTranslated, i32, isThread, isWindow, lock, log, mallocs, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setbufferFloat32, setbufferUint32, setbufferUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_128MB, BYTELENGTH_GLBUFFER, Color, Context, DrawBuffer, EventEmitter, EventHandler, FragmentShader, Frustrum, GLPointer, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Mesh, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, Program, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scene, Shader, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, TextPointer, Texture, UV, Vector3, VertexShader, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, detachUint8, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getPointer, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint32, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitResvUint8, hitTranslated, i32, isThread, isWindow, lock, log, mallocs, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint32, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, textDecoder, textEncoder, threadId, ticks, u32, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -61,6 +61,8 @@ self.name = "window";
   defines = {};
   classes = [];
   buffers = [];
+  textEncoder = new TextEncoder();
+  textDecoder = new TextDecoder();
   classes.register = function(Class) {
     var i;
     if (-1 === (i = this.indexOf(Class))) {
@@ -463,6 +465,14 @@ self.name = "window";
   setResvUint8 = function(ptri, i, v) {
     return ui8[HEADER_RESVINDEX1 + i + (ptri * 4)] = v;
   };
+  hitResvUint8 = function(ptri, i = 0) {
+    var byteOffset;
+    byteOffset = HEADER_RESVINDEX1 + i + ptri * 4;
+    if (ui8[byteOffset]) {
+      return 0;
+    }
+    return ui8[byteOffset] = 1;
+  };
   addResvUint8 = function(ptri, i, v) {
     var u;
     ui8[HEADER_RESVINDEX1 + i + (ptri * 4)] = v + (u = ui8[HEADER_RESVINDEX1 + i + (ptri * 4)]);
@@ -509,6 +519,14 @@ self.name = "window";
     begin += u32[ptri];
     return ui8.subarray(begin, begin + count);
   };
+  detachUint8 = function(ptri, begin = 0, count) {
+    var array;
+    begin += u32[ptri];
+    count || (count = u32[ptri + HEADER_BYTELENGTH]);
+    array = new Uint8Array(count);
+    array.set(ui8.subarray(begin, begin + array.length));
+    return array;
+  };
   setFloat32 = function(ptri, index, value) {
     return f32[u32[HEADER_BEGIN + ptri] + index] = value;
   };
@@ -524,7 +542,7 @@ self.name = "window";
     f32.fill(value, start, start + count);
     return ptri;
   };
-  setbufferFloat32 = function(ptri, array, begin = 0) {
+  setarrayFloat32 = function(ptri, array, begin = 0) {
     f32.set(array, begin + u32[HEADER_BEGIN + ptri]);
     return ptri;
   };
@@ -548,7 +566,7 @@ self.name = "window";
     u32.fill(value, start, start + count);
     return ptri;
   };
-  setbufferUint32 = function(ptri, array, begin = 0) {
+  setarrayUint32 = function(ptri, array, begin = 0) {
     u32.set(array, begin + u32[HEADER_BEGIN + ptri]);
     return ptri;
   };
@@ -567,7 +585,7 @@ self.name = "window";
     ui8.fill(value, start, start + count);
     return ptri;
   };
-  setbufferUint8 = function(ptri, array, begin = 0) {
+  setarrayUint8 = function(ptri, array, begin = 0) {
     ui8.set(array, begin + u32[ptri]);
     return ptri;
   };
@@ -724,7 +742,13 @@ self.name = "window";
           return this;
         }
         this.malloc(byteLength);
-        setbufferFloat32(this, array);
+        switch (this.TypedArray) {
+          case Uint8Array:
+            setarrayUint8(this, array);
+            break;
+          default:
+            setarrayFloat32(this, array);
+        }
         return this;
       }
 
@@ -1601,8 +1625,172 @@ self.name = "window";
     return FragmentShader;
 
   }).call(this));
+  classes.register(TextPointer = (function() {
+    class TextPointer extends Pointer {
+      set(text) {
+        return super.set(this.encoder.encode(`${text}`));
+      }
+
+      text() {
+        return this.decoder.decode(detachUint8(this));
+      }
+
+    };
+
+    TextPointer.prototype.TypedArray = Uint8Array;
+
+    TextPointer.BPE = 1;
+
+    TextPointer.prototype.BPE = TextPointer.BPE;
+
+    TextPointer.prototype.encoder = new TextEncoder;
+
+    TextPointer.prototype.decoder = new TextDecoder;
+
+    return TextPointer;
+
+  }).call(this));
+  classes.register(EventHandler = (function() {
+    class EventHandler extends TextPointer {
+      getHandler() {
+        return this.storage[getResvUint8(this, 0)];
+      }
+
+      setHandler() {
+        return setResvUint8(this, 0, this.store(arguments[0]));
+      }
+
+      getIsOnce() {
+        return getResvUint8(this, 1);
+      }
+
+      hitIsOnce() {
+        return hitResvUint8(this, 1);
+      }
+
+      setIsOnce() {
+        return setResvUint8(this, 1, arguments[0]);
+      }
+
+      getCallCount() {
+        return getResvUint32(this, 1);
+      }
+
+      hitCallCount() {
+        return addResvUint32(this, 1, 1);
+      }
+
+      setCallCount() {
+        return setResvUint32(this, 1, arguments[0]);
+      }
+
+      call() {
+        if (!this.hitCallCount() || !this.getIsOnce()) {
+          this.handler.call(this.parent, ...arguments);
+        }
+        return 0;
+      }
+
+      set(event, handler, options) {
+        super.set(event);
+        if (options && options.once) {
+          this.isOnce = 1;
+        }
+        this.handler = handler;
+        return this;
+      }
+
+    };
+
+    Object.deleteProperties(EventHandler.prototype, ["childs"]);
+
+    Object.defineProperties(EventHandler.prototype, {
+      handler: {
+        get: EventHandler.prototype.getHandler,
+        set: EventHandler.prototype.setHandler
+      },
+      isOnce: {
+        get: EventHandler.prototype.getIsOnce,
+        set: EventHandler.prototype.setIsOnce
+      },
+      callCount: {
+        get: EventHandler.prototype.getCallCount,
+        set: EventHandler.prototype.setCallCount
+      },
+      event: {
+        get: EventHandler.prototype.text
+      }
+    });
+
+    return EventHandler;
+
+  }).call(this));
+  classes.register(EventEmitter = (function() {
+    class EventEmitter extends Pointer {
+      init() {
+        if (hitResvUint8(super.init(...arguments), 0)) {
+          this.create();
+        }
+        return this;
+      }
+
+      getHandlers() {
+        return findChilds(this, EventHandler);
+      }
+
+      on(event, handler, options) {
+        return this.add(new EventHandler().set(...arguments));
+      }
+
+      emit(event, data = {}) {
+        return this.events.forEach(function(e) {
+          if (e.event === event) {
+            return e.call(data);
+          }
+        });
+      }
+
+      create() {
+        return this;
+      }
+
+    };
+
+    Object.defineProperties(EventEmitter.prototype, {
+      events: {
+        get: EventEmitter.prototype.getHandlers
+      }
+    });
+
+    return EventEmitter;
+
+  }).call(this));
   classes.register(Scene = (function() {
-    class Scene extends Pointer {};
+    class Scene extends EventEmitter {
+      create() {
+        super.create(...arguments);
+        this.on("contextready", function(data) {
+          return log("hello world, data:", data);
+        }, {
+          once: true
+        });
+        this.on("contextrestored", function(data) {
+          return log("hello world, context restored:", data, this);
+        });
+        this.emit("contextready", {
+          text: "hello oon"
+        });
+        return setTimeout(() => {
+          this.emit("contextready", {
+            text: "hello oon2"
+          });
+          return this.emit("contextrestored", {
+            text: "hello oon2"
+          });
+        }, 1000);
+      }
+
+    };
 
     self.Scene = Scene;
 
@@ -1610,7 +1798,7 @@ self.name = "window";
 
   }).call(this));
   /*
-  class Shape         extends Pointer
+      class Shape         extends Pointer
 
   self.Shape      = this
 
@@ -1627,176 +1815,176 @@ self.name = "window";
   draws           : []
 
   @fromOptions    : ( options ) ->
-      ptri = malloc this
-      ptr = new this ptri
+  ptri = malloc this
+  ptr = new this ptri
 
-      for prop, value of options
-          ptr[ prop ] = value
+  for prop, value of options
+      ptr[ prop ] = value
 
-      ptr.isGL = 1
-      ptr.iterCount = ptr.vertices.pointCount
+  ptr.isGL = 1
+  ptr.iterCount = ptr.vertices.pointCount
 
-      unless Number.isInteger ptr.vertices.pointCount
-          throw [ /VERTEX_COUNT_MUST_BE_MULTIPLE_OF_3/, options.vertices ]
+  unless Number.isInteger ptr.vertices.pointCount
+      throw [ /VERTEX_COUNT_MUST_BE_MULTIPLE_OF_3/, options.vertices ]
 
-      ptr
+  ptr
 
   Object.defineProperties Shape::,
-      pointCount  :
-          get     : -> @vertices.pointCount
+  pointCount  :
+      get     : -> @vertices.pointCount
 
-      markNeedsUpdate : 
-          set     : -> unlock Atomics.store i32, @ptri + HINDEX_UPDATED, 1
+  markNeedsUpdate : 
+      set     : -> unlock Atomics.store i32, @ptri + HINDEX_UPDATED, 1
 
-      willUploadIfNeeded : 
-          get     : -> Atomics.and i32, @ptri + HINDEX_UPDATED, 0
+  willUploadIfNeeded : 
+      get     : -> Atomics.and i32, @ptri + HINDEX_UPDATED, 0
 
   drawPoints      : ->
-      @draws.push space.malloc gl.POINTS, this
+  @draws.push space.malloc gl.POINTS, this
 
   drawLines       : ->
-      @draws.push space.malloc gl.LINES, this
+  @draws.push space.malloc gl.LINES, this
 
   drawTriangles   : ->
-      @draws.push space.malloc gl.TRIANGLES, this
+  @draws.push space.malloc gl.TRIANGLES, this
 
   vertex          : ( index ) ->
-      ptri = dvw.getUint32 @byteOffset + @OFFSET_VERTICES, LE
-      byteOffset = i32[ ptri + HINDEX_BYTEOFFSET ] + index * 4 * 3
-      new Float32Array buffer, byteOffset, 3
+  ptri = dvw.getUint32 @byteOffset + @OFFSET_VERTICES, LE
+  byteOffset = i32[ ptri + HINDEX_BYTEOFFSET ] + index * 4 * 3
+  new Float32Array buffer, byteOffset, 3
 
-  class Matrix4       extends Pointer
+      class Matrix4       extends Pointer
 
   @byteLength         : 16
 
   @multiply           : ( mat4a, mat4b ) ->
-      Matrix4::multiply.call mat4a, mat4b
+  Matrix4::multiply.call mat4a, mat4b
 
   translate           : ( x = 0, y = 0, z = 0 ) ->
-      @multiply Float32Array.of(
-          1,  0,  0,  0,
-          0,  1,  0,  0,
-          0,  0,  1,  0,
-          x,  y,  z,  1,
-      )
+  @multiply Float32Array.of(
+      1,  0,  0,  0,
+      0,  1,  0,  0,
+      0,  0,  1,  0,
+      x,  y,  z,  1,
+  )
 
   translateX          : ( x = 0 ) ->
-      @multiply Float32Array.of(
-          1,  0,  0,  0,
-          0,  1,  0,  0,
-          0,  0,  1,  0,
-          x,  0,  0,  1,
-      )
+  @multiply Float32Array.of(
+      1,  0,  0,  0,
+      0,  1,  0,  0,
+      0,  0,  1,  0,
+      x,  0,  0,  1,
+  )
 
   translateY          : ( y = 0 ) ->
-      @multiply Float32Array.of(
-          1,  0,  0,  0,
-          0,  1,  0,  0,
-          0,  0,  1,  0,
-          0,  y,  0,  1,
-      )
+  @multiply Float32Array.of(
+      1,  0,  0,  0,
+      0,  1,  0,  0,
+      0,  0,  1,  0,
+      0,  y,  0,  1,
+  )
 
   translateZ          : ( z = 0 ) ->
-      @multiply Float32Array.of(
-          1,  0,  0,  0,
-          0,  1,  0,  0,
-          0,  0,  1,  0,
-          0,  0,  z,  1,
-      )
+  @multiply Float32Array.of(
+      1,  0,  0,  0,
+      0,  1,  0,  0,
+      0,  0,  1,  0,
+      0,  0,  z,  1,
+  )
 
   rotate              : ( x = 0, y = 0, z = 0 ) ->
-      @rotateX( x ).rotateY( y ).rotateZ( z )
+  @rotateX( x ).rotateY( y ).rotateZ( z )
 
   rotateX             : ( r = 0 ) ->
-      c = Math.cos r
-      s = Math.sin r
+  c = Math.cos r
+  s = Math.sin r
 
-      @multiply Float32Array.of(
-          1,  0,  0,  0,
-          0,  c,  s,  0,
-          0, -s,  c,  0,
-          0,  0,  0,  1,
-      )
+  @multiply Float32Array.of(
+      1,  0,  0,  0,
+      0,  c,  s,  0,
+      0, -s,  c,  0,
+      0,  0,  0,  1,
+  )
 
   rotateY             : ( r = 0 ) ->
-      c = Math.cos r
-      s = Math.sin r
+  c = Math.cos r
+  s = Math.sin r
 
-      @multiply Float32Array.of(
-          c,  s,  0,  0,
-          -s,  c,  0,  0,
-          0,  0,  1,  0,
-          0,  0,  0,  1,
-      )
+  @multiply Float32Array.of(
+      c,  s,  0,  0,
+      -s,  c,  0,  0,
+      0,  0,  1,  0,
+      0,  0,  0,  1,
+  )
 
   rotateZ             : ( r = 0 ) ->
-      c = Math.cos r
-      s = Math.sin r
+  c = Math.cos r
+  s = Math.sin r
 
-      @multiply Float32Array.of(
-          c,  0, -s,  0,
-          0,  1,  0,  0,
-          s,  0,  c,  0,
-          0,  0,  0,  1,
-      )
+  @multiply Float32Array.of(
+      c,  0, -s,  0,
+      0,  1,  0,  0,
+      s,  0,  c,  0,
+      0,  0,  0,  1,
+  )
 
   scale               : ( x = 1, y = 1, z = 1 ) ->
-      @multiply Float32Array.of(
-          x,  0,  0,  0,
-          0,  y,  0,  0,
-          0,  0,  z,  0,
-          0,  0,  0,  1,
-      )
+  @multiply Float32Array.of(
+      x,  0,  0,  0,
+      0,  y,  0,  0,
+      0,  0,  z,  0,
+      0,  0,  0,  1,
+  )
 
   multiply            : ( mat4 ) ->
 
-      [   a00, a01, a02, a03,
-          a10, a11, a12, a13,
-          a20, a21, a22, a23,
-          a30, a31, a32, a33,   ] = this
+  [   a00, a01, a02, a03,
+      a10, a11, a12, a13,
+      a20, a21, a22, a23,
+      a30, a31, a32, a33,   ] = this
 
-      [   b00, b01, b02, b03,
-          b10, b11, b12, b13,
-          b20, b21, b22, b23,
-          b30, b31, b32, b33,   ] = mat4
+  [   b00, b01, b02, b03,
+      b10, b11, b12, b13,
+      b20, b21, b22, b23,
+      b30, b31, b32, b33,   ] = mat4
 
-      @set Float32Array.of(
-          b00 * a00  +  b01 * a10  +  b02 * a20  +  b03 * a30,
-          b00 * a01  +  b01 * a11  +  b02 * a21  +  b03 * a31,
-          b00 * a02  +  b01 * a12  +  b02 * a22  +  b03 * a32,
-          b00 * a03  +  b01 * a13  +  b02 * a23  +  b03 * a33,
+  @set Float32Array.of(
+      b00 * a00  +  b01 * a10  +  b02 * a20  +  b03 * a30,
+      b00 * a01  +  b01 * a11  +  b02 * a21  +  b03 * a31,
+      b00 * a02  +  b01 * a12  +  b02 * a22  +  b03 * a32,
+      b00 * a03  +  b01 * a13  +  b02 * a23  +  b03 * a33,
 
-          b10 * a00  +  b11 * a10  +  b12 * a20  +  b13 * a30,
-          b10 * a01  +  b11 * a11  +  b12 * a21  +  b13 * a31,
-          b10 * a02  +  b11 * a12  +  b12 * a22  +  b13 * a32,
-          b10 * a03  +  b11 * a13  +  b12 * a23  +  b13 * a33,
+      b10 * a00  +  b11 * a10  +  b12 * a20  +  b13 * a30,
+      b10 * a01  +  b11 * a11  +  b12 * a21  +  b13 * a31,
+      b10 * a02  +  b11 * a12  +  b12 * a22  +  b13 * a32,
+      b10 * a03  +  b11 * a13  +  b12 * a23  +  b13 * a33,
 
-          b20 * a00  +  b21 * a10  +  b22 * a20  +  b23 * a30,
-          b20 * a01  +  b21 * a11  +  b22 * a21  +  b23 * a31,
-          b20 * a02  +  b21 * a12  +  b22 * a22  +  b23 * a32,
-          b20 * a03  +  b21 * a13  +  b22 * a23  +  b23 * a33,
+      b20 * a00  +  b21 * a10  +  b22 * a20  +  b23 * a30,
+      b20 * a01  +  b21 * a11  +  b22 * a21  +  b23 * a31,
+      b20 * a02  +  b21 * a12  +  b22 * a22  +  b23 * a32,
+      b20 * a03  +  b21 * a13  +  b22 * a23  +  b23 * a33,
 
-          b30 * a00  +  b31 * a10  +  b32 * a20  +  b33 * a30,
-          b30 * a01  +  b31 * a11  +  b32 * a21  +  b33 * a31,
-          b30 * a02  +  b31 * a12  +  b32 * a22  +  b33 * a32,
-          b30 * a03  +  b31 * a13  +  b32 * a23  +  b33 * a33,
-      )
+      b30 * a00  +  b31 * a10  +  b32 * a20  +  b33 * a30,
+      b30 * a01  +  b31 * a11  +  b32 * a21  +  b33 * a31,
+      b30 * a02  +  b31 * a12  +  b32 * a22  +  b33 * a32,
+      b30 * a03  +  b31 * a13  +  b32 * a23  +  b33 * a33,
+  )
 
   [ Symbol.iterator ] : ->
-      begin = @begin
-      index = 0
-      count = 16
+  begin = @begin
+  index = 0
+  count = 16
 
-      next  : ->
-          return done  : true if index is count
-          return value : f32[ begin + index++ ]
+  next  : ->
+      return done  : true if index is count
+      return value : f32[ begin + index++ ]
 
   Object.defineProperties Matrix4::,
-      matrix  : 
-          get : -> f32.subarray @begin, @begin + 16
-          set : (v) -> f32.set v, @begin
+  matrix  : 
+      get : -> f32.subarray @begin, @begin + 16
+      set : (v) -> f32.set v, @begin
 
-  class Frustrum      extends Matrix4
+      class Frustrum      extends Matrix4
 
   @byteLength         : 4 * 28
 
@@ -1823,148 +2011,148 @@ self.name = "window";
   INDEX_ZFAR          : 27
 
   @fromOptions        : ( options = {} ) ->
-      { yFov = 90, zNear = 1e-3, zFar = 1e+4,
-      width = INNER_WIDTH, height = INNER_HEIGHT, pratio = RATIO_PIXEL } = options
+  { yFov = 90, zNear = 1e-3, zFar = 1e+4,
+  width = INNER_WIDTH, height = INNER_HEIGHT, pratio = RATIO_PIXEL } = options
 
-      base = new this()
-      aspect = width / height
-      half_fovy = ( .5 * yFov * RADIANS_PER_DEGREE )
-      bottom = - ( top = zNear * Math.tan half_fovy )
-      left = - ( right = top * aspect )
+  base = new this()
+  aspect = width / height
+  half_fovy = ( .5 * yFov * RADIANS_PER_DEGREE )
+  bottom = - ( top = zNear * Math.tan half_fovy )
+  left = - ( right = top * aspect )
 
-      f = Math.tan Math.PI/2 - yFov/2
-      rangeInv = 1.0 / ( zNear - zFar )            
+  f = Math.tan Math.PI/2 - yFov/2
+  rangeInv = 1.0 / ( zNear - zFar )            
 
-      base.typedArray.set Float32Array.of(
-          f / aspect,    0,                             0,    0,
-          0,             f,                             0,    0,
-          0,             0,     (zNear + zFar) * rangeInv,   -1,
-          0,             0, (zNear * zFar) * rangeInv * 2,    0,
+  base.typedArray.set Float32Array.of(
+      f / aspect,    0,                             0,    0,
+      0,             f,                             0,    0,
+      0,             0,     (zNear + zFar) * rangeInv,   -1,
+      0,             0, (zNear * zFar) * rangeInv * 2,    0,
 
-          0,
-          bottom, left, right, top,
-          width, height, aspect, pratio,
-          yFov, zNear, zFar
-      )
+      0,
+      bottom, left, right, top,
+      width, height, aspect, pratio,
+      yFov, zNear, zFar
+  )
 
-      base.translateZ -5
-      base.rotateX Math.PI
-      base.scale 1, 1, 1
+  base.translateZ -5
+  base.rotateX Math.PI
+  base.scale 1, 1, 1
 
-      base
+  base
 
   Object.defineProperties Frustrum::,
 
-      bottom  :
-          get : -> f32[ @begin + @INDEX_BOTTOM ]
-          set : (v) -> f32[ @begin + @INDEX_BOTTOM ] = v
+  bottom  :
+      get : -> f32[ @begin + @INDEX_BOTTOM ]
+      set : (v) -> f32[ @begin + @INDEX_BOTTOM ] = v
 
-      left    :
-          get : -> f32[ @begin + @INDEX_LEFT ]
-          set : (v) -> f32[ @begin + @INDEX_LEFT ] = v
+  left    :
+      get : -> f32[ @begin + @INDEX_LEFT ]
+      set : (v) -> f32[ @begin + @INDEX_LEFT ] = v
 
-      right   :
-          get : -> f32[ @begin + @INDEX_RIGHT ]
-          set : (v) -> f32[ @begin + @INDEX_RIGHT ] = v
+  right   :
+      get : -> f32[ @begin + @INDEX_RIGHT ]
+      set : (v) -> f32[ @begin + @INDEX_RIGHT ] = v
 
-      top     :
-          get : -> f32[ @begin + @INDEX_TOP ]
-          set : (v) -> f32[ @begin + @INDEX_TOP ] = v
+  top     :
+      get : -> f32[ @begin + @INDEX_TOP ]
+      set : (v) -> f32[ @begin + @INDEX_TOP ] = v
 
-      width   :
-          get : -> f32[ @begin + @INDEX_WIDTH ]
-          set : (v) -> f32[ @begin + @INDEX_WIDTH ] = v
+  width   :
+      get : -> f32[ @begin + @INDEX_WIDTH ]
+      set : (v) -> f32[ @begin + @INDEX_WIDTH ] = v
 
-      height  :
-          get : -> f32[ @begin + @INDEX_HEIGHT ]
-          set : (v) -> f32[ @begin + @INDEX_HEIGHT ] = v
+  height  :
+      get : -> f32[ @begin + @INDEX_HEIGHT ]
+      set : (v) -> f32[ @begin + @INDEX_HEIGHT ] = v
 
-      aspect  :
-          get : -> f32[ @begin + @INDEX_ASPECT ]
-          set : (v) -> f32[ @begin + @INDEX_ASPECT ] = v
+  aspect  :
+      get : -> f32[ @begin + @INDEX_ASPECT ]
+      set : (v) -> f32[ @begin + @INDEX_ASPECT ] = v
 
-      pratio  :
-          get : -> f32[ @begin + @INDEX_PRATIO ]
-          set : (v) -> f32[ @begin + @INDEX_PRATIO ] = v
+  pratio  :
+      get : -> f32[ @begin + @INDEX_PRATIO ]
+      set : (v) -> f32[ @begin + @INDEX_PRATIO ] = v
 
-      yFov    :
-          get : -> f32[ @begin + @INDEX_YFOV ]
-          set : (v) -> f32[ @begin + @INDEX_YFOV ] = v
+  yFov    :
+      get : -> f32[ @begin + @INDEX_YFOV ]
+      set : (v) -> f32[ @begin + @INDEX_YFOV ] = v
 
-      zNear   :
-          get : -> f32[ @begin + @INDEX_ZNEAR ]
-          set : (v) -> f32[ @begin + @INDEX_ZNEAR ] = v
+  zNear   :
+      get : -> f32[ @begin + @INDEX_ZNEAR ]
+      set : (v) -> f32[ @begin + @INDEX_ZNEAR ] = v
 
-      zFar    :
-          get : -> f32[ @begin + @INDEX_ZFAR ]
-          set : (v) -> f32[ @begin + @INDEX_ZFAR ] = v
+  zFar    :
+      get : -> f32[ @begin + @INDEX_ZFAR ]
+      set : (v) -> f32[ @begin + @INDEX_ZFAR ] = v
 
-      rebind  :
-          get : -> @upload()
+  rebind  :
+      get : -> @upload()
 
   setViewport         : ( context ) ->
-      context.viewport 0, 0, @width * @pratio, @height * @pratio
+  context.viewport 0, 0, @width * @pratio, @height * @pratio
 
-      if  defines.pointSize
-          defines.pointSize.value = 10
+  if  defines.pointSize
+      defines.pointSize.value = 10
 
-      if  defines.frustrum
-          defines.frustrum.upload =
-              defines.frustrum.bindUpload @matrix
+  if  defines.frustrum
+      defines.frustrum.upload =
+          defines.frustrum.bindUpload @matrix
 
-          Object.defineProperties this,
-              uniform : get   : -> defines.frustrum
-              upload  : value : defines.frustrum.bindUpload @matrix
+      Object.defineProperties this,
+          uniform : get   : -> defines.frustrum
+          upload  : value : defines.frustrum.bindUpload @matrix
 
-          @upload()
-      this
+      @upload()
+  this
 
   listenWindow        : ->
 
-      self.addEventListener "wheel", (e) =>
-          @translateZ e.deltaY/100
-              .upload()
-          e.preventDefault()
-      , passive: off
+  self.addEventListener "wheel", (e) =>
+      @translateZ e.deltaY/100
+          .upload()
+      e.preventDefault()
+  , passive: off
 
-      plock = 0 
-      rotate = 0
-      draging = 0
+  plock = 0 
+  rotate = 0
+  draging = 0
 
-      self.oncontextmenu  = (e) -> e.preventDefault()
-      self.ondblclick     = ->
-          gl.canvas.requestPointerLock unadjustedMovement : on
-          gl.canvas.requestFullscreen  navigationUI : "hide"
+  self.oncontextmenu  = (e) -> e.preventDefault()
+  self.ondblclick     = ->
+      gl.canvas.requestPointerLock unadjustedMovement : on
+      gl.canvas.requestFullscreen  navigationUI : "hide"
 
-      document.onfullscreenchange  = 
-      document.onpointerlockchange = ->
-          plock = @pointerLockElement or @fullscreenElement
+  document.onfullscreenchange  = 
+  document.onpointerlockchange = ->
+      plock = @pointerLockElement or @fullscreenElement
 
-      self.onpointerdown  = (e) ->
-          if e.button is 2 then draging = 1
-          else rotate  = 1
+  self.onpointerdown  = (e) ->
+      if e.button is 2 then draging = 1
+      else rotate  = 1
 
-      self.onpointerout   =
-      self.onpointerup    = -> draging = rotate = 0
-      self.onpointermove  = (e) => 
-          if  plock or rotate or draging
+  self.onpointerout   =
+  self.onpointerup    = -> draging = rotate = 0
+  self.onpointermove  = (e) => 
+      if  plock or rotate or draging
 
-              { movementX: x, movementY: y } = e
+          { movementX: x, movementY: y } = e
 
-              if  rotate
-                  @rotateX y / -100 if y
-                  @rotateY x / -100 if x
+          if  rotate
+              @rotateX y / -100 if y
+              @rotateY x / -100 if x
 
-              if  draging
-                  @translate(
-                      x / (INNER_WIDTH /10),
-                      y / (INNER_HEIGHT/15)
-                  )
-              @upload()
+          if  draging
+              @translate(
+                  x / (INNER_WIDTH /10),
+                  y / (INNER_HEIGHT/15)
+              )
+          @upload()
 
-          0
+      0
 
-  class GLDraw        extends Pointer
+      class GLDraw        extends Pointer
 
   @byteLength         : 8 * 4
 
@@ -1987,110 +2175,110 @@ self.name = "window";
   classId             : @classId
 
   @fromOptions        : ( options = {} ) ->
-      Object.assign new this(), options
+  Object.assign new this(), options
 
   Object.defineProperties GLDraw::,
 
-      pointsCount : 
-          get : -> u32[ @begin + @INDEX_COUNT ]
-          set : (v) -> u32[ @begin + @INDEX_COUNT ] = v
+  pointsCount : 
+      get : -> u32[ @begin + @INDEX_COUNT ]
+      set : (v) -> u32[ @begin + @INDEX_COUNT ] = v
 
-      drawType :
-          get : -> u32[ @begin + @INDEX_TYPE ]
-          set : (v) -> u32[ @begin + @INDEX_TYPE ] = v                
+  drawType :
+      get : -> u32[ @begin + @INDEX_TYPE ]
+      set : (v) -> u32[ @begin + @INDEX_TYPE ] = v                
 
-      globalOffset : 
-          get : -> u32[ @begin + @INDEX_BOFFSET ]
-          set : (v) -> u32[ @begin + @INDEX_BOFFSET ] = v
+  globalOffset : 
+      get : -> u32[ @begin + @INDEX_BOFFSET ]
+      set : (v) -> u32[ @begin + @INDEX_BOFFSET ] = v
 
-      uploadOffset : 
-          get : -> u32[ @begin + @INDEX_OFFSET ]
-          set : (v) -> u32[ @begin + @INDEX_OFFSET ] = v
+  uploadOffset : 
+      get : -> u32[ @begin + @INDEX_OFFSET ]
+      set : (v) -> u32[ @begin + @INDEX_OFFSET ] = v
 
-      uploadBegin :
-          get : -> u32[ @begin + @INDEX_BEGIN ]
-          set : (v) -> u32[ @begin + @INDEX_BEGIN ] = v
+  uploadBegin :
+      get : -> u32[ @begin + @INDEX_BEGIN ]
+      set : (v) -> u32[ @begin + @INDEX_BEGIN ] = v
 
-      uploadLength :
-          get : -> u32[ @begin + @INDEX_LENGTH ]
-          set : (v) -> u32[ @begin + @INDEX_LENGTH ] = v
+  uploadLength :
+      get : -> u32[ @begin + @INDEX_LENGTH ]
+      set : (v) -> u32[ @begin + @INDEX_LENGTH ] = v
 
-      drawBuffer :
-          get : -> new Float32Array buffer, @globalOffset, @uploadLength
+  drawBuffer :
+      get : -> new Float32Array buffer, @globalOffset, @uploadLength
 
   vertex  : (i) ->
-      byteOffset = @globalOffset + ( i * 32 )
-      new Float32Array buffer, byteOffset, 3
+  byteOffset = @globalOffset + ( i * 32 )
+  new Float32Array buffer, byteOffset, 3
 
   color   : (i) ->
-      byteOffset = @globalOffset + ( i * 32 ) + 16
-      new Float32Array buffer, byteOffset, 4
+  byteOffset = @globalOffset + ( i * 32 ) + 16
+  new Float32Array buffer, byteOffset, 4
 
-  classes.register class Shader extends Pointer
+      classes.register class Shader extends Pointer
 
   INDEX_IS_ATTACHED     : 0 #ui8
   INDEX_GLSHADER_INDEX  : 1
 
   @typeof : ( source ) ->
-      if !source.match /gl_Program/
-          return WebGL2RenderingContext.FRAGMENT_SHADER
-      return WebGL2RenderingContext.VERTEX_SHADER
+  if !source.match /gl_Program/
+      return WebGL2RenderingContext.FRAGMENT_SHADER
+  return WebGL2RenderingContext.VERTEX_SHADER
 
   @getDefault : -> @allocs()[0]
 
   @fromSource : ( source ) ->
-      if  WebGL2RenderingContext.VERTEX_SHADER is @typeof source
-          return new vShader
-      return new fShader
+  if  WebGL2RenderingContext.VERTEX_SHADER is @typeof source
+      return new vShader
+  return new fShader
 
   @createScope : ( storage ) ->
 
-      defaultVShader = no
-      defaultFShader = no
+  defaultVShader = no
+  defaultFShader = no
 
-      for s in scripts.find (s) -> s.type.match /x-shader/i
+  for s in scripts.find (s) -> s.type.match /x-shader/i
 
-          shader = if s.text.match /gl_Program/
-              new vShader null, storage
-          else new fShader null, storage
+      shader = if s.text.match /gl_Program/
+          new vShader null, storage
+      else new fShader null, storage
 
-          shader . compile s.text 
+      shader . compile s.text 
 
-          if !defaultVShader and shader.vShader
-              defaultVShader = shader 
+      if !defaultVShader and shader.vShader
+          defaultVShader = shader 
 
-          if !defaultFShader and shader.fShader
-              defaultFShader = shader 
+      if !defaultFShader and shader.fShader
+          defaultFShader = shader 
 
-      storage
+  storage
 
   compile : ( source ) ->
-      shader = gl.createShader @type
+  shader = gl.createShader @type
 
-      gl.shaderSource shader, source
-      gl.compileShader shader
+  gl.shaderSource shader, source
+  gl.compileShader shader
 
-      unless gl.getShaderParameter shader, gl.COMPILE_STATUS
-          info = gl.getShaderInfoLog shader
-          throw "Could not compile WebGL program. \n\n#{info}"
+  unless gl.getShaderParameter shader, gl.COMPILE_STATUS
+      info = gl.getShaderInfoLog shader
+      throw "Could not compile WebGL program. \n\n#{info}"
 
-      @glShader = shader
+  @glShader = shader
 
-      @resolve()
+  @resolve()
 
   resolve : -> this
 
   Object.defineProperties Shader::,
 
-      isAttached      :
-          get : -> u32[ this + @HINDEX_RESV0 ]
-          set : (v) -> u32[ this + @HINDEX_RESV0 ] = v
+  isAttached      :
+      get : -> u32[ this + @HINDEX_RESV0 ]
+      set : (v) -> u32[ this + @HINDEX_RESV0 ] = v
 
-      glShader        :
-          get : -> shaders[ u32[ this + @HINDEX_RESV1 ] ]
-          set : (v) -> u32[ this + @HINDEX_RESV1 ] = shaders.register v
+  glShader        :
+      get : -> shaders[ u32[ this + @HINDEX_RESV1 ] ]
+      set : (v) -> u32[ this + @HINDEX_RESV1 ] = shaders.register v
 
-  classes.register class vShader extends Shader
+      classes.register class vShader extends Shader
   name : "vShader"
   type : WebGL2RenderingContext.VERTEX_SHADER
 
@@ -2115,425 +2303,425 @@ self.name = "window";
   INDEX_DRAW_BEGIN      : HEADER_INDEXCOUNT
 
   init : ->
-      @BYTES_PER_ATTRIBUTE = 32
+  @BYTES_PER_ATTRIBUTE = 32
 
-      length           = @byteLength / 4
-      typeLength       = Math.trunc length / 3 
-      typeByteLength   = typeLength * 4
-      typeAttribLength = typeByteLength / @BYTES_PER_ATTRIBUTE
+  length           = @byteLength / 4
+  typeLength       = Math.trunc length / 3 
+  typeByteLength   = typeLength * 4
+  typeAttribLength = typeByteLength / @BYTES_PER_ATTRIBUTE
 
-      @pointsStart     = 2 #for initial alloc
-      @linesStart      = typeAttribLength
-      @trianglesStart  = typeAttribLength * 2
+  @pointsStart     = 2 #for initial alloc
+  @linesStart      = typeAttribLength
+  @trianglesStart  = typeAttribLength * 2
 
-      @pointsOffset    = 2 * @BYTES_PER_ATTRIBUTE
-      @linesOffset     = typeByteLength * 2
-      @trianglesOffset = typeByteLength * 3 
+  @pointsOffset    = 2 * @BYTES_PER_ATTRIBUTE
+  @linesOffset     = typeByteLength * 2
+  @trianglesOffset = typeByteLength * 3 
 
   compile : ( source ) ->
-      super source
+  super source
 
-      buffer = gl.createBuffer()
+  buffer = gl.createBuffer()
 
-      gl.bindBuffer gl.ARRAY_BUFFER, buffer
-      gl.bufferData gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW
+  gl.bindBuffer gl.ARRAY_BUFFER, buffer
+  gl.bufferData gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW
 
-      @glBuffer = buffer
-      @isBinded = 1
+  @glBuffer = buffer
+  @isBinded = 1
 
-      this
+  this
 
   attach : ( program ) ->
-      gl.attachShader program, @glShader
-      @isAttached = 1
+  gl.attachShader program, @glShader
+  @isAttached = 1
 
-      this
+  this
 
   resolve : ->
 
-      resolveUniform  = ( uniform ) ->
-          ( data, transpose = off ) ->    switch uniform.kind
-              when "FLOAT_MAT4"           then gl.uniformMatrix4fv  .bind gl, uniform.location, transpose, data
-              when "FLOAT_MAT3"           then gl.uniformMatrix3fv  .bind gl, uniform.location, transpose, data
-              when "FLOAT_MAT2"           then gl.uniformMatrix2fv  .bind gl, uniform.location, transpose, data
-              when "FLOAT_MAT2x3"         then gl.uniformMatrix2x3fv.bind gl, uniform.location, transpose, data
-              when "FLOAT_MAT2x4"         then gl.uniformMatrix2x4fv.bind gl, uniform.location, transpose, data
-              when "FLOAT_MAT3x2"         then gl.uniformMatrix3x2fv.bind gl, uniform.location, transpose, data
-              when "FLOAT_MAT3x4"         then gl.uniformMatrix3x4fv.bind gl, uniform.location, transpose, data
-              when "FLOAT_MAT4x2"         then gl.uniformMatrix4x2fv.bind gl, uniform.location, transpose, data
-              when "FLOAT_MAT3x3"         then gl.uniformMatrix4x3fv.bind gl, uniform.location, transpose, data
-              when "FLOAT"                then gl.uniform1f         .bind gl, uniform.location, data
-              when "INT"                  then gl.uniform1iv        .bind gl, uniform.location, data
-              when "UNSIGNED_INT"         then gl.uniform1uiv       .bind gl, uniform.location, data
-              when "UNSIGNED_INT_VEC2"    then gl.uniform2uiv       .bind gl, uniform.location, data
-              when "UNSIGNED_INT_VEC3"    then gl.uniform3uiv       .bind gl, uniform.location, data
-              when "UNSIGNED_INT_VEC4"    then gl.uniform4uiv       .bind gl, uniform.location, data
+  resolveUniform  = ( uniform ) ->
+      ( data, transpose = off ) ->    switch uniform.kind
+          when "FLOAT_MAT4"           then gl.uniformMatrix4fv  .bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT3"           then gl.uniformMatrix3fv  .bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT2"           then gl.uniformMatrix2fv  .bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT2x3"         then gl.uniformMatrix2x3fv.bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT2x4"         then gl.uniformMatrix2x4fv.bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT3x2"         then gl.uniformMatrix3x2fv.bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT3x4"         then gl.uniformMatrix3x4fv.bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT4x2"         then gl.uniformMatrix4x2fv.bind gl, uniform.location, transpose, data
+          when "FLOAT_MAT3x3"         then gl.uniformMatrix4x3fv.bind gl, uniform.location, transpose, data
+          when "FLOAT"                then gl.uniform1f         .bind gl, uniform.location, data
+          when "INT"                  then gl.uniform1iv        .bind gl, uniform.location, data
+          when "UNSIGNED_INT"         then gl.uniform1uiv       .bind gl, uniform.location, data
+          when "UNSIGNED_INT_VEC2"    then gl.uniform2uiv       .bind gl, uniform.location, data
+          when "UNSIGNED_INT_VEC3"    then gl.uniform3uiv       .bind gl, uniform.location, data
+          when "UNSIGNED_INT_VEC4"    then gl.uniform4uiv       .bind gl, uniform.location, data
 
-      resolveDefines  = ->
-          i = gl.getProgramParameter program, gl.ACTIVE_ATTRIBUTES
-          v = Object.values WebGL2RenderingContext
-          k = Object.keys WebGL2RenderingContext
+  resolveDefines  = ->
+      i = gl.getProgramParameter program, gl.ACTIVE_ATTRIBUTES
+      v = Object.values WebGL2RenderingContext
+      k = Object.keys WebGL2RenderingContext
 
-          lengthOf =
-              vec4 : 4
-              vec3 : 3
-              vec2 : 2
-              mat4 : 4 * 4
-              mat3 : 3 * 3
+      lengthOf =
+          vec4 : 4
+          vec3 : 3
+          vec2 : 2
+          mat4 : 4 * 4
+          mat3 : 3 * 3
 
-          attribs = while i--
-              attrib              = gl.getActiveAttrib program, i
-              attrib.is           = "attribute"
-              attrib.location     = gl.getAttribLocation program, attrib.name
-              attrib.isEnabled    = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_ENABLED
-              attrib.binding      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING
-              attrib.typeof       = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_TYPE
-              attrib.kindof       = k.at v.indexOf attrib.typeof 
-              attrib.isNormalized = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
-              attrib.stride       = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_STRIDE
-              attrib.integer      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_INTEGER
-              attrib.divisor      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_DIVISOR
-              attrib.kind         = k.at v.indexOf attrib.type
-              attrib.offset       = ATTRIBS_BYTELENGTH
-              attrib.length       = lengthOf[ attrib.kind.split(/_/).at(-1).toLowerCase() ]
+      attribs = while i--
+          attrib              = gl.getActiveAttrib program, i
+          attrib.is           = "attribute"
+          attrib.location     = gl.getAttribLocation program, attrib.name
+          attrib.isEnabled    = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_ENABLED
+          attrib.binding      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING
+          attrib.typeof       = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_TYPE
+          attrib.kindof       = k.at v.indexOf attrib.typeof 
+          attrib.isNormalized = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
+          attrib.stride       = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_STRIDE
+          attrib.integer      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_INTEGER
+          attrib.divisor      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_DIVISOR
+          attrib.kind         = k.at v.indexOf attrib.type
+          attrib.offset       = ATTRIBS_BYTELENGTH
+          attrib.length       = lengthOf[ attrib.kind.split(/_/).at(-1).toLowerCase() ]
 
-              ATTRIBS_LENGTH     += attrib.length
-              ATTRIBS_BYTELENGTH  = ATTRIBS_LENGTH * 4
-              attrib
+          ATTRIBS_LENGTH     += attrib.length
+          ATTRIBS_BYTELENGTH  = ATTRIBS_LENGTH * 4
+          attrib
 
-          for attrib in attribs
-              attrib.stride       = ATTRIBS_BYTELENGTH
-              attrib.enable       = gl.enableVertexAttribArray.bind gl, attrib.location
-              attrib.rebind       = gl.vertexAttribPointer.bind(
-                  gl, attrib.location, attrib.length, attrib.typeof, 
-                  attrib.isNormalized, attrib.stride, attrib.offset
-              )
+      for attrib in attribs
+          attrib.stride       = ATTRIBS_BYTELENGTH
+          attrib.enable       = gl.enableVertexAttribArray.bind gl, attrib.location
+          attrib.rebind       = gl.vertexAttribPointer.bind(
+              gl, attrib.location, attrib.length, attrib.typeof, 
+              attrib.isNormalized, attrib.stride, attrib.offset
+          )
 
-              Object.defineProperties defines[ attrib.name ] = attrib, value :
-                  get : -> gl.getVertexAttrib @location, gl.CURRENT_VERTEX_ATTRIB
+          Object.defineProperties defines[ attrib.name ] = attrib, value :
+              get : -> gl.getVertexAttrib @location, gl.CURRENT_VERTEX_ATTRIB
 
-          i = gl.getProgramParameter program, gl.ACTIVE_UNIFORMS
-          uniforms = while i--
-              uniform             = gl.getActiveUniform program, i
-              uniform.is          = "uniform"
-              uniform.kind        = k.at v.indexOf uniform.type
-              uniform.location    = gl.getUniformLocation program, uniform.name
-              uniform.bindUpload  = resolveUniform uniform 
+      i = gl.getProgramParameter program, gl.ACTIVE_UNIFORMS
+      uniforms = while i--
+          uniform             = gl.getActiveUniform program, i
+          uniform.is          = "uniform"
+          uniform.kind        = k.at v.indexOf uniform.type
+          uniform.location    = gl.getUniformLocation program, uniform.name
+          uniform.bindUpload  = resolveUniform uniform 
 
-              Object.defineProperties defines[ uniform.name ] = uniform, value :
-                  get : -> gl.getUniform program, @location
-                  set : ( data ) -> @bindUpload( data )()
+          Object.defineProperties defines[ uniform.name ] = uniform, value :
+              get : -> gl.getUniform program, @location
+              set : ( data ) -> @bindUpload( data )()
 
-      resolveDefines()
+  resolveDefines()
 
   allocPoints     : ( matter ) ->
-      byteOffset = @pointsOffset
-      pointCount = matter.vertices.count
-      byteLength = pointCount * @BYTES_PER_ATTRIBUTE
+  byteOffset = @pointsOffset
+  pointCount = matter.vertices.count
+  byteLength = pointCount * @BYTES_PER_ATTRIBUTE
 
-      begin = byteOffset / 4
-      count = byteLength / 4 
+  begin = byteOffset / 4
+  count = byteLength / 4 
 
-      @pointsCount += pointCount
-      @pointsOffset += byteLength
+  @pointsCount += pointCount
+  @pointsOffset += byteLength
 
-      Object.assign new Draw( null, matter.shader = this ), {
-          begin, count, offset: byteOffset,
-          type : WebGL2RenderingContext.POINTS
-      }
+  Object.assign new Draw( null, matter.shader = this ), {
+      begin, count, offset: byteOffset,
+      type : WebGL2RenderingContext.POINTS
+  }
 
   allocLines      : ( matter ) ->
-      byteOffset = @linesOffset
-      pointCount = matter.vertices.count
-      byteLength = pointCount * @BYTES_PER_ATTRIBUTE
+  byteOffset = @linesOffset
+  pointCount = matter.vertices.count
+  byteLength = pointCount * @BYTES_PER_ATTRIBUTE
 
-      begin = byteOffset / 4
-      count = byteLength / 4 
+  begin = byteOffset / 4
+  count = byteLength / 4 
 
-      @linesCount += pointCount
-      @linesOffset += byteLength
+  @linesCount += pointCount
+  @linesOffset += byteLength
 
-      Object.assign new Draw( null, matter.shader = this ), {
-          begin, count, offset: byteOffset,
-          type : WebGL2RenderingContext.LINES
-      }
+  Object.assign new Draw( null, matter.shader = this ), {
+      begin, count, offset: byteOffset,
+      type : WebGL2RenderingContext.LINES
+  }
 
   allocTriangles  : ( matter ) ->
-      byteOffset = @trianglesOffset
-      pointCount = matter.vertices.count
-      byteLength = pointCount * @BYTES_PER_ATTRIBUTE
+  byteOffset = @trianglesOffset
+  pointCount = matter.vertices.count
+  byteLength = pointCount * @BYTES_PER_ATTRIBUTE
 
-      begin = byteOffset / 4
-      count = byteLength / 4 
+  begin = byteOffset / 4
+  count = byteLength / 4 
 
-      @trianglesCount += pointCount
-      @trianglesOffset += byteLength
+  @trianglesCount += pointCount
+  @trianglesOffset += byteLength
 
-      Object.assign new Draw( null, matter.shader = this ), {
-          begin, count, offset: byteOffset,
-          type : WebGL2RenderingContext.TRIANGLES
-      }
+  Object.assign new Draw( null, matter.shader = this ), {
+      begin, count, offset: byteOffset,
+      type : WebGL2RenderingContext.TRIANGLES
+  }
 
-  Object.defineProperties vShader::,
+      Object.defineProperties vShader::,
 
   drawBuffer      :
-      get : -> new Float32Array buffer, @byteOffset, BYTELENGTH_GLBUFFER/4
+  get : -> new Float32Array buffer, @byteOffset, BYTELENGTH_GLBUFFER/4
 
   BYTES_PER_ATTRIBUTE :
-      get : -> ui8[ @byteOffset + @INDEX_BYTES_PER_ATTR ]
-      set : (v) -> ui8[ @byteOffset + @INDEX_BYTES_PER_ATTR ] = v
+  get : -> ui8[ @byteOffset + @INDEX_BYTES_PER_ATTR ]
+  set : (v) -> ui8[ @byteOffset + @INDEX_BYTES_PER_ATTR ] = v
 
   isBinded        :
-      get : -> ui8[ @byteOffset + @INDEX_GLBUFFER_BOUND ]
-      set : (v) -> ui8[ @byteOffset + @INDEX_GLBUFFER_BOUND ] = v
+  get : -> ui8[ @byteOffset + @INDEX_GLBUFFER_BOUND ]
+  set : (v) -> ui8[ @byteOffset + @INDEX_GLBUFFER_BOUND ] = v
 
   glBuffer        :
-      get : -> buffers[ ui8[ @byteOffset + @INDEX_GLBUFFER_INDEX ] ]
-      set : (v) -> ui8[ @byteOffset + @INDEX_GLBUFFER_INDEX ] = buffers.register v
+  get : -> buffers[ ui8[ @byteOffset + @INDEX_GLBUFFER_INDEX ] ]
+  set : (v) -> ui8[ @byteOffset + @INDEX_GLBUFFER_INDEX ] = buffers.register v
 
   pointsStart     :
-      get : -> u32[ @begin + @INDEX_POINTS_START ]
-      set : ( v ) -> u32[ @begin + @INDEX_POINTS_START ] = v
+  get : -> u32[ @begin + @INDEX_POINTS_START ]
+  set : ( v ) -> u32[ @begin + @INDEX_POINTS_START ] = v
 
   linesStart      :
-      get : -> u32[ @begin + @INDEX_LINES_START ]
-      set : ( v ) -> u32[ @begin + @INDEX_LINES_START ] = v
+  get : -> u32[ @begin + @INDEX_LINES_START ]
+  set : ( v ) -> u32[ @begin + @INDEX_LINES_START ] = v
 
   trianglesStart  :
-      get : -> u32[ @begin + @INDEX_TRIANGLES_START ]
-      set : ( v ) -> u32[ @begin + @INDEX_TRIANGLES_START ] = v
+  get : -> u32[ @begin + @INDEX_TRIANGLES_START ]
+  set : ( v ) -> u32[ @begin + @INDEX_TRIANGLES_START ] = v
 
   pointsCount     :
-      get : -> u32[ @begin + @INDEX_POINTS_COUNT ]
-      set : ( v ) -> u32[ @begin + @INDEX_POINTS_COUNT ] = v
+  get : -> u32[ @begin + @INDEX_POINTS_COUNT ]
+  set : ( v ) -> u32[ @begin + @INDEX_POINTS_COUNT ] = v
 
   linesCount      :
-      get : -> u32[ @begin + @INDEX_LINES_COUNT ]
-      set : ( v ) -> u32[ @begin + @INDEX_LINES_COUNT ] = v
+  get : -> u32[ @begin + @INDEX_LINES_COUNT ]
+  set : ( v ) -> u32[ @begin + @INDEX_LINES_COUNT ] = v
 
   trianglesCount  :
-      get : -> u32[ @begin + @INDEX_TRIANGLES_COUNT ]
-      set : ( v ) -> u32[ @begin + @INDEX_TRIANGLES_COUNT ] = v
+  get : -> u32[ @begin + @INDEX_TRIANGLES_COUNT ]
+  set : ( v ) -> u32[ @begin + @INDEX_TRIANGLES_COUNT ] = v
 
   pointsOffset    :
-      get : -> u32[ @begin + @INDEX_POINTS_OFFSET ]
-      set : ( v ) -> u32[ @begin + @INDEX_POINTS_OFFSET ] = v
+  get : -> u32[ @begin + @INDEX_POINTS_OFFSET ]
+  set : ( v ) -> u32[ @begin + @INDEX_POINTS_OFFSET ] = v
 
   linesOffset     :
-      get : -> u32[ @begin + @INDEX_LINES_OFFSET ]
-      set : ( v ) -> u32[ @begin + @INDEX_LINES_OFFSET ] = v
+  get : -> u32[ @begin + @INDEX_LINES_OFFSET ]
+  set : ( v ) -> u32[ @begin + @INDEX_LINES_OFFSET ] = v
 
   trianglesOffset :
-      get : -> u32[ @begin + @INDEX_TRIANGLES_OFFSET ]
-      set : ( v ) -> u32[ @begin + @INDEX_TRIANGLES_OFFSET ] = v
+  get : -> u32[ @begin + @INDEX_TRIANGLES_OFFSET ]
+  set : ( v ) -> u32[ @begin + @INDEX_TRIANGLES_OFFSET ] = v
 
-  classes.register class fShader  extends Shader
+      classes.register class fShader  extends Shader
   name : "fShader"
   type : WebGL2RenderingContext.FRAGMENT_SHADER
 
   fShader : yes
 
-  classes.register class Shader extends Pointer
+      classes.register class Shader extends Pointer
 
   GPU_ATTRIBUTE_COUNT : 1e5 
 
   isShader            : yes
 
   Object.defineProperties Shader::,
-      gl          : get : Shader::parentGLContext  , set : Shader::setGLContext
-      glProgram   : get : Shader::parentGLProgram  , set : Shader::setGLProgram
+  gl          : get : Shader::parentGLContext  , set : Shader::setGLContext
+  glProgram   : get : Shader::parentGLProgram  , set : Shader::setGLProgram
 
   Object.defineProperties Shader::,
-      active      : get : Shader::getActive          , set : Shader::setActive
-      source      : get : Shader::getSource          , set : Shader::setSource
+  active      : get : Shader::getActive          , set : Shader::setActive
+  source      : get : Shader::getSource          , set : Shader::setSource
 
   Object.deleteProperties Shader::, [ "linked" ]
 
   getGLContext        : ->
-      @storage[ getResvUint8 this, 2 ]
+  @storage[ getResvUint8 this, 2 ]
 
   parentGLContext     : ->
-      @storage[ getResvUint8 this, 2 ] or
-      @gl = @parent.gl
+  @storage[ getResvUint8 this, 2 ] or
+  @gl = @parent.gl
 
   createGLContext     : ->
-      if  storei = getResvUint8 this, 2
-          return @storage[ storei ]
+  if  storei = getResvUint8 this, 2
+      return @storage[ storei ]
 
-      throw /DONOT_CREATE_GL/ unless isWindow
-      canvas = document.createElement 'canvas'
+  throw /DONOT_CREATE_GL/ unless isWindow
+  canvas = document.createElement 'canvas'
 
-      Object.assign canvas, {
-          width   : RATIO_PIXEL * INNER_WIDTH
-          height  : RATIO_PIXEL * INNER_HEIGHT
-          style   :
-              width      : CSS.px INNER_WIDTH
-              height     : CSS.px INNER_HEIGHT
-              inset      : CSS.px 0
-              position   : "fixed"
-      } 
+  Object.assign canvas, {
+      width   : RATIO_PIXEL * INNER_WIDTH
+      height  : RATIO_PIXEL * INNER_HEIGHT
+      style   :
+          width      : CSS.px INNER_WIDTH
+          height     : CSS.px INNER_HEIGHT
+          inset      : CSS.px 0
+          position   : "fixed"
+  } 
 
-      @gl = document.body
-          . appendChild canvas
-          . getContext "webgl2" 
+  @gl = document.body
+      . appendChild canvas
+      . getContext "webgl2" 
 
   setGLContext        : ( webGL2RenderingContext ) ->
-      setResvUint8 this, 2, @store webGL2RenderingContext
+  setResvUint8 this, 2, @store webGL2RenderingContext
 
   getGLProgram        : ->
-      @storage[ getResvUint8 this, 3 ]
+  @storage[ getResvUint8 this, 3 ]
 
   setGLProgram        : ( webGLProgram ) ->
-      setResvUint8 this, 3, @store webGLProgram 
+  setResvUint8 this, 3, @store webGLProgram 
 
   parentGLProgram    : ->
-      @storage[ getResvUint8 this, 3 ] or
-      @glProgram = @parent.glProgram
+  @storage[ getResvUint8 this, 3 ] or
+  @glProgram = @parent.glProgram
 
   createGLProgram     : ->
-      @storage[ getResvUint8 this, 3 ] or
-      @glProgram = @gl.createProgram()
+  @storage[ getResvUint8 this, 3 ] or
+  @glProgram = @gl.createProgram()
 
   activeGLProgram     : ->
-      #? space searching an glProgram
-      if  storei = getResvUint8 this, 3
-          return @storage[ storei ]
+  #? space searching an glProgram
+  if  storei = getResvUint8 this, 3
+      return @storage[ storei ]
 
-      programs = findChildsRecursive this, Program
+  programs = findChildsRecursive this, Program
 
-      return unless programs.length
-      unless program = programs.find (s) -> s.active 
-          program = programs.at 0
-      @glProgram = program.glProgram
+  return unless programs.length
+  unless program = programs.find (s) -> s.active 
+      program = programs.at 0
+  @glProgram = program.glProgram
 
   getGLBuffer         : ->
-      @storage[ getResvUint8 this, 4 ]
+  @storage[ getResvUint8 this, 4 ]
 
   setGLBuffer         : ( webGLBuffer ) ->
-      setResvUint8 this, 4, @store webGLBuffer
+  setResvUint8 this, 4, @store webGLBuffer
 
   activeGLBuffer      : ->
-      #? space searching an glBuffer
-      if  storei = getResvUint8 this, 4
-          return @storage[ storei ]
+  #? space searching an glBuffer
+  if  storei = getResvUint8 this, 4
+      return @storage[ storei ]
 
-      vShaders = findChildsRecursive this, VertexShader
+  vShaders = findChildsRecursive this, VertexShader
 
-      return unless vShaders.length
-      unless vShader = vShaders.find (s) -> s.active 
-          vShader = vShaders.at 0
-      @glBuffer = vShader.glBuffer
+  return unless vShaders.length
+  unless vShader = vShaders.find (s) -> s.active 
+      vShader = vShaders.at 0
+  @glBuffer = vShader.glBuffer
 
   createGLBuffer      : ->
-      #? vertex shader creates new buffer
-      @storage[ getResvUint8 this, 4 ] or
-      @glBuffer = @gl.createBuffer()
+  #? vertex shader creates new buffer
+  @storage[ getResvUint8 this, 4 ] or
+  @glBuffer = @gl.createBuffer()
 
   parentGLBuffer      : ->
-      #? draw looks vertex shaders buffer
-      @storage[ getResvUint8 this, 4 ] or
-      @glBuffer = @parent.glBuffer
+  #? draw looks vertex shaders buffer
+  @storage[ getResvUint8 this, 4 ] or
+  @glBuffer = @parent.glBuffer
 
   getGLShader         : ->
-      @storage[ getResvUint8 this, 5 ]
+  @storage[ getResvUint8 this, 5 ]
 
   setGLShader         : ( webGLShader ) ->
-      if @isVShader 
-          @setGLVShader webGLShader 
-      else @setGLFShader webGLShader
+  if @isVShader 
+      @setGLVShader webGLShader 
+  else @setGLFShader webGLShader
 
-      setResvUint8 this, 5, @store webGLShader
+  setResvUint8 this, 5, @store webGLShader
 
   getGLVShader        : ->
-      @storage[ getResvUint8 this, 6 ]
+  @storage[ getResvUint8 this, 6 ]
 
   setGLVShader        : ( webGLShader ) ->
-      setResvUint8 this, 6, @store webGLShader
+  setResvUint8 this, 6, @store webGLShader
 
   createGLVShader     : ->
-      #? vertexShader creating new one
-      @storage[ getResvUint8 this, 6 ] or
-      @glShader = @gl.createShader @gl.VERTEX_SHADER
+  #? vertexShader creating new one
+  @storage[ getResvUint8 this, 6 ] or
+  @glShader = @gl.createShader @gl.VERTEX_SHADER
 
   parentGLVShader     : ->
-      #? matter or draw searching glVShader
-      @storage[ getResvUint8 this, 6 ] or
-      @glVShader = @parent.glVShader or @parent.parent.glVShader
+  #? matter or draw searching glVShader
+  @storage[ getResvUint8 this, 6 ] or
+  @glVShader = @parent.glVShader or @parent.parent.glVShader
 
   activeGLVShader     : ->
-      #? space searching an glVShader
-      if  storei = getResvUint8 this, 6
-          return @storage[ storei ]
+  #? space searching an glVShader
+  if  storei = getResvUint8 this, 6
+      return @storage[ storei ]
 
-      shaders = findChildsRecursive this, VertexShader
+  shaders = findChildsRecursive this, VertexShader
 
-      unless shaders.length
-          return undefined
+  unless shaders.length
+      return undefined
 
-      unless shader = shaders.find (s) -> s.active 
-          shader = shaders.at 0
-      @glVShader = shader.glShader
+  unless shader = shaders.find (s) -> s.active 
+      shader = shaders.at 0
+  @glVShader = shader.glShader
 
   getGLFShader        : ->
-      @storage[ getResvUint8 this, 7 ]
+  @storage[ getResvUint8 this, 7 ]
 
   setGLFShader        : ( webGLShader ) ->
-      setResvUint8 this, 7, @store webGLShader
+  setResvUint8 this, 7, @store webGLShader
 
   createGLFShader     : ->
-      @storage[ getResvUint8 this, 7 ] or
-      @glShader = @gl.createShader @gl.FRAGMENT_SHADER
+  @storage[ getResvUint8 this, 7 ] or
+  @glShader = @gl.createShader @gl.FRAGMENT_SHADER
 
   parentGLFShader     : ->
-      @storage[ getResvUint8 this, 7 ] or
-      @glFShader = @parent.glFShader or @parent.parent.glFShader
+  @storage[ getResvUint8 this, 7 ] or
+  @glFShader = @parent.glFShader or @parent.parent.glFShader
 
   activeGLFShader     : ->
-      #? space searching an glFShader
-      if  storei = getResvUint8 this, 7
-          return @storage[ storei ]
+  #? space searching an glFShader
+  if  storei = getResvUint8 this, 7
+      return @storage[ storei ]
 
-      shaders = findChildsRecursive this, FragmentShader
+  shaders = findChildsRecursive this, FragmentShader
 
-      return unless shaders.length
-      unless shader = shaders.find (s) -> s.active 
-          shader = shaders.at 0
-      @glFShader = shader.glShader
+  return unless shaders.length
+  unless shader = shaders.find (s) -> s.active 
+      shader = shaders.at 0
+  @glFShader = shader.glShader
 
   getActive       : ->
-      getResvUint8 this, 0
+  getResvUint8 this, 0
 
   setActive       : ( v ) ->
-      setResvUint8 this, 0, v
+  setResvUint8 this, 0, v
 
   getBinded       : ->
-      getResvUint8 this, 1
+  getResvUint8 this, 1
 
   setBinded       : ( v ) ->
-      setResvUint8 this, 1, v
+  setResvUint8 this, 1, v
 
   getSource       : ->
-      @gl.getShaderSource @glShader 
+  @gl.getShaderSource @glShader 
 
   setSource       : ( source ) ->
-      @compile @gl.shaderSource @glShader, source
+  @compile @gl.shaderSource @glShader, source
 
   compile         : ->
-      @attach @gl.compileShader @glShader
+  @attach @gl.compileShader @glShader
 
   attach          : ->
-      @active = 1
-      @gl.attachShader @glProgram, @glShader ; this
+  @active = 1
+  @gl.attachShader @glProgram, @glShader ; this
 
   detach          : ->
-      @active = 0
-      @gl.detachShader @glProgram, @glShader ; this
+  @active = 0
+  @gl.detachShader @glProgram, @glShader ; this
 
   destroy         : ->
-      @detach()
-      @gl.deleteShader @glShader ; this
+  @detach()
+  @gl.deleteShader @glShader ; this
 
-  classes.register class FragmentShader extends Shader
+      classes.register class FragmentShader extends Shader
 
   shaderType      : WebGL2RenderingContext.FRAGMENT_SHADER
 
@@ -2542,24 +2730,24 @@ self.name = "window";
   getGLObject     : -> @glFragmentShader
 
   attach          : ->
-      return this if @active
+  return this if @active
 
-      if  fShader = @parent.fShader
-          fShader . detach()
+  if  fShader = @parent.fShader
+      fShader . detach()
 
-      @parent . glFShader = @glShader
+  @parent . glFShader = @glShader
 
-      return super()
+  return super()
 
   Object.defineProperties FragmentShader,
-      DocumentScripts : get : ->
-          [ ...document.scripts ].filter (s) -> s.text.match /gl_FragColor/
+  DocumentScripts : get : ->
+      [ ...document.scripts ].filter (s) -> s.text.match /gl_FragColor/
 
   Object.defineProperties FragmentShader::,
 
-      glShader    : get : Shader::createGLFShader   , set : Shader::setGLShader
+  glShader    : get : Shader::createGLFShader   , set : Shader::setGLShader
 
-  classes.register class VertexShader extends Shader
+      classes.register class VertexShader extends Shader
 
   shaderType              : WebGL2RenderingContext.VERTEX_SHADER
 
@@ -2600,243 +2788,243 @@ self.name = "window";
   INDEX_DRAWBUFFER_STARTS           : 16
 
   Object.defineProperties VertexShader,
-      DocumentScripts : get : ->
-          [ ...document.scripts ].filter (s) -> s.text.match /gl_Position/
+  DocumentScripts : get : ->
+      [ ...document.scripts ].filter (s) -> s.text.match /gl_Position/
 
   Object.defineProperties VertexShader::,
-      stats       : get : VertexShader::dump
-      definitons  : get : VertexShader::getDefinitons , set : VertexShader::setDefinitons    
+  stats       : get : VertexShader::dump
+  definitons  : get : VertexShader::getDefinitons , set : VertexShader::setDefinitons    
 
   Object.defineProperties VertexShader::,
-      glShader    : get : Shader::createGLVShader   , set : Shader::setGLShader
-      glBuffer    : get : Shader::createGLBuffer    , set : Shader::setGLBuffer
+  glShader    : get : Shader::createGLVShader   , set : Shader::setGLShader
+  glBuffer    : get : Shader::createGLBuffer    , set : Shader::setGLBuffer
 
   getGLObject     : -> @glVertexShader
 
   attach          : ->
-      return this if @active
+  return this if @active
 
-      if  vShader = @parent.vShader
-          vShader . detach()
+  if  vShader = @parent.vShader
+      vShader . detach()
 
-      @parent . glVShader = @glShader
+  @parent . glVShader = @glShader
 
-      return super()
+  return super()
 
   getDefinitons   : ->
-      @storage[ getUint32 this, @INDEX_DEFINITIONS_OBJECT ]
+  @storage[ getUint32 this, @INDEX_DEFINITIONS_OBJECT ]
 
   setDefinitons   : ( object = {} ) ->
-      setUint32 this, @INDEX_DEFINITIONS_OBJECT, @store object
+  setUint32 this, @INDEX_DEFINITIONS_OBJECT, @store object
 
   dump            : ->
-      BYTELENGTH_PER_TYPE  : getUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_TYPE
-      BYTELENGTH_PER_POINT : getUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
-      LENGTH_PER_POINT     : getUint32 this, @INDEX_ALLOC_LENGTH_PER_POINT
+  BYTELENGTH_PER_TYPE  : getUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_TYPE
+  BYTELENGTH_PER_POINT : getUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
+  LENGTH_PER_POINT     : getUint32 this, @INDEX_ALLOC_LENGTH_PER_POINT
 
-      triangles :
-          alloc : getUint32 this, @INDEX_TRIANGLES_ALLOC
-          start : getUint32 this, @INDEX_TRIANGLES_START
-          count : getUint32 this, @INDEX_TRIANGLES_COUNT
+  triangles :
+      alloc : getUint32 this, @INDEX_TRIANGLES_ALLOC
+      start : getUint32 this, @INDEX_TRIANGLES_START
+      count : getUint32 this, @INDEX_TRIANGLES_COUNT
 
-      lines     :
-          alloc : getUint32 this, @INDEX_LINES_ALLOC
-          start : getUint32 this, @INDEX_LINES_START
-          count : getUint32 this, @INDEX_LINES_COUNT
+  lines     :
+      alloc : getUint32 this, @INDEX_LINES_ALLOC
+      start : getUint32 this, @INDEX_LINES_START
+      count : getUint32 this, @INDEX_LINES_COUNT
 
-      points    :
-          alloc : getUint32 this, @INDEX_POINTS_ALLOC
-          start : getUint32 this, @INDEX_POINTS_START
-          count : getUint32 this, @INDEX_POINTS_COUNT                
+  points    :
+      alloc : getUint32 this, @INDEX_POINTS_ALLOC
+      start : getUint32 this, @INDEX_POINTS_START
+      count : getUint32 this, @INDEX_POINTS_COUNT                
 
   draw            : ( shape, type = @LINES ) ->
-      byteLength = shape.pointCount * getUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
-      length     = shape.pointCount * getUint32 this, @INDEX_ALLOC_LENGTH_PER_POINT
+  byteLength = shape.pointCount * getUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
+  length     = shape.pointCount * getUint32 this, @INDEX_ALLOC_LENGTH_PER_POINT
 
-      index = switch type
-          when @LINES      then @INDEX_LINES_COUNT
-          when @POINTS     then @INDEX_POINTS_COUNT
-          when @TRIANGLES  then @INDEX_TRIANGLES_COUNT
-          else throw /UNKNOWN_DRAW_TYPE/ + type
+  index = switch type
+      when @LINES      then @INDEX_LINES_COUNT
+      when @POINTS     then @INDEX_POINTS_COUNT
+      when @TRIANGLES  then @INDEX_TRIANGLES_COUNT
+      else throw /UNKNOWN_DRAW_TYPE/ + type
 
-      Object.assign new Draw(),
-          drawType   : type
-          drawCount  : shape.pointCount
-          drawStart  : getUint32( this, index+2 ) + addUint32 this, index, shape.pointCount
-          drawOffset : offset = addUint32( this, index+1, byteLength ) - getByteOffset(this)
-          readBegin  : begin = offset / 4 
-          readLength : length
-          byteOffset : getByteOffset(this) + begin * 4
-          byteLength : length * 4
-          parent     : this
-          linked     : shape
+  Object.assign new Draw(),
+      drawType   : type
+      drawCount  : shape.pointCount
+      drawStart  : getUint32( this, index+2 ) + addUint32 this, index, shape.pointCount
+      drawOffset : offset = addUint32( this, index+1, byteLength ) - getByteOffset(this)
+      readBegin  : begin = offset / 4 
+      readLength : length
+      byteOffset : getByteOffset(this) + begin * 4
+      byteLength : length * 4
+      parent     : this
+      linked     : shape
 
   create          : ( definitions ) ->            
 
-      attibuteByteLength = 0
-      for key, def of definitions when def.is.match /attr/
-          attibuteByteLength += def.length * @BPE
-      attibuteByteLength += 4 - attibuteByteLength % 4
+  attibuteByteLength = 0
+  for key, def of definitions when def.is.match /attr/
+      attibuteByteLength += def.length * @BPE
+  attibuteByteLength += 4 - attibuteByteLength % 4
 
-      drawByteAlloc  = attibuteByteLength * @GPU_ATTRIBUTE_COUNT
-      drawByteAlloc -= drawByteAlloc % 3
+  drawByteAlloc  = attibuteByteLength * @GPU_ATTRIBUTE_COUNT
+  drawByteAlloc -= drawByteAlloc % 3
 
-      @malloc drawByteAlloc
+  @malloc drawByteAlloc
 
-      typeByteAlloc  = drawByteAlloc / 3
-      typeByteAlloc -= typeByteAlloc % attibuteByteLength
-      typeDrawCount  = typeByteAlloc / attibuteByteLength
+  typeByteAlloc  = drawByteAlloc / 3
+  typeByteAlloc -= typeByteAlloc % attibuteByteLength
+  typeDrawCount  = typeByteAlloc / attibuteByteLength
 
-      paddingCount   = Math.max 1, Math.ceil( 
-          @INDEX_DRAWBUFFER_STARTS * @BPE / attibuteByteLength
-      )
-      paddingAlloc   = paddingCount * attibuteByteLength
+  paddingCount   = Math.max 1, Math.ceil( 
+      @INDEX_DRAWBUFFER_STARTS * @BPE / attibuteByteLength
+  )
+  paddingAlloc   = paddingCount * attibuteByteLength
 
-      setUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_TYPE   , typeByteAlloc
-      setUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_POINT  , attibuteByteLength
-      setUint32 this, @INDEX_ALLOC_LENGTH_PER_POINT      , attibuteByteLength / 4
+  setUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_TYPE   , typeByteAlloc
+  setUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_POINT  , attibuteByteLength
+  setUint32 this, @INDEX_ALLOC_LENGTH_PER_POINT      , attibuteByteLength / 4
 
-      setUint32 this, @INDEX_TRIANGLES_START , paddingCount 
-      setUint32 this, @INDEX_TRIANGLES_ALLOC , paddingAlloc 
+  setUint32 this, @INDEX_TRIANGLES_START , paddingCount 
+  setUint32 this, @INDEX_TRIANGLES_ALLOC , paddingAlloc 
 
-      setUint32 this, @INDEX_LINES_START     , typeDrawCount 
-      setUint32 this, @INDEX_LINES_ALLOC     , typeByteAlloc 
+  setUint32 this, @INDEX_LINES_START     , typeDrawCount 
+  setUint32 this, @INDEX_LINES_ALLOC     , typeByteAlloc 
 
-      setUint32 this, @INDEX_POINTS_START    , typeDrawCount * 2 
-      setUint32 this, @INDEX_POINTS_ALLOC    , typeByteAlloc * 2 
+  setUint32 this, @INDEX_POINTS_START    , typeDrawCount * 2 
+  setUint32 this, @INDEX_POINTS_ALLOC    , typeByteAlloc * 2 
 
-      @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
-      @gl.bufferData @gl.ARRAY_BUFFER, drawByteAlloc, @gl.STATIC_DRAW
+  @gl.bindBuffer @gl.ARRAY_BUFFER, @glBuffer
+  @gl.bufferData @gl.ARRAY_BUFFER, drawByteAlloc, @gl.STATIC_DRAW
 
-      @setDefinitons definitions
+  @setDefinitons definitions
 
-      this
+  this
 
   parseSource     : ( source = @source ) ->
-      canvas = new OffscreenCanvas 0, 0
-      gl = canvas.getContext "webgl2"
+  canvas = new OffscreenCanvas 0, 0
+  gl = canvas.getContext "webgl2"
 
-      program = gl.createProgram()
-      shader  = gl.createShader gl.VERTEX_SHADER
+  program = gl.createProgram()
+  shader  = gl.createShader gl.VERTEX_SHADER
 
-      gl.shaderSource shader, source
-      gl.compileShader shader
+  gl.shaderSource shader, source
+  gl.compileShader shader
 
-      unless gl.getShaderParameter shader, gl.COMPILE_STATUS
-          info = gl.getShaderInfoLog shader
-          throw "Could not compile WebGL shader. \n\n#{info}"
+  unless gl.getShaderParameter shader, gl.COMPILE_STATUS
+      info = gl.getShaderInfoLog shader
+      throw "Could not compile WebGL shader. \n\n#{info}"
 
-      shader2  = gl.createShader 35632
-      source2  = "void main() { gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); }"; 
+  shader2  = gl.createShader 35632
+  source2  = "void main() { gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); }"; 
 
-      gl.shaderSource shader2, source2
-      gl.compileShader shader2
+  gl.shaderSource shader2, source2
+  gl.compileShader shader2
 
-      gl.attachShader program, shader
-      gl.attachShader program, shader2
+  gl.attachShader program, shader
+  gl.attachShader program, shader2
 
-      gl.linkProgram program
+  gl.linkProgram program
 
-      gl.bindBuffer gl.ARRAY_BUFFER, buf = gl.createBuffer()
-      gl.bufferData gl.ARRAY_BUFFER, 256, gl.STATIC_DRAW
+  gl.bindBuffer gl.ARRAY_BUFFER, buf = gl.createBuffer()
+  gl.bufferData gl.ARRAY_BUFFER, 256, gl.STATIC_DRAW
 
-      gl.useProgram program
+  gl.useProgram program
 
-      unless gl.getProgramParameter program, gl.LINK_STATUS
-          info = gl.getProgramInfoLog program
-          throw "Could not compile WebGL program. \n\n#{info}"
+  unless gl.getProgramParameter program, gl.LINK_STATUS
+      info = gl.getProgramInfoLog program
+      throw "Could not compile WebGL program. \n\n#{info}"
 
-      i = gl.getProgramParameter program, gl.ACTIVE_ATTRIBUTES
-      v = Object.values WebGL2RenderingContext
-      k = Object.keys WebGL2RenderingContext
+  i = gl.getProgramParameter program, gl.ACTIVE_ATTRIBUTES
+  v = Object.values WebGL2RenderingContext
+  k = Object.keys WebGL2RenderingContext
 
-      lengthOf =
-          vec4 : 4
-          vec3 : 3
-          vec2 : 2
-          mat4 : 4 * 4
-          mat3 : 3 * 3
+  lengthOf =
+      vec4 : 4
+      vec3 : 3
+      vec2 : 2
+      mat4 : 4 * 4
+      mat3 : 3 * 3
 
-      ATTRIBS_LENGTH = 0
-      ATTRIBS_BYTELENGTH = 0
+  ATTRIBS_LENGTH = 0
+  ATTRIBS_BYTELENGTH = 0
 
-      attribs = while i--
-          attrib              = gl.getActiveAttrib program, i
-          attrib.is           = "attribute"
-          attrib.kind         = k.at v.indexOf attrib.type
-          attrib.class        = classes.find (c) -> c::name is attrib.name
-          attrib.location     = gl.getAttribLocation program, attrib.name
-          attrib.typeof       = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_TYPE
-          attrib.kindof       = k.at v.indexOf attrib.typeof 
-          attrib.offset       = ATTRIBS_BYTELENGTH
-          attrib.length       = lengthOf[ attrib.kind.split(/_/).at(-1).toLowerCase() ]
+  attribs = while i--
+      attrib              = gl.getActiveAttrib program, i
+      attrib.is           = "attribute"
+      attrib.kind         = k.at v.indexOf attrib.type
+      attrib.class        = classes.find (c) -> c::name is attrib.name
+      attrib.location     = gl.getAttribLocation program, attrib.name
+      attrib.typeof       = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_TYPE
+      attrib.kindof       = k.at v.indexOf attrib.typeof 
+      attrib.offset       = ATTRIBS_BYTELENGTH
+      attrib.length       = lengthOf[ attrib.kind.split(/_/).at(-1).toLowerCase() ]
 
-          ATTRIBS_LENGTH     += attrib.length
-          ATTRIBS_BYTELENGTH  = ATTRIBS_LENGTH * 4
+      ATTRIBS_LENGTH     += attrib.length
+      ATTRIBS_BYTELENGTH  = ATTRIBS_LENGTH * 4
 
-          attrib
+      attrib
 
-      for attrib in attribs
-          attrib.stride       = ATTRIBS_BYTELENGTH
-          gl.enableVertexAttribArray i = attrib.location
+  for attrib in attribs
+      attrib.stride       = ATTRIBS_BYTELENGTH
+      gl.enableVertexAttribArray i = attrib.location
 
-          gl.vertexAttribPointer(
-              attrib.location, attrib.length, attrib.typeof, 
-              attrib.isNormalized, attrib.stride, attrib.offset
-          )
+      gl.vertexAttribPointer(
+          attrib.location, attrib.length, attrib.typeof, 
+          attrib.isNormalized, attrib.stride, attrib.offset
+      )
 
-          attrib.isEnabled    = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_ENABLED
-          attrib.isNormalized = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
-          attrib.integer      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_INTEGER
-          attrib.divisor      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_DIVISOR                
+      attrib.isEnabled    = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_ENABLED
+      attrib.isNormalized = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
+      attrib.integer      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_INTEGER
+      attrib.divisor      = gl.getVertexAttrib i, gl.VERTEX_ATTRIB_ARRAY_DIVISOR                
 
-          gl.disableVertexAttribArray i
+      gl.disableVertexAttribArray i
 
-      i = gl.getProgramParameter program, gl.ACTIVE_UNIFORMS
-      uniforms = while i--
-          uniform             = gl.getActiveUniform program, i
-          uniform.is          = "uniform"
-          uniform.kind        = k.at v.indexOf uniform.type
-          uniform.class       = classes.find (c) -> c::name is uniform.name
-          uniform.location    = gl.getUniformLocation program, uniform.name
-          uniform.uploader    = switch uniform.kind
-              when "FLOAT_MAT4"           then "uniformMatrix4fv"
-              when "FLOAT_MAT3"           then "uniformMatrix3fv"
-              when "FLOAT_MAT2"           then "uniformMatrix2fv"
-              when "FLOAT_MAT2x3"         then "uniformMatrix2x3fv"
-              when "FLOAT_MAT2x4"         then "uniformMatrix2x4fv"
-              when "FLOAT_MAT3x2"         then "uniformMatrix3x2fv"
-              when "FLOAT_MAT3x4"         then "uniformMatrix3x4fv"
-              when "FLOAT_MAT4x2"         then "uniformMatrix4x2fv"
-              when "FLOAT_MAT3x3"         then "uniformMatrix4x3fv"
-              when "FLOAT"                then "uniform1f"
-              when "INT"                  then "uniform1iv"
-              when "UNSIGNED_INT"         then "uniform1uiv"
-              when "UNSIGNED_INT_VEC2"    then "uniform2uiv"
-              when "UNSIGNED_INT_VEC3"    then "uniform3uiv"
-              when "UNSIGNED_INT_VEC4"    then "uniform4uiv"
-          uniform
+  i = gl.getProgramParameter program, gl.ACTIVE_UNIFORMS
+  uniforms = while i--
+      uniform             = gl.getActiveUniform program, i
+      uniform.is          = "uniform"
+      uniform.kind        = k.at v.indexOf uniform.type
+      uniform.class       = classes.find (c) -> c::name is uniform.name
+      uniform.location    = gl.getUniformLocation program, uniform.name
+      uniform.uploader    = switch uniform.kind
+          when "FLOAT_MAT4"           then "uniformMatrix4fv"
+          when "FLOAT_MAT3"           then "uniformMatrix3fv"
+          when "FLOAT_MAT2"           then "uniformMatrix2fv"
+          when "FLOAT_MAT2x3"         then "uniformMatrix2x3fv"
+          when "FLOAT_MAT2x4"         then "uniformMatrix2x4fv"
+          when "FLOAT_MAT3x2"         then "uniformMatrix3x2fv"
+          when "FLOAT_MAT3x4"         then "uniformMatrix3x4fv"
+          when "FLOAT_MAT4x2"         then "uniformMatrix4x2fv"
+          when "FLOAT_MAT3x3"         then "uniformMatrix4x3fv"
+          when "FLOAT"                then "uniform1f"
+          when "INT"                  then "uniform1iv"
+          when "UNSIGNED_INT"         then "uniform1uiv"
+          when "UNSIGNED_INT_VEC2"    then "uniform2uiv"
+          when "UNSIGNED_INT_VEC3"    then "uniform3uiv"
+          when "UNSIGNED_INT_VEC4"    then "uniform4uiv"
+      uniform
 
-      gl.detachShader program, shader
-      gl.detachShader program, shader2
+  gl.detachShader program, shader
+  gl.detachShader program, shader2
 
-      gl.deleteShader shader
-      gl.deleteShader shader2
-      gl.deleteProgram program
-      gl.deleteBuffer buf
+  gl.deleteShader shader
+  gl.deleteShader shader2
+  gl.deleteProgram program
+  gl.deleteBuffer buf
 
-      Space.limits = (await navigator.gpu.requestAdapter()).limits
+  Space.limits = (await navigator.gpu.requestAdapter()).limits
 
-      shader = shader2 = gl =
-      program = canvas = null
-      definitions = new Object
+  shader = shader2 = gl =
+  program = canvas = null
+  definitions = new Object
 
-      for v in [ uniforms... , ...attribs ]
-          definitions[ v.name ] = v
+  for v in [ uniforms... , ...attribs ]
+      definitions[ v.name ] = v
 
-      definitions
+  definitions
 
-  classes.register class Draw         extends Pointer
+      classes.register class Draw         extends Pointer
 
   name            : "draw"
 
@@ -2878,91 +3066,91 @@ self.name = "window";
 
   Object.defineProperties Draw::,
 
-      drawType    : get : Draw::getDrawType   , set : Draw::setDrawType
+  drawType    : get : Draw::getDrawType   , set : Draw::setDrawType
 
-      drawOffset  : get : Draw::getDrawOffset , set : Draw::setDrawOffset
+  drawOffset  : get : Draw::getDrawOffset , set : Draw::setDrawOffset
 
-      drawStart   : get : Draw::getDrawStart  , set : Draw::setDrawStart
+  drawStart   : get : Draw::getDrawStart  , set : Draw::setDrawStart
 
-      drawCount   : get : Draw::getDrawCount  , set : Draw::setDrawCount
+  drawCount   : get : Draw::getDrawCount  , set : Draw::setDrawCount
 
-      readBegin   : get : Draw::getReadBegin  , set : Draw::setReadBegin
+  readBegin   : get : Draw::getReadBegin  , set : Draw::setReadBegin
 
-      readLength  : get : Draw::getReadLength , set : Draw::setReadLength
+  readLength  : get : Draw::getReadLength , set : Draw::setReadLength
 
-      byteOffset  : get : Draw::getByteOffset , set : Draw::setByteOffset
+  byteOffset  : get : Draw::getByteOffset , set : Draw::setByteOffset
 
-      byteLength  : get : Draw::getByteLength , set : Draw::setByteLength
+  byteLength  : get : Draw::getByteLength , set : Draw::setByteLength
 
-      pointCount  : get : -> @linked.pointCount
+  pointCount  : get : -> @linked.pointCount
 
   Object.defineProperties Draw::,
-      gl          : get : Shader::parentGLContext  , set : Shader::setGLContext
-      glProgram   : get : Shader::parentGLProgram  , set : Shader::setGLProgram
-      glVShader   : get : Shader::parentGLVShader  , set : Shader::setGLVShader
-      glFShader   : get : Shader::parentGLFShader  , set : Shader::setGLFShader
-      glBuffer    : get : Shader::parentGLBuffer   , set : Shader::setGLBuffer
+  gl          : get : Shader::parentGLContext  , set : Shader::setGLContext
+  glProgram   : get : Shader::parentGLProgram  , set : Shader::setGLProgram
+  glVShader   : get : Shader::parentGLVShader  , set : Shader::setGLVShader
+  glFShader   : get : Shader::parentGLFShader  , set : Shader::setGLFShader
+  glBuffer    : get : Shader::parentGLBuffer   , set : Shader::setGLBuffer
 
-  classes.register class Space    extends Pointer
+      classes.register class Space    extends Pointer
 
   self.Space      = this
 
   Object.defineProperties Space::,
-      gl          : get : Shader::createGLContext  , set : Shader::setGLContext
-      glProgram   : get : Shader::activeGLProgram  , set : Shader::setGLProgram
-      glVShader   : get : Shader::activeGLVShader  , set : Shader::setGLVShader
-      glFShader   : get : Shader::activeGLFShader  , set : Shader::setGLFShader
-      glBuffer    : get : Shader::activeGLBuffer   , set : Shader::setGLBuffer
+  gl          : get : Shader::createGLContext  , set : Shader::setGLContext
+  glProgram   : get : Shader::activeGLProgram  , set : Shader::setGLProgram
+  glVShader   : get : Shader::activeGLVShader  , set : Shader::setGLVShader
+  glFShader   : get : Shader::activeGLFShader  , set : Shader::setGLFShader
+  glBuffer    : get : Shader::activeGLBuffer   , set : Shader::setGLBuffer
 
   Object.defineProperties Space::,
-      active      : get : Shader::getActive        , set : Shader::setActive            
+  active      : get : Shader::getActive        , set : Shader::setActive            
 
   Object.defineProperties Space::,
-      vShader     : get : -> findChildsRecursive( this, VertexShader ).find (s) -> s.active
-      fShader     : get : -> findChildsRecursive( this, FragmentShader ).find (s) -> s.active 
-      program     : get : ->
-          programs = findChildsRecursive this, Program 
-          return unless programs.length
+  vShader     : get : -> findChildsRecursive( this, VertexShader ).find (s) -> s.active
+  fShader     : get : -> findChildsRecursive( this, FragmentShader ).find (s) -> s.active 
+  program     : get : ->
+      programs = findChildsRecursive this, Program 
+      return unless programs.length
 
-          unless program = programs.find (s) -> s.inUse
-              program = programs.find (s) -> s.isLinked 
-          program or programs.at(0)
+      unless program = programs.find (s) -> s.inUse
+          program = programs.find (s) -> s.isLinked 
+      program or programs.at(0)
 
-      created     :
-          get     :     -> getResvUint8( this, 1 )          
-          set     : (v) -> setResvUint8( this, 1, v )          
+  created     :
+      get     :     -> getResvUint8( this, 1 )          
+      set     : (v) -> setResvUint8( this, 1, v )          
 
   Object.deleteProperties Space::, [ "buffer", "linked", "parent" ]
 
   add             : ( ptr ) ->
-      super ptr
+  super ptr
 
-      if  ptr.drawable
-          @vShader.draw ptr
+  if  ptr.drawable
+      @vShader.draw ptr
 
-      this    
+  this    
 
   init            : ->
-      unless super( arguments... ).created
+  unless super( arguments... ).created
 
-          @created = 1
-          throw /THREAD/ unless isWindow
+      @created = 1
+      throw /THREAD/ unless isWindow
 
-          setParent new Program(), this
+      setParent new Program(), this
 
-          for script in VertexShader.DocumentScripts
-              @program.add shader = new VertexShader
-              shader.source = script.text
-              shader.create shader.parseSource()
+      for script in VertexShader.DocumentScripts
+          @program.add shader = new VertexShader
+          shader.source = script.text
+          shader.create shader.parseSource()
 
-          for script in FragmentShader.DocumentScripts
-              @program.add shader = new FragmentShader
-              shader.source = script.text
+      for script in FragmentShader.DocumentScripts
+          @program.add shader = new FragmentShader
+          shader.source = script.text
 
-          @program.use()
+      @program.use()
 
-      this
-  class Pointer       extends Number
+  this
+      class Pointer       extends Number
 
   @byteLength : 0
 
@@ -2971,170 +3159,170 @@ self.name = "window";
   @TypedArray : Float32Array
 
   Object.defineProperty this  , "classId",
-      configurable: on
-      get : -> Object.defineProperty( this, "classId",
-          value : classes.register( this )
-      ).classId
+  configurable: on
+  get : -> Object.defineProperty( this, "classId",
+      value : classes.register( this )
+  ).classId
 
   Object.defineProperty this::, "byteOffset",
-      get : -> Atomics.load i32, @ptri + HINDEX_BYTEOFFSET
+  get : -> Atomics.load i32, @ptri + HINDEX_BYTEOFFSET
 
   Object.defineProperty this::, "classId",
-      get : -> Atomics.load i32, @ptri + HINDEX_CLASSID
+  get : -> Atomics.load i32, @ptri + HINDEX_CLASSID
 
   Object.defineProperty this::, "byteLength",
-      get : -> Atomics.load i32, @ptri + HINDEX_BYTELENGTH
+  get : -> Atomics.load i32, @ptri + HINDEX_BYTELENGTH
 
   Object.defineProperty this::, "length",
-      get : -> Atomics.load i32, @ptri + HINDEX_LENGTH
+  get : -> Atomics.load i32, @ptri + HINDEX_LENGTH
 
   Object.defineProperty this::, "ptri",
-      get : -> Atomics.load i32, this
+  get : -> Atomics.load i32, this
 
   Object.defineProperty this::, "begin",
-      get : -> Atomics.load i32, @ptri + HINDEX_BEGIN
+  get : -> Atomics.load i32, @ptri + HINDEX_BEGIN
 
   Object.defineProperty this::, "isGL",
-      get : -> Atomics.load i32, @ptri + HINDEX_ISGL
-      set : (v) -> Atomics.store i32, @ptri + HINDEX_ISGL, v
+  get : -> Atomics.load i32, @ptri + HINDEX_ISGL
+  set : (v) -> Atomics.store i32, @ptri + HINDEX_ISGL, v
 
   Object.defineProperty this::, "parent",
-      get : -> Atomics.load i32, @ptri + HINDEX_PARENT
-      set : (v) -> Atomics.store i32, @ptri + HINDEX_PARENT, parseInt v
+  get : -> Atomics.load i32, @ptri + HINDEX_PARENT
+  set : (v) -> Atomics.store i32, @ptri + HINDEX_PARENT, parseInt v
 
   Object.defineProperty this::, "children",
-      get : -> 
-          ptri = Atomics.load i32, 1
-          test = this.ptri
+  get : -> 
+      ptri = Atomics.load i32, 1
+      test = this.ptri
 
-          children = []
-          while OFFSET_PTR <= ptri -= 16
-              unless test - Atomics.load i32, ptri + HINDEX_PARENT
-                  classId = Atomics.load i32, ptri + HINDEX_CLASSID
-                  children.push new (classes[ classId ])( ptri )
-          children
+      children = []
+      while OFFSET_PTR <= ptri -= 16
+          unless test - Atomics.load i32, ptri + HINDEX_PARENT
+              classId = Atomics.load i32, ptri + HINDEX_CLASSID
+              children.push new (classes[ classId ])( ptri )
+      children
 
   Object.defineProperty this::, "iterCount",
-      get : -> Atomics.load u32, @ptri + HINDEX_ITER_COUNT
-      set : (v) -> Atomics.store u32, @ptri + HINDEX_ITER_COUNT, v
+  get : -> Atomics.load u32, @ptri + HINDEX_ITER_COUNT
+  set : (v) -> Atomics.store u32, @ptri + HINDEX_ITER_COUNT, v
 
   Object.defineProperty this::, "typedArray",
-      get : -> new this.constructor.TypedArray buffer, @byteOffset, @length
+  get : -> new this.constructor.TypedArray buffer, @byteOffset, @length
 
   @allocs     : ( parent ) ->
-      ptri = Atomics.load i32, 1
-      classId = @classId
+  ptri = Atomics.load i32, 1
+  classId = @classId
 
-      while OFFSET_PTR <= ptri -= 16        
-          continue unless classId is Atomics.load i32, ptri + HINDEX_CLASSID
-          continue if parent and parent isnt Atomics.load i32, ptri + HINDEX_PARENT
-          object = new this ptri
+  while OFFSET_PTR <= ptri -= 16        
+      continue unless classId is Atomics.load i32, ptri + HINDEX_CLASSID
+      continue if parent and parent isnt Atomics.load i32, ptri + HINDEX_PARENT
+      object = new this ptri
 
   @malloc     : ( constructor, byteLength ) ->
-      @classId
-      offset = @byteLength
-      mod = offset % 4
-      offset += 4 - mod
-      byteLength ?= constructor.byteLength
-      byteLength += 4 - byteLength % 4
+  @classId
+  offset = @byteLength
+  mod = offset % 4
+  offset += 4 - mod
+  byteLength ?= constructor.byteLength
+  byteLength += 4 - byteLength % 4
 
-      @subclasses.push {
-          constructor : constructor
-          offset : offset
-          byteLength : byteLength
-          index : @subclasses.length
-          classId : constructor.classId
-      }
+  @subclasses.push {
+      constructor : constructor
+      offset : offset
+      byteLength : byteLength
+      index : @subclasses.length
+      classId : constructor.classId
+  }
 
-      Object.defineProperty this::, constructor.label, {
-          get : constructor::get offset 
-          set : constructor::set offset 
-      }
+  Object.defineProperty this::, constructor.label, {
+      get : constructor::get offset 
+      set : constructor::set offset 
+  }
 
-      @byteLength += byteLength
-      offset
+  @byteLength += byteLength
+  offset
 
   constructor : ( ptri, parent ) ->
-      unless ptri = parseInt super ptri
-          ptri = malloc @constructor
-          return new @constructor ptri, parent 
+  unless ptri = parseInt super ptri
+      ptri = malloc @constructor
+      return new @constructor ptri, parent 
 
-      @parent = parent if parent
+  @parent = parent if parent
 
-      @init ptri
+  @init ptri
 
   set         : ( value, index = 0 ) ->
-      @typedArray.set value, index ; this
+  @typedArray.set value, index ; this
 
   init        : -> this
 
   subarray    : ( begin, end ) ->
-      new @constructor.TypedArray buffer, @byteOffset + begin * 4, end - begin
+  new @constructor.TypedArray buffer, @byteOffset + begin * 4, end - begin
 
-  class Position      extends Pointer
+      class Position      extends Pointer
 
   @byteLength : 4 * 4
 
   @label      : "position"
 
   get : ( offset ) -> ->
-      new Float32Array buffer, @byteOffset + offset, 3
+  new Float32Array buffer, @byteOffset + offset, 3
 
   set : ( offset ) -> ( value ) ->
-      f32.set value, ( @byteOffset + offset ) / 4
+  f32.set value, ( @byteOffset + offset ) / 4
 
-  class Color         extends Pointer
+      class Color         extends Pointer
 
   @byteLength : 4 * 4
 
   @label : "color"
 
   get : ( offset ) -> ->
-      new Float32Array buffer, @byteOffset + offset, 4
+  new Float32Array buffer, @byteOffset + offset, 4
 
   set : ( offset ) -> ( value ) ->
-      f32.set value, ( @byteOffset + offset ) / 4
+  f32.set value, ( @byteOffset + offset ) / 4
 
-  class Rotation      extends Pointer
+      class Rotation      extends Pointer
 
   @byteLength : 4 * 4
 
   @label : "rotation"
 
   get : ( offset ) -> ->
-      new Float32Array buffer, @byteOffset + offset, 3
+  new Float32Array buffer, @byteOffset + offset, 3
 
   set : ( offset ) -> ( value ) ->
-      f32.set value, ( @byteOffset + offset ) / 4
+  f32.set value, ( @byteOffset + offset ) / 4
 
-  class Scale         extends Pointer
+      class Scale         extends Pointer
 
   @byteLength : 3 * 4
 
   @label      : "scale"
 
   get : ( offset ) -> ->
-      new Float32Array buffer, @byteOffset + offset, 3
+  new Float32Array buffer, @byteOffset + offset, 3
 
   set : ( offset ) -> ( value ) ->
-      f32.set value, ( @byteOffset + offset ) / 4
+  f32.set value, ( @byteOffset + offset ) / 4
 
-  class Vertices      extends Pointer
+      class Vertices      extends Pointer
 
   @label          : "vertices"
 
   Object.defineProperties this::,
-      pointCount  : get : ->
-          @length / 3
+  pointCount  : get : ->
+      @length / 3
 
   get : ( offset ) -> ->
-      ptri = dvw.getInt32 @byteOffset + @OFFSET_VERTICES, LE
-      return new Vertices ptri if ptri ; null
+  ptri = dvw.getInt32 @byteOffset + @OFFSET_VERTICES, LE
+  return new Vertices ptri if ptri ; null
 
   set : ( offset ) -> ( value ) ->
-      ptri = malloc Vertices, value.length * 4
-      dvw.setInt32 @byteOffset + @OFFSET_VERTICES, ptri, LE
-      f32.set value, i32[ ptri + HINDEX_BEGIN ]
+  ptri = malloc Vertices, value.length * 4
+  dvw.setInt32 @byteOffset + @OFFSET_VERTICES, ptri, LE
+  f32.set value, i32[ ptri + HINDEX_BEGIN ]
 
    */
   self.addEventListener("DOMContentLoaded", function() {
