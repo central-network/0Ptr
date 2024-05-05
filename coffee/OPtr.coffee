@@ -153,10 +153,10 @@ do  self.init   = ->
             ptri += HEADER_INDEXCOUNT ; ptr
 
     getByteOffset       = ( ptri ) -> 
-        u32[ ptri ]
+        u32.at( ptri )
     
     setByteOffset       = ( ptri, byteOffset ) -> 
-        u32[ ptri ] = byteOffset
+        dvw.setUint32 ptri * 4, byteOffset, LE ; byteOffset
 
     getByteLength       = ( ptri ) -> 
         u32[ HEADER_BYTELENGTH + ptri ]
@@ -419,19 +419,19 @@ do  self.init   = ->
         ) ; u
 
     newFloat32Array     = ( ptri, byteOffset = 0, length ) -> 
-        new Float32Array buffer, u32[ ptri ] + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
+        new Float32Array buffer, u32.at( ptri ) + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
 
     ptrFloat32Array     = ( ptri, byteOffset = 0, length ) -> 
         new Float32Array buffer, ptri * 4, length or HEADER_INDEXCOUNT
 
     newUint32Array      = ( ptri, byteOffset = 0, length ) -> 
-        new Uint32Array buffer, u32[ ptri ] + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
+        new Uint32Array buffer, u32.at( ptri ) + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
 
     ptrUint32Array      = ( ptri, byteOffset = 0, length ) -> 
         new Uint32Array buffer, ptri * 4, length or HEADER_INDEXCOUNT
 
     newUint8Array       = ( ptri, byteOffset = 0, length ) -> 
-        new Uint8Array buffer, u32[ ptri ] + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
+        new Uint8Array buffer, u32.at( ptri ) + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
 
     ptrUint8Array       = ( ptri, byteOffset = 0, length ) -> 
         new Uint8Array buffer, ptri * 4, length or HEADER_INDEXCOUNT * BPE
@@ -445,12 +445,12 @@ do  self.init   = ->
         u32.subarray( begin, begin + count )
 
     subarrayUint8       = ( ptri, begin = 0, count ) -> 
-        begin += u32[ ptri ]
+        begin += u32.at( ptri )
         ui8.subarray( begin, begin + count )
         
     detachUint8         = ( ptri, begin = 0, count ) -> 
 
-        begin += u32[ ptri ]
+        begin += u32.at( ptri )
         count or= u32[ ptri + HEADER_BYTELENGTH ]
 
         array = new Uint8Array count
@@ -496,20 +496,20 @@ do  self.init   = ->
         u32.set array, begin + u32[ HEADER_BEGIN + ptri ] ; ptri
 
     setUint8            = ( ptri, index, value ) -> 
-        ui8[ u32[ ptri ] + index ] = value
+        ui8[ u32.at( ptri ) + index ] = value
 
     getUint8            = ( ptri, index = 0 ) -> 
-        ui8[ u32[ ptri ] + index ]
+        ui8[ u32.at( ptri ) + index ]
 
     orUint8             = ( ptri, index = 0, fn ) ->
-        ui8[ u32[ ptri ] + index ] ||= fn.call ptri
+        ui8[ u32.at( ptri ) + index ] ||= fn.call ptri
 
     fillUint8           = ( ptri, value, start = 0, count ) ->
-        start += u32[ ptri ]
+        start += u32.at( ptri )
         ui8.fill value, start, start + count ; ptri
 
     setarrayUint8       = ( ptri, array, begin = 0 ) -> 
-        ui8.set array, begin + u32[ ptri ] ; ptri
+        ui8.set array, begin + u32.at(ptri) ; ptri
         
 
 
@@ -664,6 +664,11 @@ do  self.init   = ->
                 else setarrayFloat32 this, array
 
             return this
+
+        toString            : ->
+            try console.log "toStringCalled", new Error
+            super arguments...
+
 
         store       : ( object ) ->
             if -1 is i = @storage.indexOf object
@@ -1232,7 +1237,7 @@ do  self.init   = ->
         set                 : ( text ) ->
             super @encoder.encode "#{text}" 
 
-        text                : ->
+        toString            : ->
             @decoder.decode detachUint8 this
 
 
@@ -1288,8 +1293,8 @@ do  self.init   = ->
                 get : EventHandler::getCallCount
                 set : EventHandler::setCallCount
 
-            event           :
-                get : EventHandler::text
+            name            :
+                get : EventHandler::toString
 
     classes.register class EventEmitter     extends Pointer
 
@@ -1306,7 +1311,7 @@ do  self.init   = ->
 
         emit            : ( event, data = {} ) ->
             @events.forEach (e) ->
-                e.call data if e.event is event
+                e.call data if e.name is event
 
         create          : -> this
 

@@ -163,10 +163,11 @@ self.name = "window";
     return results;
   };
   getByteOffset = function(ptri) {
-    return u32[ptri];
+    return u32.at(ptri);
   };
   setByteOffset = function(ptri, byteOffset) {
-    return u32[ptri] = byteOffset;
+    dvw.setUint32(ptri * 4, byteOffset, LE);
+    return byteOffset;
   };
   getByteLength = function(ptri) {
     return u32[HEADER_BYTELENGTH + ptri];
@@ -490,19 +491,19 @@ self.name = "window";
     return u;
   };
   newFloat32Array = function(ptri, byteOffset = 0, length) {
-    return new Float32Array(buffer, u32[ptri] + byteOffset, length || u32[HEADER_LENGTH + ptri]);
+    return new Float32Array(buffer, u32.at(ptri) + byteOffset, length || u32[HEADER_LENGTH + ptri]);
   };
   ptrFloat32Array = function(ptri, byteOffset = 0, length) {
     return new Float32Array(buffer, ptri * 4, length || HEADER_INDEXCOUNT);
   };
   newUint32Array = function(ptri, byteOffset = 0, length) {
-    return new Uint32Array(buffer, u32[ptri] + byteOffset, length || u32[HEADER_LENGTH + ptri]);
+    return new Uint32Array(buffer, u32.at(ptri) + byteOffset, length || u32[HEADER_LENGTH + ptri]);
   };
   ptrUint32Array = function(ptri, byteOffset = 0, length) {
     return new Uint32Array(buffer, ptri * 4, length || HEADER_INDEXCOUNT);
   };
   newUint8Array = function(ptri, byteOffset = 0, length) {
-    return new Uint8Array(buffer, u32[ptri] + byteOffset, length || u32[HEADER_LENGTH + ptri]);
+    return new Uint8Array(buffer, u32.at(ptri) + byteOffset, length || u32[HEADER_LENGTH + ptri]);
   };
   ptrUint8Array = function(ptri, byteOffset = 0, length) {
     return new Uint8Array(buffer, ptri * 4, length || HEADER_INDEXCOUNT * BPE);
@@ -516,12 +517,12 @@ self.name = "window";
     return u32.subarray(begin, begin + count);
   };
   subarrayUint8 = function(ptri, begin = 0, count) {
-    begin += u32[ptri];
+    begin += u32.at(ptri);
     return ui8.subarray(begin, begin + count);
   };
   detachUint8 = function(ptri, begin = 0, count) {
     var array;
-    begin += u32[ptri];
+    begin += u32.at(ptri);
     count || (count = u32[ptri + HEADER_BYTELENGTH]);
     array = new Uint8Array(count);
     array.set(ui8.subarray(begin, begin + array.length));
@@ -571,22 +572,22 @@ self.name = "window";
     return ptri;
   };
   setUint8 = function(ptri, index, value) {
-    return ui8[u32[ptri] + index] = value;
+    return ui8[u32.at(ptri) + index] = value;
   };
   getUint8 = function(ptri, index = 0) {
-    return ui8[u32[ptri] + index];
+    return ui8[u32.at(ptri) + index];
   };
   orUint8 = function(ptri, index = 0, fn) {
     var name1;
-    return ui8[name1 = u32[ptri] + index] || (ui8[name1] = fn.call(ptri));
+    return ui8[name1 = u32.at(ptri) + index] || (ui8[name1] = fn.call(ptri));
   };
   fillUint8 = function(ptri, value, start = 0, count) {
-    start += u32[ptri];
+    start += u32.at(ptri);
     ui8.fill(value, start, start + count);
     return ptri;
   };
   setarrayUint8 = function(ptri, array, begin = 0) {
-    ui8.set(array, begin + u32[ptri]);
+    ui8.set(array, begin + u32.at(ptri));
     return ptri;
   };
   state = function(state) {
@@ -750,6 +751,13 @@ self.name = "window";
             setarrayFloat32(this, array);
         }
         return this;
+      }
+
+      toString() {
+        try {
+          console.log("toStringCalled", new Error);
+        } catch (error1) {}
+        return super.toString(...arguments);
       }
 
       store(object) {
@@ -1631,7 +1639,7 @@ self.name = "window";
         return super.set(this.encoder.encode(`${text}`));
       }
 
-      text() {
+      toString() {
         return this.decoder.decode(detachUint8(this));
       }
 
@@ -1717,8 +1725,8 @@ self.name = "window";
         get: EventHandler.prototype.getCallCount,
         set: EventHandler.prototype.setCallCount
       },
-      event: {
-        get: EventHandler.prototype.text
+      name: {
+        get: EventHandler.prototype.toString
       }
     });
 
@@ -1744,7 +1752,7 @@ self.name = "window";
 
       emit(event, data = {}) {
         return this.events.forEach(function(e) {
-          if (e.event === event) {
+          if (e.name === event) {
             return e.call(data);
           }
         });
