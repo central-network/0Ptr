@@ -571,7 +571,6 @@ self.name = "window";
   setResvUint32 = function(ptri, i, v) {
     var index;
     index = i + (HEADER_RESVINDEX + ptri);
-    log("index:", index);
     return u32[index] = v;
   };
   addResvUint32 = function(ptri, i, v) {
@@ -604,7 +603,8 @@ self.name = "window";
   };
   setResvUint8 = function(ptri, i, v) {
     i += (HEADER_RESVINDEX + ptri) * 4;
-    return dvw.setUint8(i, v);
+    dvw.setUint8(i, v);
+    return v;
   };
   hitResvUint8 = function(ptri, i = 0) {
     i += (HEADER_RESVINDEX + ptri) * 4;
@@ -1014,7 +1014,6 @@ self.name = "window";
         get: function() {
           var Class, childs;
           childs = getChilds(this);
-          log(this.constructor.iterate);
           if (!(Class = this.constructor.iterate)) {
             return childs;
           } else {
@@ -1428,11 +1427,16 @@ self.name = "window";
         return this.glObject = this.create();
       }
 
+      getIsActive() {
+        return getResvUint8(this, 0);
+      }
+
       setIsActive() {
         var current, request;
         current = getResvUint8(this, 0);
         request = arguments[0];
         if (request - current) {
+          warn(setResvUint8(this, 0, request));
           if (!setResvUint8(this, 0, request)) {
             this.disable();
           } else {
@@ -1447,7 +1451,7 @@ self.name = "window";
       }
 
       enable() {
-        return this.bindContext().enable();
+        throw /REDEFINE_ENABLE/;
       }
 
     };
@@ -1476,35 +1480,44 @@ self.name = "window";
         }))) {
           if (!(program = programs[0])) {
             setParent(program = new Program, this);
-            program.bindContext();
           }
         }
         return program;
       }
 
       getVertexShader() {
-        var shader;
+        var j, len, ref, shader, source;
         shaders = findChilds(this, VertexShader);
         if (!(shader = shaders.find(function(p) {
           return p.isActive;
         }))) {
           if (!(shader = shaders[0])) {
-            setParent(shader = new VertexShader, this);
-            shader.bindContext();
+            ref = VertexShader.DocumentScripts;
+            for (j = 0, len = ref.length; j < len; j++) {
+              source = ref[j];
+              setParent(shader = new VertexShader, this);
+              shader.source = source;
+            }
+            shader = findChild(this, VertexShader);
           }
         }
         return shader;
       }
 
       getFragmentShader() {
-        var shader;
+        var j, len, ref, shader, source;
         shaders = findChilds(this, FragmentShader);
         if (!(shader = shaders.find(function(p) {
           return p.isActive;
         }))) {
           if (!(shader = shaders[0])) {
-            setParent(shader = new FragmentShader, this);
-            shader.bindContext();
+            ref = FragmentShader.DocumentScripts;
+            for (j = 0, len = ref.length; j < len; j++) {
+              source = ref[j];
+              setParent(shader = new FragmentShader, this);
+              shader.source = source;
+            }
+            shader = findChild(this, FragmentShader);
           }
         }
         return shader;
@@ -1518,7 +1531,6 @@ self.name = "window";
         }))) {
           if (!(buffer_ = buffers[0])) {
             setParent(buffer_ = new DrawBuffer, this);
-            buffer_.bindContext();
           }
         }
         return buffer_;
@@ -2084,23 +2096,45 @@ self.name = "window";
         return this.parent.glObject.createShader(this.shaderType);
       }
 
+      attach() {
+        this.compile();
+        Object.defineProperty(this, "attach", {
+          value: function() {
+            return this.parent.glObject.attachShader(this.program.glObject, this.glObject);
+          }
+        });
+        return this.attach();
+      }
+
+      enable() {
+        return this.attach().isActive = 1;
+      }
+
+      compile() {
+        gl = this.parent.glObject;
+        this.program = this.parent.program;
+        gl.compileShader(this.glObject, this.program.glObject);
+        return this;
+      }
+
       bindContext() {
         var glObject, glProgram;
+        return this;
         gl = this.parent.glObject;
         glObject = this.glObject;
         glProgram = this.parent.program.glObject;
         Object.defineProperties(this, {
-          enable: {
+          attach: {
             value: gl.attachShader.bind(gl, glProgram, glObject)
           },
-          compile: {
-            value: gl.compileShader.bind(gl, glProgram, glObject)
+          enable: {
+            value: gl.attachShader.bind(gl, glProgram, glObject)
           },
           delete: {
             value: gl.deleteShader.bind(gl, glObject)
           }
         });
-        return Object.defineProperties(this, {
+        Object.defineProperties(this, {
           source: {
             get: gl.getShaderSource.bind(gl, glObject),
             set: gl.shaderSource.bind(gl, glObject)
@@ -2115,11 +2149,54 @@ self.name = "window";
             value: gl.getShaderPrecisionFormat.bind(gl, this.shaderType)
           }
         });
+        return this;
       }
 
     };
 
     Shader.prototype.isShader = true;
+
+    Object.defineProperties(Shader.prototype, {
+      source: {
+        get: function() {
+          return this.parent.glObject.getShaderSource(this.glObject);
+        },
+        set: function() {
+          return this.parent.glObject.shaderSource(this.glObject, arguments[0]);
+        }
+      },
+      program: {
+        get: function() {
+          return getLinked(this);
+        },
+        set: function() {
+          return setLinked(this, arguments[0]);
+        }
+      }
+    });
+
+    Object.defineProperties(Shader, {
+      DocumentScripts: {
+        get: function() {
+          scripts = Array.from(document.querySelectorAll("script"));
+          if (this === VertexShader) {
+            return scripts.filter(function(script) {
+              return script.type.match(/x-vertex/i) || script.text.match(/gl_Program/);
+            }).map(function(script) {
+              return script.text;
+            });
+          }
+          if (this === FragmentShader) {
+            return scripts.filter(function(script) {
+              return script.type.match(/x-fragment/i) || script.text.match(/gl_FragColor/);
+            }).map(function(script) {
+              return script.text;
+            });
+          }
+          return [];
+        }
+      }
+    });
 
     return Shader;
 
@@ -2322,7 +2399,7 @@ self.name = "window";
           this.epoch = epoch1;
           this.render();
           if (i++ > 4) {
-            return;
+            throw /RENDER_OF_4/;
           }
           return requestAnimationFrame(onframe);
         };
@@ -2340,11 +2417,11 @@ self.name = "window";
       }
 
       render() {
-        var context, ptri;
+        var ptri;
         ptri = prepareIterator(this, Context);
-        while (context = iteratePrepared(ptri)) {
-          log(context);
-        }
+        
+        //while context = iteratePrepared ptri
+        //    log context
         return this.emit("render");
       }
 

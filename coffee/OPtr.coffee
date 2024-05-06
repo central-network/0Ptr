@@ -482,7 +482,6 @@ do  self.init   = ->
     
     setResvUint32       = ( ptri, i, v ) -> 
         index = i + ( HEADER_RESVINDEX + ptri )
-        log "index:", index
         u32[ index ] = v
     
     addResvUint32       = ( ptri, i, v ) -> 
@@ -513,7 +512,7 @@ do  self.init   = ->
     
     setResvUint8        = ( ptri, i, v ) -> 
         i += ( HEADER_RESVINDEX + ptri ) * 4
-        dvw.setUint8 i, v
+        dvw.setUint8 i, v ; v
     
     hitResvUint8        = ( ptri, i = 0 ) -> 
         i += ( HEADER_RESVINDEX + ptri ) * 4
@@ -866,8 +865,6 @@ do  self.init   = ->
             
             childs  : get : ->
                 childs = getChilds this
-
-                log @constructor.iterate
                 
                 unless Class = @constructor.iterate then childs
                 else childs.filter (ptr) -> ptr instanceof Class
@@ -1099,11 +1096,15 @@ do  self.init   = ->
                     
             @glObject = @create()
 
+        getIsActive : -> getResvUint8 this, 0
+
         setIsActive : ->            
             current = getResvUint8 this, 0
             request = arguments[0]
 
             if  request - current
+
+                warn setResvUint8 this, 0, request
                 
                 unless setResvUint8 this, 0, request
                     @disable()
@@ -1113,7 +1114,7 @@ do  self.init   = ->
 
         disable     : -> this
 
-        enable      : -> @bindContext().enable()                    
+        enable      : -> throw /REDEFINE_ENABLE/                    
 
         Object.defineProperties GLPointer::, 
             glObject :
@@ -1141,24 +1142,27 @@ do  self.init   = ->
             unless program = programs.find (p) -> p.isActive
                 unless program = programs[0]
                     setParent program = new Program, this
-                    program.bindContext()
             program
 
         getVertexShader     : ->
             shaders = findChilds this, VertexShader
             unless shader = shaders.find (p) -> p.isActive
                 unless shader = shaders[0]
-                    setParent shader = new VertexShader, this
-                    shader.bindContext()
+                    for source in VertexShader.DocumentScripts
+                        setParent shader = new VertexShader, this
+                        shader.source = source 
+                    shader = findChild this, VertexShader
+
             shader
-            
 
         getFragmentShader   : ->
             shaders = findChilds this, FragmentShader
             unless shader = shaders.find (p) -> p.isActive
                 unless shader = shaders[0]
-                    setParent shader = new FragmentShader, this
-                    shader.bindContext()
+                    for source in FragmentShader.DocumentScripts
+                        setParent shader = new FragmentShader, this
+                        shader.source = source 
+                    shader = findChild this, FragmentShader
             shader
 
         getDrawBuffer       : ->
@@ -1166,7 +1170,6 @@ do  self.init   = ->
             unless buffer_ = buffers.find (p) -> p.isActive
                 unless buffer_ = buffers[0]
                     setParent buffer_ = new DrawBuffer, this
-                    buffer_.bindContext()
             buffer_
 
         getClearMask        : ->
@@ -1354,7 +1357,7 @@ do  self.init   = ->
                 get : -> getResvUint32 this, 4
                 set : -> setResvUint32 this, 4, arguments[0]
 
-                
+
             buffer : 
                 get : -> new Float32Array buffer, getByteOffset( this ), getLength this
 
@@ -1577,7 +1580,25 @@ do  self.init   = ->
 
         create              : -> @parent.glObject.createShader @shaderType
 
+        attach              : -> 
+            @compile()
+
+            Object.defineProperty this, "attach", value : ->
+                @parent.glObject.attachShader @program.glObject, @glObject
+            
+            @attach()
+
+        enable              : -> @attach().isActive = 1
+            
+        compile             : ->
+            gl = @parent.glObject
+            @program = @parent.program
+            gl.compileShader @glObject, @program.glObject
+            this
+
         bindContext         : ->
+
+            return this
 
             gl              = @parent.glObject  
 
@@ -1587,9 +1608,9 @@ do  self.init   = ->
 
             Object.defineProperties this,
 
-                enable      : value : gl.attachShader.bind gl, glProgram, glObject
+                attach      : value : gl.attachShader.bind gl, glProgram, glObject
 
-                compile     : value : gl.compileShader.bind gl, glProgram, glObject
+                enable      : value : gl.attachShader.bind gl, glProgram, glObject
                 
                 delete      : value : gl.deleteShader.bind gl, glObject
                 
@@ -1606,6 +1627,36 @@ do  self.init   = ->
                 getParameter    : value : gl.getShaderParameter.bind gl, glObject
 
                 precisionFormat : value : gl.getShaderPrecisionFormat.bind gl, @shaderType
+
+            this
+
+        Object.defineProperties Shader::,
+            
+            source  : 
+                get : -> @parent.glObject.getShaderSource @glObject
+                set : -> @parent.glObject.shaderSource @glObject, arguments[0]
+
+            program :
+                get : -> getLinked this
+                set : -> setLinked this, arguments[0]
+
+        Object.defineProperties Shader, DocumentScripts : get : ->
+
+            scripts = Array.from document.querySelectorAll "script"
+
+            if  this is VertexShader
+                return scripts.filter ( script ) ->
+                    script.type.match( /x-vertex/i ) or
+                    script.text.match( /gl_Program/ )
+                .map ( script ) -> script.text
+
+            if  this is FragmentShader
+                return scripts.filter ( script ) ->
+                    script.type.match( /x-fragment/i ) or
+                    script.text.match( /gl_FragColor/ )
+                .map ( script ) -> script.text
+
+            return []
 
     classes.register class VertexShader     extends Shader
 
@@ -1747,7 +1798,7 @@ do  self.init   = ->
             i = 0
             onframe = ( @epoch ) ->
                 @render()
-                return if i++ > 4
+                throw /RENDER_OF_4/ if i++ > 4
                 requestAnimationFrame onframe
 
             do onframe = onframe.bind this
@@ -1767,9 +1818,8 @@ do  self.init   = ->
         render          : ->
             ptri = prepareIterator this, Context
             
-            while context = iteratePrepared ptri
-
-                log context
+            #while context = iteratePrepared ptri
+            #    log context
                 
             @emit "render"
 
