@@ -1396,6 +1396,7 @@ do  self.init   = ->
                         new Attribute shaderAttrs[ i ]
 
 
+                        
     classes.global   class Mesh             extends Pointer
 
         isDrawable          : yes
