@@ -65,10 +65,13 @@
     <script>
         let red = 0.5, green = 0.3 , blue= 0.8, sign = 1, factor = 0.0025;
 
-        const scene = new Scene()
+        const scene = Scene.create({
+            clearColor : [ 1, 0, 1 ]
+        })
+
 
         scene.on( "render", function () {
-            if ( this.callCount % 125 === 0 )
+            if ( this.callCount % 1225 === 0 )
             console.log(
                 "calls:", this.callCount,
                 "fps:", this.fps,

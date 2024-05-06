@@ -340,6 +340,21 @@ do  self.init   = ->
 
         undefined
 
+    inherit             = ( ptri, Class ) ->
+        ptrj = u32[1]
+        clsi = Class.classIndex
+
+        while ptrj -= HEADER_INDEXCOUNT
+            continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+            continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
+            return new Class ptrj
+
+        if !ptri = u32[ HEADER_PARENTPTRI + ptri ]
+            return undefined
+
+        inherit ptri, Class
+
+
     findChildRecursive  = ( ptri, Class, clsi ) -> 
         ptrN = u32[1]
         clsi = clsi or Class.classIndex
@@ -518,8 +533,9 @@ do  self.init   = ->
         o
 
 
-    newFloat32Array     = ( ptri, byteOffset = 0, length ) -> 
-        new Float32Array buffer, u32.at( ptri ) + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
+    newFloat32Array     = ( ptri, byteOffset = 0, length ) ->
+        byteOffset += getByteOffset ptri 
+        new Float32Array buffer, byteOffset, length
 
     ptrFloat32Array     = ( ptri, byteOffset = 0, length ) -> 
         new Float32Array buffer, ptri * 4, length or HEADER_INDEXCOUNT
@@ -596,6 +612,8 @@ do  self.init   = ->
     setUint16           = ( ptri, index, value ) -> 
         u16[ u32[ HEADER_BEGIN + ptri ] * 2 + index ] = value
     
+    setarrayUint16      = ( ptri, array, begin = 0 ) -> 
+        u16.set array, begin + u32[ HEADER_BEGIN + ptri ] * 2 ; this
 
 
     getUint64           = ( ptri, index = 0 ) -> 
@@ -615,6 +633,8 @@ do  self.init   = ->
 
     setarrayUint32      = ( ptri, array, begin = 0 ) -> 
         u32.set array, begin + u32[ HEADER_BEGIN + ptri ] ; ptri
+
+
 
     setUint8            = ( ptri, index, value ) -> 
         ui8[ u32.at( ptri ) + index ] = value
@@ -760,6 +780,12 @@ do  self.init   = ->
 
             this
 
+        at          : ( i ) -> switch @TypedArray 
+            when  Uint8Array then getUint8  this, i
+            when Uint16Array then getUint16 this, i
+            when Uint32Array then getUint32 this, i
+            else getFloat32 this, i
+
         init        : ( props = {} ) ->
             if !getClassIndex this
                 setClassIndex this, this.constructor.classIndex
@@ -782,8 +808,9 @@ do  self.init   = ->
             @malloc byteLength
 
             switch @TypedArray 
-                when Uint8Array
-                    setarrayUint8 this, array
+                when  Uint8Array then setarrayUint8  this, array
+                when Uint16Array then setarrayUint16 this, array
+                when Uint32Array then setarrayUint32 this, array
                 else setarrayFloat32 this, array
 
             return this
@@ -845,6 +872,12 @@ do  self.init   = ->
         setY : (v) -> setFloat32 this, 1, v
         setZ : (v) -> setFloat32 this, 2, v
 
+        [ Symbol.iterator ] : ->
+            [ x, y, z ] =
+                subarrayFloat32 this, 0 , 3
+            
+            ; yield x ; yield y ; yield z ;
+            
         Object.defineProperties Vector3::,
             x : get : Vector3::getX , set : Vector3::setX
             y : get : Vector3::getY , set : Vector3::setY
@@ -862,10 +895,18 @@ do  self.init   = ->
             [ red, green, blue, alpha ] = @f32
             { red, green, blue, alpha }
 
-        set         : ( [ r, g, b, a = 1 ] ) -> super [ r, g, b, a ]
+        set         : ( [ r, g, b, a = 1 ] ) ->
+            super [ r, g, b, a ]
+
+        [ Symbol.iterator ] : ->
+            [ r, g, b, a = 1 ] =
+                subarrayFloat32 this, 0 , 4
+            
+            ; yield r ; yield g ; 
+            ; yield b ; yield a ; 
 
         Object.defineProperties Color::,
-            f32 : get : newFloat32Array
+            f32 : get : -> newFloat32Array this, 0 ,4
             ui8 : get : -> Uint8Array.from @f32, (v) -> v * 0xff
             hex : get : -> "0x" + [ ...@ui8 ].map( (v) -> v.toString(16).padStart(2,0) ).join("")
             u32 : get : -> parseInt @hex, 16
@@ -874,6 +915,7 @@ do  self.init   = ->
             obj : get : -> @toObject()
 
         Object.deleteProperties Color::, [ "childs" ]
+        
 
     classes.register class UV               extends Vector3
 
@@ -974,6 +1016,11 @@ do  self.init   = ->
                 f32[ 2+i ] *= sinZ * cosZ
 
             0
+
+        [ Symbol.iterator ] : ->
+            yield getFloat32 this, 0
+            yield getFloat32 this, 3
+            yield getFloat32 this, 6
 
         Object.defineProperties Rotation::,
             x : get : Rotation::getX , set : Rotation::setX
@@ -1083,6 +1130,34 @@ do  self.init   = ->
 
         name : "pointSize"
 
+    classes.register class GLParamerer      extends Pointer
+
+        @byteLength         : 2
+
+        TypedArray          : Uint16Array
+
+        [ Symbol.iterator ] : -> yield getUint16 this, 0
+
+        value               : -> getUint16 this, 0
+
+    classes.register class ClearMask        extends GLParamerer
+
+        name                : "clearMask"
+
+        DEPTH_BUFFER_BIT    : WebGLRenderingContext.DEPTH_BUFFER_BIT
+
+        COLOR_BUFFER_BIT    : WebGLRenderingContext.COLOR_BUFFER_BIT
+        
+        STENCIL_BUFFER_BIT  : WebGLRenderingContext.STENCIL_BUFFER_BIT
+
+        @default            : 16640 #? depth | color
+
+        set                 : -> super [ arguments... ].flat()
+
+    classes.register class ClearColor       extends Color
+
+        name                : "clearColor"
+
     classes.register class GLPointer        extends Pointer
 
         BYTEINDEX   = 0
@@ -1123,23 +1198,15 @@ do  self.init   = ->
 
     classes.register class Context          extends GLPointer
 
+        @byteLength         : 16 * @BPE
+
+        TypedArray          : Float32Array
+
         isContext           : yes
 
         isOffscreen         : no
 
         contextType         : "webgl2"
-
-        Object.defineProperties Context::,
-            
-            program         : get : Context::getProgram
-            
-            vertexShader    : get : Context::getVertexShader
-
-            fragmentShader  : get : Context::getFragmentShader
-
-            drawBuffer      : get : Context::getDrawBuffer
-
-        Object.deleteProperties Context::, [ "buffer" ]
 
         getProgram          : ->
             programs = findChilds this, Program
@@ -1173,6 +1240,17 @@ do  self.init   = ->
                     buffer_.bindContext()
             buffer_
 
+        getClearMask        : ->
+            unless clearMask = inherit this, ClearMask
+                setParent clearMask = new ClearMask, this
+                clearMask.set ClearMask.default
+            clearMask
+
+        getClearColor       : ->
+            unless clearColor = inherit this, ClearColor
+                setParent clearColor = new ClearColor, this
+            clearColor
+
         bindContext         : ->
 
             gl = @glObject
@@ -1203,29 +1281,103 @@ do  self.init   = ->
 
             this
         
-        create              : ( width, height ) ->
+        create              : ( top, left, width, height ) ->
+            top or= 0
+            left or= 0
             width or= INNER_WIDTH
             height or= INNER_HEIGHT
             
             element = if !@isOffscreen then @resize(
-                width, height, document.body.appendChild(
+                top, left, width, height, 
+                document.body.appendChild(
                     document.createElement 'canvas')
             ) else new OffscreenCanvas width, height
 
             element.getContext @contextType
 
-        resize              : ( width, height, canvas ) ->
+        resize              : ( top, left, width, height, canvas ) ->
             canvas ||= @glObject.canvas
 
+            pixelRatio = devicePixelRatio or 1
+            aspectRatio = width / height
+
+            @parameters = {
+                top, left, width, height,
+                aspectRatio, pixelRatio
+            }
+
             Object.assign canvas, {
-                width   : RATIO_PIXEL * width
-                height  : RATIO_PIXEL * height
+                width   : pixelRatio * width
+                height  : pixelRatio * height
                 style   :
                     width      : CSS.px width
                     height     : CSS.px height
                     inset      : CSS.px 0
                     position   : "fixed"
             }
+
+
+        prepareRender       : ->
+            {   top, left, width, height,
+                aspectRatio, pixelRatio
+            } = @parameters
+            
+            @viewport left, top, width, height
+            @clearColor()
+            @clear()
+        
+        viewport            : ->
+            @glObject.viewport arguments...
+            
+            ; 0
+
+        clear               : ->
+            @glObject.clear @getClearMask().value()
+
+            ; 0
+
+        clearColor          : ->
+            if  clearColor = @getClearColor()
+                @glObject.clearColor clearColor...
+
+            ; 0
+
+        getParameters       : ->
+            [
+                top, left, width, height,
+                aspectRatio, pixelRatio
+            ] = subarrayFloat32 this, 0, 6
+
+            top         or= 0
+            left        or= 0
+            width       or= INNER_WIDTH
+            height      or= INNER_HEIGHT
+            pixelRatio  or= devicePixelRatio or 1
+            aspectRatio or= width / height
+
+            {
+                top, left, width, height,
+                aspectRatio, pixelRatio
+            }
+
+        setParameters       : ( parameters = {} ) ->
+            setarrayFloat32 this, Object.values {
+                ...@parameters, ...parameters
+            }
+
+        Object.defineProperties Context::,
+
+            parameters      : get : Context::getParameters, set : Context::setParameters
+            
+            program         : get : Context::getProgram
+            
+            vertexShader    : get : Context::getVertexShader
+
+            fragmentShader  : get : Context::getFragmentShader
+
+            drawBuffer      : get : Context::getDrawBuffer
+
+        Object.deleteProperties Context::, [ "buffer" ]
 
     classes.register class DrawBuffer       extends GLPointer
 
@@ -1503,6 +1655,7 @@ do  self.init   = ->
 
             do render = render.bind this
 
+            @context.parent
 
         getTimeStamp    : ->
             getUint64( this, 0 ) + getUint32( this, 3 )
@@ -1550,6 +1703,8 @@ do  self.init   = ->
         #?              BYTEOFFSET = 16
 
 
+
+
         Object.defineProperties Scene::,
 
             now         :
@@ -1581,11 +1736,10 @@ do  self.init   = ->
                     unless context = contexts.find (p) -> p.isActive
                         unless context = contexts[0]
                             setParent context = new Context, this
-                    context                    
+                            context.prepareRender()
+                    context
+                    
 
-
-            
-  
 
 
 

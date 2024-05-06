@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_128MB, BYTELENGTH_GLBUFFER, Color, Context, DrawBuffer, EventEmitter, EventHandler, FragmentShader, Frustrum, GLPointer, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERATORI, HEADER_ITERCLASSI, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Mesh, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, Program, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scene, Shader, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, TextPointer, Texture, UV, Vector3, VertexShader, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, detachUint8, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, finalizeIterator, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsCount, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getPointer, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint16, getUint32, getUint64, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitResvUint8, hitTranslated, i32, isThread, isWindow, iteratePrepared, lock, log, mallocs, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, prepareIterator, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint16, setUint32, setUint64, setUint8, setarrayFloat32, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, textDecoder, textEncoder, threadId, ticks, u16, u32, u64, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_128MB, BYTELENGTH_GLBUFFER, ClearColor, ClearMask, Color, Context, DrawBuffer, EventEmitter, EventHandler, FragmentShader, Frustrum, GLParamerer, GLPointer, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERATORI, HEADER_ITERCLASSI, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Mesh, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, Program, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scene, Shader, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, TextPointer, Texture, UV, Vector3, VertexShader, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, detachUint8, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, finalizeIterator, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsCount, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getPointer, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint16, getUint32, getUint64, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitResvUint8, hitTranslated, i32, inherit, isThread, isWindow, iteratePrepared, lock, log, mallocs, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, prepareIterator, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint16, setUint32, setUint64, setUint8, setarrayFloat32, setarrayUint16, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, textDecoder, textEncoder, threadId, ticks, u16, u32, u64, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -394,6 +394,24 @@ self.name = "window";
     }
     return void 0;
   };
+  inherit = function(ptri, Class) {
+    var clsi, ptrj;
+    ptrj = u32[1];
+    clsi = Class.classIndex;
+    while (ptrj -= HEADER_INDEXCOUNT) {
+      if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
+        continue;
+      }
+      if (u32[HEADER_CLASSINDEX + ptrj] - clsi) {
+        continue;
+      }
+      return new Class(ptrj);
+    }
+    if (!(ptri = u32[HEADER_PARENTPTRI + ptri])) {
+      return void 0;
+    }
+    return inherit(ptri, Class);
+  };
   findChildRecursive = function(ptri, Class, clsi) {
     var ptr, ptrN, ptrj;
     ptrN = u32[1];
@@ -606,7 +624,8 @@ self.name = "window";
     return o;
   };
   newFloat32Array = function(ptri, byteOffset = 0, length) {
-    return new Float32Array(buffer, u32.at(ptri) + byteOffset, length || u32[HEADER_LENGTH + ptri]);
+    byteOffset += getByteOffset(ptri);
+    return new Float32Array(buffer, byteOffset, length);
   };
   ptrFloat32Array = function(ptri, byteOffset = 0, length) {
     return new Float32Array(buffer, ptri * 4, length || HEADER_INDEXCOUNT);
@@ -679,6 +698,10 @@ self.name = "window";
   };
   setUint16 = function(ptri, index, value) {
     return u16[u32[HEADER_BEGIN + ptri] * 2 + index] = value;
+  };
+  setarrayUint16 = function(ptri, array, begin = 0) {
+    u16.set(array, begin + u32[HEADER_BEGIN + ptri] * 2);
+    return this;
   };
   getUint64 = function(ptri, index = 0) {
     return Number(u64[u32[HEADER_BEGIN + ptri] / 2 + index]);
@@ -840,6 +863,19 @@ self.name = "window";
         return this;
       }
 
+      at(i) {
+        switch (this.TypedArray) {
+          case Uint8Array:
+            return getUint8(this, i);
+          case Uint16Array:
+            return getUint16(this, i);
+          case Uint32Array:
+            return getUint32(this, i);
+          default:
+            return getFloat32(this, i);
+        }
+      }
+
       init(props = {}) {
         var Class, byteLength, j, len, prop, value;
         if (!getClassIndex(this)) {
@@ -876,6 +912,12 @@ self.name = "window";
         switch (this.TypedArray) {
           case Uint8Array:
             setarrayUint8(this, array);
+            break;
+          case Uint16Array:
+            setarrayUint16(this, array);
+            break;
+          case Uint32Array:
+            setarrayUint32(this, array);
             break;
           default:
             setarrayFloat32(this, array);
@@ -1007,6 +1049,14 @@ self.name = "window";
         return setFloat32(this, 2, v);
       }
 
+      * [Symbol.iterator]() {
+        var x, y, z;
+        [x, y, z] = subarrayFloat32(this, 0, 3);
+        yield x;
+        yield y;
+        return (yield z);
+      }
+
     };
 
     Vector3.byteLength = 3 * Vector3.BPE;
@@ -1043,6 +1093,15 @@ self.name = "window";
         return super.set([r, g, b, a]);
       }
 
+      * [Symbol.iterator]() {
+        var a, b, g, r;
+        [r, g, b, a = 1] = subarrayFloat32(this, 0, 4);
+        yield r;
+        yield g;
+        yield b;
+        return (yield a);
+      }
+
     };
 
     Color.prototype.name = "color";
@@ -1051,7 +1110,9 @@ self.name = "window";
 
     Object.defineProperties(Color.prototype, {
       f32: {
-        get: newFloat32Array
+        get: function() {
+          return newFloat32Array(this, 0, 4);
+        }
       },
       ui8: {
         get: function() {
@@ -1228,6 +1289,12 @@ self.name = "window";
           f32[2 + i] *= sinZ * cosZ;
         }
         return 0;
+      }
+
+      * [Symbol.iterator]() {
+        yield getFloat32(this, 0);
+        yield getFloat32(this, 3);
+        return (yield getFloat32(this, 6));
       }
 
     };
@@ -1414,6 +1481,54 @@ self.name = "window";
     return PointSize;
 
   }).call(this));
+  classes.register(GLParamerer = (function() {
+    class GLParamerer extends Pointer {
+      * [Symbol.iterator]() {
+        return (yield getUint16(this, 0));
+      }
+
+      value() {
+        return getUint16(this, 0);
+      }
+
+    };
+
+    GLParamerer.byteLength = 2;
+
+    GLParamerer.prototype.TypedArray = Uint16Array;
+
+    return GLParamerer;
+
+  }).call(this));
+  classes.register(ClearMask = (function() {
+    class ClearMask extends GLParamerer {
+      set() {
+        return super.set([...arguments].flat());
+      }
+
+    };
+
+    ClearMask.prototype.name = "clearMask";
+
+    ClearMask.prototype.DEPTH_BUFFER_BIT = WebGLRenderingContext.DEPTH_BUFFER_BIT;
+
+    ClearMask.prototype.COLOR_BUFFER_BIT = WebGLRenderingContext.COLOR_BUFFER_BIT;
+
+    ClearMask.prototype.STENCIL_BUFFER_BIT = WebGLRenderingContext.STENCIL_BUFFER_BIT;
+
+    ClearMask.default = 16640; //? depth | color
+
+    return ClearMask;
+
+  }).call(this));
+  classes.register(ClearColor = (function() {
+    class ClearColor extends Color {};
+
+    ClearColor.prototype.name = "clearColor";
+
+    return ClearColor;
+
+  }).call(this));
   classes.register(GLPointer = (function() {
     var BYTEINDEX;
 
@@ -1528,6 +1643,23 @@ self.name = "window";
         return buffer_;
       }
 
+      getClearMask() {
+        var clearMask;
+        if (!(clearMask = inherit(this, ClearMask))) {
+          setParent(clearMask = new ClearMask, this);
+          clearMask.set(ClearMask.default);
+        }
+        return clearMask;
+      }
+
+      getClearColor() {
+        var clearColor;
+        if (!(clearColor = inherit(this, ClearColor))) {
+          setParent(clearColor = new ClearColor, this);
+        }
+        return clearColor;
+      }
+
       bindContext() {
         gl = this.glObject;
         Object.defineProperties(this, {
@@ -1570,19 +1702,25 @@ self.name = "window";
         return this;
       }
 
-      create(width, height) {
+      create(top, left, width, height) {
         var element;
+        top || (top = 0);
+        left || (left = 0);
         width || (width = INNER_WIDTH);
         height || (height = INNER_HEIGHT);
-        element = !this.isOffscreen ? this.resize(width, height, document.body.appendChild(document.createElement('canvas'))) : new OffscreenCanvas(width, height);
+        element = !this.isOffscreen ? this.resize(top, left, width, height, document.body.appendChild(document.createElement('canvas'))) : new OffscreenCanvas(width, height);
         return element.getContext(this.contextType);
       }
 
-      resize(width, height, canvas) {
+      resize(top, left, width, height, canvas) {
+        var aspectRatio, pixelRatio;
         canvas || (canvas = this.glObject.canvas);
+        pixelRatio = devicePixelRatio || 1;
+        aspectRatio = width / height;
+        this.parameters = {top, left, width, height, aspectRatio, pixelRatio};
         return Object.assign(canvas, {
-          width: RATIO_PIXEL * width,
-          height: RATIO_PIXEL * height,
+          width: pixelRatio * width,
+          height: pixelRatio * height,
           style: {
             width: CSS.px(width),
             height: CSS.px(height),
@@ -1592,7 +1730,53 @@ self.name = "window";
         });
       }
 
+      prepareRender() {
+        var aspectRatio, height, left, pixelRatio, top, width;
+        ({top, left, width, height, aspectRatio, pixelRatio} = this.parameters);
+        this.viewport(left, top, width, height);
+        this.clearColor();
+        return this.clear();
+      }
+
+      viewport() {
+        this.glObject.viewport(...arguments);
+        return 0;
+      }
+
+      clear() {
+        this.glObject.clear(this.getClearMask().value());
+        return 0;
+      }
+
+      clearColor() {
+        var clearColor;
+        if (clearColor = this.getClearColor()) {
+          this.glObject.clearColor(...clearColor);
+        }
+        return 0;
+      }
+
+      getParameters() {
+        var aspectRatio, height, left, pixelRatio, top, width;
+        [top, left, width, height, aspectRatio, pixelRatio] = subarrayFloat32(this, 0, 6);
+        top || (top = 0);
+        left || (left = 0);
+        width || (width = INNER_WIDTH);
+        height || (height = INNER_HEIGHT);
+        pixelRatio || (pixelRatio = devicePixelRatio || 1);
+        aspectRatio || (aspectRatio = width / height);
+        return {top, left, width, height, aspectRatio, pixelRatio};
+      }
+
+      setParameters(parameters = {}) {
+        return setarrayFloat32(this, Object.values({...this.parameters, ...parameters}));
+      }
+
     };
+
+    Context.byteLength = 16 * Context.BPE;
+
+    Context.prototype.TypedArray = Float32Array;
 
     Context.prototype.isContext = true;
 
@@ -1601,6 +1785,10 @@ self.name = "window";
     Context.prototype.contextType = "webgl2";
 
     Object.defineProperties(Context.prototype, {
+      parameters: {
+        get: Context.prototype.getParameters,
+        set: Context.prototype.setParameters
+      },
       program: {
         get: Context.prototype.getProgram
       },
@@ -1990,7 +2178,8 @@ self.name = "window";
           this.emit("render");
           return requestAnimationFrame(render);
         };
-        return (render = render.bind(this))();
+        (render = render.bind(this))();
+        return this.context.parent;
       }
 
       getTimeStamp() {
@@ -2081,6 +2270,7 @@ self.name = "window";
           }))) {
             if (!(context = contexts[0])) {
               setParent(context = new Context, this);
+              context.prepareRender();
             }
           }
           return context;
