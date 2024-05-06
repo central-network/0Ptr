@@ -55,6 +55,22 @@ do  self.init   = ->
             i += @push Class 
         Class.classIndex = i
 
+    classes.global = ( Class ) ->
+        
+        handler = ->
+            unless isNaN arguments[0]
+                return new Class arguments...
+            return Class.create arguments...
+
+        Object.defineProperties handler,
+            allocs      : value : Pointer.allocs
+            classIndex  : value : @register Class
+            BPE         : value : Class.BPE
+
+        self[ Class.name ] = handler
+
+
+
     shaders.register = ( WebGLObject ) ->
         unless @includes WebGLObject
             @push WebGLObject 
@@ -391,18 +407,14 @@ do  self.init   = ->
 
         childs
 
-    findChildsPtri      = ( ptri, test ) -> 
+    findChildsPtri      = ( ptri, Class ) -> 
         ptrj = u32[1]
+        clsi = Class.classIndex
         list = new Array() ; i = 0
-
-        ci = if test.isPtr  then classes.indexOf test
-        else if test.isPtri then u32[ HEADER_CLASSINDEX + test ]
-        else if !isNaN test then test
-        else throw /FILTER_TEST_FAILED/
 
         while ptrj -= HEADER_INDEXCOUNT
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
-            continue if u32[ HEADER_CLASSINDEX + ptrj ] - ci
+            continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
             list[ i ] = ptrj ; i++
 
         list
@@ -470,6 +482,7 @@ do  self.init   = ->
     
     setResvUint32       = ( ptri, i, v ) -> 
         index = i + ( HEADER_RESVINDEX + ptri )
+        log "index:", index
         u32[ index ] = v
     
     addResvUint32       = ( ptri, i, v ) -> 
@@ -786,17 +799,24 @@ do  self.init   = ->
             when Uint32Array then getUint32 this, i
             else getFloat32 this, i
 
-        init        : ( props = {} ) ->
+        init        : ( props ) ->
             if !getClassIndex this
                 setClassIndex this, this.constructor.classIndex
                 if  byteLength = this.constructor.byteLength
                     @malloc byteLength
 
-            for prop, value of props then for Class in classes
-                continue unless prop is Class::name
-                @add new Class().set value; break
+            if  props
+                for prop, value of props
 
-            return @
+                    if  @hasOwnProperty prop
+                        @[ prop ] = value
+                        continue
+
+                    for Class in classes
+                        continue unless prop is Class::name
+                        @add new Class().set value; break
+
+            this
 
         set         : ( array = [] ) ->
             unless  byteLength = getByteLength this
@@ -827,6 +847,8 @@ do  self.init   = ->
 
         add         : ( ptr ) -> setParent ptr, this
 
+        append      : ( ptr ) -> setParent ptr, this ; ptr
+
         @allocs     : -> getAllocs this
 
         @create     : -> new this null, arguments...
@@ -845,6 +867,8 @@ do  self.init   = ->
             childs  : get : ->
                 childs = getChilds this
 
+                log @constructor.iterate
+                
                 unless Class = @constructor.iterate then childs
                 else childs.filter (ptr) -> ptr instanceof Class
                     
@@ -855,10 +879,10 @@ do  self.init   = ->
             buffer  :
                 get : -> new this.TypedArray buffer, getByteOffset(this), getLength(this)
 
-            [ Symbol.pointer  ] :
+
+        Object.defineProperties Pointer::,
+            [ "{[Pointer]}" ] :
                 get : -> ptrUint32Array this, 0, HEADER_INDEXCOUNT
-
-
 
     classes.register class Vector3          extends Pointer
 
@@ -916,7 +940,6 @@ do  self.init   = ->
 
         Object.deleteProperties Color::, [ "childs" ]
         
-
     classes.register class UV               extends Vector3
 
         name        : "uv"
@@ -1029,99 +1052,6 @@ do  self.init   = ->
             
         Object.deleteProperties Rotation::, [ "childs" ]
 
-    classes.register class Mesh             extends Pointer
-
-        self.Mesh           = Mesh
-
-        drawable            : yes
-
-        Object.defineProperties Mesh::,
-
-            info            : get : ->
-
-                counts      : counts =
-
-                    points  : getLength( this ) / 3
-
-                    lines   : -1 + getLength( this ) / 3
-
-                    triangles : Math.trunc getLength( this ) / 9
-
-                offset      : @offsets()
-
-                shapes      :
-
-                    points      : if !i = 0 then while i < counts.points then @vertex i++
-                    
-                    lines       : if !i = 0 then while i < counts.lines then @line i++
-
-                    triangles   : if !i = 0 then while i < counts.triangles then @triangle i++
-
-            pointCount      : get : -> getLength( this ) / 3
-
-            draws           : get : -> findLinkeds this, Draw
-
-            byteLength      : get : -> getByteLength this
-
-            byteOffset      : get : -> getByteOffset this
-            
-        @create : ( props = {} ) ->
-            matter = new this
-
-            if  props.vertices
-                matter.set props.vertices
-                delete props.vertices
-
-            matter . init props
-
-        vertex      : ( index = 0, count = 1 ) ->
-            subarrayFloat32 this, 3 * index, 3 * count
-
-        line        : ( index = 0 ) -> 
-            subarrayFloat32 this, 3 * index, 6
-
-        triangle    : ( index = 0 ) -> 
-            subarrayFloat32 this, 9 * index, 9
-
-        offsets     : ( index = 0, count = @pointCount ) ->
-            begin      : b = index * 3 + getBegin this
-            length     : l = count * 3
-            end        : l + b
-            byteOffset : @BPE * b
-            byteLength : @BPE * l
-
-
-        copy        : ( start, begin, count, stride, offset ) ->
-
-            byteOffset      = begin * @BPE
-            byteLength      = count * @BPE * 3
-            dstByteOffset   = start * @BPE + offset
-
-            while count--
-                ui8.copyWithin dstByteOffset, byteOffset, byteOffset + 12
-
-                byteOffset -= 12
-                dstByteOffset -= stride
-
-            0
-
-        transform   : ( begin, count ) ->
-
-            #todo buffer alloc required 'cause of stride and offset
-            @copy 1
-
-            if  rotation = findInheritable this, "rotation"
-                rotation . apply begin, count
-
-            #todo must read rotated, not original begin 
-            if  position = findInheritable this, "position"
-                position . apply begin, count
-
-            if  scale    = findInheritable this, "scale"
-                scale    . apply begin, count
-
-            0
-
     classes.register class Frustrum         extends Pointer
 
         name : "frustrum"
@@ -1159,8 +1089,6 @@ do  self.init   = ->
         name                : "clearColor"
 
     classes.register class GLPointer        extends Pointer
-
-        BYTEINDEX   = 0
 
         setGLObject : ->
             setResvUint8 this, 1, @store arguments[0]
@@ -1223,6 +1151,7 @@ do  self.init   = ->
                     setParent shader = new VertexShader, this
                     shader.bindContext()
             shader
+            
 
         getFragmentShader   : ->
             shaders = findChilds this, FragmentShader
@@ -1316,7 +1245,6 @@ do  self.init   = ->
                     position   : "fixed"
             }
 
-
         prepareRender       : ->
             {   top, left, width, height,
                 aspectRatio, pixelRatio
@@ -1379,17 +1307,171 @@ do  self.init   = ->
 
         Object.deleteProperties Context::, [ "buffer" ]
 
+        alloc               : ( pointCount ) ->
+            @drawBuffer.allocTriangles pointCount
+
+    classes.register class Draw             extends Pointer
+
+        isDraw      : on
+
+        Object.defineProperties Draw::,
+
+            begin   :
+                get : -> getBegin this
+                set : -> setBegin this, arguments[0]
+
+            length  :
+                get : -> getLength this
+                set : -> setLength this, arguments[0]
+
+            byteLength :
+                get : -> getByteLength this
+                set : -> setByteLength this, arguments[0]
+
+            byteOffset :
+                get : -> getByteOffset this
+                set : -> setByteOffset this, arguments[0]
+
+            mesh :
+                get : -> getLinked this
+                set : -> setLinked this, arguments[0]
+
+
+
+            type    :
+                get : -> getResvUint16 this, 1
+                set : -> setResvUint16 this, 1, arguments[0]
+
+            bufferOffset :
+                get : -> getResvUint32 this, 1
+                set : -> setResvUint32 this, 1, arguments[0]
+
+            count :
+                get : -> getResvUint32 this, 3
+                set : -> setResvUint32 this, 3, arguments[0]
+
+            start :
+                get : -> getResvUint32 this, 4
+                set : -> setResvUint32 this, 4, arguments[0]
+
+                
+            buffer : 
+                get : -> new Float32Array buffer, getByteOffset( this ), getLength this
+
+
+    classes.global   class Mesh             extends Pointer
+
+        isDrawable          : yes
+
+        Object.defineProperties Mesh::,
+
+            info            : get : ->
+
+                counts      : counts =
+
+                    points  : getLength( this ) / 3
+
+                    lines   : -1 + getLength( this ) / 3
+
+                    triangles : Math.trunc getLength( this ) / 9
+
+                offset      : @offsets()
+
+                shapes      :
+
+                    points      : if !i = 0 then while i < counts.points then @vertex i++
+                    
+                    lines       : if !i = 0 then while i < counts.lines then @line i++
+
+                    triangles   : if !i = 0 then while i < counts.triangles then @triangle i++
+
+            pointCount      : get : -> getLength( this ) / 3
+
+            draws           : get : -> findLinkeds this, Draw
+
+            byteLength      : get : -> getByteLength this
+
+            byteOffset      : get : -> getByteOffset this
+            
+        @create : ( props = {} ) ->
+            matter = new this
+
+            if  props.vertices
+                matter.set props.vertices
+                delete props.vertices
+
+            matter . init props
+
+        vertex      : ( index = 0, count = 1 ) ->
+            subarrayFloat32 this, 3 * index, 3 * count
+
+        line        : ( index = 0 ) -> 
+            subarrayFloat32 this, 3 * index, 6
+
+        triangle    : ( index = 0 ) -> 
+            subarrayFloat32 this, 9 * index, 9
+
+        offsets     : ( index = 0, count = @pointCount ) ->
+            begin      : b = index * 3 + getBegin this
+            length     : l = count * 3
+            end        : l + b
+            byteOffset : @BPE * b
+            byteLength : @BPE * l
+
+
+        copy        : ( start, begin, count, stride, offset ) ->
+
+            byteOffset      = begin * @BPE
+            byteLength      = count * @BPE * 3
+            dstByteOffset   = start * @BPE + offset
+
+            while count--
+                ui8.copyWithin dstByteOffset, byteOffset, byteOffset + 12
+
+                byteOffset -= 12
+                dstByteOffset -= stride
+
+            0
+
+        transform   : ( begin, count ) ->
+
+            #todo buffer alloc required 'cause of stride and offset
+            @copy 1
+
+            if  rotation = findInheritable this, "rotation"
+                rotation . apply begin, count
+
+            #todo must read rotated, not original begin 
+            if  position = findInheritable this, "position"
+                position . apply begin, count
+
+            if  scale    = findInheritable this, "scale"
+                scale    . apply begin, count
+
+            0
+            
+
     classes.register class DrawBuffer       extends GLPointer
 
         MAX_POINT_COUNT     : 1e5
 
         BYTES_PER_POINT     : 32
 
+        LENGTH_PER_POINT    : 8
+
         isBuffer            : yes
 
         TARGET              : WebGL2RenderingContext.ARRAY_BUFFER
 
         USAGE               : WebGL2RenderingContext.STATIC_DRAW
+
+        OFFSET_TRIANGLES    : 0 
+
+        TRIANGLES           : WebGL2RenderingContext.TRIANGLES
+
+        LINES               : WebGL2RenderingContext.LINES
+
+        POINTS              : WebGL2RenderingContext.POINTS
 
         create              : -> 
                
@@ -1403,6 +1485,19 @@ do  self.init   = ->
             gl.bufferData   gl.ARRAY_BUFFER, byteLength, @USAGE
 
             glObject
+
+        drawTriangles       : ( ptr ) ->
+            Object.assign @append( new Draw ), {
+                count        : count = ptr.pointCount
+                byteLength   : byteLength = count * @BYTES_PER_POINT
+                bufferOffset : offset = addResvUint32 this, 1, byteLength
+                byteOffset   : @OFFSET_TRIANGLES + offset + getByteOffset this
+                length       : length = count * @LENGTH_PER_POINT
+                start        : addResvUint32 this, 2, count
+                begin        : addResvUint32 this, 3, length 
+                mesh         : ptr
+                type         : @TRIANGLES
+            }
             
         bindContext         : ->
 
@@ -1542,7 +1637,6 @@ do  self.init   = ->
         toString            : ->
             @decoder.decode detachUint8 this
 
-
     classes.register class EventHandler     extends TextPointer
 
         getHandler          : -> @storage[ getResvUint8 this, 0 ]
@@ -1600,6 +1694,8 @@ do  self.init   = ->
 
     classes.register class EventEmitter     extends Pointer
 
+        iterate         : EventHandler
+
         init            : ->
             if  hitResvUint8 super( arguments...), 0
                 @create()
@@ -1612,8 +1708,10 @@ do  self.init   = ->
             @add new EventHandler().set arguments... 
 
         emit            : ( event, data = {} ) ->
-            @hitCallCount @events.forEach (e) ->
-                e.call data if e.name is event
+            @hitCallCount()
+
+            for e of @childs when e.name is event
+                e.call data 
 
         create              : -> this
 
@@ -1631,10 +1729,7 @@ do  self.init   = ->
                 get : EventEmitter::getCallCount
                 set : EventEmitter::setCallCount
 
-
-    classes.register class Scene            extends EventEmitter
-
-        self.Scene  = this
+    classes.global   class Scene            extends EventEmitter
 
         @byteLength : 28 * @BPE
 
@@ -1649,13 +1744,35 @@ do  self.init   = ->
             @startTime = Date.now()
             @isRendering = 1
 
-            render = ( @epoch ) ->
-                @emit  "render"
-                requestAnimationFrame render
+            i = 0
+            onframe = ( @epoch ) ->
+                @render()
+                return if i++ > 4
+                requestAnimationFrame onframe
 
-            do render = render.bind this
+            do onframe = onframe.bind this
 
             @context.parent
+
+        add             : ( ptr ) ->
+            super ptr
+
+            if !ptr.isDrawable
+                return this
+            
+            @drawBuffer.drawTriangles ptr
+
+            this
+
+        render          : ->
+            ptri = prepareIterator this, Context
+            
+            while context = iteratePrepared ptri
+
+                log context
+                
+            @emit "render"
+
 
         getTimeStamp    : ->
             getUint64( this, 0 ) + getUint32( this, 3 )
@@ -1738,6 +1855,9 @@ do  self.init   = ->
                             setParent context = new Context, this
                             context.prepareRender()
                     context
+
+            drawBuffer  :
+                get : -> @context.drawBuffer
                     
 
 

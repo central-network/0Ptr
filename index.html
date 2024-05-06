@@ -65,9 +65,8 @@
     <script>
         let red = 0.5, green = 0.3 , blue= 0.8, sign = 1, factor = 0.0025;
 
-        const scene = Scene.create({
-            clearColor : [ 1, 0, 1 ]
-        })
+        
+        const scene = Scene({clearColor : [1, 0, 1]})
 
 
         scene.on( "render", function () {
@@ -81,7 +80,7 @@
         })
 
 
-        const mesh1 = Mesh.create({
+        const mesh1 = Mesh({
             position : [ 0, -20, 0 ],
             color : [ 1, 0, 0, 0],
             vertices : [
@@ -98,7 +97,7 @@
         })
 
 
-        const mesh2 = Mesh.create({
+        const mesh2 = Mesh({
             rotation : [ 0, Math.PI, 0 ],
             scale : [ 1, 2, 1],
             vertices : [
@@ -111,12 +110,7 @@
         for (let m of Mesh.allocs())
             scene.add( m )
 
-        for (let o of scene)
-            console.log( "iterating:", o)
-
-        console.log(mesh1)
-        console.log(mesh2)
-        console.log(scene)
+        console.log(mesh1, mesh2 ,  scene)
 
 
 
