@@ -1,7 +1,7 @@
 self.name = "window";
 
 (self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, BPE, BYTELENGTH_128MB, BYTELENGTH_GLBUFFER, ClearColor, ClearMask, Color, Context, Draw, DrawBuffer, EventEmitter, EventHandler, FragmentShader, Frustrum, GLParamerer, GLPointer, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERATORI, HEADER_ITERCLASSI, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Mesh, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, Program, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scene, Shader, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, TextPointer, Texture, UV, Vector3, VertexShader, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, detachUint8, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, finalizeIterator, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsCount, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getPointer, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint16, getUint32, getUint64, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitResvUint8, hitTranslated, i32, inherit, isThread, isWindow, iteratePrepared, lock, log, mallocs, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, prepareIterator, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint16, setUint32, setUint64, setUint8, setarrayFloat32, setarrayUint16, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint32, subarrayUint8, textDecoder, textEncoder, threadId, ticks, u16, u32, u64, ui8, unlock, uuid, vShader, warn, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, Attribute, BPE, BYTELENGTH_128MB, BYTELENGTH_GLBUFFER, ClearColor, ClearMask, Color, Context, Draw, DrawBuffer, EventEmitter, EventHandler, FragmentShader, Frustrum, GLParamerer, GLPointer, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERATORI, HEADER_ITERCLASSI, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Mesh, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, Program, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scene, Shader, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, TextPointer, Texture, UV, Vector3, VertexShader, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, detachUint8, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, finalizeIterator, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsCount, getChildsPtri, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getPointer, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint16, getUint32, getUint64, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitResvUint8, hitTranslated, i32, inherit, isThread, isWindow, iteratePrepared, lock, log, mallocs, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, prepareIterator, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setLinkedPtri, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint16, setUint32, setUint64, setUint8, setarrayFloat32, setarrayUint16, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint16, subarrayUint32, subarrayUint8, textDecoder, textEncoder, threadId, ticks, u16, u32, u64, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -239,6 +239,9 @@ self.name = "window";
   getLinkedPtri = function(ptri) {
     return u32[HEADER_LINKEDPTRI + ptri];
   };
+  setLinkedPtri = function(ptri, ptrj) {
+    return u32[HEADER_LINKEDPTRI + ptri] = ptrj;
+  };
   setParent = function(ptri, ptrj) {
     return u32[HEADER_PARENTPTRI + ptri] = ptrj;
   };
@@ -302,6 +305,32 @@ self.name = "window";
         }
         Class = classes[u32[HEADER_CLASSINDEX + ptrj]];
         list[i++] = new Class(ptrj);
+      }
+    }
+    return list;
+  };
+  getChildsPtri = function(ptri, Class) {
+    var clsi, i, list, ptrj;
+    ptrj = u32[1];
+    list = new Array();
+    i = 0;
+    if (Class) {
+      clsi = Class.classIndex;
+      while (ptrj -= HEADER_INDEXCOUNT) {
+        if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
+          continue;
+        }
+        if (u32[HEADER_CLASSINDEX + ptrj] - clsi) {
+          continue;
+        }
+        list[i++] = ptrj;
+      }
+    } else {
+      while (ptrj -= HEADER_INDEXCOUNT) {
+        if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
+          continue;
+        }
+        list[i++] = ptrj;
       }
     }
     return list;
@@ -662,6 +691,10 @@ self.name = "window";
   subarrayUint32 = function(ptri, begin = 0, count) {
     begin += u32[HEADER_BEGIN + ptri];
     return u32.subarray(begin, begin + count);
+  };
+  subarrayUint16 = function(ptri, begin = 0, count) {
+    begin += u32[HEADER_BEGIN + ptri] * 2;
+    return u16.subarray(begin, begin + count);
   };
   subarrayUint8 = function(ptri, begin = 0, count) {
     begin += u32.at(ptri);
@@ -1215,8 +1248,6 @@ self.name = "window";
 
     Position.prototype.name = "position";
 
-    Position.prototype.vertexAttribPointer = "position";
-
     return Position;
 
   }).call(this));
@@ -1751,6 +1782,14 @@ self.name = "window";
           return setLinked(this, arguments[0]);
         }
       },
+      vertexShader: {
+        get: function() {
+          return new VertexShader(getResvUint32(this, 5));
+        },
+        set: function() {
+          return setResvUint32(this, 5, arguments[0]);
+        }
+      },
       type: {
         get: function() {
           return getResvUint16(this, 1);
@@ -1786,6 +1825,30 @@ self.name = "window";
       buffer: {
         get: function() {
           return new Float32Array(buffer, getByteOffset(this), getLength(this));
+        }
+      },
+      attributes: {
+        get: function() {
+          var c, i, j, len, meshChilds, results, s, shaderAttrs, shaderClasses;
+          meshChilds = getChildsPtri(getLinkedPtri(this));
+          shaderAttrs = getChildsPtri(getResvUint32(this, 5), Attribute);
+          shaderClasses = (function() {
+            var j, len, results;
+            results = [];
+            for (j = 0, len = shaderAttrs.length; j < len; j++) {
+              s = shaderAttrs[j];
+              results.push(getLinkedPtri(s));
+            }
+            return results;
+          })();
+          results = [];
+          for (j = 0, len = meshChilds.length; j < len; j++) {
+            c = meshChilds[j];
+            if (-1 !== (i = shaderClasses.indexOf(getClassIndex(c)))) {
+              results.push(new Attribute(shaderAttrs[i]));
+            }
+          }
+          return results;
         }
       }
     });
@@ -1937,7 +2000,7 @@ self.name = "window";
     class DrawBuffer extends GLPointer {
       create() {
         var byteLength, glObject;
-        byteLength = this.BYTES_PER_POINT * this.MAX_POINT_COUNT;
+        byteLength = this.MAX_POINT_COUNT * this.parent.vertexShader.BYTES_PER_POINT;
         this.malloc(byteLength);
         gl = this.parent.glObject;
         glObject = gl.createBuffer();
@@ -1947,17 +2010,24 @@ self.name = "window";
       }
 
       drawTriangles(ptr) {
-        var byteLength, count, length, offset;
+        var byteOffset, bytes, count, length, offset, vertexShader;
+        if (!(byteOffset = getByteOffset(this))) {
+          if (this.create()) {
+            byteOffset = getByteOffset(this);
+          }
+        }
+        vertexShader = this.parent.vertexShader;
         return Object.assign(this.append(new Draw), {
           count: count = ptr.pointCount,
-          byteLength: byteLength = count * this.BYTES_PER_POINT,
-          bufferOffset: offset = addResvUint32(this, 1, byteLength),
-          byteOffset: this.OFFSET_TRIANGLES + offset + getByteOffset(this),
-          length: length = count * this.LENGTH_PER_POINT,
+          byteLength: bytes = count * vertexShader.BYTES_PER_POINT,
+          bufferOffset: offset = addResvUint32(this, 1, bytes),
+          byteOffset: offset + byteOffset + this.OFFSET_TRIANGLES,
+          length: length = bytes / Float32Array.BYTES_PER_ELEMENT,
           start: addResvUint32(this, 2, count),
           begin: addResvUint32(this, 3, length),
           mesh: ptr,
-          type: this.TRIANGLES
+          type: this.TRIANGLES,
+          vertexShader: vertexShader
         });
       }
 
@@ -1997,10 +2067,6 @@ self.name = "window";
     };
 
     DrawBuffer.prototype.MAX_POINT_COUNT = 1e5;
-
-    DrawBuffer.prototype.BYTES_PER_POINT = 32;
-
-    DrawBuffer.prototype.LENGTH_PER_POINT = 8;
 
     DrawBuffer.prototype.isBuffer = true;
 
@@ -2085,19 +2151,131 @@ self.name = "window";
 
     Program.prototype.isProgram = true;
 
+    Object.defineProperties(Program.prototype, {
+      isLinkable: {
+        get: function() {
+          return this.parent.vertexShader.source.length && this.parent.fragmentShader.source.length;
+        }
+      }
+    });
+
     Object.deleteProperties(Program.prototype, ["buffer", "childs"]);
 
     return Program;
 
   }).call(this));
+  classes.register(Attribute = (function() {
+    class Attribute extends Pointer {};
+
+    Object.defineProperties(Attribute.prototype, {
+      index: {
+        get: function() {
+          return getResvUint16(this, 0);
+        },
+        set: function() {
+          return setResvUint16(this, 0, arguments[0]);
+        }
+      },
+      size: {
+        get: function() {
+          return getResvUint16(this, 1);
+        },
+        set: function() {
+          return setResvUint16(this, 1, arguments[0]);
+        }
+      },
+      type: {
+        get: function() {
+          return getResvUint16(this, 2);
+        },
+        set: function() {
+          return setResvUint16(this, 2, arguments[0]);
+        }
+      },
+      normalized: {
+        get: function() {
+          return getResvUint16(this, 3);
+        },
+        set: function() {
+          return setResvUint16(this, 3, arguments[0]);
+        }
+      },
+      stride: {
+        get: function() {
+          return getResvUint16(this, 4);
+        },
+        set: function() {
+          return setResvUint16(this, 4, arguments[0]);
+        }
+      },
+      offset: {
+        get: function() {
+          return getResvUint16(this, 5);
+        },
+        set: function() {
+          return setResvUint16(this, 5, arguments[0]);
+        }
+      },
+      byteLength: {
+        get: function() {
+          return getByteLength(this);
+        },
+        set: function() {
+          return setByteLength(this, arguments[0]);
+        }
+      },
+      Class: {
+        get: function() {
+          return classes[getLinkedPtri(this)];
+        },
+        set: function() {
+          return setLinkedPtri(this, arguments[0].classIndex);
+        }
+      },
+      name: {
+        get: function() {
+          return classes[getLinkedPtri(this)].prototype.name;
+        }
+      },
+      pointerArgs: {
+        get: function() {
+          var begin;
+          begin = HEADER_RESVINDEX + this;
+          return new Uint16Array(buffer, begin * 4, 6);
+        }
+      },
+      performers: {
+        get: function() {
+          var vertexShader;
+          vertexShader = 1 * this.parent;
+          return this.Class.allocs().filter(function(a) {
+            return a.parent.draws.find(function(d) {
+              return d.vertexShader - vertexShader === 0;
+            });
+          });
+        }
+      }
+    });
+
+    Object.deleteProperties(Attribute.prototype, ["childs", "buffer"]);
+
+    return Attribute;
+
+  }).call(this));
   classes.register(Shader = (function() {
     class Shader extends GLPointer {
+      keyof(type) {
+        var k, v;
+        k = Object.keys(WebGL2RenderingContext);
+        v = Object.values(WebGL2RenderingContext);
+        return k.at(v.indexOf(type));
+      }
+
       create() {
         return this.parent.glObject.createShader(this.shaderType);
       }
 
       attach() {
-        this.compile();
         Object.defineProperty(this, "attach", {
           value: function() {
             return this.parent.glObject.attachShader(this.program.glObject, this.glObject);
@@ -2111,9 +2289,75 @@ self.name = "window";
       }
 
       compile() {
+        var glProgram, source;
+        source = arguments[0];
         gl = this.parent.glObject;
         this.program = this.parent.program;
-        gl.compileShader(this.glObject, this.program.glObject);
+        glProgram = this.program.glObject;
+        gl.shaderSource(this.glObject, source);
+        gl.compileShader(this.glObject, glProgram);
+        if (this.program.isLinkable) {
+          this.resolve();
+        }
+        return this;
+      }
+
+      resolve() {
+        var Class, attr, attributes, byteLength, fshader, info, j, kind, len, length, location, name, numAttribs, offset, stride, type, typeKey, vshader, vtype;
+        if (this.isFragmentShader) {
+          return;
+        }
+        log("resolving...", this);
+        gl = new OffscreenCanvas(1, 1).getContext(this.parent.contextType);
+        program = gl.createProgram();
+        vshader = gl.createShader(gl.VERTEX_SHADER);
+        fshader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(vshader, this.parent.vertexShader.source);
+        gl.shaderSource(fshader, this.parent.fragmentShader.source);
+        gl.compileShader(vshader);
+        gl.compileShader(fshader);
+        gl.attachShader(program, vshader);
+        gl.attachShader(program, fshader);
+        gl.linkProgram(program);
+        numAttribs = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+        attributes = [];
+        stride = 0;
+        while (numAttribs--) {
+          attr = gl.getActiveAttrib(program, numAttribs);
+          location = gl.getAttribLocation(program, attr.name);
+          typeKey = this.keyof(attr.type);
+          info = typeKey.split(/_/);
+          name = attr.name;
+          type = attr.type;
+          [vtype, kind] = info;
+          Class = classes.find(function(c) {
+            return c.prototype.name === attr.name;
+          });
+          length = Math.imul(kind[3] || 1, kind[5] || 1);
+          offset = stride;
+          stride += byteLength = Class.BPE * length;
+          attributes.push({
+            index: location,
+            size: length,
+            type,
+            stride,
+            offset,
+            byteLength,
+            Class,
+            normalized: Class.normalize
+          });
+        }
+        attributes.map(function(a) {
+          return a.stride = stride;
+        });
+        gl.deleteProgram(program);
+        gl.deleteShader(vshader);
+        gl.deleteShader(fshader);
+        gl = void 0;
+        for (j = 0, len = attributes.length; j < len; j++) {
+          attr = attributes[j];
+          this.append(Object.assign(new Attribute, attr));
+        }
         return this;
       }
 
@@ -2161,9 +2405,7 @@ self.name = "window";
         get: function() {
           return this.parent.glObject.getShaderSource(this.glObject);
         },
-        set: function() {
-          return this.parent.glObject.shaderSource(this.glObject, arguments[0]);
-        }
+        set: Shader.prototype.compile
       },
       program: {
         get: function() {
@@ -2198,6 +2440,8 @@ self.name = "window";
       }
     });
 
+    Object.deleteProperties(Shader.prototype, ["buffer"]);
+
     return Shader;
 
   }).call(this));
@@ -2207,6 +2451,26 @@ self.name = "window";
     VertexShader.prototype.isVertexShader = true;
 
     VertexShader.prototype.shaderType = WebGL2RenderingContext.VERTEX_SHADER;
+
+    Object.defineProperties(VertexShader.prototype, {
+      BYTES_PER_POINT: {
+        get: function() {
+          var attr, byteLength, j, len, ref;
+          if (!this.glObject) {
+            throw /GL_SHADER_ERR/;
+          }
+          if (!(byteLength = getByteLength(this))) {
+            ref = findChilds(this, Attribute);
+            for (j = 0, len = ref.length; j < len; j++) {
+              attr = ref[j];
+              byteLength += attr.byteLength;
+            }
+            setByteLength(this, byteLength);
+          }
+          return byteLength;
+        }
+      }
+    });
 
     return VertexShader;
 
@@ -4071,11 +4335,11 @@ self.name = "window";
           continue;
         }
         results.push((function() {
-          var k, len1, ref1, results1;
+          var len1, m, ref1, results1;
           ref1 = GLDraw.allocs(shape.ptri);
           results1 = [];
-          for (k = 0, len1 = ref1.length; k < len1; k++) {
-            draw = ref1[k];
+          for (m = 0, len1 = ref1.length; m < len1; m++) {
+            draw = ref1[m];
             results1.push(gl.bufferSubData(gl.ARRAY_BUFFER, draw.uploadOffset, space.drawBuffer, draw.uploadBegin, draw.uploadLength));
           }
           return results1;

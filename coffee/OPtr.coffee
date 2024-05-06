@@ -223,6 +223,9 @@ do  self.init   = ->
     
     getLinkedPtri       = ( ptri ) -> 
         u32[ HEADER_LINKEDPTRI + ptri ]
+   
+    setLinkedPtri       = ( ptri, ptrj ) -> 
+        u32[ HEADER_LINKEDPTRI + ptri ] = ptrj
     
     setParent           = ( ptri, ptrj ) ->
         u32[ HEADER_PARENTPTRI + ptri ] = ptrj
@@ -269,6 +272,24 @@ do  self.init   = ->
                 continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
                 Class = classes[ u32[ HEADER_CLASSINDEX + ptrj ] ]
                 list[ i++ ] = new Class ptrj
+        
+        list
+     
+    getChildsPtri       = ( ptri, Class ) -> 
+        ptrj = u32[1]
+        list = new Array() ; i = 0
+
+        if  Class
+            clsi = Class.classIndex
+            while ptrj -= HEADER_INDEXCOUNT
+                continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+                continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
+                list[ i++ ] = ptrj
+
+        else
+            while ptrj -= HEADER_INDEXCOUNT
+                continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
+                list[ i++ ] = ptrj
         
         list
     
@@ -572,6 +593,10 @@ do  self.init   = ->
     subarrayUint32      = ( ptri, begin = 0, count ) -> 
         begin += u32[ HEADER_BEGIN + ptri ]
         u32.subarray( begin, begin + count )
+
+    subarrayUint16      = ( ptri, begin = 0, count ) -> 
+        begin += u32[ HEADER_BEGIN + ptri ] * 2
+        u16.subarray( begin, begin + count )
 
     subarrayUint8       = ( ptri, begin = 0, count ) -> 
         begin += u32.at( ptri )
@@ -948,8 +973,6 @@ do  self.init   = ->
     classes.register class Position         extends Vector3
 
         name        : "position"
-
-        vertexAttribPointer : "position"
 
         apply       : ( begin, count, stride, offset ) ->
 
@@ -1339,7 +1362,9 @@ do  self.init   = ->
                 get : -> getLinked this
                 set : -> setLinked this, arguments[0]
 
-
+            vertexShader :
+                get : -> new VertexShader getResvUint32 this, 5
+                set : -> setResvUint32 this, 5, arguments[0]
 
             type    :
                 get : -> getResvUint16 this, 1
@@ -1360,6 +1385,15 @@ do  self.init   = ->
 
             buffer : 
                 get : -> new Float32Array buffer, getByteOffset( this ), getLength this
+
+            attributes :
+                get : ->
+                    meshChilds = getChildsPtri getLinkedPtri this
+                    shaderAttrs = getChildsPtri getResvUint32( this, 5), Attribute
+                    shaderClasses = for s in shaderAttrs then getLinkedPtri s
+
+                    for c in meshChilds when -1 isnt i = shaderClasses.indexOf getClassIndex c
+                        new Attribute shaderAttrs[ i ]
 
 
     classes.global   class Mesh             extends Pointer
@@ -1458,10 +1492,6 @@ do  self.init   = ->
 
         MAX_POINT_COUNT     : 1e5
 
-        BYTES_PER_POINT     : 32
-
-        LENGTH_PER_POINT    : 8
-
         isBuffer            : yes
 
         TARGET              : WebGL2RenderingContext.ARRAY_BUFFER
@@ -1477,8 +1507,7 @@ do  self.init   = ->
         POINTS              : WebGL2RenderingContext.POINTS
 
         create              : -> 
-               
-            byteLength      = @BYTES_PER_POINT * @MAX_POINT_COUNT         
+            byteLength      = @MAX_POINT_COUNT * @parent.vertexShader.BYTES_PER_POINT         
             @malloc         byteLength
 
             gl              = @parent.glObject
@@ -1490,16 +1519,21 @@ do  self.init   = ->
             glObject
 
         drawTriangles       : ( ptr ) ->
+            unless byteOffset = getByteOffset this
+                byteOffset = getByteOffset this if @create()
+            vertexShader = @parent.vertexShader
+
             Object.assign @append( new Draw ), {
-                count        : count = ptr.pointCount
-                byteLength   : byteLength = count * @BYTES_PER_POINT
-                bufferOffset : offset = addResvUint32 this, 1, byteLength
-                byteOffset   : @OFFSET_TRIANGLES + offset + getByteOffset this
-                length       : length = count * @LENGTH_PER_POINT
+                count        : count  = ptr.pointCount
+                byteLength   : bytes  = count * vertexShader.BYTES_PER_POINT
+                bufferOffset : offset = addResvUint32( this, 1, bytes )
+                byteOffset   : offset + byteOffset + @OFFSET_TRIANGLES
+                length       : length = bytes / Float32Array.BYTES_PER_ELEMENT
                 start        : addResvUint32 this, 2, count
                 begin        : addResvUint32 this, 3, length 
                 mesh         : ptr
                 type         : @TRIANGLES
+                vertexShader : vertexShader
             }
             
         bindContext         : ->
@@ -1531,6 +1565,12 @@ do  self.init   = ->
         isProgram           : yes
 
         create              : -> @parent.glObject.createProgram()
+
+        Object.defineProperties Program::,
+
+            isLinkable      : get : ->
+                @parent.vertexShader.source.length and
+                @parent.fragmentShader.source.length
 
         bindContext         : ->
 
@@ -1569,31 +1609,152 @@ do  self.init   = ->
 
                 attachedShaders      : get   : -> gl.getAttachedShaders glObject
 
-
             this
 
         Object.deleteProperties Program::, [ "buffer", "childs" ]
+
+    classes.register class Attribute        extends Pointer
+            
+        Object.defineProperties Attribute::,
+
+            index           :
+                get : -> getResvUint16 this, 0
+                set : -> setResvUint16 this, 0, arguments[0]
+
+            size            :
+                get : -> getResvUint16 this, 1
+                set : -> setResvUint16 this, 1, arguments[0]
+
+            type            :
+                get : -> getResvUint16 this, 2
+                set : -> setResvUint16 this, 2, arguments[0]
+
+            normalized      :
+                get : -> getResvUint16 this, 3
+                set : -> setResvUint16 this, 3, arguments[0]
+
+            stride          :
+                get : -> getResvUint16 this, 4
+                set : -> setResvUint16 this, 4, arguments[0]
+
+            offset          :
+                get : -> getResvUint16 this, 5
+                set : -> setResvUint16 this, 5, arguments[0]
+
+            byteLength      : 
+                get : -> getByteLength this
+                set : -> setByteLength this, arguments[0]
+
+            Class           :
+                get : -> classes[ getLinkedPtri this ]
+                set : -> setLinkedPtri this, arguments[0].classIndex
+
+            name            :
+                get : -> classes[ getLinkedPtri this ]::name
+
+            pointerArgs     : get : ->
+                begin = HEADER_RESVINDEX + this 
+                new Uint16Array buffer, begin * 4, 6
+
+            performers      : get : ->
+                vertexShader = 1 * @parent
+                @Class.allocs().filter (a) -> a.parent.draws.find (d) ->
+                    d.vertexShader - vertexShader is 0
+
+        Object.deleteProperties Attribute::, [ "childs", "buffer" ]
 
     classes.register class Shader           extends GLPointer
 
         isShader            : yes
 
+        keyof               : ( type ) ->
+            k = Object.keys WebGL2RenderingContext
+            v = Object.values WebGL2RenderingContext
+            k.at v.indexOf type
+
         create              : -> @parent.glObject.createShader @shaderType
 
         attach              : -> 
-            @compile()
-
             Object.defineProperty this, "attach", value : ->
                 @parent.glObject.attachShader @program.glObject, @glObject
-            
+
             @attach()
 
-        enable              : -> @attach().isActive = 1
+        enable              : ->
+            @attach().isActive = 1
             
         compile             : ->
+            source = arguments[0]
             gl = @parent.glObject
             @program = @parent.program
-            gl.compileShader @glObject, @program.glObject
+            glProgram = @program.glObject
+
+            gl.shaderSource @glObject, source
+            gl.compileShader @glObject, glProgram
+
+            @resolve() if @program.isLinkable
+
+            this
+
+        resolve             : ->
+            return if @isFragmentShader
+            
+            log "resolving...", this
+
+            gl = new OffscreenCanvas 1, 1
+                .getContext @parent.contextType
+
+            program = gl.createProgram()
+            vshader = gl.createShader gl.VERTEX_SHADER
+            fshader = gl.createShader gl.FRAGMENT_SHADER
+
+            gl.shaderSource vshader, @parent.vertexShader.source
+            gl.shaderSource fshader, @parent.fragmentShader.source
+
+            gl.compileShader vshader
+            gl.compileShader fshader
+            
+            gl.attachShader program, vshader
+            gl.attachShader program, fshader
+
+            gl.linkProgram program
+
+            numAttribs = gl.getProgramParameter program, gl.ACTIVE_ATTRIBUTES
+            attributes = []
+
+            stride = 0
+
+            while numAttribs--
+                attr       = gl.getActiveAttrib program, numAttribs
+                location   = gl.getAttribLocation program, attr.name
+                typeKey    = @keyof( attr.type )
+                info       = typeKey.split(/_/)
+                name       = attr.name
+                type       = attr.type
+
+                [ vtype, kind ] = info
+
+                Class      = classes.find (c) -> c::name is attr.name
+                length     = Math.imul kind[3] or 1, kind[5] or 1
+                offset     = stride
+                stride    += byteLength = Class.BPE * length
+
+                attributes.push {
+                    index: location, size : length,
+                    type, stride, offset,
+                    byteLength, Class, normalized: Class.normalize
+                }
+
+            attributes.map (a) -> a.stride = stride
+
+            gl . deleteProgram program
+            gl . deleteShader vshader
+            gl . deleteShader fshader
+            gl = undefined
+
+            for attr in attributes
+                @append Object.assign new Attribute, attr
+
             this
 
         bindContext         : ->
@@ -1634,7 +1795,7 @@ do  self.init   = ->
             
             source  : 
                 get : -> @parent.glObject.getShaderSource @glObject
-                set : -> @parent.glObject.shaderSource @glObject, arguments[0]
+                set : Shader::compile
 
             program :
                 get : -> getLinked this
@@ -1658,17 +1819,31 @@ do  self.init   = ->
 
             return []
 
+        Object.deleteProperties Shader::, [ "buffer" ]
+
+
     classes.register class VertexShader     extends Shader
 
         isVertexShader      : yes
 
         shaderType          : WebGL2RenderingContext.VERTEX_SHADER
 
+        Object.defineProperties VertexShader::,
+
+            BYTES_PER_POINT : get : ->
+                throw /GL_SHADER_ERR/ unless @glObject
+                unless byteLength = getByteLength this
+                    for attr in findChilds this, Attribute
+                        byteLength += attr.byteLength
+                    setByteLength this, byteLength
+                byteLength
+
     classes.register class FragmentShader   extends Shader
 
         isFragmentShader    : yes
 
         shaderType          : WebGL2RenderingContext.FRAGMENT_SHADER
+
 
     classes.register class TextPointer      extends Pointer
 
