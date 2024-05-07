@@ -84,7 +84,7 @@ do  self.init   = ->
     ticks = 0
     frustrum = null
 
-    ITERATION_PER_THREAD = 4
+    ITERATION_PER_THREAD = 2
     RADIANS_PER_DEGREE  = Math.PI / 180.0
     BPE = 4
     LE = !!(new Uint8Array( Uint16Array.of(1).buffer ).at(0))
@@ -310,19 +310,42 @@ do  self.init   = ->
         
         i
 
-    prepareIterator     = ( ptri, Class ) ->
+    prepareIterator     = ( Class, ptri = 0 ) ->
         Atomics.store u32, ptri + HEADER_ITERCLASSI, Class.classIndex if Class
         Atomics.compareExchange u32, ptri + HEADER_ITERATORI, 0, u32.at 1
         +ptri
 
-    finalizeIterator    = ( ptri ) ->
-        Atomics.store u32, ptri + HEADER_ITERCLASSI, 0
-        Atomics.store u32, ptri + HEADER_ITERATORI, 0
+    finalizeIterator    = ( iter ) ->
+        Atomics.store u32, iter + HEADER_ITERCLASSI, 0
+        Atomics.store u32, iter + HEADER_ITERATORI, 0
         0
+
+    iterateGlobalAllocs = ( ptri ) ->
+        clsi = Atomics.load u32, ptri + HEADER_ITERCLASSI
+        ptrj = Atomics.sub u32, ptri + HEADER_ITERATORI, HEADER_INDEXCOUNT
+
+        if  ptrj is ptri
+            return iteratePrepared ptri
+
+        if !ptrj or u32[1] < ptrj
+            return finalizeIterator ptri
+
+        while ptrj -= HEADER_INDEXCOUNT
+            continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
+            next = ptrj - HEADER_INDEXCOUNT
+
+            if  next isnt Atomics.compareExchange u32, ptri + HEADER_ITERATORI, ptrj, next
+                Atomics.store u32, ptri + HEADER_ITERATORI, ptrj
+                Class = classes[ clsi ]
+                return new Class ptrj
+            
+        0
+
 
     iteratePrepared     = ( ptri ) -> 
         clsi = Atomics.load u32, ptri + HEADER_ITERCLASSI
         ptrj = Atomics.sub u32, ptri + HEADER_ITERATORI, HEADER_INDEXCOUNT
+
 
         if  ptrj is ptri
             return iteratePrepared ptri
@@ -458,7 +481,7 @@ do  self.init   = ->
         u32[ HEADER_ITEROFFSET + ptri ] = v
     
     hitIterOffset       = ( ptri, count = ITERATION_PER_THREAD ) -> 
-        Atomics.add u32, HEADER_ITEROFFSET + ptri, count
+        Atomics.add u32, ptri + HEADER_ITEROFFSET, count
 
     getNeedRecalc       = ( ptri       ) -> 
         ui8[ HEADER_NEEDRECALC + ptri * 4 ]
@@ -568,6 +591,8 @@ do  self.init   = ->
 
     newFloat32Array     = ( ptri, byteOffset = 0, length ) ->
         byteOffset += getByteOffset ptri 
+        length ||= getLength ptri
+        
         new Float32Array buffer, byteOffset, length
 
     ptrFloat32Array     = ( ptri, byteOffset = 0, length ) -> 
@@ -879,10 +904,11 @@ do  self.init   = ->
 
         [ Symbol.iterator ] : ->
 
-            ptri = prepareIterator this, @constructor.iterate
+            Class = @constructor.iterate
+            iterator = prepareIterator Class, this
 
             next : ->
-                if  next = iteratePrepared ptri
+                if  next = iteratePrepared iterator
                     return value : next
                 return done : 1          
 
@@ -906,30 +932,32 @@ do  self.init   = ->
             [ "{[Pointer]}" ] :
                 get : -> ptrUint32Array this, 0, HEADER_INDEXCOUNT
 
-    classes.register class Vector3          extends Pointer
+    classes.register class Vector4          extends Pointer
 
-        @byteLength : 3 * @BPE
+        @byteLength : 4 * @BPE
 
         getX : -> getFloat32 this, 0
         getY : -> getFloat32 this, 1
         getZ : -> getFloat32 this, 2
+        getW : -> getFloat32 this, 3
 
         setX : (v) -> setFloat32 this, 0, v
         setY : (v) -> setFloat32 this, 1, v
         setZ : (v) -> setFloat32 this, 2, v
+        setW : (v) -> setFloat32 this, 3, v
 
         [ Symbol.iterator ] : ->
-            [ x, y, z ] =
-                subarrayFloat32 this, 0 , 3
+            [ x, y, z, w ] = subarrayFloat32 this, 0 , 4
             
-            ; yield x ; yield y ; yield z ;
+            ; yield x ; yield y ; yield z ; yield w ;
             
-        Object.defineProperties Vector3::,
-            x : get : Vector3::getX , set : Vector3::setX
-            y : get : Vector3::getY , set : Vector3::setY
-            z : get : Vector3::getZ , set : Vector3::setZ
+        Object.defineProperties Vector4::,
+            x : get : Vector4::getX , set : Vector4::setX
+            y : get : Vector4::getY , set : Vector4::setY
+            z : get : Vector4::getZ , set : Vector4::setZ
+            w : get : Vector4::getW , set : Vector4::setW
 
-        Object.deleteProperties Vector3::, [ "childs" ]
+        Object.deleteProperties Vector4::, [ "childs" ]
 
     classes.register class Color            extends Pointer
 
@@ -943,6 +971,26 @@ do  self.init   = ->
 
         set         : ( [ r, g, b, a = 1 ] ) ->
             super [ r, g, b, a ]
+
+        apply       : ( draw, attribute, index, count ) ->
+            throw /SIZE_MUST_EQUALTO_4/ if attribute.size - 4
+
+
+            #todo make inherited
+            #todo findChild draw, Color || etc..
+
+
+            stride  = attribute.stride
+            offset  = draw.byteOffset + attribute.offset
+
+            start   = getByteOffset this
+            end     = start + getByteLength this
+
+            while count--
+                ui8.copyWithin offset, start, end
+                offset += stride
+
+            1            
 
         [ Symbol.iterator ] : ->
             [ r, g, b, a = 1 ] =
@@ -961,34 +1009,45 @@ do  self.init   = ->
             obj : get : -> @toObject()
 
         Object.deleteProperties Color::, [ "childs" ]
+
         
-    classes.register class UV               extends Vector3
+    classes.register class UV               extends Vector4
 
         name        : "uv"
 
-    classes.register class Texture          extends Vector3
+    classes.register class Texture          extends Vector4
 
         name        : "texture"
 
-    classes.register class Position         extends Vector3
+    classes.register class Position         extends Vector4
 
         name        : "position"
 
-        apply       : ( begin, count, stride, offset ) ->
+        apply       : ( draw, attribute, index, count ) ->
+            throw /SIZE_MUST_EQUALTO_4/ if attribute.size - 4
 
-            [ tx, ty, tz ] = @buffer
+            stride          = attribute.stride
+            offset          = draw.byteOffset + attribute.offset
+            vertices        = draw.mesh.vertices index, count
+            [ tx, ty, tz ]  = subarrayFloat32 this, 0, 3
+
+            #todo apply rotation and scale too
+            #todo make inherited
+            #todo findChild draw, Position || etc..
 
             while count--
+                [ x0, y0, z0 ] = vertices.subarray index, index + 3
 
-                i = ( count * stride + offset ) / 4
+                dvw.setFloat32 offset    , x0 + tx, LE
+                dvw.setFloat32 offset + 4, y0 + ty, LE
+                dvw.setFloat32 offset + 8, z0 + tz, LE
 
-                f32[  i  ] += tx
-                f32[ i+1 ] += ty
-                f32[ 2+i ] += tz
+                offset += stride
+                index += 3
 
-            0
+            1
 
-    classes.register class Scale            extends Vector3
+    classes.register class Scale            extends Vector4
 
         name        : "scale"
 
@@ -1126,9 +1185,6 @@ do  self.init   = ->
             request = arguments[0]
 
             if  request - current
-
-                warn setResvUint8 this, 0, request
-                
                 unless setResvUint8 this, 0, request
                     @disable()
                 else @enable()
@@ -1340,6 +1396,26 @@ do  self.init   = ->
 
         isDraw      : on
 
+        refresh     : ->
+            count = @count #todo --> ITERATION_PER_THREAD
+            index = hitIterOffset this, count
+            
+            readBuffer = @mesh.vertices index, count
+            drawBuffer = @buffer
+            vertShader = @vertexShader
+
+            for attr in @attributes
+                if  applier = findChild @mesh, attr.Class
+                    applier . apply this, attr, index, count
+                attr.refresh()
+
+            gl = @parent.parent.glObject
+            glProgram = @parent.parent.program.glObject
+
+            log gl.getProgramParameter( glProgram, gl.ATTACHED_SHADERS )
+
+            @parent.upload this
+
         Object.defineProperties Draw::,
 
             begin   :
@@ -1399,7 +1475,7 @@ do  self.init   = ->
                         
     classes.global   class Mesh             extends Pointer
 
-        isDrawable          : yes
+        isDrawable  : yes
 
         Object.defineProperties Mesh::,
 
@@ -1430,8 +1506,12 @@ do  self.init   = ->
             byteLength      : get : -> getByteLength this
 
             byteOffset      : get : -> getByteOffset this
+
+            root            :
+                get : -> getLinked this
+                set : -> setLinked this, arguments[0]
             
-        @create : ( props = {} ) ->
+        @create     : ( props = {} ) ->
             matter = new this
 
             if  props.vertices
@@ -1440,8 +1520,17 @@ do  self.init   = ->
 
             matter . init props
 
-        vertex      : ( index = 0, count = 1 ) ->
+        draw        : ( @root, type ) ->
+            @root.drawBuffer.draw this, type
+            for child in findChilds this, Mesh
+                child.draw @root, type
+            this
+
+        vertices    : ( index = 0, count = 1 ) ->
             subarrayFloat32 this, 3 * index, 3 * count
+
+        vertex      : ( index = 0 ) ->
+            subarrayFloat32 this, 3 * index, 3
 
         line        : ( index = 0 ) -> 
             subarrayFloat32 this, 3 * index, 6
@@ -1455,7 +1544,6 @@ do  self.init   = ->
             end        : l + b
             byteOffset : @BPE * b
             byteLength : @BPE * l
-
 
         copy        : ( start, begin, count, stride, offset ) ->
 
@@ -1514,10 +1602,26 @@ do  self.init   = ->
             gl              = @parent.glObject
             glObject        = gl.createBuffer()
 
-            gl.bindBuffer   gl.ARRAY_BUFFER, glObject
-            gl.bufferData   gl.ARRAY_BUFFER, byteLength, @USAGE
+            gl.bindBuffer   @TARGET, glObject
+            gl.bufferData   @TARGET, byteLength, @USAGE
 
             glObject
+
+        draw                : ( ptr, type = @TRIANGLES ) ->            
+            if  type is @TRIANGLES
+                return @drawTriangles ptr
+
+        upload              : ( draw ) ->
+            @parent.program.enable()
+
+            gl = @parent.glObject
+            gl . bufferSubData @TARGET, draw.bufferOffset, draw.buffer
+
+            #todo put in end of render
+            gl . drawArrays gl.POINTS, draw.start, draw.count
+
+            0
+            
 
         drawTriangles       : ( ptr ) ->
             unless byteOffset = getByteOffset this
@@ -1536,7 +1640,12 @@ do  self.init   = ->
                 type         : @TRIANGLES
                 vertexShader : vertexShader
             }
-            
+
+        Object.defineProperties DrawBuffer::,
+
+            pointCount      : get : -> getResvUint32 this, 2
+
+
         bindContext         : ->
 
             gl              = @parent.glObject
@@ -1615,6 +1724,12 @@ do  self.init   = ->
         Object.deleteProperties Program::, [ "buffer", "childs" ]
 
     classes.register class Attribute        extends Pointer
+
+        refresh : ->
+            @glContext.enableVertexAttribArray @index
+            @glContext.vertexAttribPointer @pointerArgs...
+            
+            0
             
         Object.defineProperties Attribute::,
 
@@ -1652,6 +1767,10 @@ do  self.init   = ->
 
             name            :
                 get : -> classes[ getLinkedPtri this ]::name
+
+
+            glContext       :
+                get         : -> @parent.parent.glObject
 
             pointerArgs     : get : ->
                 begin = HEADER_RESVINDEX + this 
@@ -1731,7 +1850,7 @@ do  self.init   = ->
                 typeKey    = @keyof( attr.type )
                 info       = typeKey.split(/_/)
                 name       = attr.name
-                type       = attr.type
+                type       = gl.FLOAT
 
                 [ vtype, kind ] = info
 
@@ -1822,7 +1941,6 @@ do  self.init   = ->
 
         Object.deleteProperties Shader::, [ "buffer" ]
 
-
     classes.register class VertexShader     extends Shader
 
         isVertexShader      : yes
@@ -1844,7 +1962,6 @@ do  self.init   = ->
         isFragmentShader    : yes
 
         shaderType          : WebGL2RenderingContext.FRAGMENT_SHADER
-
 
     classes.register class TextPointer      extends Pointer
 
@@ -1968,6 +2085,122 @@ do  self.init   = ->
             if !isWindow
                 throw "window"
 
+
+
+            WORKGROUPS = 65534
+            WGROUP_SIZE = 256
+
+            VERTEX_SIZE = WGROUP_SIZE * WORKGROUPS
+            BUFFER_SIZE = VERTEX_SIZE * 4
+
+            vertlen = 65534 * 256
+            verticesA = new Float32Array new SharedArrayBuffer BUFFER_SIZE
+            verticesB = new Float32Array new SharedArrayBuffer BUFFER_SIZE
+
+            i = 0
+            length = 0
+            while i < VERTEX_SIZE
+                verticesA.set( [ length, i, +Math.random(), 0 ], i )
+                verticesB.set( [ length, i, -Math.random(), 0 ], i )
+
+                length++
+                i += 4
+
+            code        = "
+                const max: u32 = #{VERTEX_SIZE}u;
+
+                @group(0) @binding(0) var<storage, read> A: array<f32>;
+                @group(0) @binding(1) var<storage, read> B: array<f32>;
+                @group(0) @binding(2) var<storage, read_write> output: array<f32>;
+
+                @compute @workgroup_size( #{WGROUP_SIZE} ) fn main (
+                @builtin ( global_invocation_id) id : vec3u ) {
+
+                    let  i : u32 = id.x;
+
+                    if ( i < max ) {
+                        output[i] = A[i] * B[i];
+                    }
+                
+                }
+            "   
+
+            adapter     = await navigator.gpu.requestAdapter()
+            pformat     = navigator.gpu.getPreferredCanvasFormat()
+            
+            gpu         = await adapter.requestDevice()            
+            cshader     = gpu.createShaderModule { code }
+
+            output      = gpu.createBuffer
+                size    : BUFFER_SIZE
+                usage   : GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+
+            staging     = gpu.createBuffer
+                size    : BUFFER_SIZE
+                usage   : GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
+
+            inputA      = gpu.createBuffer
+                size    : BUFFER_SIZE
+                usage   : GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+
+            inputB      = gpu.createBuffer
+                size    : BUFFER_SIZE
+                usage   : GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+
+            gpu.queue.writeBuffer inputA, 0, verticesA, 0, VERTEX_SIZE
+            gpu.queue.writeBuffer inputB, 0, verticesB, 0, VERTEX_SIZE
+
+            bindLayout  = gpu.createBindGroupLayout( entries: [
+                { binding : 0, visibility : GPUShaderStage.COMPUTE, buffer : { type: "read-only-storage" } }
+                { binding : 1, visibility : GPUShaderStage.COMPUTE, buffer : { type: "read-only-storage" } }
+                { binding : 2, visibility : GPUShaderStage.COMPUTE, buffer : { type: "storage" } }
+            ])
+
+            bindGroup   = gpu.createBindGroup( layout : bindLayout, entries : [
+                { binding : 0, resource : { buffer: inputA } }
+                { binding : 1, resource : { buffer: inputB } }
+                { binding : 2, resource : { buffer: output } }
+            ])            
+
+            pipeline    = gpu.createComputePipeline(
+                layout  : gpu.createPipelineLayout(
+                    bindGroupLayouts : [ bindLayout ]
+                ),
+                compute : module : cshader, entryPoint: 'main'
+            )
+            
+            # Create GPUCommandEncoder to issue commands to the GPU 
+            execEncoder = gpu.createCommandEncoder()
+
+            # Initiate render pass
+            passEncoder = execEncoder.beginComputePass()
+
+            # Issue commands
+            passEncoder.setPipeline pipeline
+            passEncoder.setBindGroup 0, bindGroup
+            passEncoder.dispatchWorkgroups WORKGROUPS
+
+            # End the render pass
+            passEncoder.end()
+
+            # Copy output buffer to staging buffer
+            execEncoder.copyBufferToBuffer( output,
+                0, ### SRC offset ### staging, 
+                0, ### DST offset ### BUFFER_SIZE
+            )
+
+            # End frame by passing array of command buffers to command queue for execution
+            gpu.queue.submit [ execEncoder.finish() ]
+
+            # map staging buffer to read results back to JS
+            await staging.mapAsync GPUMapMode.READ, 0, BUFFER_SIZE
+            copyArrayBuffer = staging.getMappedRange 0, BUFFER_SIZE
+
+            # get results
+            verticesA.set new Float32Array copyArrayBuffer
+            log "results:", verticesA
+            staging.unmap()
+
             @startTime = Date.now()
             @isRendering = 1
 
@@ -1987,15 +2220,18 @@ do  self.init   = ->
             if !ptr.isDrawable
                 return this
             
-            @drawBuffer.drawTriangles ptr
+            ptr.draw this
 
             this
 
+        append          : ( ptr ) ->
+            @add ptr ; ptr
+
         render          : ->
-            ptri = prepareIterator this, Context
-            
-            #while context = iteratePrepared ptri
-            #    log context
+            iterator = prepareIterator Draw
+
+            while draw = iterateGlobalAllocs iterator
+                draw.refresh()
                 
             @emit "render"
 
