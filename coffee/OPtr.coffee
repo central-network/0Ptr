@@ -389,7 +389,7 @@ do  self.init   = ->
 
         list
 
-    findChild           = ( ptri, Class ) -> 
+    findChild           = ( ptri, Class, create = off ) -> 
         ptrj = u32[1]
         clsi = Class.classIndex
 
@@ -398,7 +398,9 @@ do  self.init   = ->
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
             return new ( classes[ clsi ] )( ptrj )
 
-        undefined
+        return unless create
+
+        setParent obj = new Class, ptri ; obj
 
     inherit             = ( ptri, Class ) ->
         ptrj = u32[1]
@@ -885,7 +887,10 @@ do  self.init   = ->
             return this
 
         toString            : ->
-            try console.log "toStringCalled", new Error
+            err = {}
+            Error.captureStackTrace err
+            console.error "toStringCalled", err.stack 
+            queueMicrotask -> throw new Error err
             super arguments...
 
 
@@ -1175,8 +1180,11 @@ do  self.init   = ->
         getGLObject : ->
             if  storei = getResvUint8 this, 1
                 return @storage[ storei ]
-                    
-            @glObject = @create()
+
+            object = @create()
+            storei = setResvUint8 this, 1, @store object
+
+            object
 
         getIsActive : -> getResvUint8 this, 0
 
@@ -1185,15 +1193,15 @@ do  self.init   = ->
             request = arguments[0]
 
             if  request - current
-                unless setResvUint8 this, 0, request
-                    @disable()
-                else @enable()
+                if setResvUint8 this, 0, request
+                    @enable()
+                else @disable()
 
             request
 
         disable     : -> this
 
-        enable      : -> throw /REDEFINE_ENABLE/                    
+        enable      : -> throw [ @constructor.name ] : /DEFINE_ENABLE_REQUIRED/                    
 
         Object.defineProperties GLPointer::, 
             glObject :
@@ -1228,8 +1236,8 @@ do  self.init   = ->
             unless shader = shaders.find (p) -> p.isActive
                 unless shader = shaders[0]
                     for source in VertexShader.DocumentScripts
-                        setParent shader = new VertexShader, this
-                        shader.source = source 
+                        setParent shader = new VertexShader(), this
+                        setParent new ShaderSource().set( source ), shader 
                     shader = findChild this, VertexShader
 
             shader
@@ -1239,8 +1247,8 @@ do  self.init   = ->
             unless shader = shaders.find (p) -> p.isActive
                 unless shader = shaders[0]
                     for source in FragmentShader.DocumentScripts
-                        setParent shader = new FragmentShader, this
-                        shader.source = source 
+                        setParent shader = new FragmentShader(), this
+                        setParent new ShaderSource().set(source), shader 
                     shader = findChild this, FragmentShader
             shader
 
@@ -1262,36 +1270,6 @@ do  self.init   = ->
                 setParent clearColor = new ClearColor, this
             clearColor
 
-        bindContext         : ->
-
-            gl = @glObject
-
-            Object.defineProperties this,
-
-                enable              : value : -> this
-
-                lastError           : get   : gl.getError.bind gl
-
-                hint                : value : gl.hint.bind gl
-
-                isEnabled           : value : gl.isEnabled.bind gl
-
-                readPixels          : value : gl.readPixels.bind gl
-
-                extension           : value : gl.getExtension.bind gl
-
-                getParameter        : value : gl.getParameter.bind gl
-
-                vertexAttrib        : value : gl.getVertexAttrib.bind gl
-
-                vertexAttribOffset  : value : gl.getVertexAttribOffset.bind gl
-                
-                contextAttributes   : get   : gl.getContextAttributes.bind gl
-
-                supportedExtensions : get   : gl.getSupportedExtensions.bind gl
-
-            this
-        
         create              : ( top, left, width, height ) ->
             top or= 0
             left or= 0
@@ -1305,6 +1283,8 @@ do  self.init   = ->
             ) else new OffscreenCanvas width, height
 
             element.getContext @contextType
+
+        enable              : -> this
 
         resize              : ( top, left, width, height, canvas ) ->
             canvas ||= @glObject.canvas
@@ -1370,10 +1350,63 @@ do  self.init   = ->
                 aspectRatio, pixelRatio
             }
 
-        setParameters       : ( parameters = {} ) ->
+        setParameters       : ->
+            parameters = arguments[0] or {}
             setarrayFloat32 this, Object.values {
                 ...@parameters, ...parameters
             }
+
+        getProgramParameter : ( program, parameter ) ->
+            @glObject.getProgramParameter program.glObject, parameter
+
+        getActiveAttrib     : ( program, index ) ->
+            @glObject.getActiveAttrib program.glObject, index
+
+        getAttribLocation   : ( program, name ) ->
+            @glObject.getAttribLocation program.glObject, name
+
+        createProgram       : ->
+            @glObject.createProgram()
+
+        createVertexShader  : ->
+            @glObject.createShader @glObject.VERTEX_SHADER
+
+        createFragmentShader: ->
+            @glObject.createShader @glObject.FRAGMENT_SHADER
+
+        createBuffer        : ->
+            @glObject.createBuffer()
+
+        attachShader        : ( program, shader ) ->
+            @glObject.attachShader program.glObject, shader.glObject
+        
+        compileShader       : ( shader ) ->
+            @glObject.compileShader shader.glObject
+        
+        shaderSource        : ( shader, source ) ->
+            @glObject.shaderSource shader.glObject, source.scriptCode
+        
+        linkProgram         : ( program ) ->
+            @glObject.linkProgram program.glObject
+
+        useProgram          : ( program ) ->
+            @glObject.useProgram program.glObject
+
+        bindBuffer          : ( drawBuffer ) ->
+            @glObject.bindBuffer drawBuffer.TARGET, drawBuffer.glObject
+
+        getShaderParameter  : ( shader, parameter ) ->
+            @glObject.getShaderParameter shader.glObject, parameter
+
+        getShaderInfoLog    : ( shader ) ->
+            @glObject.getShaderInfoLog shader.glObject
+
+        getPrecisionFormat  : ( shader ) ->
+            @glObject.getShaderPrecisionFormat shader.glObject
+
+        getShaderSource     : ( shader ) ->
+            @glObject.getShaderSource shader.glObject
+
 
         Object.defineProperties Context::,
 
@@ -1411,8 +1444,6 @@ do  self.init   = ->
 
             gl = @parent.parent.glObject
             glProgram = @parent.parent.program.glObject
-
-            log gl.getProgramParameter( glProgram, gl.ATTACHED_SHADERS )
 
             @parent.upload this
 
@@ -1596,16 +1627,22 @@ do  self.init   = ->
         POINTS              : WebGL2RenderingContext.POINTS
 
         create              : -> 
-            byteLength      = @MAX_POINT_COUNT * @parent.vertexShader.BYTES_PER_POINT         
-            @malloc         byteLength
+            @malloc @MAX_POINT_COUNT * @BYTES_PER_POINT  
+            buffer_ = @parent.createBuffer()
 
-            gl              = @parent.glObject
-            glObject        = gl.createBuffer()
+            @parent.glObject.bindBuffer @TARGET, buffer_
+            @parent.glObject.bufferData @TARGET, @byteLength, @USAGE
 
-            gl.bindBuffer   @TARGET, glObject
-            gl.bufferData   @TARGET, byteLength, @USAGE
+            buffer_
 
-            glObject
+        bind                : ->
+            unless getResvUint8 this, 0
+                setResvUint8 this, 0, 1
+                @parent.bindBuffer this
+            0
+
+        enable              : ->
+            @bind()
 
         draw                : ( ptr, type = @TRIANGLES ) ->            
             if  type is @TRIANGLES
@@ -1615,13 +1652,17 @@ do  self.init   = ->
             @parent.program.enable()
 
             gl = @parent.glObject
-            gl . bufferSubData @TARGET, draw.bufferOffset, draw.buffer
+            if  draw
+                gl.bufferSubData @TARGET, draw.bufferOffset, draw.buffer
+                gl.drawArrays gl.POINTS, draw.start, draw.count
+
+            else
+                gl.bufferData @TARGET, @buffer, @USAGE
+                gl.drawArrays gl.TRIANGLES, 0, @pointCount
 
             #todo put in end of render
-            gl . drawArrays gl.POINTS, draw.start, draw.count
 
             0
-            
 
         drawTriangles       : ( ptr ) ->
             unless byteOffset = getByteOffset this
@@ -1645,90 +1686,97 @@ do  self.init   = ->
 
             pointCount      : get : -> getResvUint32 this, 2
 
+            byteLength      : get : -> getByteLength this
 
-        bindContext         : ->
+            BYTES_PER_POINT : get : ->
+                getResvUint32( this, 4 ) or setResvUint32(
+                    this, 4, @parent.vertexShader.BYTES_PER_POINT
+                )
 
-            gl              = @parent.glObject
 
-            glObject        = @glObject
-
-            Object.defineProperties this,
-
-                enable       : value : gl.bindBuffer.bind gl, glObject
-
-                delete       : value : gl.deleteBuffer.bind gl, glObject
-                
-                upload       : value : gl.bufferSubData.bind gl, gl.ARRAY_BUFFER
-
-                getParameter : value : gl.getBufferParameter.bind gl, @TARGET
-                
-            Object.defineProperties this,
-
-                bufferSize   : get   : -> @getParameter gl.BUFFER_SIZE
-
-                bindingPoint : get   : -> @getParameter gl.BUFFER_USAGE 
-
-            this
             
     classes.register class Program          extends GLPointer
 
         isProgram           : yes
 
-        create              : -> @parent.glObject.createProgram()
+        create              : ->
+            @parent.createProgram()
+
+        enable              : ->
+            @link() unless @isLinked
+            @use() unless @isActive
+
+        link                : ->
+            @parent.vertexShader.enable()
+            @parent.fragmentShader.enable()
+
+            unless getResvUint8 this, 2
+                setResvUint8 this, 2, 1
+                @parent.linkProgram this
+            1
+
+        use                 : ->
+            @parent.drawBuffer.enable()
+
+            unless getResvUint8 this, 0
+                setResvUint8 this, 0, 1
+                @parent.useProgram this
+
+            1
+
+        getParameter        : ( pname ) ->
+            @parent.getProgramParameter this, pname
+
+        getActiveAttrib     : ( index ) ->
+            @parent.getActiveAttrib this, index
+
+        getAttribLocation   : ( name ) ->
+            @parent.getAttribLocation this, name
 
         Object.defineProperties Program::,
 
-            isLinkable      : get : ->
-                @parent.vertexShader.source.length and
-                @parent.fragmentShader.source.length
+            isLinked        : get : -> @getParameter @LINK_STATUS
 
-        bindContext         : ->
+            isDeleted       : get : -> @getParameter @DELETE_STATUS
 
-            gl              = @parent.glObject
+            isValidated     : get : -> @getParameter @VALIDATE_STATUS
 
-            glObject        = @glObject
+            activeShaders   : get : -> @getParameter @ACTIVE_SHADERS
+            
+            attributeCount  : get : -> @getParameter @ATTRIBUTE_COUNT
+            
+            uniformCount    : get : -> @getParameter @UNIFORM_COUNT
 
-            Object.defineProperties this,
+            feedbackMode    : get : -> @getParameter @FEEDBACK_MODE
 
-                enable              : value : gl.useProgram.bind gl, glObject
-
-                delete              : value : gl.deleteProgram.bind gl, glObject
-                
-                link                : value : gl.linkProgram.bind gl, glObject
-
-                validate            : value : gl.validateProgram.bind gl, glObject
-
-                getParameter        : value : gl.getProgramParameter.bind gl, glObject
-                
-                getAttribLocation   : value : gl.getAttribLocation.bind gl, glObject
-
-                getUniform          : value : gl.getUniform.bind gl, glObject
-
-                getUniformLocation  : value : gl.getUniformLocation.bind gl, glObject  
-                
-                getActiveAttrib     : value : gl.getActiveAttrib.bind gl, glObject
-                
-                getActiveUniform    : value : gl.getActiveUniform.bind gl, glObject
-
-
-            Object.defineProperties this,
-
-                isLinked             : get   : -> gl.getProgramParameter glObject, gl.LINK_STATUS 
-
-                infoLog              : get   : -> gl.getProgramInfoLog glObject
-
-                attachedShaders      : get   : -> gl.getAttachedShaders glObject
-
-            this
+            feedbackVarys   : get : -> @getParameter @FEEDBACK_VARYS
+            
+            uniformBlocks   : get : -> @getParameter @UNIFORM_BLOCKS
 
         Object.deleteProperties Program::, [ "buffer", "childs" ]
+
+        Object.defineProperties Program::,
+        
+            LINK_STATUS     : value : WebGL2RenderingContext.LINK_STATUS
+            VALIDATE_STATUS : value : WebGL2RenderingContext.VALIDATE_STATUS
+            DELETE_STATUS   : value : WebGL2RenderingContext.DELETE_STATUS
+            UNIFORM_BLOCKS  : value : WebGL2RenderingContext.ACTIVE_UNIFORM_BLOCKS
+            FEEDBACK_VARYS  : value : WebGL2RenderingContext.TRANSFORM_FEEDBACK_VARYINGS
+            FEEDBACK_MODE   : value : WebGL2RenderingContext.TRANSFORM_FEEDBACK_BUFFER_MODE
+            UNIFORM_COUNT   : value : WebGL2RenderingContext.ACTIVE_UNIFORMS
+            ATTRIBUTE_COUNT : value : WebGL2RenderingContext.ACTIVE_ATTRIBUTES
+            ACTIVE_SHADERS  : value : WebGL2RenderingContext.ATTACHED_SHADERS
 
     classes.register class Attribute        extends Pointer
 
         refresh : ->
-            @glContext.enableVertexAttribArray @index
+            @parent.parent.drawBuffer.enable()
+
             @glContext.vertexAttribPointer @pointerArgs...
-            
+            @glContext.enableVertexAttribArray @index
+
+
+
             0
             
         Object.defineProperties Attribute::,
@@ -1787,156 +1835,68 @@ do  self.init   = ->
 
         isShader            : yes
 
-        keyof               : ( type ) ->
-            k = Object.keys WebGL2RenderingContext
-            v = Object.values WebGL2RenderingContext
-            k.at v.indexOf type
+        attach              : ->
+            unless getResvUint8 this, 2
+                getResvUint8 this, 2, 1
+                if  err = @compile().infoLog
+                    throw [ err, this ]
 
-        create              : -> @parent.glObject.createShader @shaderType
+            unless getResvUint8 this, 0
+                setResvUint8 this, 0, 1
+                @parent.attachShader @program, this
 
-        attach              : -> 
-            Object.defineProperty this, "attach", value : ->
-                @parent.glObject.attachShader @program.glObject, @glObject
+            1
 
-            @attach()
+        enable              : -> @attach()
 
-        enable              : ->
-            @attach().isActive = 1
-            
         compile             : ->
-            source = arguments[0]
-            gl = @parent.glObject
-            @program = @parent.program
-            glProgram = @program.glObject
+            if !@source.isUploaded
+                @source.isUploaded = 1
+                @parent.shaderSource this, @source    
 
-            gl.shaderSource @glObject, source
-            gl.compileShader @glObject, glProgram
+            if !@source.isCompiled
+                @source.isCompiled = 1
+                @parent.compileShader this
 
-            @resolve() if @program.isLinkable
-
-            this
-
-        resolve             : ->
-            return if @isFragmentShader
-            
-            log "resolving...", this
-
-            gl = new OffscreenCanvas 1, 1
-                .getContext @parent.contextType
-
-            program = gl.createProgram()
-            vshader = gl.createShader gl.VERTEX_SHADER
-            fshader = gl.createShader gl.FRAGMENT_SHADER
-
-            gl.shaderSource vshader, @parent.vertexShader.source
-            gl.shaderSource fshader, @parent.fragmentShader.source
-
-            gl.compileShader vshader
-            gl.compileShader fshader
-            
-            gl.attachShader program, vshader
-            gl.attachShader program, fshader
-
-            gl.linkProgram program
-
-            numAttribs = gl.getProgramParameter program, gl.ACTIVE_ATTRIBUTES
-            attributes = []
-
-            stride = 0
-
-            while numAttribs--
-                attr       = gl.getActiveAttrib program, numAttribs
-                location   = gl.getAttribLocation program, attr.name
-                typeKey    = @keyof( attr.type )
-                info       = typeKey.split(/_/)
-                name       = attr.name
-                type       = gl.FLOAT
-
-                [ vtype, kind ] = info
-
-                Class      = classes.find (c) -> c::name is attr.name
-                length     = Math.imul kind[3] or 1, kind[5] or 1
-                offset     = stride
-                stride    += byteLength = Class.BPE * length
-
-                attributes.push {
-                    index: location, size : length,
-                    type, stride, offset,
-                    byteLength, Class, normalized: Class.normalize
-                }
-
-            attributes.map (a) -> a.stride = stride
-
-            gl . deleteProgram program
-            gl . deleteShader vshader
-            gl . deleteShader fshader
-            gl = undefined
-
-            for attr in attributes
-                @append Object.assign new Attribute, attr
+            if !@source.isResolved
+                @source.resolve()
 
             this
 
-        bindContext         : ->
+        getParameter        : ( parameter ) ->
+            @parent.getShaderParameter this, parameter
 
-            return this
-
-            gl              = @parent.glObject  
-
-            glObject        = @glObject
-            
-            glProgram       = @parent.program.glObject 
-
-            Object.defineProperties this,
-
-                attach      : value : gl.attachShader.bind gl, glProgram, glObject
-
-                enable      : value : gl.attachShader.bind gl, glProgram, glObject
-                
-                delete      : value : gl.deleteShader.bind gl, glObject
-                
-            Object.defineProperties this,
-
-                source          :
-
-                    get         : gl.getShaderSource.bind gl, glObject
-                    
-                    set         : gl.shaderSource.bind gl, glObject
-
-                infoLog         : get   : gl.getShaderInfoLog.bind gl, glObject
-
-                getParameter    : value : gl.getShaderParameter.bind gl, glObject
-
-                precisionFormat : value : gl.getShaderPrecisionFormat.bind gl, @shaderType
-
-            this
+        delete              : ->
+            @parent.deleteShader this
 
         Object.defineProperties Shader::,
             
             source  : 
-                get : -> @parent.glObject.getShaderSource @glObject
-                set : Shader::compile
+                get : -> findChild this, ShaderSource, true
+                set : -> @source.set arguments[0]
 
             program :
-                get : -> getLinked this
+                get : -> getLinked( this ) or setLinked this, @parent.program
                 set : -> setLinked this, arguments[0]
+
+            infoLog : 
+                get : -> @parent.getShaderInfoLog this
+
+            precisionFormat :
+                get : -> @parent.getPrecisionFormat this
 
         Object.defineProperties Shader, DocumentScripts : get : ->
 
-            scripts = Array.from document.querySelectorAll "script"
-
+            sources = [ ...document.querySelectorAll "script" ]
+                .map( (s) -> s.text ).filter (s) -> /gl_/.test s
+            
             if  this is VertexShader
-                return scripts.filter ( script ) ->
-                    script.type.match( /x-vertex/i ) or
-                    script.text.match( /gl_Program/ )
-                .map ( script ) -> script.text
+                return sources.filter (s) -> s.match /gl_Pos/
 
             if  this is FragmentShader
-                return scripts.filter ( script ) ->
-                    script.type.match( /x-fragment/i ) or
-                    script.text.match( /gl_FragColor/ )
-                .map ( script ) -> script.text
+                return sources.filter (s) -> s.match /gl_Fra/
 
+                
             return []
 
         Object.deleteProperties Shader::, [ "buffer" ]
@@ -1947,14 +1907,20 @@ do  self.init   = ->
 
         shaderType          : WebGL2RenderingContext.VERTEX_SHADER
 
+        create              : -> @parent.createVertexShader()
+
         Object.defineProperties VertexShader::,
 
             BYTES_PER_POINT : get : ->
-                throw /GL_SHADER_ERR/ unless @glObject
+
+                unless @source.isResolved
+                    @source.resolve()
+
                 unless byteLength = getByteLength this
                     for attr in findChilds this, Attribute
                         byteLength += attr.byteLength
                     setByteLength this, byteLength
+
                 byteLength
 
     classes.register class FragmentShader   extends Shader
@@ -1962,6 +1928,9 @@ do  self.init   = ->
         isFragmentShader    : yes
 
         shaderType          : WebGL2RenderingContext.FRAGMENT_SHADER
+
+        create              : -> @parent.createFragmentShader()
+    
 
     classes.register class TextPointer      extends Pointer
 
@@ -1980,6 +1949,73 @@ do  self.init   = ->
 
         toString            : ->
             @decoder.decode detachUint8 this
+
+    classes.register class ShaderSource     extends TextPointer
+        
+        Object.defineProperties ShaderSource::,
+
+            scriptCode : get : ->
+                @decoder.decode detachUint8 this
+
+            isUploaded :
+                get : -> getResvUint8 this, 1 
+                set : -> setResvUint8 this, 1, arguments[0] 
+
+            isCompiled :
+                get : -> getResvUint8 this, 0 
+                set : -> setResvUint8 this, 0, arguments[0] 
+
+            isResolved :
+                get : -> getResvUint8 this, 2 
+                set : -> setResvUint8 this, 2, arguments[0] 
+
+
+        keyof               : ( type ) ->
+            k = Object.keys WebGL2RenderingContext
+            v = Object.values WebGL2RenderingContext
+            k.at v.indexOf type
+
+        resolve             : ->
+            return if @isResolved
+            @isResolved = 1
+
+            stride     = 0
+            program    = @parent.program
+            attributes = []
+
+            unless program.isLinked
+                program.link()
+            numAttribs = program.attributeCount
+
+            while numAttribs--
+                attr       = program.getActiveAttrib numAttribs
+                location   = program.getAttribLocation attr.name
+                typeKey    = @keyof( attr.type )
+                info       = typeKey.split(/_/)
+                name       = attr.name
+                type       = WebGL2RenderingContext.FLOAT
+
+                [ vtype, kind ] = info
+
+                Class      = classes.find (c) -> c::name is attr.name
+                length     = Math.imul kind[3] or 1, kind[5] or 1
+                offset     = stride
+                stride    += byteLength = Class.BPE * length
+
+                attributes.push {
+                    index: location, size : length,
+                    type, stride, offset,
+                    byteLength, Class, normalized: Class.normalize
+                }
+
+            attributes.map (a) -> a.stride = stride
+
+            for attr in attributes
+                @parent.append Object.assign new Attribute, attr
+
+            this
+
+
 
     classes.register class EventHandler     extends TextPointer
 
@@ -2079,13 +2115,7 @@ do  self.init   = ->
 
         #?@iterate  : Mesh
 
-        create      : ->
-            super arguments...
-
-            if !isWindow
-                throw "window"
-
-
+        gpu         : ->
 
             WORKGROUPS = 65534
             WGROUP_SIZE = 256
@@ -2094,42 +2124,24 @@ do  self.init   = ->
             BUFFER_SIZE = VERTEX_SIZE * 4
 
             vertlen = 65534 * 256
-            verticesA = new Float32Array new SharedArrayBuffer BUFFER_SIZE
+            verticesA = new Float32Array buffer
             verticesB = new Float32Array new SharedArrayBuffer BUFFER_SIZE
 
             i = 0
             length = 0
             while i < VERTEX_SIZE
-                verticesA.set( [ length, i, +Math.random(), 0 ], i )
                 verticesB.set( [ length, i, -Math.random(), 0 ], i )
-
                 length++
                 i += 4
 
-            code        = "
-                const max: u32 = #{VERTEX_SIZE}u;
-
-                @group(0) @binding(0) var<storage, read> A: array<f32>;
-                @group(0) @binding(1) var<storage, read> B: array<f32>;
-                @group(0) @binding(2) var<storage, read_write> output: array<f32>;
-
-                @compute @workgroup_size( #{WGROUP_SIZE} ) fn main (
-                @builtin ( global_invocation_id) id : vec3u ) {
-
-                    let  i : u32 = id.x;
-
-                    if ( i < max ) {
-                        output[i] = A[i] * B[i];
-                    }
-                
-                }
-            "   
-
-            adapter     = await navigator.gpu.requestAdapter()
-            pformat     = navigator.gpu.getPreferredCanvasFormat()
+            cscript     = document.getElementById("cshader").text
+            cscript     = cscript.replace( /VERTEX_SIZE/, VERTEX_SIZE )
+            cscript     = cscript.replace( /WGROUP_SIZE/, WGROUP_SIZE )
             
+            adapter     = await navigator.gpu.requestAdapter()
             gpu         = await adapter.requestDevice()            
-            cshader     = gpu.createShaderModule { code }
+
+            cshader     = gpu.createShaderModule { code: cscript }
 
             output      = gpu.createBuffer
                 size    : BUFFER_SIZE
@@ -2197,16 +2209,27 @@ do  self.init   = ->
             copyArrayBuffer = staging.getMappedRange 0, BUFFER_SIZE
 
             # get results
-            verticesA.set new Float32Array copyArrayBuffer
-            log "results:", verticesA
+            verticesB.set new Float32Array copyArrayBuffer
+            log "results:", verticesB
             staging.unmap()
+
+
+        create      : ->
+            super arguments...
+
+            if !isWindow
+                throw "window"
+
+
 
             @startTime = Date.now()
             @isRendering = 1
 
             i = 0
             onframe = ( @epoch ) ->
+                @context.clear()
                 @render()
+
                 throw /RENDER_OF_4/ if i++ > 4
                 requestAnimationFrame onframe
 
@@ -2232,6 +2255,8 @@ do  self.init   = ->
 
             while draw = iterateGlobalAllocs iterator
                 draw.refresh()
+
+            log @context.drawBuffer.upload()
                 
             @emit "render"
 
