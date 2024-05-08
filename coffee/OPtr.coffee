@@ -116,25 +116,25 @@ self.init   = ->
     OFFSET_PTR          = 24
     BYTELENGTH_GLBUFFER = 32 * 1e5
 
-    HINDEX_LENGTH       = 0
-    HINDEX_BYTEOFFSET   = HINDEX_LENGTH++ #! must be 0
-    HINDEX_BYTELENGTH   = HINDEX_LENGTH++
-    HINDEX_CLASSID      = HINDEX_LENGTH++
+    PTR_LENGTH       = 0
+    PTR_BYTEOFFSET   = PTR_LENGTH++ #! must be 0
+    PTR_BYTELENGTH   = PTR_LENGTH++
+    PTR_CLASSID      = PTR_LENGTH++
 
-    HINDEX_PARENT       = HINDEX_LENGTH++
-    HINDEX_BEGIN        = HINDEX_LENGTH++
+    PTR_PARENT       = PTR_LENGTH++
+    PTR_BEGIN        = PTR_LENGTH++
 
-    HINDEX_ISGL         = HINDEX_LENGTH++
-    HINDEX_UPDATED      = HINDEX_LENGTH++
-    HINDEX_PAINTED      = HINDEX_LENGTH++
-    HINDEX_LOCATED      = HINDEX_LENGTH++
+    PTR_ISGL         = PTR_LENGTH++
+    PTR_UPDATED      = PTR_LENGTH++
+    PTR_PAINTED      = PTR_LENGTH++
+    PTR_LOCATED      = PTR_LENGTH++
     
-    HINDEX_ITER_COUNT   = HINDEX_LENGTH++
-    HINDEX_NEXT_COLORI  = HINDEX_LENGTH++
-    HINDEX_NEXT_VERTEXI = HINDEX_LENGTH++
+    PTR_ITER_COUNT   = PTR_LENGTH++
+    PTR_NEXT_COLORI  = PTR_LENGTH++
+    PTR_NEXT_VERTEXI = PTR_LENGTH++
     
-    HINDEX_RESV0        = HINDEX_LENGTH++
-    HINDEX_RESV1        = HINDEX_LENGTH++
+    PTR_RESV0        = PTR_LENGTH++
+    PTR_RESV1        = PTR_LENGTH++
 
     ATTRIBS_LENGTH      = 0
     ATTRIBS_BYTELENGTH  = 0
@@ -143,41 +143,41 @@ self.init   = ->
 
     BYTELENGTH_128MB    = 512 * 512 * 512
 
-    HEADER_INDEXCOUNT   =  0
+    HEADER_BYTELENGTH   =  0
 
-    HEADER_BYTEOFFSET   =  0; HEADER_INDEXCOUNT++ #? 0
-    HEADER_BYTELENGTH   =  1; HEADER_INDEXCOUNT++ #? 1
-    HEADER_LENGTH       =  2; HEADER_INDEXCOUNT++ #? 2
-    HEADER_BEGIN        =  3; HEADER_INDEXCOUNT++ #? 3
+    HEADER_BYTEOFFSET   =  0; HEADER_BYTELENGTH++ #? 0
+    HEADER_BYTELENGTH   =  1; HEADER_BYTELENGTH++ #? 1
+    HEADER_LENGTH       =  2; HEADER_BYTELENGTH++ #? 2
+    HEADER_BEGIN        =  3; HEADER_BYTELENGTH++ #? 3
 
-    HEADER_CLASSINDEX   =  4; HEADER_INDEXCOUNT++ #? 4
-    HEADER_PARENTPTRI   =  5; HEADER_INDEXCOUNT++ #? 5
-    HEADER_LINKEDPTRI   =  6; HEADER_INDEXCOUNT++ #? 7
-    HEADER_ITEROFFSET   =  7; HEADER_INDEXCOUNT++ #? 6
+    HEADER_CLASSINDEX   =  4; HEADER_BYTELENGTH++ #? 4
+    HEADER_PARENTPTRI   =  5; HEADER_BYTELENGTH++ #? 5
+    HEADER_LINKEDPTRI   =  6; HEADER_BYTELENGTH++ #? 7
+    HEADER_ITEROFFSET   =  7; HEADER_BYTELENGTH++ #? 6
 
-    HEADER_ITERATORI    =  8; HEADER_INDEXCOUNT++ #? 32
-    HEADER_ITERCLASSI   =  9; HEADER_INDEXCOUNT++ #? 32
+    HEADER_ITERATORI    =  8; HEADER_BYTELENGTH++ #? 32
+    HEADER_ITERCLASSI   =  9; HEADER_BYTELENGTH++ #? 32
 
-    HEADER_NEEDRECALC   =  10 * 4    ; HEADER_INDEXCOUNT++ #? 32
+    HEADER_NEEDRECALC   =  10 * 4    ; HEADER_BYTELENGTH++ #? 32
     HEADER_NEEDUPLOAD   =  10 * 4 + 1; #* ptri * 4 + HEADER_NEEDUPLOAD
     HEADER_TRANSLATED   =  10 * 4 + 2; #* ptri * 4 + HEADER_CALCVERTEX
     HEADER_FRAGMENTED   =  10 * 4 + 3; #* ptri * 4 + HEADER_PAINTCOLOR
 
-    HEADER_RESVINDEX    =  12; HEADER_INDEXCOUNT++ #? 9 
+    HEADER_RESVINDEX    =  12; HEADER_BYTELENGTH++ #? 9 
     HEADER_RESVINDEX4   =  HEADER_RESVINDEX;  
     HEADER_RESVINDEX2   =  HEADER_RESVINDEX * 2; #* ptri * 2 + HEADER_RESVINDEX2
     HEADER_RESVINDEX1   =  HEADER_RESVINDEX * 4; #* ptri * 4 + HEADER_RESVINDEX1
 
-    if  HEADER_INDEXCOUNT > 32
-        throw /HEADER_INDEXCOUNT/
+    if  HEADER_BYTELENGTH > 32
+        throw /HEADER_BYTELENGTH/
 
-    HEADER_INDEXCOUNT   = 32
+    HEADER_BYTELENGTH   = 32
 
     self.mallocs        =
          
-    mallocs             = ( ptri = HEADER_INDEXCOUNT ) ->
+    mallocs             = ( ptri = HEADER_BYTELENGTH ) ->
         while ptr = getPointer ptri
-            ptri += HEADER_INDEXCOUNT ; ptr
+            ptri += HEADER_BYTELENGTH ; ptr
 
     getByteOffset       = ( ptri ) -> 
         u32.at( ptri )
@@ -258,7 +258,7 @@ self.init   = ->
         clsi = Class.classIndex
         list = new Array() ; i = 0
 
-        while ptrj -= HEADER_INDEXCOUNT
+        while ptrj -= HEADER_BYTELENGTH
             continue if u32[ HEADER_LINKEDPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
             list[ i++ ] = new ( classes[ clsi ] ) ptrj 
@@ -271,14 +271,14 @@ self.init   = ->
 
         if  Class
             clsi = Class.classIndex
-            while ptrj -= HEADER_INDEXCOUNT
+            while ptrj -= HEADER_BYTELENGTH
                 continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
                 continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
                 Class = classes[ u32[ HEADER_CLASSINDEX + ptrj ] ]
                 list[ i++ ] = new Class ptrj
 
         else
-            while ptrj -= HEADER_INDEXCOUNT
+            while ptrj -= HEADER_BYTELENGTH
                 continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
                 Class = classes[ u32[ HEADER_CLASSINDEX + ptrj ] ]
                 list[ i++ ] = new Class ptrj
@@ -291,13 +291,13 @@ self.init   = ->
 
         if  Class
             clsi = Class.classIndex
-            while ptrj -= HEADER_INDEXCOUNT
+            while ptrj -= HEADER_BYTELENGTH
                 continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
                 continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
                 list[ i++ ] = ptrj
 
         else
-            while ptrj -= HEADER_INDEXCOUNT
+            while ptrj -= HEADER_BYTELENGTH
                 continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
                 list[ i++ ] = ptrj
         
@@ -308,13 +308,13 @@ self.init   = ->
         i = 0
 
         if  clsi
-            while ptrj -= HEADER_INDEXCOUNT
+            while ptrj -= HEADER_BYTELENGTH
                 continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
                 continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
                 i++
 
         else
-            while ptrj -= HEADER_INDEXCOUNT
+            while ptrj -= HEADER_BYTELENGTH
                 continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
                 i++
         
@@ -332,7 +332,7 @@ self.init   = ->
 
     iterateGlobalAllocs = ( ptri ) ->
         clsi = Atomics.load u32, ptri + HEADER_ITERCLASSI
-        ptrj = Atomics.sub u32, ptri + HEADER_ITERATORI, HEADER_INDEXCOUNT
+        ptrj = Atomics.sub u32, ptri + HEADER_ITERATORI, HEADER_BYTELENGTH
 
         if  ptrj is ptri
             return iteratePrepared ptri
@@ -340,9 +340,9 @@ self.init   = ->
         if !ptrj or u32[1] < ptrj
             return finalizeIterator ptri
 
-        while ptrj -= HEADER_INDEXCOUNT
+        while ptrj -= HEADER_BYTELENGTH
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
-            next = ptrj - HEADER_INDEXCOUNT
+            next = ptrj - HEADER_BYTELENGTH
 
             if  next isnt Atomics.compareExchange u32, ptri + HEADER_ITERATORI, ptrj, next
                 Atomics.store u32, ptri + HEADER_ITERATORI, ptrj
@@ -354,7 +354,7 @@ self.init   = ->
 
     iteratePrepared     = ( ptri ) -> 
         clsi = Atomics.load u32, ptri + HEADER_ITERCLASSI
-        ptrj = Atomics.sub u32, ptri + HEADER_ITERATORI, HEADER_INDEXCOUNT
+        ptrj = Atomics.sub u32, ptri + HEADER_ITERATORI, HEADER_BYTELENGTH
 
 
         if  ptrj is ptri
@@ -365,20 +365,20 @@ self.init   = ->
 
 
         if  clsi
-            while ptrj -= HEADER_INDEXCOUNT
+            while ptrj -= HEADER_BYTELENGTH
                 continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
                 continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
 
-                next = ptrj - HEADER_INDEXCOUNT
+                next = ptrj - HEADER_BYTELENGTH
                 if  next isnt Atomics.compareExchange u32, ptri + HEADER_ITERATORI, ptrj, next
                     Atomics.store u32, ptri + HEADER_ITERATORI, ptrj
                     Class = classes[ clsi ]
                     return new Class ptrj
 
         else
-            while ptrj -= HEADER_INDEXCOUNT
+            while ptrj -= HEADER_BYTELENGTH
                 continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
-                next = ptrj - HEADER_INDEXCOUNT
+                next = ptrj - HEADER_BYTELENGTH
 
                 if  next isnt Atomics.compareExchange u32, ptri + HEADER_ITERATORI, ptrj, next
                     Atomics.store u32, ptri + HEADER_ITERATORI, ptrj
@@ -392,7 +392,7 @@ self.init   = ->
         clsi = Class.classIndex
         list = new Array() ; i = 0
 
-        while ptrj -= HEADER_INDEXCOUNT
+        while ptrj -= HEADER_BYTELENGTH
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
             list[ i ] = new ( classes[ clsi ] )( ptrj ) ; ++i
@@ -403,7 +403,7 @@ self.init   = ->
         ptrj = u32[1]
         clsi = Class.classIndex
 
-        while ptrj -= HEADER_INDEXCOUNT
+        while ptrj -= HEADER_BYTELENGTH
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
             return new ( classes[ clsi ] )( ptrj )
@@ -416,7 +416,7 @@ self.init   = ->
         ptrj = u32[1]
         clsi = Class.classIndex
 
-        while ptrj -= HEADER_INDEXCOUNT
+        while ptrj -= HEADER_BYTELENGTH
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
             return new Class ptrj
@@ -432,13 +432,13 @@ self.init   = ->
         clsi = clsi or Class.classIndex
 
         ptrj = ptrN
-        while ptrj -= HEADER_INDEXCOUNT
+        while ptrj -= HEADER_BYTELENGTH
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi                
             return new Class ptrj
 
         ptrj = ptrN
-        while ptrj -= HEADER_INDEXCOUNT 
+        while ptrj -= HEADER_BYTELENGTH 
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue unless ptr = findChildRecursive ptrj, Class, clsi
             return ptr
@@ -450,13 +450,13 @@ self.init   = ->
         clsi = clsi or Class.classIndex
 
         ptrj = ptrN
-        while ptrj -= HEADER_INDEXCOUNT
+        while ptrj -= HEADER_BYTELENGTH
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi                
             childs.push new Class ptrj
 
         ptrj = ptrN
-        while ptrj -= HEADER_INDEXCOUNT 
+        while ptrj -= HEADER_BYTELENGTH 
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue unless ptr = findChildsRecursive ptrj, Class, clsi, childs
             childs.push ptr
@@ -468,7 +468,7 @@ self.init   = ->
         clsi = Class.classIndex
         list = new Array() ; i = 0
 
-        while ptrj -= HEADER_INDEXCOUNT
+        while ptrj -= HEADER_BYTELENGTH
             continue if u32[ HEADER_PARENTPTRI + ptrj ] - ptri
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
             list[ i ] = ptrj ; i++
@@ -480,7 +480,7 @@ self.init   = ->
         ptrj = u32[1]
         list = new Array() ; i = 0
 
-        while ptrj -= HEADER_INDEXCOUNT
+        while ptrj -= HEADER_BYTELENGTH
             continue if u32[ HEADER_CLASSINDEX + ptrj ] - clsi
             list[ i ] = new ( classes[ clsi ] )( ptrj ) ; i+=1
 
@@ -608,7 +608,7 @@ self.init   = ->
         new Float32Array buffer, byteOffset, length
 
     ptrFloat32Array     = ( ptri, byteOffset = 0, length ) -> 
-        new Float32Array buffer, ptri * 4, length or HEADER_INDEXCOUNT
+        new Float32Array buffer, ptri * 4, length or HEADER_BYTELENGTH
 
     newUint32Array      = ( ptri, byteOffset = 0, length ) -> 
         new Uint32Array buffer, u32.at( ptri ) + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
@@ -621,7 +621,7 @@ self.init   = ->
         new Uint8Array buffer, u32.at( ptri ) + byteOffset, length or u32[ HEADER_LENGTH + ptri ]
 
     ptrUint8Array       = ( ptri, byteOffset = 0, length ) -> 
-        new Uint8Array buffer, ptri * 4, length or HEADER_INDEXCOUNT * BPE
+        new Uint8Array buffer, ptri * 4, length or HEADER_BYTELENGTH * BPE
 
     subarrayFloat32     = ( ptri, begin = 0, count ) -> 
         begin += u32[ HEADER_BEGIN + ptri ]
@@ -739,19 +739,19 @@ self.init   = ->
         ptri = Atomics.load i32, 1
         test = 0
 
-        while OFFSET_PTR <= ptri -= HEADER_INDEXCOUNT        
-            continue unless Atomics.load i32, ptri + HINDEX_ISGL
-            continue if Atomics.load i32, ptri + HINDEX_UPDATED
+        while OFFSET_PTR <= ptri -= HEADER_BYTELENGTH        
+            continue unless Atomics.load i32, ptri + PTR_ISGL
+            continue if Atomics.load i32, ptri + PTR_UPDATED
             
-            locate  = Atomics.load i32, ptri + HINDEX_LOCATED
-            paint   = Atomics.load i32, ptri + HINDEX_PAINTED
+            locate  = Atomics.load i32, ptri + PTR_LOCATED
+            paint   = Atomics.load i32, ptri + PTR_PAINTED
 
             continue if paint and locate
 
             test = 1
 
-            index   = Atomics.add i32, ptri + HINDEX_NEXT_VERTEXI, 1
-            count   = Atomics.load i32, ptri + HINDEX_ITER_COUNT
+            index   = Atomics.add i32, ptri + PTR_NEXT_VERTEXI, 1
+            count   = Atomics.load i32, ptri + PTR_ITER_COUNT
 
             if  index <= count
                 shape   = new Shape ptri
@@ -765,19 +765,19 @@ self.init   = ->
                     draw.vertex( index ).set vertex
                     draw.color( index ).set color
 
-                    Atomics.store i32, draw.ptri + HINDEX_UPDATED, 0
+                    Atomics.store i32, draw.ptri + PTR_UPDATED, 0
                     
                 #log ptri, index 
             
             continue if index - count
 
             if !locate
-                Atomics.store i32, ptri + HINDEX_LOCATED, 1
+                Atomics.store i32, ptri + PTR_LOCATED, 1
                 
             if !paint
-                Atomics.store i32, ptri + HINDEX_PAINTED, 1
+                Atomics.store i32, ptri + PTR_PAINTED, 1
 
-            Atomics.store i32, ptri + HINDEX_UPDATED, 1
+            Atomics.store i32, ptri + PTR_UPDATED, 1
 
         if  test is 1
             return nextTick()
@@ -811,8 +811,8 @@ self.init   = ->
                 return Atomics.load i32, THREADS_STATE
             return Atomics.store i32, THREADS_STATE, state
 
-        Atomics.add u32, 0, HEADER_INDEXCOUNT * 1e5
-        Atomics.add u32, 1, HEADER_INDEXCOUNT
+        Atomics.add u32, 0, HEADER_BYTELENGTH * 1e5
+        Atomics.add u32, 1, HEADER_BYTELENGTH
     
         state THREADS_NULL
 
@@ -840,7 +840,7 @@ self.init   = ->
         storage     : [,]
 
         constructor : ->
-            super arguments[0] || Atomics.add u32, 1, HEADER_INDEXCOUNT
+            super arguments[0] || Atomics.add u32, 1, HEADER_BYTELENGTH
             @init arguments[1] if isWindow
 
         malloc      : ( byteLength ) ->
@@ -945,7 +945,7 @@ self.init   = ->
 
         Object.defineProperties Pointer::,
             [ "{[Pointer]}" ] :
-                get : -> ptrUint32Array this, 0, HEADER_INDEXCOUNT
+                get : -> ptrUint32Array this, 0, HEADER_BYTELENGTH
 
     classes.register class Vector4          extends Pointer
 
@@ -2500,10 +2500,10 @@ self.init   = ->
                     get     : -> @vertices.pointCount
 
                 markNeedsUpdate : 
-                    set     : -> unlock Atomics.store i32, @ptri + HINDEX_UPDATED, 1
+                    set     : -> unlock Atomics.store i32, @ptri + PTR_UPDATED, 1
 
                 willUploadIfNeeded : 
-                    get     : -> Atomics.and i32, @ptri + HINDEX_UPDATED, 0
+                    get     : -> Atomics.and i32, @ptri + PTR_UPDATED, 0
 
             drawPoints      : ->
                 @draws.push space.malloc gl.POINTS, this
@@ -2516,7 +2516,7 @@ self.init   = ->
 
             vertex          : ( index ) ->
                 ptri = dvw.getUint32 @byteOffset + @OFFSET_VERTICES, LE
-                byteOffset = i32[ ptri + HINDEX_BYTEOFFSET ] + index * 4 * 3
+                byteOffset = i32[ ptri + PTR_BYTEOFFSET ] + index * 4 * 3
                 new Float32Array buffer, byteOffset, 3
 
         class Matrix4       extends Pointer
@@ -2937,12 +2937,12 @@ self.init   = ->
             Object.defineProperties Shader::,
 
                 isAttached      :
-                    get : -> u32[ this + @HINDEX_RESV0 ]
-                    set : (v) -> u32[ this + @HINDEX_RESV0 ] = v
+                    get : -> u32[ this + @PTR_RESV0 ]
+                    set : (v) -> u32[ this + @PTR_RESV0 ] = v
 
                 glShader        :
-                    get : -> shaders[ u32[ this + @HINDEX_RESV1 ] ]
-                    set : (v) -> u32[ this + @HINDEX_RESV1 ] = shaders.register v
+                    get : -> shaders[ u32[ this + @PTR_RESV1 ] ]
+                    set : (v) -> u32[ this + @PTR_RESV1 ] = shaders.register v
 
         classes.register class vShader extends Shader
             name : "vShader"
@@ -2966,7 +2966,7 @@ self.init   = ->
             INDEX_TRIANGLES_COUNT : 8 
             INDEX_TRIANGLES_OFFSET: 9 
 
-            INDEX_DRAW_BEGIN      : HEADER_INDEXCOUNT
+            INDEX_DRAW_BEGIN      : HEADER_BYTELENGTH
 
             init : ->
                 @BYTES_PER_ATTRIBUTE = 32
@@ -3858,30 +3858,30 @@ self.init   = ->
                 ).classId
 
             Object.defineProperty this::, "byteOffset",
-                get : -> Atomics.load i32, @ptri + HINDEX_BYTEOFFSET
+                get : -> Atomics.load i32, @ptri + PTR_BYTEOFFSET
             
             Object.defineProperty this::, "classId",
-                get : -> Atomics.load i32, @ptri + HINDEX_CLASSID
+                get : -> Atomics.load i32, @ptri + PTR_CLASSID
 
             Object.defineProperty this::, "byteLength",
-                get : -> Atomics.load i32, @ptri + HINDEX_BYTELENGTH
+                get : -> Atomics.load i32, @ptri + PTR_BYTELENGTH
 
             Object.defineProperty this::, "length",
-                get : -> Atomics.load i32, @ptri + HINDEX_LENGTH
+                get : -> Atomics.load i32, @ptri + PTR_LENGTH
 
             Object.defineProperty this::, "ptri",
                 get : -> Atomics.load i32, this
             
             Object.defineProperty this::, "begin",
-                get : -> Atomics.load i32, @ptri + HINDEX_BEGIN
+                get : -> Atomics.load i32, @ptri + PTR_BEGIN
             
             Object.defineProperty this::, "isGL",
-                get : -> Atomics.load i32, @ptri + HINDEX_ISGL
-                set : (v) -> Atomics.store i32, @ptri + HINDEX_ISGL, v
+                get : -> Atomics.load i32, @ptri + PTR_ISGL
+                set : (v) -> Atomics.store i32, @ptri + PTR_ISGL, v
             
             Object.defineProperty this::, "parent",
-                get : -> Atomics.load i32, @ptri + HINDEX_PARENT
-                set : (v) -> Atomics.store i32, @ptri + HINDEX_PARENT, parseInt v
+                get : -> Atomics.load i32, @ptri + PTR_PARENT
+                set : (v) -> Atomics.store i32, @ptri + PTR_PARENT, parseInt v
             
             Object.defineProperty this::, "children",
                 get : -> 
@@ -3890,14 +3890,14 @@ self.init   = ->
 
                     children = []
                     while OFFSET_PTR <= ptri -= 16
-                        unless test - Atomics.load i32, ptri + HINDEX_PARENT
-                            classId = Atomics.load i32, ptri + HINDEX_CLASSID
+                        unless test - Atomics.load i32, ptri + PTR_PARENT
+                            classId = Atomics.load i32, ptri + PTR_CLASSID
                             children.push new (classes[ classId ])( ptri )
                     children
             
             Object.defineProperty this::, "iterCount",
-                get : -> Atomics.load u32, @ptri + HINDEX_ITER_COUNT
-                set : (v) -> Atomics.store u32, @ptri + HINDEX_ITER_COUNT, v
+                get : -> Atomics.load u32, @ptri + PTR_ITER_COUNT
+                set : (v) -> Atomics.store u32, @ptri + PTR_ITER_COUNT, v
             
             Object.defineProperty this::, "typedArray",
                 get : -> new this.constructor.TypedArray buffer, @byteOffset, @length
@@ -3907,8 +3907,8 @@ self.init   = ->
                 classId = @classId
 
                 while OFFSET_PTR <= ptri -= 16        
-                    continue unless classId is Atomics.load i32, ptri + HINDEX_CLASSID
-                    continue if parent and parent isnt Atomics.load i32, ptri + HINDEX_PARENT
+                    continue unless classId is Atomics.load i32, ptri + PTR_CLASSID
+                    continue if parent and parent isnt Atomics.load i32, ptri + PTR_PARENT
                     object = new this ptri
 
             @malloc     : ( constructor, byteLength ) ->
@@ -4015,7 +4015,7 @@ self.init   = ->
             set : ( offset ) -> ( value ) ->
                 ptri = malloc Vertices, value.length * 4
                 dvw.setInt32 @byteOffset + @OFFSET_VERTICES, ptri, LE
-                f32.set value, i32[ ptri + HINDEX_BEGIN ]
+                f32.set value, i32[ ptri + PTR_BEGIN ]
 
         return
 
@@ -4252,28 +4252,30 @@ do  self.main = ->
     isWindow            = !isWorker
 
     BUFFER_SIZE         = 1e6 * 8
-    HEADER_INDEXCOUNT   = 16
-    POINTER_MAXINDEX    = 1e5
-    ALIGN_BYTELENGTH    = 8
     BYTES_PER_ELEMENT   = 4
+    HEADER_LENGTH       = 16
+    POINTER_MAXINDEX    = 1e5
+    HEADER_BYTELENGTH   = HEADER_LENGTH * BYTES_PER_ELEMENT
+    ALIGN_BYTELENGTH    = 8
     MALLOC_BYTEOFFSET   =
-        HEADER_INDEXCOUNT * 
-        BYTES_PER_ELEMENT * 
+        HEADER_BYTELENGTH * 
         POINTER_MAXINDEX
 
+    INDEX_PTRI_MALLOC   = 0
     INDEX_DATA_MALLOC   = 1
-    INDEX_POINTER_ALLOC = 0
 
 
-    HINDEX_BYTEOFFSET   = 0
-    HINDEX_BYTELENGTH   = 1
-    HINDEX_LENGTH       = 2
-    HINDEX_BEGIN        = 3
+    PTR_BYTEOFFSET      = 0 * 4
+    PTR_BYTELENGTH      = 1 * 4
+    PTR_LENGTH          = 2 * 4
+    PTR_BEGIN           = 3 * 4
 
-    HINDEX_PARENT       = 4
-    HINDEX_CLASSINDEX   = 5
+    PTR_PARENT          = 4 * 4
+    PTR_CLASSI          = 5 * 4
 
-    HINDEX_RESVBEGIN    = 8
+    PTR_RESVBEGIN       = 8 * 4
+
+    PTRKEY              = "{{Pointer}}"
 
     sab = new SharedArrayBuffer BUFFER_SIZE if isWindow
     u64 = new BigUint64Array sab
@@ -4283,14 +4285,15 @@ do  self.main = ->
     ui8 = new Uint8Array sab
     u16 = new Uint16Array sab
     dvw = new DataView sab
-    iLE = new Uint8Array( Uint16Array.of(1).buffer )[0]
+    iLE = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
+
 
     if  isWindow
+        Atomics.or u32, INDEX_PTRI_MALLOC, HEADER_BYTELENGTH
         Atomics.or u32, INDEX_DATA_MALLOC, MALLOC_BYTEOFFSET
-        Atomics.or u32, INDEX_POINTER_ALLOC, HEADER_INDEXCOUNT
 
     malloc = Atomics.add.bind Atomics, u32, INDEX_DATA_MALLOC
-    palloc = Atomics.add.bind Atomics, u32, INDEX_POINTER_ALLOC, HEADER_INDEXCOUNT
+    palloc = Atomics.add.bind Atomics, u32, INDEX_PTRI_MALLOC, HEADER_BYTELENGTH
     malign = -> malloc b if b = Atomics.load(u32, INDEX_DATA_MALLOC) % ALIGN_BYTELENGTH
 
     Object.defineProperties Object, 
@@ -4303,11 +4306,12 @@ do  self.main = ->
 
     class Storage extends Array
 
-        constructor : -> super().push()
+        constructor : ->
+            super().push()
 
-        store       : ( Class ) ->
-            if -1 is i = @indexOf Class
-                i += @push Class
+        store       : ( object ) ->
+            if -1 is i = @indexOf object
+                i += @push object
             i
 
     cscope = new class Scope extends Storage
@@ -4325,13 +4329,27 @@ do  self.main = ->
 
             .bind null, Class
 
-        findByName  : ( name ) ->
-            @find (c) -> c::name is name
+        indexOf     : ( ClassOrPtri ) ->
+            return -1 if !ClassOrPtri
 
+            if  ClassOrPtri.isPClass
+                return super ClassOrPtri
+
+            if  ClassOrPtri.isPointer
+                return super ClassOrPtri.constructor
+
+            if  "string" is typeof name = ClassOrPtri
+                return @findIndex( (c) -> c::name is name ) or -1
+
+            if !isNaN ptri = ClassOrPtri
+                return dvw.getUint32( PTR_CLASSI + ptri, iLE ) or -1
+
+            throw [ /WHAT_IS_THIS/, ClassOrPtri ]
+            
 
     findChild       = ( ptri, Class, create = off ) ->
 
-        ptrj = u32[0]
+        ptrj = dvw.getUint32 0, iLE
 
         unless ptri
         #? returns last created Class in Global
@@ -4339,25 +4357,25 @@ do  self.main = ->
             if  -1 is clsi = cscope.indexOf Class
                 throw /POINTER_OR_CLASS_REQUIRED/
             
-            while ptrj -= HEADER_INDEXCOUNT
-                continue if u32[ HINDEX_CLASSINDEX + ptrj ] - clsi
+            while ptrj -= HEADER_BYTELENGTH
+                continue if clsi - dvw.getUint32 PTR_CLASSI + ptrj, iLE
                 return new Class ptrj
 
         else
             if  -1 is clsi = cscope.indexOf Class
             #? returns last child of this
 
-                while ptrj -= HEADER_INDEXCOUNT
-                    continue if u32[ HINDEX_PARENT + ptrj ] - ptri
-                    Class = cscope[ getClassIndex ptrj ]
+                while ptrj -= HEADER_BYTELENGTH
+                    continue if ptri - dvw.getUint32 PTR_PARENT + ptrj, iLE
+                    Class = cscope[ dvw.getUint32 PTR_CLASSI + ptrj, iLE ]
                     return new Class ptrj
 
             else
             #? returns last Class child of this
 
-                while ptrj -= HEADER_INDEXCOUNT
-                    continue if u32[ HINDEX_PARENT + ptrj ] - ptri
-                    continue if u32[ HINDEX_CLASSINDEX + ptrj ] - clsi
+                while ptrj -= HEADER_BYTELENGTH
+                    continue if ptri - dvw.getUint32 PTR_PARENT + ptrj, iLE
+                    continue if clsi - dvw.getUint32 PTR_CLASSI + ptrj, iLE
                     return new Class ptrj
 
         if  create
@@ -4370,7 +4388,7 @@ do  self.main = ->
     findChilds      = ( ptri, Class, recursive = off, construct = on, childs = [] ) ->
         throw /CLASS_REQUIRED/ if recursive and !Class
 
-        ptrj = u32[ index = 0 ]
+        ptrj = dvw.getUint32 index = 0, iLE
         list = new Array
 
         unless ptri
@@ -4379,14 +4397,14 @@ do  self.main = ->
             if  -1 is clsi = cscope.indexOf Class
             #? returns all allocated pointers
 
-                while ptrj -= HEADER_INDEXCOUNT
+                while ptrj -= HEADER_BYTELENGTH
                     list[ index++ ] = ptrj
 
             else
             #? all allocated Classes in Global
 
-                while ptrj -= HEADER_INDEXCOUNT
-                    continue if u32[ HINDEX_CLASSINDEX + ptrj ] - clsi
+                while ptrj -= HEADER_BYTELENGTH
+                    continue if clsi - dvw.getUint32 PTR_CLASSI + ptrj, iLE
                     list[ index++ ] = ptrj
 
         else
@@ -4395,166 +4413,164 @@ do  self.main = ->
             if  -1 is clsi = cscope.indexOf Class
             #? returns all allocated pointers
 
-                while ptrj -= HEADER_INDEXCOUNT
-                    continue if u32[ HINDEX_PARENT + ptrj ] - ptri
+                while ptrj -= HEADER_BYTELENGTH
+                    continue if ptri - dvw.getUint32 PTR_PARENT + ptrj, iLE
                     list[ index++ ] = ptrj
                     
 
             else
             #? all allocated Classes in Global
-                while ptrj -= HEADER_INDEXCOUNT
-                    continue if u32[ HINDEX_PARENT + ptrj ] - ptri
-                    continue if u32[ HINDEX_CLASSINDEX + ptrj ] - clsi
+                while ptrj -= HEADER_BYTELENGTH
+                    continue if ptri - dvw.getUint32 PTR_PARENT + ptrj, iLE
+                    continue if clsi - dvw.getUint32 PTR_CLASSI + ptrj, iLE
                     list[ index++ ] = ptrj
 
                     
             
-        if  recursive and i = index
-
-            while i--
-                findChilds list[ i ], Class, on, construct, childs
+        if  recursive and i = index then while i--
+            findChilds list[i], Class, on, construct, childs 
 
         if  construct
             
             if !Class
                 while index--
-                    Class = cscope[ getClassIndex list[ index ] ]
-                    childs.push new Class list[ index ]
+                    ptrj = list[ index ]
+                    Class = cscope[ dvw.getUint32 PTR_CLASSI + ptrj, iLE ]
+                    childs.push new Class ptrj
 
             else
                 while index--
-                    childs.push new Class list[ index ]
+                    ptrj = list[ index ]
+                    childs.push new Class ptrj
 
         else
             childs.push.apply childs, list
 
         childs
 
-    setResvUint32   = ( ptri, index, value ) ->
-        index += ( ptri + HINDEX_RESVBEGIN )
-        u32[ index ] = value
+    setResvUint32   = ( byteOffset, value ) ->
+        dvw.setUint32 byteOffset + PTR_RESVBEGIN, value, iLE ; value
 
-    getResvUint32   = ( ptri, index ) ->
-        index += ( ptri + HINDEX_RESVBEGIN )
-        u32[ index ]
+    getResvUint32   = ( byteOffset = 0 ) ->
+        dvw.getUint32 byteOffset + PTR_RESVBEGIN, iLE
 
-    setResvUint16   = ( ptri, index, value ) ->
-        index += ( ptri + HINDEX_RESVBEGIN ) * 2
-        u16[ index ] = value
+    setResvUint16   = ( byteOffset, value ) ->
+        dvw.setUint16 byteOffset + PTR_RESVBEGIN, value, iLE ; value
 
-    getResvUint16   = ( ptri, index ) ->
-        index += ( ptri + HINDEX_RESVBEGIN ) * 2
-        u16[ index ]
+    getResvUint16   = ( byteOffset = 0 ) ->
+        dvw.getUint16 byteOffset + PTR_RESVBEGIN, iLE
 
-    setResvUint8    = ( ptri, index, value ) ->
-        index += ( ptri + HINDEX_RESVBEGIN ) * 4
-        ui8[ index ] = value
+    setResvUint8    = ( byteOffset, value ) ->
+        dvw.setUint8 byteOffset + PTR_RESVBEGIN, value ; value
 
-    getResvUint8    = ( ptri, index ) ->
-        index += ( ptri + HINDEX_RESVBEGIN ) * 4
-        ui8[ index ]
+    getResvUint8    = ( byteOffset = 0 ) ->
+        dvw.getUint8 byteOffset + PTR_RESVBEGIN
 
-    setResvUint64   = ( ptri, index, value ) ->
-        index += ( ptri + HINDEX_RESVBEGIN ) / 2
-        Number u64[ index ] = BigInt value
+    setResvUint64   = ( byteOffset, value ) ->
+        dvw.setBigUint64 byteOffset + PTR_RESVBEGIN, BigInt(value), iLE ; value
 
-    getResvUint64   = ( ptri, index ) ->
-        index += ( ptri + HINDEX_RESVBEGIN ) / 2
-        Number u64[ index ]
+    getResvUint64   = ( byteOffset = 0 ) ->
+        Number dvw.getBigUint64 byteOffset + PTR_RESVBEGIN, iLE
 
-    setByteLength   = ( ptri, value ) ->
-        u32[ ptri + HINDEX_BYTELENGTH ] = value
+    setByteLength   = ( ptri, byteLength ) ->
+        dvw.setUint32 ptri + PTR_BYTELENGTH, byteLength, iLE ; ptri
 
     getByteLength   = ( ptri ) ->
-        u32[ ptri + HINDEX_BYTELENGTH ]
+        dvw.getUint32 ptri + PTR_BYTELENGTH, iLE
 
-    setByteOffset   = ( ptri, value ) ->
-        u32[ ptri + HINDEX_BYTEOFFSET ] = value
+    setByteOffset   = ( ptri, byteOffset ) ->
+        dvw.setUint32 ptri + PTR_BYTEOFFSET, byteOffset, iLE ; ptri
 
     getByteOffset   = ( ptri ) ->
-        u32[ ptri + HINDEX_BYTEOFFSET ]
+        dvw.getUint32 ptri + PTR_BYTEOFFSET, iLE
 
-    setLength       = ( ptri, value ) ->
-        u32[ ptri + HINDEX_LENGTH ] = value
+    setLength       = ( ptri, length ) ->
+        dvw.setUint32 ptri + PTR_LENGTH, length, iLE ; ptri
 
     getLength       = ( ptri ) ->
-        u32[ ptri + HINDEX_LENGTH ]
+        dvw.getUint32 ptri + PTR_LENGTH, iLE
 
-    setBegin        = ( ptri, value ) ->
-        u32[ ptri + HINDEX_BEGIN ] = value
+    setBegin        = ( ptri, begin ) ->
+        dvw.setUint32 ptri + PTR_BEGIN, begin, iLE ; ptri
 
     getBegin        = ( ptri ) ->
-        u32[ ptri + HINDEX_BEGIN ]
+        dvw.getUint32 ptri + PTR_BEGIN, iLE
 
-    setParent       = ( ptri, ptrj ) ->
-        u32[ ptri + HINDEX_PARENT ] = ptrj
+    setParent       = ( ptri, parent ) ->
+        dvw.setUint32 ptri + PTR_PARENT, parent, iLE ; ptri
 
     getParent       = ( ptri ) ->
-        ptrj = u32[ ptri + HINDEX_PARENT ]
+        ptrj = dvw.getUint32 ptri + PTR_PARENT, iLE
         return null unless ptrj
 
-        clsi = u32[ ptrj + HINDEX_CLASSINDEX ]
-        new cscope[ clsi ] ptrj
+        clsi = dvw.getUint32 ptri + PTR_CLASSI, iLE 
+        new cscope[ clsi ] ptrj if clsi
 
     setClassIndex   = ( ptri, clsi ) ->
-        u32[ ptri + HINDEX_CLASSINDEX ] =
-            clsi or cscope.indexOf ptri.constructor
+        clsi ||= cscope.indexOf ptri
+        dvw.setUint32 ptri + PTR_CLASSI, clsi, iLE ; ptri
 
     getClassIndex   = ( ptri ) ->
-        u32[ ptri + HINDEX_CLASSINDEX ]
+        dvw.getUint32 ptri + PTR_CLASSI, iLE
 
     cscope.store class Pointer extends Number
     
-        @byteLength : 0
+        @byteLength     : 0
 
-        storage     : new Storage
+        storage         : new Storage
 
-        constructor : ( ptri = 0 ) ->
+        isPointer       : yes
+
+        @isPClass       : yes
+
+        constructor     : ( ptri = 0 ) ->
             super ptri or palloc()
             setClassIndex this if !ptri
 
-        toString    : ->
+        toString        : ->
             console.error "tostring", this
             super()
 
-        on          : ( event, handler ) -> 
+        on              : ( event, handler ) -> 
             @append ptr = new EventHandler()
             ptr.set handler, event
             this
 
-        once        : ( event, handler ) -> this
+        once            : ( event, handler ) -> this
 
-        emit        : ( event, handler ) -> this
+        emit            : ( event, handler ) -> this
 
-        store       : ( object, resvU32i ) ->
-            setResvUint32 this, resvU32i, @storage.store object
+        store           : ( object, byteOffset = 0 ) ->
+            stri = @storage.store object
+            setResvUint32 byteOffset + this, stri
 
-        object      : ( resvU32i ) ->
-            @storage[ getResvUint32 this, resvU32i ]
+        object          : ( byteOffset = 0 ) ->
+            stri = getResvUint32 byteOffset + this
+            @storage[ stri ] 
 
-        append      : ( ptri ) ->
+        append          : ( ptri ) ->
             setParent ptri, this ; ptri
 
-        init        : ( childs = {} ) ->
+        init            : ( childs = {} ) ->
             prototype = @constructor::
 
-            for name, value of childs
+            for label , value of childs
 
-                if  Object.hasOwn prototype, name
-                    @[ name ] = value
+                if  Object.hasOwn prototype, label
+                    this[ label ] = value
                     continue
                 
-                unless Class = cscope.findByName name
-                    throw /NOT_REGISTERED/ + name
+                if  -1 is clsi = cscope.indexOf label
+                    throw /NOT_REGISTERED/ + label
 
-                @append new Class().set value
+                @append new cscope[clsi]().set value
 
             this
 
-        add         : ( ptri ) ->
+        add             : ( ptri ) ->
             setParent ptri, this
 
-        set         : ( arrayLike ) ->
+        set             : ( arrayLike ) ->
             if !begin = getBegin this
 
                 if !byteLength = @constructor.byteLength
@@ -4568,9 +4584,8 @@ do  self.main = ->
                 setLength this, arrayLike.length
                 malign()
 
-                byteOffset = setByteOffset this, malloc byteLength
-                begin = setBegin this, byteOffset / 4 
-            
+                setByteOffset this, byteOffset = malloc byteLength
+                setBegin this, begin = byteOffset / 4 
 
             if !@TypedArray
                 f32.set arrayLike, begin
@@ -4586,20 +4601,18 @@ do  self.main = ->
 
         Object.defineProperties this::,
 
-            parent   : get : -> getParent this
+            parent      : get : -> getParent this
 
-            children : get : -> findChilds this
+            children    : get : -> findChilds this
 
         Object.defineProperties this::,
 
-            [ "{{Pointer}}" ] : get : ->
-                u32.subarray this, this + HEADER_INDEXCOUNT
-
+            [ PTRKEY ]  : get : -> new Uint32Array sab, this, HEADER_LENGTH
 
 
     cscope.global class Scene extends Pointer
 
-        name : "scene"
+        name            : "scene"
 
 
     cscope.store class TextPointer extends Pointer
@@ -4618,6 +4631,7 @@ do  self.main = ->
         encode          : ( text = "" ) ->
             @encoder.encode "#{text}"
 
+    EVENTHANDLER_HANDLER = 0
 
     cscope.store class EventHandler extends TextPointer
 
@@ -4627,57 +4641,56 @@ do  self.main = ->
         Object.defineProperties this::,
 
             handler     : 
-                get     : -> @object 0
-                set     : -> @store arguments[0], 0
+                get     : -> @object EVENTHANDLER_HANDLER
+                set     : ( fn ) -> @store fn, EVENTHANDLER_HANDLER
 
             event       :
                 get     : -> @decode()
 
     cscope.global class Color extends Pointer
 
-        @byteLength : 4 * BYTES_PER_ELEMENT
+        @byteLength     : 4 * BYTES_PER_ELEMENT
     
-        name : "color"
+        name            : "color"
 
     cscope.global class Position extends Pointer
 
-        @byteLength : 4 * BYTES_PER_ELEMENT
+        @byteLength     : 4 * BYTES_PER_ELEMENT
     
-        name : "position"
+        name            : "position"
 
     cscope.global class Rotation extends Pointer
 
-        @byteLength : 4 * BYTES_PER_ELEMENT
+        @byteLength     : 4 * BYTES_PER_ELEMENT
     
-        name        : "rotation"
+        name            : "rotation"
 
     cscope.global class Scale extends Pointer
 
-        @byteLength : 4 * BYTES_PER_ELEMENT
+        @byteLength     : 4 * BYTES_PER_ELEMENT
     
-        name        : "scale"
+        name            : "scale"
 
     cscope.store class Location extends Pointer
 
-        @byteLength : 4 * BYTES_PER_ELEMENT
+        @byteLength     : 4 * BYTES_PER_ELEMENT
     
-        name        : "location"
+        name            : "location"
 
-    cscope.store  class ClearColor extends Color
+    cscope.store class ClearColor extends Color
 
-        name        : "clearColor"
+        name            : "clearColor"
 
     cscope.global class Shape extends Pointer
 
-        TypedArray  : Float32Array
+        TypedArray      : Float32Array
 
-        name        : "shape"
+        name            : "shape"
 
         Object.defineProperties this::,
-            vertices : 
+            vertices    : 
                 get : -> @subarray
-                set : -> @set arguments[0]
-
+                set : ( arrayLike ) -> @set arrayLike
 
     for Class in cscope
         continue unless Class::TypedArray

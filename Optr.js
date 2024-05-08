@@ -9,7 +9,7 @@ log = console.log;
 warn = console.warn;
 
 self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, Attribute, BPE, BYTELENGTH_128MB, BYTELENGTH_GLBUFFER, ClearColor, ClearMask, Color, CompiledShader, Context, Document, DocumentScript, Draw, DrawBuffer, EventEmitter, EventHandler, FragmentShader, Frustrum, GLParamerer, GLPointer, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERATORI, HEADER_ITERCLASSI, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Mesh, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, Program, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scene, Shader, ShaderSource, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, TextPointer, Texture, UV, UserScript, Vector4, VertexShader, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, detachUint8, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, finalizeIterator, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsCount, getChildsPtri, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getObject, getParent, getParentPtri, getPointer, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint16, getUint32, getUint64, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitResvUint8, hitTranslated, i32, inherit, isThread, isWindow, iterateGlobalAllocs, iteratePrepared, lock, mallocs, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, prepareIterator, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setLinkedPtri, setNeedRecalc, setNeedUpload, setObject, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint16, setUint32, setUint64, setUint8, setarrayFloat32, setarrayUint16, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint16, subarrayUint32, subarrayUint8, textDecoder, textEncoder, threadId, ticks, u16, u32, u64, ui8, unlock, uuid, vShader, workers;
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, Attribute, BPE, BYTELENGTH_128MB, BYTELENGTH_GLBUFFER, ClearColor, ClearMask, Color, CompiledShader, Context, Document, DocumentScript, Draw, DrawBuffer, EventEmitter, EventHandler, FragmentShader, Frustrum, GLParamerer, GLPointer, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_ITERATORI, HEADER_ITERCLASSI, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Mesh, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSID, PTR_ISGL, PTR_ITER_COUNT, PTR_LENGTH, PTR_LOCATED, PTR_NEXT_COLORI, PTR_NEXT_VERTEXI, PTR_PAINTED, PTR_PARENT, PTR_RESV0, PTR_RESV1, PTR_UPDATED, PointSize, Pointer, Position, Program, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scene, Shader, ShaderSource, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, TextPointer, Texture, UV, UserScript, Vector4, VertexShader, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, detachUint8, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, finalizeIterator, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsCount, getChildsPtri, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getObject, getParent, getParentPtri, getPointer, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint16, getUint32, getUint64, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitResvUint8, hitTranslated, i32, inherit, isThread, isWindow, iterateGlobalAllocs, iteratePrepared, lock, mallocs, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, prepareIterator, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setLinkedPtri, setNeedRecalc, setNeedUpload, setObject, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint16, setUint32, setUint64, setUint8, setarrayFloat32, setarrayUint16, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint16, subarrayUint32, subarrayUint8, textDecoder, textEncoder, threadId, ticks, u16, u32, u64, ui8, unlock, uuid, vShader, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -135,64 +135,64 @@ self.init = function() {
   OFFSET_CPU = 4096 * 4096;
   OFFSET_PTR = 24;
   BYTELENGTH_GLBUFFER = 32 * 1e5;
-  HINDEX_LENGTH = 0;
-  HINDEX_BYTEOFFSET = HINDEX_LENGTH++; //! must be 0
-  HINDEX_BYTELENGTH = HINDEX_LENGTH++;
-  HINDEX_CLASSID = HINDEX_LENGTH++;
-  HINDEX_PARENT = HINDEX_LENGTH++;
-  HINDEX_BEGIN = HINDEX_LENGTH++;
-  HINDEX_ISGL = HINDEX_LENGTH++;
-  HINDEX_UPDATED = HINDEX_LENGTH++;
-  HINDEX_PAINTED = HINDEX_LENGTH++;
-  HINDEX_LOCATED = HINDEX_LENGTH++;
-  HINDEX_ITER_COUNT = HINDEX_LENGTH++;
-  HINDEX_NEXT_COLORI = HINDEX_LENGTH++;
-  HINDEX_NEXT_VERTEXI = HINDEX_LENGTH++;
-  HINDEX_RESV0 = HINDEX_LENGTH++;
-  HINDEX_RESV1 = HINDEX_LENGTH++;
+  PTR_LENGTH = 0;
+  PTR_BYTEOFFSET = PTR_LENGTH++; //! must be 0
+  PTR_BYTELENGTH = PTR_LENGTH++;
+  PTR_CLASSID = PTR_LENGTH++;
+  PTR_PARENT = PTR_LENGTH++;
+  PTR_BEGIN = PTR_LENGTH++;
+  PTR_ISGL = PTR_LENGTH++;
+  PTR_UPDATED = PTR_LENGTH++;
+  PTR_PAINTED = PTR_LENGTH++;
+  PTR_LOCATED = PTR_LENGTH++;
+  PTR_ITER_COUNT = PTR_LENGTH++;
+  PTR_NEXT_COLORI = PTR_LENGTH++;
+  PTR_NEXT_VERTEXI = PTR_LENGTH++;
+  PTR_RESV0 = PTR_LENGTH++;
+  PTR_RESV1 = PTR_LENGTH++;
   ATTRIBS_LENGTH = 0;
   ATTRIBS_BYTELENGTH = 0;
   BYTELENGTH_128MB = 512 * 512 * 512;
-  HEADER_INDEXCOUNT = 0;
+  HEADER_BYTELENGTH = 0;
   HEADER_BYTEOFFSET = 0;
-  HEADER_INDEXCOUNT++; //? 0
+  HEADER_BYTELENGTH++; //? 0
   HEADER_BYTELENGTH = 1;
-  HEADER_INDEXCOUNT++; //? 1
+  HEADER_BYTELENGTH++; //? 1
   HEADER_LENGTH = 2;
-  HEADER_INDEXCOUNT++; //? 2
+  HEADER_BYTELENGTH++; //? 2
   HEADER_BEGIN = 3;
-  HEADER_INDEXCOUNT++; //? 3
+  HEADER_BYTELENGTH++; //? 3
   HEADER_CLASSINDEX = 4;
-  HEADER_INDEXCOUNT++; //? 4
+  HEADER_BYTELENGTH++; //? 4
   HEADER_PARENTPTRI = 5;
-  HEADER_INDEXCOUNT++; //? 5
+  HEADER_BYTELENGTH++; //? 5
   HEADER_LINKEDPTRI = 6;
-  HEADER_INDEXCOUNT++; //? 7
+  HEADER_BYTELENGTH++; //? 7
   HEADER_ITEROFFSET = 7;
-  HEADER_INDEXCOUNT++; //? 6
+  HEADER_BYTELENGTH++; //? 6
   HEADER_ITERATORI = 8;
-  HEADER_INDEXCOUNT++; //? 32
+  HEADER_BYTELENGTH++; //? 32
   HEADER_ITERCLASSI = 9;
-  HEADER_INDEXCOUNT++; //? 32
+  HEADER_BYTELENGTH++; //? 32
   HEADER_NEEDRECALC = 10 * 4;
-  HEADER_INDEXCOUNT++; //? 32
+  HEADER_BYTELENGTH++; //? 32
   HEADER_NEEDUPLOAD = 10 * 4 + 1;
   HEADER_TRANSLATED = 10 * 4 + 2;
   HEADER_FRAGMENTED = 10 * 4 + 3;
   HEADER_RESVINDEX = 12;
-  HEADER_INDEXCOUNT++; //? 9 
+  HEADER_BYTELENGTH++; //? 9 
   HEADER_RESVINDEX4 = HEADER_RESVINDEX;
   HEADER_RESVINDEX2 = HEADER_RESVINDEX * 2;
   HEADER_RESVINDEX1 = HEADER_RESVINDEX * 4;
-  if (HEADER_INDEXCOUNT > 32) {
-    throw /HEADER_INDEXCOUNT/;
+  if (HEADER_BYTELENGTH > 32) {
+    throw /HEADER_BYTELENGTH/;
   }
-  HEADER_INDEXCOUNT = 32;
-  self.mallocs = mallocs = function(ptri = HEADER_INDEXCOUNT) {
+  HEADER_BYTELENGTH = 32;
+  self.mallocs = mallocs = function(ptri = HEADER_BYTELENGTH) {
     var ptr, results;
     results = [];
     while (ptr = getPointer(ptri)) {
-      ptri += HEADER_INDEXCOUNT;
+      ptri += HEADER_BYTELENGTH;
       results.push(ptr);
     }
     return results;
@@ -284,7 +284,7 @@ self.init = function() {
     clsi = Class.classIndex;
     list = new Array();
     i = 0;
-    while (ptrj -= HEADER_INDEXCOUNT) {
+    while (ptrj -= HEADER_BYTELENGTH) {
       if (u32[HEADER_LINKEDPTRI + ptrj] - ptri) {
         continue;
       }
@@ -302,7 +302,7 @@ self.init = function() {
     i = 0;
     if (Class) {
       clsi = Class.classIndex;
-      while (ptrj -= HEADER_INDEXCOUNT) {
+      while (ptrj -= HEADER_BYTELENGTH) {
         if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
           continue;
         }
@@ -313,7 +313,7 @@ self.init = function() {
         list[i++] = new Class(ptrj);
       }
     } else {
-      while (ptrj -= HEADER_INDEXCOUNT) {
+      while (ptrj -= HEADER_BYTELENGTH) {
         if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
           continue;
         }
@@ -330,7 +330,7 @@ self.init = function() {
     i = 0;
     if (Class) {
       clsi = Class.classIndex;
-      while (ptrj -= HEADER_INDEXCOUNT) {
+      while (ptrj -= HEADER_BYTELENGTH) {
         if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
           continue;
         }
@@ -340,7 +340,7 @@ self.init = function() {
         list[i++] = ptrj;
       }
     } else {
-      while (ptrj -= HEADER_INDEXCOUNT) {
+      while (ptrj -= HEADER_BYTELENGTH) {
         if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
           continue;
         }
@@ -354,7 +354,7 @@ self.init = function() {
     ptrj = u32[1];
     i = 0;
     if (clsi) {
-      while (ptrj -= HEADER_INDEXCOUNT) {
+      while (ptrj -= HEADER_BYTELENGTH) {
         if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
           continue;
         }
@@ -364,7 +364,7 @@ self.init = function() {
         i++;
       }
     } else {
-      while (ptrj -= HEADER_INDEXCOUNT) {
+      while (ptrj -= HEADER_BYTELENGTH) {
         if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
           continue;
         }
@@ -388,18 +388,18 @@ self.init = function() {
   iterateGlobalAllocs = function(ptri) {
     var Class, clsi, next, ptrj;
     clsi = Atomics.load(u32, ptri + HEADER_ITERCLASSI);
-    ptrj = Atomics.sub(u32, ptri + HEADER_ITERATORI, HEADER_INDEXCOUNT);
+    ptrj = Atomics.sub(u32, ptri + HEADER_ITERATORI, HEADER_BYTELENGTH);
     if (ptrj === ptri) {
       return iteratePrepared(ptri);
     }
     if (!ptrj || u32[1] < ptrj) {
       return finalizeIterator(ptri);
     }
-    while (ptrj -= HEADER_INDEXCOUNT) {
+    while (ptrj -= HEADER_BYTELENGTH) {
       if (u32[HEADER_CLASSINDEX + ptrj] - clsi) {
         continue;
       }
-      next = ptrj - HEADER_INDEXCOUNT;
+      next = ptrj - HEADER_BYTELENGTH;
       if (next !== Atomics.compareExchange(u32, ptri + HEADER_ITERATORI, ptrj, next)) {
         Atomics.store(u32, ptri + HEADER_ITERATORI, ptrj);
         Class = classes[clsi];
@@ -411,7 +411,7 @@ self.init = function() {
   iteratePrepared = function(ptri) {
     var Class, clsi, next, ptrj;
     clsi = Atomics.load(u32, ptri + HEADER_ITERCLASSI);
-    ptrj = Atomics.sub(u32, ptri + HEADER_ITERATORI, HEADER_INDEXCOUNT);
+    ptrj = Atomics.sub(u32, ptri + HEADER_ITERATORI, HEADER_BYTELENGTH);
     if (ptrj === ptri) {
       return iteratePrepared(ptri);
     }
@@ -419,14 +419,14 @@ self.init = function() {
       return finalizeIterator(ptri);
     }
     if (clsi) {
-      while (ptrj -= HEADER_INDEXCOUNT) {
+      while (ptrj -= HEADER_BYTELENGTH) {
         if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
           continue;
         }
         if (u32[HEADER_CLASSINDEX + ptrj] - clsi) {
           continue;
         }
-        next = ptrj - HEADER_INDEXCOUNT;
+        next = ptrj - HEADER_BYTELENGTH;
         if (next !== Atomics.compareExchange(u32, ptri + HEADER_ITERATORI, ptrj, next)) {
           Atomics.store(u32, ptri + HEADER_ITERATORI, ptrj);
           Class = classes[clsi];
@@ -434,11 +434,11 @@ self.init = function() {
         }
       }
     } else {
-      while (ptrj -= HEADER_INDEXCOUNT) {
+      while (ptrj -= HEADER_BYTELENGTH) {
         if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
           continue;
         }
-        next = ptrj - HEADER_INDEXCOUNT;
+        next = ptrj - HEADER_BYTELENGTH;
         if (next !== Atomics.compareExchange(u32, ptri + HEADER_ITERATORI, ptrj, next)) {
           Atomics.store(u32, ptri + HEADER_ITERATORI, ptrj);
           Class = classes[u32[HEADER_CLASSINDEX + ptrj]];
@@ -454,7 +454,7 @@ self.init = function() {
     clsi = Class.classIndex;
     list = new Array();
     i = 0;
-    while (ptrj -= HEADER_INDEXCOUNT) {
+    while (ptrj -= HEADER_BYTELENGTH) {
       if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
         continue;
       }
@@ -470,7 +470,7 @@ self.init = function() {
     var clsi, obj, ptrj;
     ptrj = u32[1];
     clsi = Class.classIndex;
-    while (ptrj -= HEADER_INDEXCOUNT) {
+    while (ptrj -= HEADER_BYTELENGTH) {
       if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
         continue;
       }
@@ -489,7 +489,7 @@ self.init = function() {
     var clsi, ptrj;
     ptrj = u32[1];
     clsi = Class.classIndex;
-    while (ptrj -= HEADER_INDEXCOUNT) {
+    while (ptrj -= HEADER_BYTELENGTH) {
       if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
         continue;
       }
@@ -508,7 +508,7 @@ self.init = function() {
     ptrN = u32[1];
     clsi = clsi || Class.classIndex;
     ptrj = ptrN;
-    while (ptrj -= HEADER_INDEXCOUNT) {
+    while (ptrj -= HEADER_BYTELENGTH) {
       if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
         continue;
       }
@@ -518,7 +518,7 @@ self.init = function() {
       return new Class(ptrj);
     }
     ptrj = ptrN;
-    while (ptrj -= HEADER_INDEXCOUNT) {
+    while (ptrj -= HEADER_BYTELENGTH) {
       if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
         continue;
       }
@@ -534,7 +534,7 @@ self.init = function() {
     ptrN = u32[1];
     clsi = clsi || Class.classIndex;
     ptrj = ptrN;
-    while (ptrj -= HEADER_INDEXCOUNT) {
+    while (ptrj -= HEADER_BYTELENGTH) {
       if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
         continue;
       }
@@ -544,7 +544,7 @@ self.init = function() {
       childs.push(new Class(ptrj));
     }
     ptrj = ptrN;
-    while (ptrj -= HEADER_INDEXCOUNT) {
+    while (ptrj -= HEADER_BYTELENGTH) {
       if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
         continue;
       }
@@ -561,7 +561,7 @@ self.init = function() {
     clsi = Class.classIndex;
     list = new Array();
     i = 0;
-    while (ptrj -= HEADER_INDEXCOUNT) {
+    while (ptrj -= HEADER_BYTELENGTH) {
       if (u32[HEADER_PARENTPTRI + ptrj] - ptri) {
         continue;
       }
@@ -579,7 +579,7 @@ self.init = function() {
     ptrj = u32[1];
     list = new Array();
     i = 0;
-    while (ptrj -= HEADER_INDEXCOUNT) {
+    while (ptrj -= HEADER_BYTELENGTH) {
       if (u32[HEADER_CLASSINDEX + ptrj] - clsi) {
         continue;
       }
@@ -711,7 +711,7 @@ self.init = function() {
     return new Float32Array(buffer, byteOffset, length);
   };
   ptrFloat32Array = function(ptri, byteOffset = 0, length) {
-    return new Float32Array(buffer, ptri * 4, length || HEADER_INDEXCOUNT);
+    return new Float32Array(buffer, ptri * 4, length || HEADER_BYTELENGTH);
   };
   newUint32Array = function(ptri, byteOffset = 0, length) {
     return new Uint32Array(buffer, u32.at(ptri) + byteOffset, length || u32[HEADER_LENGTH + ptri]);
@@ -724,7 +724,7 @@ self.init = function() {
     return new Uint8Array(buffer, u32.at(ptri) + byteOffset, length || u32[HEADER_LENGTH + ptri]);
   };
   ptrUint8Array = function(ptri, byteOffset = 0, length) {
-    return new Uint8Array(buffer, ptri * 4, length || HEADER_INDEXCOUNT * BPE);
+    return new Uint8Array(buffer, ptri * 4, length || HEADER_BYTELENGTH * BPE);
   };
   subarrayFloat32 = function(ptri, begin = 0, count) {
     begin += u32[HEADER_BEGIN + ptri];
@@ -839,21 +839,21 @@ self.init = function() {
     //log "nextTick:", ++ticks
     ptri = Atomics.load(i32, 1);
     test = 0;
-    while (OFFSET_PTR <= (ptri -= HEADER_INDEXCOUNT)) {
-      if (!Atomics.load(i32, ptri + HINDEX_ISGL)) {
+    while (OFFSET_PTR <= (ptri -= HEADER_BYTELENGTH)) {
+      if (!Atomics.load(i32, ptri + PTR_ISGL)) {
         continue;
       }
-      if (Atomics.load(i32, ptri + HINDEX_UPDATED)) {
+      if (Atomics.load(i32, ptri + PTR_UPDATED)) {
         continue;
       }
-      locate = Atomics.load(i32, ptri + HINDEX_LOCATED);
-      paint = Atomics.load(i32, ptri + HINDEX_PAINTED);
+      locate = Atomics.load(i32, ptri + PTR_LOCATED);
+      paint = Atomics.load(i32, ptri + PTR_PAINTED);
       if (paint && locate) {
         continue;
       }
       test = 1;
-      index = Atomics.add(i32, ptri + HINDEX_NEXT_VERTEXI, 1);
-      count = Atomics.load(i32, ptri + HINDEX_ITER_COUNT);
+      index = Atomics.add(i32, ptri + PTR_NEXT_VERTEXI, 1);
+      count = Atomics.load(i32, ptri + PTR_ITER_COUNT);
       if (index <= count) {
         shape = new Shape(ptri);
         begin = index * 3;
@@ -865,7 +865,7 @@ self.init = function() {
           draw = ref[j];
           draw.vertex(index).set(vertex);
           draw.color(index).set(color);
-          Atomics.store(i32, draw.ptri + HINDEX_UPDATED, 0);
+          Atomics.store(i32, draw.ptri + PTR_UPDATED, 0);
         }
       }
       if (index - count) {
@@ -874,12 +874,12 @@ self.init = function() {
         continue;
       }
       if (!locate) {
-        Atomics.store(i32, ptri + HINDEX_LOCATED, 1);
+        Atomics.store(i32, ptri + PTR_LOCATED, 1);
       }
       if (!paint) {
-        Atomics.store(i32, ptri + HINDEX_PAINTED, 1);
+        Atomics.store(i32, ptri + PTR_PAINTED, 1);
       }
-      Atomics.store(i32, ptri + HINDEX_UPDATED, 1);
+      Atomics.store(i32, ptri + PTR_UPDATED, 1);
     }
     if (test === 1) {
       return nextTick();
@@ -920,8 +920,8 @@ self.init = function() {
       }
       return Atomics.store(i32, THREADS_STATE, state);
     };
-    Atomics.add(u32, 0, HEADER_INDEXCOUNT * 1e5);
-    Atomics.add(u32, 1, HEADER_INDEXCOUNT);
+    Atomics.add(u32, 0, HEADER_BYTELENGTH * 1e5);
+    Atomics.add(u32, 1, HEADER_BYTELENGTH);
     state(THREADS_NULL);
   }
   self.emit = function(event, detail) {
@@ -933,7 +933,7 @@ self.init = function() {
   classes.register(Pointer = (function() {
     class Pointer extends Number {
       constructor() {
-        super(arguments[0] || Atomics.add(u32, 1, HEADER_INDEXCOUNT));
+        super(arguments[0] || Atomics.add(u32, 1, HEADER_BYTELENGTH));
         if (isWindow) {
           this.init(arguments[1]);
         }
@@ -1121,7 +1121,7 @@ self.init = function() {
     Object.defineProperties(Pointer.prototype, {
       ["{[Pointer]}"]: {
         get: function() {
-          return ptrUint32Array(this, 0, HEADER_INDEXCOUNT);
+          return ptrUint32Array(this, 0, HEADER_BYTELENGTH);
         }
       }
     });
@@ -3430,10 +3430,10 @@ self.init = function() {
   get     : -> @vertices.pointCount
 
   markNeedsUpdate : 
-  set     : -> unlock Atomics.store i32, @ptri + HINDEX_UPDATED, 1
+  set     : -> unlock Atomics.store i32, @ptri + PTR_UPDATED, 1
 
   willUploadIfNeeded : 
-  get     : -> Atomics.and i32, @ptri + HINDEX_UPDATED, 0
+  get     : -> Atomics.and i32, @ptri + PTR_UPDATED, 0
 
           drawPoints      : ->
   @draws.push space.malloc gl.POINTS, this
@@ -3446,7 +3446,7 @@ self.init = function() {
 
           vertex          : ( index ) ->
   ptri = dvw.getUint32 @byteOffset + @OFFSET_VERTICES, LE
-  byteOffset = i32[ ptri + HINDEX_BYTEOFFSET ] + index * 4 * 3
+  byteOffset = i32[ ptri + PTR_BYTEOFFSET ] + index * 4 * 3
   new Float32Array buffer, byteOffset, 3
 
       class Matrix4       extends Pointer
@@ -3867,12 +3867,12 @@ self.init = function() {
           Object.defineProperties Shader::,
 
   isAttached      :
-  get : -> u32[ this + @HINDEX_RESV0 ]
-  set : (v) -> u32[ this + @HINDEX_RESV0 ] = v
+  get : -> u32[ this + @PTR_RESV0 ]
+  set : (v) -> u32[ this + @PTR_RESV0 ] = v
 
   glShader        :
-  get : -> shaders[ u32[ this + @HINDEX_RESV1 ] ]
-  set : (v) -> u32[ this + @HINDEX_RESV1 ] = shaders.register v
+  get : -> shaders[ u32[ this + @PTR_RESV1 ] ]
+  set : (v) -> u32[ this + @PTR_RESV1 ] = shaders.register v
 
       classes.register class vShader extends Shader
           name : "vShader"
@@ -3896,7 +3896,7 @@ self.init = function() {
           INDEX_TRIANGLES_COUNT : 8 
           INDEX_TRIANGLES_OFFSET: 9 
 
-          INDEX_DRAW_BEGIN      : HEADER_INDEXCOUNT
+          INDEX_DRAW_BEGIN      : HEADER_BYTELENGTH
 
           init : ->
   @BYTES_PER_ATTRIBUTE = 32
@@ -4761,30 +4761,30 @@ self.init = function() {
   ).classId
 
           Object.defineProperty this::, "byteOffset",
-  get : -> Atomics.load i32, @ptri + HINDEX_BYTEOFFSET
+  get : -> Atomics.load i32, @ptri + PTR_BYTEOFFSET
 
           Object.defineProperty this::, "classId",
-  get : -> Atomics.load i32, @ptri + HINDEX_CLASSID
+  get : -> Atomics.load i32, @ptri + PTR_CLASSID
 
           Object.defineProperty this::, "byteLength",
-  get : -> Atomics.load i32, @ptri + HINDEX_BYTELENGTH
+  get : -> Atomics.load i32, @ptri + PTR_BYTELENGTH
 
           Object.defineProperty this::, "length",
-  get : -> Atomics.load i32, @ptri + HINDEX_LENGTH
+  get : -> Atomics.load i32, @ptri + PTR_LENGTH
 
           Object.defineProperty this::, "ptri",
   get : -> Atomics.load i32, this
 
           Object.defineProperty this::, "begin",
-  get : -> Atomics.load i32, @ptri + HINDEX_BEGIN
+  get : -> Atomics.load i32, @ptri + PTR_BEGIN
 
           Object.defineProperty this::, "isGL",
-  get : -> Atomics.load i32, @ptri + HINDEX_ISGL
-  set : (v) -> Atomics.store i32, @ptri + HINDEX_ISGL, v
+  get : -> Atomics.load i32, @ptri + PTR_ISGL
+  set : (v) -> Atomics.store i32, @ptri + PTR_ISGL, v
 
           Object.defineProperty this::, "parent",
-  get : -> Atomics.load i32, @ptri + HINDEX_PARENT
-  set : (v) -> Atomics.store i32, @ptri + HINDEX_PARENT, parseInt v
+  get : -> Atomics.load i32, @ptri + PTR_PARENT
+  set : (v) -> Atomics.store i32, @ptri + PTR_PARENT, parseInt v
 
           Object.defineProperty this::, "children",
   get : -> 
@@ -4793,14 +4793,14 @@ self.init = function() {
 
   children = []
   while OFFSET_PTR <= ptri -= 16
-      unless test - Atomics.load i32, ptri + HINDEX_PARENT
-          classId = Atomics.load i32, ptri + HINDEX_CLASSID
+      unless test - Atomics.load i32, ptri + PTR_PARENT
+          classId = Atomics.load i32, ptri + PTR_CLASSID
           children.push new (classes[ classId ])( ptri )
   children
 
           Object.defineProperty this::, "iterCount",
-  get : -> Atomics.load u32, @ptri + HINDEX_ITER_COUNT
-  set : (v) -> Atomics.store u32, @ptri + HINDEX_ITER_COUNT, v
+  get : -> Atomics.load u32, @ptri + PTR_ITER_COUNT
+  set : (v) -> Atomics.store u32, @ptri + PTR_ITER_COUNT, v
 
           Object.defineProperty this::, "typedArray",
   get : -> new this.constructor.TypedArray buffer, @byteOffset, @length
@@ -4810,8 +4810,8 @@ self.init = function() {
   classId = @classId
 
   while OFFSET_PTR <= ptri -= 16        
-  continue unless classId is Atomics.load i32, ptri + HINDEX_CLASSID
-  continue if parent and parent isnt Atomics.load i32, ptri + HINDEX_PARENT
+  continue unless classId is Atomics.load i32, ptri + PTR_CLASSID
+  continue if parent and parent isnt Atomics.load i32, ptri + PTR_PARENT
   object = new this ptri
 
           @malloc     : ( constructor, byteLength ) ->
@@ -4918,7 +4918,7 @@ self.init = function() {
           set : ( offset ) -> ( value ) ->
   ptri = malloc Vertices, value.length * 4
   dvw.setInt32 @byteOffset + @OFFSET_VERTICES, ptri, LE
-  f32.set value, i32[ ptri + HINDEX_BEGIN ]
+  f32.set value, i32[ ptri + PTR_BEGIN ]
 
       return
 
@@ -5160,24 +5160,26 @@ self.init = function() {
 };
 
 (self.main = function() {
-  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, ClearColor, Color, EventHandler, HEADER_INDEXCOUNT, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSINDEX, HINDEX_LENGTH, HINDEX_PARENT, HINDEX_RESVBEGIN, INDEX_DATA_MALLOC, INDEX_POINTER_ALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, Pointer, Position, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, cscope, dvw, f32, findChild, findChilds, getBegin, getByteLength, getByteOffset, getClassIndex, getLength, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, i32, iLE, isWindow, isWorker, j, len, malign, malloc, palloc, sab, setBegin, setByteLength, setByteOffset, setClassIndex, setLength, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, u16, u32, u64, ui8;
+  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, ClearColor, Color, EVENTHANDLER_HANDLER, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, PTRKEY, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_LENGTH, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, cscope, dvw, f32, findChild, findChilds, getBegin, getByteLength, getByteOffset, getClassIndex, getLength, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, i32, iLE, isWindow, isWorker, j, len, malign, malloc, palloc, sab, setBegin, setByteLength, setByteOffset, setClassIndex, setLength, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, u16, u32, u64, ui8;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
-  HEADER_INDEXCOUNT = 16;
-  POINTER_MAXINDEX = 1e5;
-  ALIGN_BYTELENGTH = 8;
   BYTES_PER_ELEMENT = 4;
-  MALLOC_BYTEOFFSET = HEADER_INDEXCOUNT * BYTES_PER_ELEMENT * POINTER_MAXINDEX;
+  HEADER_LENGTH = 16;
+  POINTER_MAXINDEX = 1e5;
+  HEADER_BYTELENGTH = HEADER_LENGTH * BYTES_PER_ELEMENT;
+  ALIGN_BYTELENGTH = 8;
+  MALLOC_BYTEOFFSET = HEADER_BYTELENGTH * POINTER_MAXINDEX;
+  INDEX_PTRI_MALLOC = 0;
   INDEX_DATA_MALLOC = 1;
-  INDEX_POINTER_ALLOC = 0;
-  HINDEX_BYTEOFFSET = 0;
-  HINDEX_BYTELENGTH = 1;
-  HINDEX_LENGTH = 2;
-  HINDEX_BEGIN = 3;
-  HINDEX_PARENT = 4;
-  HINDEX_CLASSINDEX = 5;
-  HINDEX_RESVBEGIN = 8;
+  PTR_BYTEOFFSET = 0 * 4;
+  PTR_BYTELENGTH = 1 * 4;
+  PTR_LENGTH = 2 * 4;
+  PTR_BEGIN = 3 * 4;
+  PTR_PARENT = 4 * 4;
+  PTR_CLASSI = 5 * 4;
+  PTR_RESVBEGIN = 8 * 4;
+  PTRKEY = "{{Pointer}}";
   if (isWindow) {
     sab = new SharedArrayBuffer(BUFFER_SIZE);
   }
@@ -5188,13 +5190,13 @@ self.init = function() {
   ui8 = new Uint8Array(sab);
   u16 = new Uint16Array(sab);
   dvw = new DataView(sab);
-  iLE = new Uint8Array(Uint16Array.of(1).buffer)[0];
+  iLE = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
   if (isWindow) {
+    Atomics.or(u32, INDEX_PTRI_MALLOC, HEADER_BYTELENGTH);
     Atomics.or(u32, INDEX_DATA_MALLOC, MALLOC_BYTEOFFSET);
-    Atomics.or(u32, INDEX_POINTER_ALLOC, HEADER_INDEXCOUNT);
   }
   malloc = Atomics.add.bind(Atomics, u32, INDEX_DATA_MALLOC);
-  palloc = Atomics.add.bind(Atomics, u32, INDEX_POINTER_ALLOC, HEADER_INDEXCOUNT);
+  palloc = Atomics.add.bind(Atomics, u32, INDEX_PTRI_MALLOC, HEADER_BYTELENGTH);
   malign = function() {
     var b;
     if (b = Atomics.load(u32, INDEX_DATA_MALLOC) % ALIGN_BYTELENGTH) {
@@ -5227,10 +5229,10 @@ self.init = function() {
       super().push();
     }
 
-    store(Class) {
+    store(object) {
       var i;
-      if (-1 === (i = this.indexOf(Class))) {
-        i += this.push(Class);
+      if (-1 === (i = this.indexOf(object))) {
+        i += this.push(object);
       }
       return i;
     }
@@ -5250,23 +5252,39 @@ self.init = function() {
       }).bind(null, Class);
     }
 
-    findByName(name) {
-      return this.find(function(c) {
-        return c.prototype.name === name;
-      });
+    indexOf(ClassOrPtri) {
+      var name, ptri;
+      if (!ClassOrPtri) {
+        return -1;
+      }
+      if (ClassOrPtri.isPClass) {
+        return super.indexOf(ClassOrPtri);
+      }
+      if (ClassOrPtri.isPointer) {
+        return super.indexOf(ClassOrPtri.constructor);
+      }
+      if ("string" === typeof (name = ClassOrPtri)) {
+        return this.findIndex(function(c) {
+          return c.prototype.name === name;
+        }) || -1;
+      }
+      if (!isNaN(ptri = ClassOrPtri)) {
+        return dvw.getUint32(PTR_CLASSI + ptri, iLE) || -1;
+      }
+      throw [/WHAT_IS_THIS/, ClassOrPtri];
     }
 
   });
   findChild = function(ptri, Class, create = false) {
     var clsi, ptrj;
-    ptrj = u32[0];
+    ptrj = dvw.getUint32(0, iLE);
     if (!ptri) {
       //? returns last created Class in Global
       if (-1 === (clsi = cscope.indexOf(Class))) {
         throw /POINTER_OR_CLASS_REQUIRED/;
       }
-      while (ptrj -= HEADER_INDEXCOUNT) {
-        if (u32[HINDEX_CLASSINDEX + ptrj] - clsi) {
+      while (ptrj -= HEADER_BYTELENGTH) {
+        if (clsi - dvw.getUint32(PTR_CLASSI + ptrj, iLE)) {
           continue;
         }
         return new Class(ptrj);
@@ -5274,20 +5292,20 @@ self.init = function() {
     } else {
       if (-1 === (clsi = cscope.indexOf(Class))) {
         //? returns last child of this
-        while (ptrj -= HEADER_INDEXCOUNT) {
-          if (u32[HINDEX_PARENT + ptrj] - ptri) {
+        while (ptrj -= HEADER_BYTELENGTH) {
+          if (ptri - dvw.getUint32(PTR_PARENT + ptrj, iLE)) {
             continue;
           }
-          Class = cscope[getClassIndex(ptrj)];
+          Class = cscope[dvw.getUint32(PTR_CLASSI + ptrj, iLE)];
           return new Class(ptrj);
         }
       } else {
         //? returns last Class child of this
-        while (ptrj -= HEADER_INDEXCOUNT) {
-          if (u32[HINDEX_PARENT + ptrj] - ptri) {
+        while (ptrj -= HEADER_BYTELENGTH) {
+          if (ptri - dvw.getUint32(PTR_PARENT + ptrj, iLE)) {
             continue;
           }
-          if (u32[HINDEX_CLASSINDEX + ptrj] - clsi) {
+          if (clsi - dvw.getUint32(PTR_CLASSI + ptrj, iLE)) {
             continue;
           }
           return new Class(ptrj);
@@ -5305,19 +5323,19 @@ self.init = function() {
     if (recursive && !Class) {
       throw /CLASS_REQUIRED/;
     }
-    ptrj = u32[index = 0];
+    ptrj = dvw.getUint32(index = 0, iLE);
     list = new Array;
     if (!ptri) {
       //? returns all created Class? in Global
       if (-1 === (clsi = cscope.indexOf(Class))) {
         //? returns all allocated pointers
-        while (ptrj -= HEADER_INDEXCOUNT) {
+        while (ptrj -= HEADER_BYTELENGTH) {
           list[index++] = ptrj;
         }
       } else {
         //? all allocated Classes in Global
-        while (ptrj -= HEADER_INDEXCOUNT) {
-          if (u32[HINDEX_CLASSINDEX + ptrj] - clsi) {
+        while (ptrj -= HEADER_BYTELENGTH) {
+          if (clsi - dvw.getUint32(PTR_CLASSI + ptrj, iLE)) {
             continue;
           }
           list[index++] = ptrj;
@@ -5327,19 +5345,19 @@ self.init = function() {
       //? return childs of given pointer
       if (-1 === (clsi = cscope.indexOf(Class))) {
         //? returns all allocated pointers
-        while (ptrj -= HEADER_INDEXCOUNT) {
-          if (u32[HINDEX_PARENT + ptrj] - ptri) {
+        while (ptrj -= HEADER_BYTELENGTH) {
+          if (ptri - dvw.getUint32(PTR_PARENT + ptrj, iLE)) {
             continue;
           }
           list[index++] = ptrj;
         }
       } else {
         //? all allocated Classes in Global
-        while (ptrj -= HEADER_INDEXCOUNT) {
-          if (u32[HINDEX_PARENT + ptrj] - ptri) {
+        while (ptrj -= HEADER_BYTELENGTH) {
+          if (ptri - dvw.getUint32(PTR_PARENT + ptrj, iLE)) {
             continue;
           }
-          if (u32[HINDEX_CLASSINDEX + ptrj] - clsi) {
+          if (clsi - dvw.getUint32(PTR_CLASSI + ptrj, iLE)) {
             continue;
           }
           list[index++] = ptrj;
@@ -5354,12 +5372,14 @@ self.init = function() {
     if (construct) {
       if (!Class) {
         while (index--) {
-          Class = cscope[getClassIndex(list[index])];
-          childs.push(new Class(list[index]));
+          ptrj = list[index];
+          Class = cscope[dvw.getUint32(PTR_CLASSI + ptrj, iLE)];
+          childs.push(new Class(ptrj));
         }
       } else {
         while (index--) {
-          childs.push(new Class(list[index]));
+          ptrj = list[index];
+          childs.push(new Class(ptrj));
         }
       }
     } else {
@@ -5367,79 +5387,84 @@ self.init = function() {
     }
     return childs;
   };
-  setResvUint32 = function(ptri, index, value) {
-    index += ptri + HINDEX_RESVBEGIN;
-    return u32[index] = value;
+  setResvUint32 = function(byteOffset, value) {
+    dvw.setUint32(byteOffset + PTR_RESVBEGIN, value, iLE);
+    return value;
   };
-  getResvUint32 = function(ptri, index) {
-    index += ptri + HINDEX_RESVBEGIN;
-    return u32[index];
+  getResvUint32 = function(byteOffset = 0) {
+    return dvw.getUint32(byteOffset + PTR_RESVBEGIN, iLE);
   };
-  setResvUint16 = function(ptri, index, value) {
-    index += (ptri + HINDEX_RESVBEGIN) * 2;
-    return u16[index] = value;
+  setResvUint16 = function(byteOffset, value) {
+    dvw.setUint16(byteOffset + PTR_RESVBEGIN, value, iLE);
+    return value;
   };
-  getResvUint16 = function(ptri, index) {
-    index += (ptri + HINDEX_RESVBEGIN) * 2;
-    return u16[index];
+  getResvUint16 = function(byteOffset = 0) {
+    return dvw.getUint16(byteOffset + PTR_RESVBEGIN, iLE);
   };
-  setResvUint8 = function(ptri, index, value) {
-    index += (ptri + HINDEX_RESVBEGIN) * 4;
-    return ui8[index] = value;
+  setResvUint8 = function(byteOffset, value) {
+    dvw.setUint8(byteOffset + PTR_RESVBEGIN, value);
+    return value;
   };
-  getResvUint8 = function(ptri, index) {
-    index += (ptri + HINDEX_RESVBEGIN) * 4;
-    return ui8[index];
+  getResvUint8 = function(byteOffset = 0) {
+    return dvw.getUint8(byteOffset + PTR_RESVBEGIN);
   };
-  setResvUint64 = function(ptri, index, value) {
-    index += (ptri + HINDEX_RESVBEGIN) / 2;
-    return Number(u64[index] = BigInt(value));
+  setResvUint64 = function(byteOffset, value) {
+    dvw.setBigUint64(byteOffset + PTR_RESVBEGIN, BigInt(value), iLE);
+    return value;
   };
-  getResvUint64 = function(ptri, index) {
-    index += (ptri + HINDEX_RESVBEGIN) / 2;
-    return Number(u64[index]);
+  getResvUint64 = function(byteOffset = 0) {
+    return Number(dvw.getBigUint64(byteOffset + PTR_RESVBEGIN, iLE));
   };
-  setByteLength = function(ptri, value) {
-    return u32[ptri + HINDEX_BYTELENGTH] = value;
+  setByteLength = function(ptri, byteLength) {
+    dvw.setUint32(ptri + PTR_BYTELENGTH, byteLength, iLE);
+    return ptri;
   };
   getByteLength = function(ptri) {
-    return u32[ptri + HINDEX_BYTELENGTH];
+    return dvw.getUint32(ptri + PTR_BYTELENGTH, iLE);
   };
-  setByteOffset = function(ptri, value) {
-    return u32[ptri + HINDEX_BYTEOFFSET] = value;
+  setByteOffset = function(ptri, byteOffset) {
+    dvw.setUint32(ptri + PTR_BYTEOFFSET, byteOffset, iLE);
+    return ptri;
   };
   getByteOffset = function(ptri) {
-    return u32[ptri + HINDEX_BYTEOFFSET];
+    return dvw.getUint32(ptri + PTR_BYTEOFFSET, iLE);
   };
-  setLength = function(ptri, value) {
-    return u32[ptri + HINDEX_LENGTH] = value;
+  setLength = function(ptri, length) {
+    dvw.setUint32(ptri + PTR_LENGTH, length, iLE);
+    return ptri;
   };
   getLength = function(ptri) {
-    return u32[ptri + HINDEX_LENGTH];
+    return dvw.getUint32(ptri + PTR_LENGTH, iLE);
   };
-  setBegin = function(ptri, value) {
-    return u32[ptri + HINDEX_BEGIN] = value;
+  setBegin = function(ptri, begin) {
+    dvw.setUint32(ptri + PTR_BEGIN, begin, iLE);
+    return ptri;
   };
   getBegin = function(ptri) {
-    return u32[ptri + HINDEX_BEGIN];
+    return dvw.getUint32(ptri + PTR_BEGIN, iLE);
   };
-  setParent = function(ptri, ptrj) {
-    return u32[ptri + HINDEX_PARENT] = ptrj;
+  setParent = function(ptri, parent) {
+    dvw.setUint32(ptri + PTR_PARENT, parent, iLE);
+    return ptri;
   };
   getParent = function(ptri) {
     var clsi, ptrj;
-    ptrj = u32[ptri + HINDEX_PARENT];
+    ptrj = dvw.getUint32(ptri + PTR_PARENT, iLE);
     if (!ptrj) {
       return null;
     }
-    clsi = u32[ptrj + HINDEX_CLASSINDEX];
-    return new cscope[clsi](ptrj);
+    clsi = dvw.getUint32(ptri + PTR_CLASSI, iLE);
+    if (clsi) {
+      return new cscope[clsi](ptrj);
+    }
   };
   setClassIndex = function(ptri, clsi) {
-    return u32[ptri + HINDEX_CLASSINDEX] = clsi || cscope.indexOf(ptri.constructor);
+    clsi || (clsi = cscope.indexOf(ptri));
+    dvw.setUint32(ptri + PTR_CLASSI, clsi, iLE);
+    return ptri;
   };
   getClassIndex = function(ptri) {
-    return u32[ptri + HINDEX_CLASSINDEX];
+    return dvw.getUint32(ptri + PTR_CLASSI, iLE);
   };
   cscope.store(Pointer = (function() {
     class Pointer extends Number {
@@ -5470,12 +5495,16 @@ self.init = function() {
         return this;
       }
 
-      store(object, resvU32i) {
-        return setResvUint32(this, resvU32i, this.storage.store(object));
+      store(object, byteOffset = 0) {
+        var stri;
+        stri = this.storage.store(object);
+        return setResvUint32(byteOffset + this, stri);
       }
 
-      object(resvU32i) {
-        return this.storage[getResvUint32(this, resvU32i)];
+      object(byteOffset = 0) {
+        var stri;
+        stri = getResvUint32(byteOffset + this);
+        return this.storage[stri];
       }
 
       append(ptri) {
@@ -5484,18 +5513,18 @@ self.init = function() {
       }
 
       init(childs = {}) {
-        var Class, name, prototype, value;
+        var clsi, label, prototype, value;
         prototype = this.constructor.prototype;
-        for (name in childs) {
-          value = childs[name];
-          if (Object.hasOwn(prototype, name)) {
-            this[name] = value;
+        for (label in childs) {
+          value = childs[label];
+          if (Object.hasOwn(prototype, label)) {
+            this[label] = value;
             continue;
           }
-          if (!(Class = cscope.findByName(name))) {
-            throw /NOT_REGISTERED/ + name;
+          if (-1 === (clsi = cscope.indexOf(label))) {
+            throw /NOT_REGISTERED/ + label;
           }
-          this.append(new Class().set(value));
+          this.append(new cscope[clsi]().set(value));
         }
         return this;
       }
@@ -5514,8 +5543,8 @@ self.init = function() {
           setByteLength(this, byteLength);
           setLength(this, arrayLike.length);
           malign();
-          byteOffset = setByteOffset(this, malloc(byteLength));
-          begin = setBegin(this, byteOffset / 4);
+          setByteOffset(this, byteOffset = malloc(byteLength));
+          setBegin(this, begin = byteOffset / 4);
         }
         if (!this.TypedArray) {
           f32.set(arrayLike, begin);
@@ -5546,6 +5575,10 @@ self.init = function() {
 
     Pointer.prototype.storage = new Storage;
 
+    Pointer.prototype.isPointer = true;
+
+    Pointer.isPClass = true;
+
     Object.defineProperties(Pointer.prototype, {
       parent: {
         get: function() {
@@ -5560,9 +5593,9 @@ self.init = function() {
     });
 
     Object.defineProperties(Pointer.prototype, {
-      ["{{Pointer}}"]: {
+      [PTRKEY]: {
         get: function() {
-          return u32.subarray(this, this + HEADER_INDEXCOUNT);
+          return new Uint32Array(sab, this, HEADER_LENGTH);
         }
       }
     });
@@ -5601,6 +5634,7 @@ self.init = function() {
     return TextPointer;
 
   }).call(this));
+  EVENTHANDLER_HANDLER = 0;
   cscope.store(EventHandler = (function() {
     class EventHandler extends TextPointer {
       set(handler1, event = "on..") {
@@ -5613,10 +5647,10 @@ self.init = function() {
     Object.defineProperties(EventHandler.prototype, {
       handler: {
         get: function() {
-          return this.object(0);
+          return this.object(EVENTHANDLER_HANDLER);
         },
-        set: function() {
-          return this.store(arguments[0], 0);
+        set: function(fn) {
+          return this.store(fn, EVENTHANDLER_HANDLER);
         }
       },
       event: {
@@ -5699,8 +5733,8 @@ self.init = function() {
         get: function() {
           return this.subarray;
         },
-        set: function() {
-          return this.set(arguments[0]);
+        set: function(arrayLike) {
+          return this.set(arrayLike);
         }
       }
     });
