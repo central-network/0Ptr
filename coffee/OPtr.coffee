@@ -4289,21 +4289,21 @@ do  self.main = ->
 
     malloc = Atomics.add.bind Atomics, u32, INDEX_DATA_MALLOC
     palloc = Atomics.add.bind Atomics, u32, INDEX_POINTER_ALLOC, HEADER_INDEXCOUNT
+    malign = -> malloc b if b = Atomics.load(u32, INDEX_DATA_MALLOC) % ALIGN_BYTELENGTH
 
-    console.log u32
 
     class Storage extends Array
 
         constructor : -> super().push()
 
-        store   : ( Class ) ->
+        store       : ( Class ) ->
             if -1 is i = @indexOf Class
                 i += @push Class
             i
 
     cscope = new class Scope extends Storage
 
-        global  : ( Class ) ->
+        global      : ( Class ) ->
             i = @store Class
             self[ Class ] = ( argv ) ->
                 ptr = findChild null, Class, on
@@ -4319,7 +4319,7 @@ do  self.main = ->
         unless ptri
         #? returns last created Class in Global
 
-            unless clsi = cscope.indexOf Class
+            if  -1 is clsi = cscope.indexOf Class
                 throw /POINTER_OR_CLASS_REQUIRED/
             
             while ptrj -= HEADER_INDEXCOUNT
@@ -4327,15 +4327,17 @@ do  self.main = ->
                 return new Class ptrj
 
         else
-            unless clsi = cscope.indexOf Class
+            if  -1 is clsi = cscope.indexOf Class
             #? returns last child of this
 
                 while ptrj -= HEADER_INDEXCOUNT
                     continue if u32[ HINDEX_PARENT + ptrj ] - ptri
+                    Class = cscope[ getClassIndex ptrj ]
                     return new Class ptrj
 
             else
             #? returns last Class child of this
+
                 while ptrj -= HEADER_INDEXCOUNT
                     continue if u32[ HINDEX_PARENT + ptrj ] - ptri
                     continue if u32[ HINDEX_CLASSINDEX + ptrj ] - clsi
@@ -4343,6 +4345,7 @@ do  self.main = ->
 
         if  create
         #? not found and create requested
+
             return setChildren ptri, new Class
 
         null
@@ -4352,7 +4355,6 @@ do  self.main = ->
 
         ptrj = u32[ index = 0 ]
         list = new Array
-
 
         unless ptri
         #? returns all created Class? in Global
@@ -4391,6 +4393,7 @@ do  self.main = ->
                     
             
         if  recursive and i = index
+
             while i--
                 findChilds list[ i ], Class, on, construct, childs
 
@@ -4406,8 +4409,7 @@ do  self.main = ->
                     childs.push new Class list[ index ]
 
         else
-            while index--
-                childs.push list[ index ]
+            childs.push.apply childs, list
 
         childs
 
@@ -4490,54 +4492,56 @@ do  self.main = ->
 
         storage     : new Storage
 
-        constructor : ( ptri ) ->
-            super ptri or clsi = palloc()
-            setClassIndex this if clsi
+        constructor : ( ptri = 0 ) ->
+            super ptri or palloc()
+            setClassIndex this if !ptri
 
-        store       : ( object, resvU32i = 0 ) ->
+        store       : ( object, resvU32i ) ->
             setResvUint32 this, resvU32i, @storage.store object
 
-        object      : ( resvU32i = 0 ) ->
+        object      : ( resvU32i ) ->
             @storage[ getResvUint32 this, resvU32i ]
-
-        add         : ( ptri ) ->
-            setParent ptri, this
 
         append      : ( ptri ) ->
             setParent ptri, this; ptri
 
-        set         : ( value ) ->
+        add         : ( ptri ) ->
+            setParent ptri, this
+
+        set         : ( arrayLike ) ->
             if !begin = getBegin this
 
                 if !byteLength = @constructor.byteLength
-                    byteLength = value.length * BYTES_PER_ELEMENT
+                    
+                    bpe = if !@TypedArray then BYTES_PER_ELEMENT
+                    else @TypedArray.BYTES_PER_ELEMENT
+
+                    byteLength = arrayLike.length * bpe
 
                 setByteLength this, byteLength
-                setLength this, value.length
-
-                if  alignBytes = byteLength % ALIGN_BYTELENGTH
-                    malloc alignBytes
+                setLength this, arrayLike.length
+                malign()
 
                 byteOffset = setByteOffset this, malloc byteLength
                 begin = setBegin this, byteOffset / 4 
-
+            
             if !@TypedArray
-                f32.set value, begin
+                f32.set arrayLike, begin
 
             else switch @TypedArray
-                when     Uint8Array then ui8.set value, begin * 4
-                when    Uint32Array then u32.set value, begin
-                when    Uint16Array then u16.set value, begin * 2
-                when   Float32Array then f32.set value, begin
-                when BigUint64Array then u64.set value, begin / 2
+                when     Uint8Array then ui8.set arrayLike, begin * 4
+                when    Uint32Array then u32.set arrayLike, begin
+                when    Uint16Array then u16.set arrayLike, begin * 2
+                when   Float32Array then f32.set arrayLike, begin
+                when BigUint64Array then u64.set arrayLike, begin / 2
 
             this
 
         Object.defineProperties this::,
 
-            children : get : -> findChilds this
-
             parent   : get : -> getParent this
+
+            children : get : -> findChilds this
 
         Object.defineProperties this::,
 
@@ -4545,21 +4549,27 @@ do  self.main = ->
                 u32.subarray this, this + HEADER_INDEXCOUNT
 
 
-
     cscope.global class Scene extends Pointer
 
         name : "scene"
 
-
     cscope.store class TextPointer extends Pointer
+
+        TypedArray : Uint8Array
 
         name : "text"
 
-        
+    for Class in cscope
+        continue unless TypedArray = Class::TypedArray
+
+        Object.defineProperty Class::, "subarray", get : ->
+            new TypedArray sab, getByteOffset(this), getLength(this)
 
 
     console.log sc = new Scene()
+    console.log sc.set [1, 2]
     console.log tp = new TextPointer()
+    tp.set [1,2,4]
     console.log sc.append tp
 
 

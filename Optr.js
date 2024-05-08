@@ -5156,7 +5156,7 @@ self.init = function() {
 };
 
 (self.main = function() {
-  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, HEADER_INDEXCOUNT, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSINDEX, HINDEX_LENGTH, HINDEX_PARENT, HINDEX_RESVBEGIN, INDEX_DATA_MALLOC, INDEX_POINTER_ALLOC, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, Pointer, Scene, Scope, Storage, TextPointer, cscope, dvw, f32, findChild, findChilds, getBegin, getByteLength, getByteOffset, getClassIndex, getLength, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, i32, iLE, isWindow, isWorker, malloc, palloc, sab, sc, setBegin, setByteLength, setByteOffset, setClassIndex, setLength, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, tp, u16, u32, u64, ui8;
+  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, HEADER_INDEXCOUNT, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSINDEX, HINDEX_LENGTH, HINDEX_PARENT, HINDEX_RESVBEGIN, INDEX_DATA_MALLOC, INDEX_POINTER_ALLOC, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, Pointer, Scene, Scope, Storage, TextPointer, TypedArray, cscope, dvw, f32, findChild, findChilds, getBegin, getByteLength, getByteOffset, getClassIndex, getLength, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, i32, iLE, isWindow, isWorker, j, len, malign, malloc, palloc, sab, sc, setBegin, setByteLength, setByteOffset, setClassIndex, setLength, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, tp, u16, u32, u64, ui8;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -5191,7 +5191,12 @@ self.init = function() {
   }
   malloc = Atomics.add.bind(Atomics, u32, INDEX_DATA_MALLOC);
   palloc = Atomics.add.bind(Atomics, u32, INDEX_POINTER_ALLOC, HEADER_INDEXCOUNT);
-  console.log(u32);
+  malign = function() {
+    var b;
+    if (b = Atomics.load(u32, INDEX_DATA_MALLOC) % ALIGN_BYTELENGTH) {
+      return malloc(b);
+    }
+  };
   Storage = class Storage extends Array {
     constructor() {
       super().push();
@@ -5226,7 +5231,7 @@ self.init = function() {
     ptrj = u32[0];
     if (!ptri) {
       //? returns last created Class in Global
-      if (!(clsi = cscope.indexOf(Class))) {
+      if (-1 === (clsi = cscope.indexOf(Class))) {
         throw /POINTER_OR_CLASS_REQUIRED/;
       }
       while (ptrj -= HEADER_INDEXCOUNT) {
@@ -5236,12 +5241,13 @@ self.init = function() {
         return new Class(ptrj);
       }
     } else {
-      if (!(clsi = cscope.indexOf(Class))) {
+      if (-1 === (clsi = cscope.indexOf(Class))) {
         //? returns last child of this
         while (ptrj -= HEADER_INDEXCOUNT) {
           if (u32[HINDEX_PARENT + ptrj] - ptri) {
             continue;
           }
+          Class = cscope[getClassIndex(ptrj)];
           return new Class(ptrj);
         }
       } else {
@@ -5326,9 +5332,7 @@ self.init = function() {
         }
       }
     } else {
-      while (index--) {
-        childs.push(list[index]);
-      }
+      childs.push.apply(childs, list);
     }
     return childs;
   };
@@ -5408,24 +5412,19 @@ self.init = function() {
   };
   cscope.store(Pointer = (function() {
     class Pointer extends Number {
-      constructor(ptri) {
-        var clsi;
-        super(ptri || (clsi = palloc()));
-        if (clsi) {
+      constructor(ptri = 0) {
+        super(ptri || palloc());
+        if (!ptri) {
           setClassIndex(this);
         }
       }
 
-      store(object, resvU32i = 0) {
+      store(object, resvU32i) {
         return setResvUint32(this, resvU32i, this.storage.store(object));
       }
 
-      object(resvU32i = 0) {
+      object(resvU32i) {
         return this.storage[getResvUint32(this, resvU32i)];
-      }
-
-      add(ptri) {
-        return setParent(ptri, this);
       }
 
       append(ptri) {
@@ -5433,38 +5432,41 @@ self.init = function() {
         return ptri;
       }
 
-      set(value) {
-        var alignBytes, begin, byteLength, byteOffset;
+      add(ptri) {
+        return setParent(ptri, this);
+      }
+
+      set(arrayLike) {
+        var begin, bpe, byteLength, byteOffset;
         if (!(begin = getBegin(this))) {
           if (!(byteLength = this.constructor.byteLength)) {
-            byteLength = value.length * BYTES_PER_ELEMENT;
+            bpe = !this.TypedArray ? BYTES_PER_ELEMENT : this.TypedArray.BYTES_PER_ELEMENT;
+            byteLength = arrayLike.length * bpe;
           }
           setByteLength(this, byteLength);
-          setLength(this, value.length);
-          if (alignBytes = byteLength % ALIGN_BYTELENGTH) {
-            malloc(alignBytes);
-          }
+          setLength(this, arrayLike.length);
+          malign();
           byteOffset = setByteOffset(this, malloc(byteLength));
           begin = setBegin(this, byteOffset / 4);
         }
         if (!this.TypedArray) {
-          f32.set(value, begin);
+          f32.set(arrayLike, begin);
         } else {
           switch (this.TypedArray) {
             case Uint8Array:
-              ui8.set(value, begin * 4);
+              ui8.set(arrayLike, begin * 4);
               break;
             case Uint32Array:
-              u32.set(value, begin);
+              u32.set(arrayLike, begin);
               break;
             case Uint16Array:
-              u16.set(value, begin * 2);
+              u16.set(arrayLike, begin * 2);
               break;
             case Float32Array:
-              f32.set(value, begin);
+              f32.set(arrayLike, begin);
               break;
             case BigUint64Array:
-              u64.set(value, begin / 2);
+              u64.set(arrayLike, begin / 2);
           }
         }
         return this;
@@ -5477,14 +5479,14 @@ self.init = function() {
     Pointer.prototype.storage = new Storage;
 
     Object.defineProperties(Pointer.prototype, {
-      children: {
-        get: function() {
-          return findChilds(this);
-        }
-      },
       parent: {
         get: function() {
           return getParent(this);
+        }
+      },
+      children: {
+        get: function() {
+          return findChilds(this);
         }
       }
     });
@@ -5511,12 +5513,27 @@ self.init = function() {
   cscope.store(TextPointer = (function() {
     class TextPointer extends Pointer {};
 
+    TextPointer.prototype.TypedArray = Uint8Array;
+
     TextPointer.prototype.name = "text";
 
     return TextPointer;
 
   }).call(this));
+  for (j = 0, len = cscope.length; j < len; j++) {
+    Class = cscope[j];
+    if (!(TypedArray = Class.prototype.TypedArray)) {
+      continue;
+    }
+    Object.defineProperty(Class.prototype, "subarray", {
+      get: function() {
+        return new TypedArray(sab, getByteOffset(this), getLength(this));
+      }
+    });
+  }
   console.log(sc = new Scene());
+  console.log(sc.set([1, 2]));
   console.log(tp = new TextPointer());
+  tp.set([1, 2, 4]);
   return console.log(sc.append(tp));
 })();
