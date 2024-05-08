@@ -1,6 +1,9 @@
 self.name = "window"
+root = null
 
-do  self.init   = ->
+
+self.init   = ->
+    
     isWindow = !DedicatedWorkerGlobalScope?
     isThread = isWindow is false
 
@@ -18,7 +21,6 @@ do  self.init   = ->
 
         deleteProperties : value : ( target, props = [] ) ->
             @deleteProperty target, p for p in props; target
-
 
     Symbol.pointer = "|[Pointer]|"
         
@@ -232,6 +234,12 @@ do  self.init   = ->
     
     setLinked           = ( ptri, ptrj ) ->
         u32[ HEADER_LINKEDPTRI + ptri ] = ptrj
+
+    getObject           = ( ptri ) ->
+        ptri.storage[ u32[ HEADER_LINKEDPTRI + ptri ] ]
+
+    setObject           = ( ptri, object ) ->
+        u32[ HEADER_LINKEDPTRI + ptri ] = ptri.store object
 
     getParent           = ( ptri ) -> 
         return unless ptrj = u32[ HEADER_PARENTPTRI + ptri ] 
@@ -1015,7 +1023,6 @@ do  self.init   = ->
 
         Object.deleteProperties Color::, [ "childs" ]
 
-        
     classes.register class UV               extends Vector4
 
         name        : "uv"
@@ -1284,7 +1291,11 @@ do  self.init   = ->
 
             element.getContext @contextType
 
-        enable              : -> this
+        enable              : ->
+            unless getUint8 this, 3
+                setUint8 this, 3, 1
+                @prepareRender()
+            this
 
         resize              : ( top, left, width, height, canvas ) ->
             canvas ||= @glObject.canvas
@@ -1292,7 +1303,7 @@ do  self.init   = ->
             pixelRatio = devicePixelRatio or 1
             aspectRatio = width / height
 
-            @parameters = {
+            @canvasInfo = {
                 top, left, width, height,
                 aspectRatio, pixelRatio
             }
@@ -1310,29 +1321,28 @@ do  self.init   = ->
         prepareRender       : ->
             {   top, left, width, height,
                 aspectRatio, pixelRatio
-            } = @parameters
+            } = @canvasInfo
             
             @viewport left, top, width, height
             @clearColor()
             @clear()
+
+            1
         
         viewport            : ->
             @glObject.viewport arguments...
-            
-            ; 0
+            0
 
         clear               : ->
             @glObject.clear @getClearMask().value()
-
-            ; 0
+            0
 
         clearColor          : ->
             if  clearColor = @getClearColor()
                 @glObject.clearColor clearColor...
+            0
 
-            ; 0
-
-        getParameters       : ->
+        getCanvasInfo       : ->
             [
                 top, left, width, height,
                 aspectRatio, pixelRatio
@@ -1350,7 +1360,7 @@ do  self.init   = ->
                 aspectRatio, pixelRatio
             }
 
-        setParameters       : ->
+        setCanvasInfo       : ->
             parameters = arguments[0] or {}
             setarrayFloat32 this, Object.values {
                 ...@parameters, ...parameters
@@ -1384,7 +1394,7 @@ do  self.init   = ->
             @glObject.compileShader shader.glObject
         
         shaderSource        : ( shader, source ) ->
-            @glObject.shaderSource shader.glObject, source.scriptCode
+            @glObject.shaderSource shader.glObject, source.text
         
         linkProgram         : ( program ) ->
             @glObject.linkProgram program.glObject
@@ -1410,7 +1420,7 @@ do  self.init   = ->
 
         Object.defineProperties Context::,
 
-            parameters      : get : Context::getParameters, set : Context::setParameters
+            canvasInfo      : get : Context::getCanvasInfo, set : Context::setCanvasInfo
             
             program         : get : Context::getProgram
             
@@ -1501,9 +1511,7 @@ do  self.init   = ->
 
                     for c in meshChilds when -1 isnt i = shaderClasses.indexOf getClassIndex c
                         new Attribute shaderAttrs[ i ]
-
-
-                        
+                    
     classes.global   class Mesh             extends Pointer
 
         isDrawable  : yes
@@ -1607,7 +1615,6 @@ do  self.init   = ->
 
             0
             
-
     classes.register class DrawBuffer       extends GLPointer
 
         MAX_POINT_COUNT     : 1e5
@@ -1652,6 +1659,7 @@ do  self.init   = ->
             @parent.program.enable()
 
             gl = @parent.glObject
+
             if  draw
                 gl.bufferSubData @TARGET, draw.bufferOffset, draw.buffer
                 gl.drawArrays gl.POINTS, draw.start, draw.count
@@ -1693,8 +1701,6 @@ do  self.init   = ->
                     this, 4, @parent.vertexShader.BYTES_PER_POINT
                 )
 
-
-            
     classes.register class Program          extends GLPointer
 
         isProgram           : yes
@@ -1896,7 +1902,6 @@ do  self.init   = ->
             if  this is FragmentShader
                 return sources.filter (s) -> s.match /gl_Fra/
 
-                
             return []
 
         Object.deleteProperties Shader::, [ "buffer" ]
@@ -1930,7 +1935,39 @@ do  self.init   = ->
         shaderType          : WebGL2RenderingContext.FRAGMENT_SHADER
 
         create              : -> @parent.createFragmentShader()
-    
+
+    classes.register class CompiledShader   extends Pointer
+
+        attach              : ->
+            @glContext.attachShader @glProgram, @glShader
+
+        Object.defineProperties CompiledShader::,
+
+            isAttached      : 
+                get : -> getResvUint8 this, 0
+                set : -> setResvUint8 this, 0, arguments[0]
+
+            glShader        :
+                get : -> @storage[ getResvUint8 this, 5 ]
+                set : -> setResvUint8 this, 5, @store arguments[0]
+            
+            glProgram       : 
+                get : -> @storage[ getResvUint8 this, 4 ]
+                set : -> setResvUint8 this, 4, @store arguments[0]
+            
+            glContext       :
+                get : -> @storage[ getResvUint8 this, 3 ]
+                set : -> setResvUint8 this, 3, @store arguments[0]
+
+            source          : 
+                get : -> new ShaderSource getByteLength this
+                set : -> setByteLength this, arguments[0]
+
+            context         :
+                get : -> getLinked this
+                set : -> setLinked this, arguments[0]
+
+        Object.deleteProperties CompiledShader::, [ "childs", "buffer" ]
 
     classes.register class TextPointer      extends Pointer
 
@@ -1947,15 +1984,88 @@ do  self.init   = ->
         set                 : ( text ) ->
             super @encoder.encode "#{text}" 
 
-        toString            : ->
+        get                 : ->
             @decoder.decode detachUint8 this
 
-    classes.register class ShaderSource     extends TextPointer
+        toString            : -> @get()
+
+    classes.register class DocumentScript   extends TextPointer
+
+        set                 : ( text ) ->
+            super text
+            
+        resolve             : ->
+            return if getResvUint8 this, 4
+            setResvUint8 this, 4, 1
+
+            if  text = @element.text
+                @set text
+
+            if  @isShaderSource
+                setClassIndex this, ShaderSource.classIndex
+
+            else if @isUserScript
+                setClassIndex this, UserScript.classIndex
+
+            this
+
+        Object.deleteProperties DocumentScript::, [ "buffer", "childs" ]
+
+        Object.defineProperties DocumentScript::,
+
+            element : 
+                get : -> getObject this
+
+            src     :
+                get : -> @element.src
+
+            type    :
+                get : -> @element.type or "application/javascript"
+
+            text    :
+                get : -> @get()
+
+            isShaderSource   : get : -> /shader/i.test @type
+            
+            isVertexShader   : get : -> /gl_Position/i.test @text
+
+            isFragmentShader : get : -> /gl_Frag/i.test @text
+
+            isComputeShader  : get : -> /\@compute/i.test @text
+
+            isUserScript     : get : -> @text and !!@src
+
+    classes.register class UserScript       extends DocumentScript
+
+        Object.defineProperties UserScript::,
+                
+            blob            : get : -> new Blob [ @text ], { @type }
+
+            objectURL       : get : -> URL.createObjectURL @blob
+
+
+        append              : ->
+            element = document.createElement "script"
+
+            setParent script = new @constructor, @parent
+            setObject script , element
+
+            script.set @text
+
+            element.text = @text
+            element.type = @type
+
+            document.body.appendChild element
+
+            script
+
+    classes.register class ShaderSource     extends DocumentScript
         
         Object.defineProperties ShaderSource::,
 
-            scriptCode : get : ->
-                @decoder.decode detachUint8 this
+            isResolved :
+                get : -> getResvUint8 this, 2 
+                set : -> setResvUint8 this, 2, arguments[0] 
 
             isUploaded :
                 get : -> getResvUint8 this, 1 
@@ -1965,9 +2075,7 @@ do  self.init   = ->
                 get : -> getResvUint8 this, 0 
                 set : -> setResvUint8 this, 0, arguments[0] 
 
-            isResolved :
-                get : -> getResvUint8 this, 2 
-                set : -> setResvUint8 this, 2, arguments[0] 
+        Object.deleteProperties ShaderSource::, [ "src" ]
 
 
         keyof               : ( type ) ->
@@ -1976,7 +2084,7 @@ do  self.init   = ->
             k.at v.indexOf type
 
         resolve             : ->
-            return if @isResolved
+            return super() if @isResolved
             @isResolved = 1
 
             stride     = 0
@@ -2014,8 +2122,6 @@ do  self.init   = ->
                 @parent.append Object.assign new Attribute, attr
 
             this
-
-
 
     classes.register class EventHandler     extends TextPointer
 
@@ -2108,6 +2214,14 @@ do  self.init   = ->
             callCount       :
                 get : EventEmitter::getCallCount
                 set : EventEmitter::setCallCount
+
+    classes.global   class Document         extends EventEmitter
+
+        Object.deleteProperties Document::, [ "parent", "callCount" ]
+
+        Object.defineProperties Document::, 
+        
+            buffer : get : -> buffer
 
     classes.global   class Scene            extends EventEmitter
 
@@ -2217,10 +2331,7 @@ do  self.init   = ->
         create      : ->
             super arguments...
 
-            if !isWindow
-                throw "window"
-
-
+            setParent this, root
 
             @startTime = Date.now()
             @isRendering = 1
@@ -2230,7 +2341,7 @@ do  self.init   = ->
                 @context.clear()
                 @render()
 
-                throw /RENDER_OF_4/ if i++ > 4
+                throw /RENDER_OF_10/ if i++ > 10
                 requestAnimationFrame onframe
 
             do onframe = onframe.bind this
@@ -2256,7 +2367,7 @@ do  self.init   = ->
             while draw = iterateGlobalAllocs iterator
                 draw.refresh()
 
-            log @context.drawBuffer.upload()
+            @context.drawBuffer.upload()
                 
             @emit "render"
 
@@ -2340,7 +2451,7 @@ do  self.init   = ->
                     unless context = contexts.find (p) -> p.isActive
                         unless context = contexts[0]
                             setParent context = new Context, this
-                            context.prepareRender()
+                        context.enable()                            
                     context
 
             drawBuffer  :
@@ -3904,14 +4015,6 @@ do  self.init   = ->
                 dvw.setInt32 @byteOffset + @OFFSET_VERTICES, ptri, LE
                 f32.set value, i32[ ptri + HINDEX_BEGIN ]
 
-    ###
-
-    self.addEventListener "DOMContentLoaded"    , ->
-
-        frame = 0
-        epoch = 0
-        rendering = 0
-
         return
 
         checkUploads    = ->
@@ -3944,7 +4047,6 @@ do  self.init   = ->
 
             onanimationframe performance.now()
             
-
         initialProgram  = ->
 
             vSource = scripts.find((s) -> s.type.match /x-vert/i).text
@@ -4068,6 +4170,20 @@ do  self.init   = ->
         createThreads()
         
         listenEvents()
+    ###
+
+    self.addEventListener "DOMContentLoaded"    , ->
+
+        root = new Document
+
+        for element in [ ...document.scripts ]
+            setParent script = new DocumentScript, root
+            setObject script , element
+            script.resolve()
+
+        userScript = findChild root, UserScript, on
+        userScript . append()
+
 
     self.addEventListener "bufferready"         , ->
         #log "bufferready:", buffer
@@ -4127,3 +4243,324 @@ do  self.init   = ->
 
 
     return 0xdead;
+
+do  self.main = ->
+
+    isWorker            = DedicatedWorkerGlobalScope?
+    isWindow            = !isWorker
+
+    BUFFER_SIZE         = 1e6 * 8
+    HEADER_INDEXCOUNT   = 16
+    POINTER_MAXINDEX    = 1e5
+    ALIGN_BYTELENGTH    = 8
+    BYTES_PER_ELEMENT   = 4
+    MALLOC_BYTEOFFSET   =
+        HEADER_INDEXCOUNT * 
+        BYTES_PER_ELEMENT * 
+        POINTER_MAXINDEX
+
+    INDEX_DATA_MALLOC   = 1
+    INDEX_POINTER_ALLOC = 0
+
+
+    HINDEX_BYTEOFFSET   = 0
+    HINDEX_BYTELENGTH   = 1
+    HINDEX_LENGTH       = 2
+    HINDEX_BEGIN        = 3
+
+    HINDEX_PARENT       = 4
+    HINDEX_CLASSINDEX   = 5
+
+    HINDEX_RESVBEGIN    = 8
+
+    sab = new SharedArrayBuffer BUFFER_SIZE if isWindow
+    u64 = new BigUint64Array sab
+    u32 = new Uint32Array sab
+    i32 = new Int32Array sab
+    f32 = new Float32Array sab
+    ui8 = new Uint8Array sab
+    u16 = new Uint16Array sab
+    dvw = new DataView sab
+    iLE = new Uint8Array( Uint16Array.of(1).buffer )[0]
+
+    if  isWindow
+        Atomics.or u32, INDEX_DATA_MALLOC, MALLOC_BYTEOFFSET
+        Atomics.or u32, INDEX_POINTER_ALLOC, HEADER_INDEXCOUNT
+
+    malloc = Atomics.add.bind Atomics, u32, INDEX_DATA_MALLOC
+    palloc = Atomics.add.bind Atomics, u32, INDEX_POINTER_ALLOC, HEADER_INDEXCOUNT
+
+    console.log u32
+
+    class Storage extends Array
+
+        constructor : -> super().push()
+
+        store   : ( Class ) ->
+            if -1 is i = @indexOf Class
+                i += @push Class
+            i
+
+    cscope = new class Scope extends Storage
+
+        global  : ( Class ) ->
+            i = @store Class
+            self[ Class ] = ( argv ) ->
+                ptr = findChild null, Class, on
+                if  argv is self
+                    return new Class()
+                return new Class()
+
+
+    findChild       = ( ptri, Class, create = off ) ->
+
+        ptrj = u32[0]
+
+        unless ptri
+        #? returns last created Class in Global
+
+            unless clsi = cscope.indexOf Class
+                throw /POINTER_OR_CLASS_REQUIRED/
+            
+            while ptrj -= HEADER_INDEXCOUNT
+                continue if u32[ HINDEX_CLASSINDEX + ptrj ] - clsi
+                return new Class ptrj
+
+        else
+            unless clsi = cscope.indexOf Class
+            #? returns last child of this
+
+                while ptrj -= HEADER_INDEXCOUNT
+                    continue if u32[ HINDEX_PARENT + ptrj ] - ptri
+                    return new Class ptrj
+
+            else
+            #? returns last Class child of this
+                while ptrj -= HEADER_INDEXCOUNT
+                    continue if u32[ HINDEX_PARENT + ptrj ] - ptri
+                    continue if u32[ HINDEX_CLASSINDEX + ptrj ] - clsi
+                    return new Class ptrj
+
+        if  create
+        #? not found and create requested
+            return setChildren ptri, new Class
+
+        null
+
+    findChilds      = ( ptri, Class, recursive = off, construct = on, childs = [] ) ->
+        throw /CLASS_REQUIRED/ if recursive and !Class
+
+        ptrj = u32[ index = 0 ]
+        list = new Array
+
+
+        unless ptri
+        #? returns all created Class? in Global
+
+            if  -1 is clsi = cscope.indexOf Class
+            #? returns all allocated pointers
+
+                while ptrj -= HEADER_INDEXCOUNT
+                    list[ index++ ] = ptrj
+
+            else
+            #? all allocated Classes in Global
+
+                while ptrj -= HEADER_INDEXCOUNT
+                    continue if u32[ HINDEX_CLASSINDEX + ptrj ] - clsi
+                    list[ index++ ] = ptrj
+
+        else
+        #? return childs of given pointer
+
+            if  -1 is clsi = cscope.indexOf Class
+            #? returns all allocated pointers
+
+                while ptrj -= HEADER_INDEXCOUNT
+                    continue if u32[ HINDEX_PARENT + ptrj ] - ptri
+                    list[ index++ ] = ptrj
+                    
+
+            else
+            #? all allocated Classes in Global
+                while ptrj -= HEADER_INDEXCOUNT
+                    continue if u32[ HINDEX_PARENT + ptrj ] - ptri
+                    continue if u32[ HINDEX_CLASSINDEX + ptrj ] - clsi
+                    list[ index++ ] = ptrj
+
+                    
+            
+        if  recursive and i = index
+            while i--
+                findChilds list[ i ], Class, on, construct, childs
+
+        if  construct
+            
+            if !Class
+                while index--
+                    Class = cscope[ getClassIndex list[ index ] ]
+                    childs.push new Class list[ index ]
+
+            else
+                while index--
+                    childs.push new Class list[ index ]
+
+        else
+            while index--
+                childs.push list[ index ]
+
+        childs
+
+    setResvUint32   = ( ptri, index, value ) ->
+        index += ( ptri + HINDEX_RESVBEGIN )
+        u32[ index ] = value
+
+    getResvUint32   = ( ptri, index ) ->
+        index += ( ptri + HINDEX_RESVBEGIN )
+        u32[ index ]
+
+    setResvUint16   = ( ptri, index, value ) ->
+        index += ( ptri + HINDEX_RESVBEGIN ) * 2
+        u16[ index ] = value
+
+    getResvUint16   = ( ptri, index ) ->
+        index += ( ptri + HINDEX_RESVBEGIN ) * 2
+        u16[ index ]
+
+    setResvUint8    = ( ptri, index, value ) ->
+        index += ( ptri + HINDEX_RESVBEGIN ) * 4
+        ui8[ index ] = value
+
+    getResvUint8    = ( ptri, index ) ->
+        index += ( ptri + HINDEX_RESVBEGIN ) * 4
+        ui8[ index ]
+
+    setResvUint64   = ( ptri, index, value ) ->
+        index += ( ptri + HINDEX_RESVBEGIN ) / 2
+        Number u64[ index ] = BigInt value
+
+    getResvUint64   = ( ptri, index ) ->
+        index += ( ptri + HINDEX_RESVBEGIN ) / 2
+        Number u64[ index ]
+
+    setByteLength   = ( ptri, value ) ->
+        u32[ ptri + HINDEX_BYTELENGTH ] = value
+
+    getByteLength   = ( ptri ) ->
+        u32[ ptri + HINDEX_BYTELENGTH ]
+
+    setByteOffset   = ( ptri, value ) ->
+        u32[ ptri ] = value
+
+    getByteOffset   = ( ptri ) ->
+        u32[ ptri ]
+
+    setLength       = ( ptri, value ) ->
+        u32[ ptri + HINDEX_LENGTH ] = value
+
+    getLength       = ( ptri ) ->
+        u32[ ptri + HINDEX_LENGTH ]
+
+    setBegin        = ( ptri, value ) ->
+        u32[ ptri + HINDEX_BEGIN ] = value
+
+    getBegin        = ( ptri ) ->
+        u32[ ptri + HINDEX_BEGIN ]
+
+    setParent       = ( ptri, ptrj ) ->
+        u32[ ptri + HINDEX_PARENT ] = ptrj
+
+    getParent       = ( ptri ) ->
+        ptrj = u32[ ptri + HINDEX_PARENT ]
+        return null unless ptrj
+
+        clsi = u32[ ptrj + HINDEX_CLASSINDEX ]
+        new cscope[ clsi ] ptrj
+
+    setClassIndex   = ( ptri, clsi ) ->
+        u32[ ptri + HINDEX_CLASSINDEX ] =
+            clsi or cscope.indexOf ptri.constructor
+
+    getClassIndex   = ( ptri ) ->
+        u32[ ptri + HINDEX_CLASSINDEX ]
+
+    cscope.store class Pointer extends Number
+    
+        @byteLength : 0
+
+        storage     : new Storage
+
+        constructor : ( ptri ) ->
+            super ptri or clsi = palloc()
+            setClassIndex this if clsi
+
+        store       : ( object, resvU32i = 0 ) ->
+            setResvUint32 this, resvU32i, @storage.store object
+
+        object      : ( resvU32i = 0 ) ->
+            @storage[ getResvUint32 this, resvU32i ]
+
+        add         : ( ptri ) ->
+            setParent ptri, this
+
+        append      : ( ptri ) ->
+            setParent ptri, this; ptri
+
+        set         : ( value ) ->
+            if !begin = getBegin this
+
+                if !byteLength = @constructor.byteLength
+                    byteLength = value.length * BYTES_PER_ELEMENT
+
+                setByteLength this, byteLength
+                setLength this, value.length
+
+                if  alignBytes = byteLength % ALIGN_BYTELENGTH
+                    malloc alignBytes
+
+                byteOffset = setByteOffset this, malloc byteLength
+                begin = setBegin this, byteOffset / 4 
+
+            if !@TypedArray
+                f32.set value, begin
+
+            else switch @TypedArray
+                when     Uint8Array then ui8.set value, begin * 4
+                when    Uint32Array then u32.set value, begin
+                when    Uint16Array then u16.set value, begin * 2
+                when   Float32Array then f32.set value, begin
+                when BigUint64Array then u64.set value, begin / 2
+
+            this
+
+        Object.defineProperties this::,
+
+            children : get : -> findChilds this
+
+            parent   : get : -> getParent this
+
+        Object.defineProperties this::,
+
+            [ "{{Pointer}}" ] : get : ->
+                u32.subarray this, this + HEADER_INDEXCOUNT
+
+
+
+    cscope.global class Scene extends Pointer
+
+        name : "scene"
+
+
+    cscope.store class TextPointer extends Pointer
+
+        name : "text"
+
+        
+
+
+    console.log sc = new Scene()
+    console.log tp = new TextPointer()
+    console.log sc.append tp
+
+
+    

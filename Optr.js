@@ -1,7 +1,11 @@
+var root;
+
 self.name = "window";
 
-(self.init = function() {
-  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, Attribute, BPE, BYTELENGTH_128MB, BYTELENGTH_GLBUFFER, ClearColor, ClearMask, Color, Context, Draw, DrawBuffer, EventEmitter, EventHandler, FragmentShader, Frustrum, GLParamerer, GLPointer, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERATORI, HEADER_ITERCLASSI, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Mesh, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, Program, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scene, Shader, ShaderSource, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, TextPointer, Texture, UV, Vector4, VertexShader, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, detachUint8, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, finalizeIterator, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsCount, getChildsPtri, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getParent, getParentPtri, getPointer, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint16, getUint32, getUint64, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitResvUint8, hitTranslated, i32, inherit, isThread, isWindow, iterateGlobalAllocs, iteratePrepared, lock, log, mallocs, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, prepareIterator, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setLinkedPtri, setNeedRecalc, setNeedUpload, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint16, setUint32, setUint64, setUint8, setarrayFloat32, setarrayUint16, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint16, subarrayUint32, subarrayUint8, textDecoder, textEncoder, threadId, ticks, u16, u32, u64, ui8, unlock, uuid, vShader, warn, workers;
+root = null;
+
+self.init = function() {
+  var ATTRIBS_BYTELENGTH, ATTRIBS_LENGTH, Attribute, BPE, BYTELENGTH_128MB, BYTELENGTH_GLBUFFER, ClearColor, ClearMask, Color, CompiledShader, Context, Document, DocumentScript, Draw, DrawBuffer, EventEmitter, EventHandler, FragmentShader, Frustrum, GLParamerer, GLPointer, HEADER_BEGIN, HEADER_BYTELENGTH, HEADER_BYTEOFFSET, HEADER_CLASSINDEX, HEADER_FRAGMENTED, HEADER_INDEXCOUNT, HEADER_ITERATORI, HEADER_ITERCLASSI, HEADER_ITEROFFSET, HEADER_LENGTH, HEADER_LINKEDPTRI, HEADER_NEEDRECALC, HEADER_NEEDUPLOAD, HEADER_PARENTPTRI, HEADER_RESVINDEX, HEADER_RESVINDEX1, HEADER_RESVINDEX2, HEADER_RESVINDEX4, HEADER_TRANSLATED, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSID, HINDEX_ISGL, HINDEX_ITER_COUNT, HINDEX_LENGTH, HINDEX_LOCATED, HINDEX_NEXT_COLORI, HINDEX_NEXT_VERTEXI, HINDEX_PAINTED, HINDEX_PARENT, HINDEX_RESV0, HINDEX_RESV1, HINDEX_UPDATED, INNER_HEIGHT, INNER_WIDTH, ITERATION_PER_THREAD, LE, Mesh, OFFSET_CPU, OFFSET_GPU, OFFSET_PTR, PointSize, Pointer, Position, Program, RADIANS_PER_DEGREE, RATIO_ASPECT, RATIO_PIXEL, Rotation, STATE_LOCKED, STATE_READY, STATE_UNLOCKED, STATE_WORKING, Scale, Scene, Shader, ShaderSource, THREADS_BEGIN, THREADS_COUNT, THREADS_NULL, THREADS_READY, THREADS_STATE, TextPointer, Texture, UV, UserScript, Vector4, VertexShader, addResvFloat32, addResvUint16, addResvUint32, addResvUint8, addUint32, buffer, buffers, classes, defines, detachUint8, draws, dvw, error, f32, fShader, fillFloat32, fillUint32, fillUint8, finalizeIterator, findChild, findChildRecursive, findChilds, findChildsPtri, findChildsRecursive, findLinkeds, frustrum, gBuffer, getAllocs, getBegin, getByteLength, getByteOffset, getChilds, getChildsCount, getChildsPtri, getClass, getClassIndex, getFloat32, getFragmented, getIndex, getIterOffset, getLength, getLinked, getLinkedPtri, getNeedRecalc, getNeedUpload, getObject, getParent, getParentPtri, getPointer, getResvFloat32, getResvUint16, getResvUint32, getResvUint8, getTranslated, getUint16, getUint32, getUint64, getUint8, gl, hitFragmented, hitIterOffset, hitNeedRecalc, hitNeedUpload, hitResvUint8, hitTranslated, i32, inherit, isThread, isWindow, iterateGlobalAllocs, iteratePrepared, lock, log, mallocs, newFloat32Array, newUint32Array, newUint8Array, nextTick, number, orFloat32, orUint32, orUint8, pipe, prepareIterator, program, ptrFloat32Array, ptrUint32Array, ptrUint8Array, scripts, setBegin, setByteLength, setByteOffset, setClassIndex, setFloat32, setFragmented, setIterOffset, setLength, setLinked, setLinkedPtri, setNeedRecalc, setNeedUpload, setObject, setParent, setResvFloat32, setResvUint16, setResvUint32, setResvUint8, setTranslated, setUint16, setUint32, setUint64, setUint8, setarrayFloat32, setarrayUint16, setarrayUint32, setarrayUint8, shaders, space, state, subarrayFloat32, subarrayUint16, subarrayUint32, subarrayUint8, textDecoder, textEncoder, threadId, ticks, u16, u32, u64, ui8, unlock, uuid, vShader, warn, workers;
   isWindow = typeof DedicatedWorkerGlobalScope === "undefined" || DedicatedWorkerGlobalScope === null;
   isThread = isWindow === false;
   pipe = new BroadcastChannel("3dtr");
@@ -247,6 +251,12 @@ self.name = "window";
   };
   setLinked = function(ptri, ptrj) {
     return u32[HEADER_LINKEDPTRI + ptri] = ptrj;
+  };
+  getObject = function(ptri) {
+    return ptri.storage[u32[HEADER_LINKEDPTRI + ptri]];
+  };
+  setObject = function(ptri, object) {
+    return u32[HEADER_LINKEDPTRI + ptri] = ptri.store(object);
   };
   getParent = function(ptri) {
     var Class, ptrj;
@@ -1673,6 +1683,10 @@ self.name = "window";
       }
 
       enable() {
+        if (!getUint8(this, 3)) {
+          setUint8(this, 3, 1);
+          this.prepareRender();
+        }
         return this;
       }
 
@@ -1681,7 +1695,7 @@ self.name = "window";
         canvas || (canvas = this.glObject.canvas);
         pixelRatio = devicePixelRatio || 1;
         aspectRatio = width / height;
-        this.parameters = {top, left, width, height, aspectRatio, pixelRatio};
+        this.canvasInfo = {top, left, width, height, aspectRatio, pixelRatio};
         return Object.assign(canvas, {
           width: pixelRatio * width,
           height: pixelRatio * height,
@@ -1696,10 +1710,11 @@ self.name = "window";
 
       prepareRender() {
         var aspectRatio, height, left, pixelRatio, top, width;
-        ({top, left, width, height, aspectRatio, pixelRatio} = this.parameters);
+        ({top, left, width, height, aspectRatio, pixelRatio} = this.canvasInfo);
         this.viewport(left, top, width, height);
         this.clearColor();
-        return this.clear();
+        this.clear();
+        return 1;
       }
 
       viewport() {
@@ -1720,7 +1735,7 @@ self.name = "window";
         return 0;
       }
 
-      getParameters() {
+      getCanvasInfo() {
         var aspectRatio, height, left, pixelRatio, top, width;
         [top, left, width, height, aspectRatio, pixelRatio] = subarrayFloat32(this, 0, 6);
         top || (top = 0);
@@ -1732,7 +1747,7 @@ self.name = "window";
         return {top, left, width, height, aspectRatio, pixelRatio};
       }
 
-      setParameters() {
+      setCanvasInfo() {
         var parameters;
         parameters = arguments[0] || {};
         return setarrayFloat32(this, Object.values({...this.parameters, ...parameters}));
@@ -1775,7 +1790,7 @@ self.name = "window";
       }
 
       shaderSource(shader, source) {
-        return this.glObject.shaderSource(shader.glObject, source.scriptCode);
+        return this.glObject.shaderSource(shader.glObject, source.text);
       }
 
       linkProgram(program) {
@@ -1823,9 +1838,9 @@ self.name = "window";
     Context.prototype.contextType = "webgl2";
 
     Object.defineProperties(Context.prototype, {
-      parameters: {
-        get: Context.prototype.getParameters,
-        set: Context.prototype.setParameters
+      canvasInfo: {
+        get: Context.prototype.getCanvasInfo,
+        set: Context.prototype.setCanvasInfo
       },
       program: {
         get: Context.prototype.getProgram
@@ -1999,9 +2014,9 @@ self.name = "window";
         return matter.init(props);
       }
 
-      draw(root, type) {
+      draw(root1, type) {
         var child, j, len, ref;
-        this.root = root;
+        this.root = root1;
         this.root.drawBuffer.draw(this, type);
         ref = findChilds(this, Mesh);
         for (j = 0, len = ref.length; j < len; j++) {
@@ -2655,14 +2670,82 @@ self.name = "window";
     return FragmentShader;
 
   }).call(this));
+  classes.register(CompiledShader = (function() {
+    class CompiledShader extends Pointer {
+      attach() {
+        return this.glContext.attachShader(this.glProgram, this.glShader);
+      }
+
+    };
+
+    Object.defineProperties(CompiledShader.prototype, {
+      isAttached: {
+        get: function() {
+          return getResvUint8(this, 0);
+        },
+        set: function() {
+          return setResvUint8(this, 0, arguments[0]);
+        }
+      },
+      glShader: {
+        get: function() {
+          return this.storage[getResvUint8(this, 5)];
+        },
+        set: function() {
+          return setResvUint8(this, 5, this.store(arguments[0]));
+        }
+      },
+      glProgram: {
+        get: function() {
+          return this.storage[getResvUint8(this, 4)];
+        },
+        set: function() {
+          return setResvUint8(this, 4, this.store(arguments[0]));
+        }
+      },
+      glContext: {
+        get: function() {
+          return this.storage[getResvUint8(this, 3)];
+        },
+        set: function() {
+          return setResvUint8(this, 3, this.store(arguments[0]));
+        }
+      },
+      source: {
+        get: function() {
+          return new ShaderSource(getByteLength(this));
+        },
+        set: function() {
+          return setByteLength(this, arguments[0]);
+        }
+      },
+      context: {
+        get: function() {
+          return getLinked(this);
+        },
+        set: function() {
+          return setLinked(this, arguments[0]);
+        }
+      }
+    });
+
+    Object.deleteProperties(CompiledShader.prototype, ["childs", "buffer"]);
+
+    return CompiledShader;
+
+  }).call(this));
   classes.register(TextPointer = (function() {
     class TextPointer extends Pointer {
       set(text) {
         return super.set(this.encoder.encode(`${text}`));
       }
 
-      toString() {
+      get() {
         return this.decoder.decode(detachUint8(this));
+      }
+
+      toString() {
+        return this.get();
       }
 
     };
@@ -2680,8 +2763,118 @@ self.name = "window";
     return TextPointer;
 
   }).call(this));
+  classes.register(DocumentScript = (function() {
+    class DocumentScript extends TextPointer {
+      set(text) {
+        return super.set(text);
+      }
+
+      resolve() {
+        var text;
+        if (getResvUint8(this, 4)) {
+          return;
+        }
+        setResvUint8(this, 4, 1);
+        if (text = this.element.text) {
+          this.set(text);
+        }
+        if (this.isShaderSource) {
+          setClassIndex(this, ShaderSource.classIndex);
+        } else if (this.isUserScript) {
+          setClassIndex(this, UserScript.classIndex);
+        }
+        return this;
+      }
+
+    };
+
+    Object.deleteProperties(DocumentScript.prototype, ["buffer", "childs"]);
+
+    Object.defineProperties(DocumentScript.prototype, {
+      element: {
+        get: function() {
+          return getObject(this);
+        }
+      },
+      src: {
+        get: function() {
+          return this.element.src;
+        }
+      },
+      type: {
+        get: function() {
+          return this.element.type || "application/javascript";
+        }
+      },
+      text: {
+        get: function() {
+          return this.get();
+        }
+      },
+      isShaderSource: {
+        get: function() {
+          return /shader/i.test(this.type);
+        }
+      },
+      isVertexShader: {
+        get: function() {
+          return /gl_Position/i.test(this.text);
+        }
+      },
+      isFragmentShader: {
+        get: function() {
+          return /gl_Frag/i.test(this.text);
+        }
+      },
+      isComputeShader: {
+        get: function() {
+          return /\@compute/i.test(this.text);
+        }
+      },
+      isUserScript: {
+        get: function() {
+          return this.text && !!this.src;
+        }
+      }
+    });
+
+    return DocumentScript;
+
+  }).call(this));
+  classes.register(UserScript = (function() {
+    class UserScript extends DocumentScript {
+      append() {
+        var element, script;
+        element = document.createElement("script");
+        setParent(script = new this.constructor, this.parent);
+        setObject(script, element);
+        script.set(this.text);
+        element.text = this.text;
+        element.type = this.type;
+        document.body.appendChild(element);
+        return script;
+      }
+
+    };
+
+    Object.defineProperties(UserScript.prototype, {
+      blob: {
+        get: function() {
+          return new Blob([this.text], {type: this.type});
+        }
+      },
+      objectURL: {
+        get: function() {
+          return URL.createObjectURL(this.blob);
+        }
+      }
+    });
+
+    return UserScript;
+
+  }).call(this));
   classes.register(ShaderSource = (function() {
-    class ShaderSource extends TextPointer {
+    class ShaderSource extends DocumentScript {
       keyof(type) {
         var k, v;
         k = Object.keys(WebGL2RenderingContext);
@@ -2692,7 +2885,7 @@ self.name = "window";
       resolve() {
         var Class, attr, attributes, byteLength, info, j, kind, len, length, location, name, numAttribs, offset, stride, type, typeKey, vtype;
         if (this.isResolved) {
-          return;
+          return super.resolve();
         }
         this.isResolved = 1;
         stride = 0;
@@ -2740,9 +2933,12 @@ self.name = "window";
     };
 
     Object.defineProperties(ShaderSource.prototype, {
-      scriptCode: {
+      isResolved: {
         get: function() {
-          return this.decoder.decode(detachUint8(this));
+          return getResvUint8(this, 2);
+        },
+        set: function() {
+          return setResvUint8(this, 2, arguments[0]);
         }
       },
       isUploaded: {
@@ -2760,16 +2956,10 @@ self.name = "window";
         set: function() {
           return setResvUint8(this, 0, arguments[0]);
         }
-      },
-      isResolved: {
-        get: function() {
-          return getResvUint8(this, 2);
-        },
-        set: function() {
-          return setResvUint8(this, 2, arguments[0]);
-        }
       }
     });
+
+    Object.deleteProperties(ShaderSource.prototype, ["src"]);
 
     return ShaderSource;
 
@@ -2911,6 +3101,22 @@ self.name = "window";
     return EventEmitter;
 
   }).call(this));
+  classes.global(Document = (function() {
+    class Document extends EventEmitter {};
+
+    Object.deleteProperties(Document.prototype, ["parent", "callCount"]);
+
+    Object.defineProperties(Document.prototype, {
+      buffer: {
+        get: function() {
+          return buffer;
+        }
+      }
+    });
+
+    return Document;
+
+  }).call(this));
   classes.global(Scene = (function() {
     class Scene extends EventEmitter {
       //?@iterate  : Mesh
@@ -3040,9 +3246,7 @@ self.name = "window";
       create() {
         var i, onframe;
         super.create(...arguments);
-        if (!isWindow) {
-          throw "window";
-        }
+        setParent(this, root);
         this.startTime = Date.now();
         this.isRendering = 1;
         i = 0;
@@ -3050,8 +3254,8 @@ self.name = "window";
           this.epoch = epoch1;
           this.context.clear();
           this.render();
-          if (i++ > 4) {
-            throw /RENDER_OF_4/;
+          if (i++ > 10) {
+            throw /RENDER_OF_10/;
           }
           return requestAnimationFrame(onframe);
         };
@@ -3079,7 +3283,7 @@ self.name = "window";
         while (draw = iterateGlobalAllocs(iterator)) {
           draw.refresh();
         }
-        log(this.context.drawBuffer.upload());
+        this.context.drawBuffer.upload();
         return this.emit("render");
       }
 
@@ -3169,8 +3373,8 @@ self.name = "window";
           }))) {
             if (!(context = contexts[0])) {
               setParent(context = new Context, this);
-              context.prepareRender();
             }
+            context.enable();
           }
           return context;
         }
@@ -4712,190 +4916,173 @@ self.name = "window";
   dvw.setInt32 @byteOffset + @OFFSET_VERTICES, ptri, LE
   f32.set value, i32[ ptri + HINDEX_BEGIN ]
 
+      return
+
+      checkUploads    = ->
+          for shape in Shape.allocs()
+  continue unless shape.willUploadIfNeeded
+
+  gl.bufferSubData(
+  gl.ARRAY_BUFFER, draw.uploadOffset,
+  space.drawBuffer, draw.uploadBegin,
+  draw.uploadLength
+  ) for draw in GLDraw.allocs shape.ptri
+
+      @render         = ->
+          rendering = 1
+
+          for l, define of defines when define.is.match /attr/i
+  try define.enable() ; define.rebind()
+
+          onanimationframe = ( pnow ) ->
+
+  delta = pnow - epoch
+  epoch = pnow
+  fps   = Math.trunc 1 / delta * 1e3
+
+  space.upload()
+  emit "animationframe", { gl, delta, epoch, fps }
+
+  space.drawArrays()
+  requestAnimationFrame onanimationframe
+
+          onanimationframe performance.now()
+
+      initialProgram  = ->
+
+          vSource = scripts.find((s) -> s.type.match /x-vert/i).text
+          vShader = gl.createShader gl.VERTEX_SHADER
+
+          gl.shaderSource vShader, vSource
+          gl.compileShader vShader
+
+          unless gl.getShaderParameter vShader, gl.COMPILE_STATUS
+  info = gl.getShaderInfoLog vShader
+  throw "Could not compile WebGL program. \n\n#{info}"
+
+          fSource = scripts.find((s) -> s.type.match /x-frag/i).text
+          fShader = gl.createShader gl.FRAGMENT_SHADER
+
+          gl.shaderSource fShader, fSource
+          gl.compileShader fShader
+
+          unless gl.getShaderParameter fShader, gl.COMPILE_STATUS
+  info = gl.getShaderInfoLog fShader
+  throw "Could not compile WebGL program. \n\n#{info}"
+
+          program = gl.createProgram()
+
+          gl.attachShader program, vShader
+          gl.attachShader program, fShader
+
+          gl.linkProgram program
+
+          unless gl.getProgramParameter program, gl.LINK_STATUS
+  info = gl.getProgramInfoLog program
+  throw "Could not compile WebGL program. \n\n#{info}"
+
+          gl.bindBuffer gl.ARRAY_BUFFER, gBuffer = gl.createBuffer()
+          gl.bufferData gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW
+
+          gl.useProgram program
+
+          0
+
+      createFrustrum  = ( options ) ->
+          frustrum = Frustrum.fromOptions options 
+          frustrum . setViewport gl
+          frustrum . listenWindow()
+
+      @createDisplay  = ->
+          return;
+          space = new Space()
+
+          initialProgram()
+          createFrustrum()
+
+          requestIdleCallback =>
+  self.emit "contextrestored", gl
+  pipe.emit "contextrestored"
+
+      createCanvas    = ->
+          canvas                  = document.createElement "canvas"
+          canvas.width            = RATIO_PIXEL * INNER_WIDTH
+          canvas.height           = RATIO_PIXEL * INNER_HEIGHT
+          canvas.style.width      = CSS.px INNER_WIDTH
+          canvas.style.height     = CSS.px INNER_HEIGHT
+          canvas.style.inset      = CSS.px 0
+          canvas.style.position   = "fixed"
+
+          document.body.appendChild canvas
+
+      createWorker    = ( name, blob ) ->
+
+          worker = new Worker( blob, { name } )
+          worker . onerror = 
+          worker . onmessageerror = console.error
+          worker . onmessage = ({ data }) ->
+  workers.push Object.assign this, data
+  emit "threadstatechange", { thread: this }
+
+          Object.defineProperties worker, state :
+  get : Atomics.load.bind Atomics, i32, name 
+  set : (v) -> error "worker state change request"
+
+          classIndexes = []
+          classIndexes . push {
+  name : c.name, index: i
+          } for c, i in classes
+
+          worker . postMessage { buffer, classIndexes }
+
+      createThreads   = ->
+          blob = createBlobURL()
+          for i in [ 0 ... THREADS_COUNT ]
+  thread = createWorker i + THREADS_BEGIN, blob
+          on
+
+      createBlobURL   = ->
+          code = "#{self.init}".split("return " + "0xdead;")[0]
+
+          blobURL = URL.createObjectURL new Blob [
+  "(", code, "}).call(self);"
+          ], { type: "application/javascript" }
+
+          delete self.init ; return blobURL
+
+      listenEvents    = ->
+          document.body.style.overscrollBehavior = "none"
+          document.body.style.height = CSS.vh 100
+          document.body.style.margin = 0
+
+          prevent = (e) ->
+  buffer = null
+  try e.preventDefault()
+  w.terminate() for w in workers
+  ; 1
+
+          window.onerror              = prevent
+          window.onunload             = prevent
+          window.onpagehide           = prevent
+          window.onbeforeunload       = prevent
+          window.onunhandledrejection = prevent
+
+      createThreads()
+
+      listenEvents()
    */
   self.addEventListener("DOMContentLoaded", function() {
-    var checkUploads, createBlobURL, createCanvas, createFrustrum, createThreads, createWorker, epoch, frame, initialProgram, listenEvents, rendering;
-    frame = 0;
-    epoch = 0;
-    rendering = 0;
-    return;
-    checkUploads = function() {
-      var draw, j, len, ref, results, shape;
-      ref = Shape.allocs();
-      results = [];
-      for (j = 0, len = ref.length; j < len; j++) {
-        shape = ref[j];
-        if (!shape.willUploadIfNeeded) {
-          continue;
-        }
-        results.push((function() {
-          var len1, m, ref1, results1;
-          ref1 = GLDraw.allocs(shape.ptri);
-          results1 = [];
-          for (m = 0, len1 = ref1.length; m < len1; m++) {
-            draw = ref1[m];
-            results1.push(gl.bufferSubData(gl.ARRAY_BUFFER, draw.uploadOffset, space.drawBuffer, draw.uploadBegin, draw.uploadLength));
-          }
-          return results1;
-        })());
-      }
-      return results;
-    };
-    this.render = function() {
-      var define, l, onanimationframe;
-      rendering = 1;
-      for (l in defines) {
-        define = defines[l];
-        if (define.is.match(/attr/i)) {
-          try {
-            define.enable();
-            define.rebind();
-          } catch (error1) {}
-        }
-      }
-      onanimationframe = function(pnow) {
-        var delta, fps;
-        delta = pnow - epoch;
-        epoch = pnow;
-        fps = Math.trunc(1 / delta * 1e3);
-        space.upload();
-        emit("animationframe", {gl, delta, epoch, fps});
-        space.drawArrays();
-        return requestAnimationFrame(onanimationframe);
-      };
-      return onanimationframe(performance.now());
-    };
-    initialProgram = function() {
-      var fSource, info, vSource;
-      vSource = scripts.find(function(s) {
-        return s.type.match(/x-vert/i);
-      }).text;
-      vShader = gl.createShader(gl.VERTEX_SHADER);
-      gl.shaderSource(vShader, vSource);
-      gl.compileShader(vShader);
-      if (!gl.getShaderParameter(vShader, gl.COMPILE_STATUS)) {
-        info = gl.getShaderInfoLog(vShader);
-        throw `Could not compile WebGL program. \n\n${info}`;
-      }
-      fSource = scripts.find(function(s) {
-        return s.type.match(/x-frag/i);
-      }).text;
-      fShader = gl.createShader(gl.FRAGMENT_SHADER);
-      gl.shaderSource(fShader, fSource);
-      gl.compileShader(fShader);
-      if (!gl.getShaderParameter(fShader, gl.COMPILE_STATUS)) {
-        info = gl.getShaderInfoLog(fShader);
-        throw `Could not compile WebGL program. \n\n${info}`;
-      }
-      program = gl.createProgram();
-      gl.attachShader(program, vShader);
-      gl.attachShader(program, fShader);
-      gl.linkProgram(program);
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        info = gl.getProgramInfoLog(program);
-        throw `Could not compile WebGL program. \n\n${info}`;
-      }
-      gl.bindBuffer(gl.ARRAY_BUFFER, gBuffer = gl.createBuffer());
-      gl.bufferData(gl.ARRAY_BUFFER, BYTELENGTH_GLBUFFER, gl.STATIC_DRAW);
-      gl.useProgram(program);
-      return 0;
-    };
-    createFrustrum = function(options) {
-      frustrum = Frustrum.fromOptions(options);
-      frustrum.setViewport(gl);
-      return frustrum.listenWindow();
-    };
-    this.createDisplay = function() {
-      return;
-      space = new Space();
-      initialProgram();
-      createFrustrum();
-      return requestIdleCallback(() => {
-        self.emit("contextrestored", gl);
-        return pipe.emit("contextrestored");
-      });
-    };
-    createCanvas = function() {
-      var canvas;
-      canvas = document.createElement("canvas");
-      canvas.width = RATIO_PIXEL * INNER_WIDTH;
-      canvas.height = RATIO_PIXEL * INNER_HEIGHT;
-      canvas.style.width = CSS.px(INNER_WIDTH);
-      canvas.style.height = CSS.px(INNER_HEIGHT);
-      canvas.style.inset = CSS.px(0);
-      canvas.style.position = "fixed";
-      return document.body.appendChild(canvas);
-    };
-    createWorker = function(name, blob) {
-      var c, classIndexes, i, j, len, worker;
-      worker = new Worker(blob, {name});
-      worker.onerror = worker.onmessageerror = console.error;
-      worker.onmessage = function({data}) {
-        workers.push(Object.assign(this, data));
-        return emit("threadstatechange", {
-          thread: this
-        });
-      };
-      Object.defineProperties(worker, {
-        state: {
-          get: Atomics.load.bind(Atomics, i32, name),
-          set: function(v) {
-            return error("worker state change request");
-          }
-        }
-      });
-      classIndexes = [];
-      for (i = j = 0, len = classes.length; j < len; i = ++j) {
-        c = classes[i];
-        classIndexes.push({
-          name: c.name,
-          index: i
-        });
-      }
-      return worker.postMessage({buffer, classIndexes});
-    };
-    createThreads = function() {
-      var blob, i, j, ref, thread;
-      blob = createBlobURL();
-      for (i = j = 0, ref = THREADS_COUNT; (0 <= ref ? j < ref : j > ref); i = 0 <= ref ? ++j : --j) {
-        thread = createWorker(i + THREADS_BEGIN, blob);
-      }
-      return true;
-    };
-    createBlobURL = function() {
-      var blobURL, code;
-      code = `${self.init}`.split("return " + "0xdead;")[0];
-      blobURL = URL.createObjectURL(new Blob(["(", code, "}).call(self);"], {
-        type: "application/javascript"
-      }));
-      delete self.init;
-      return blobURL;
-    };
-    listenEvents = function() {
-      var prevent;
-      document.body.style.overscrollBehavior = "none";
-      document.body.style.height = CSS.vh(100);
-      document.body.style.margin = 0;
-      prevent = function(e) {
-        var j, len, w;
-        buffer = null;
-        try {
-          e.preventDefault();
-        } catch (error1) {}
-        for (j = 0, len = workers.length; j < len; j++) {
-          w = workers[j];
-          w.terminate();
-        }
-        return 1;
-      };
-      window.onerror = prevent;
-      window.onunload = prevent;
-      window.onpagehide = prevent;
-      window.onbeforeunload = prevent;
-      return window.onunhandledrejection = prevent;
-    };
-    createThreads();
-    return listenEvents();
+    var element, j, len, ref, script, userScript;
+    root = new Document;
+    ref = [...document.scripts];
+    for (j = 0, len = ref.length; j < len; j++) {
+      element = ref[j];
+      setParent(script = new DocumentScript, root);
+      setObject(script, element);
+      script.resolve();
+    }
+    userScript = findChild(root, UserScript, true);
+    return userScript.append();
   });
   self.addEventListener("bufferready", function() {
     //log "bufferready:", buffer
@@ -4966,4 +5153,370 @@ self.name = "window";
     }
   });
   return 0xdead;
+};
+
+(self.main = function() {
+  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, HEADER_INDEXCOUNT, HINDEX_BEGIN, HINDEX_BYTELENGTH, HINDEX_BYTEOFFSET, HINDEX_CLASSINDEX, HINDEX_LENGTH, HINDEX_PARENT, HINDEX_RESVBEGIN, INDEX_DATA_MALLOC, INDEX_POINTER_ALLOC, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, Pointer, Scene, Scope, Storage, TextPointer, cscope, dvw, f32, findChild, findChilds, getBegin, getByteLength, getByteOffset, getClassIndex, getLength, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, i32, iLE, isWindow, isWorker, malloc, palloc, sab, sc, setBegin, setByteLength, setByteOffset, setClassIndex, setLength, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, tp, u16, u32, u64, ui8;
+  isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
+  isWindow = !isWorker;
+  BUFFER_SIZE = 1e6 * 8;
+  HEADER_INDEXCOUNT = 16;
+  POINTER_MAXINDEX = 1e5;
+  ALIGN_BYTELENGTH = 8;
+  BYTES_PER_ELEMENT = 4;
+  MALLOC_BYTEOFFSET = HEADER_INDEXCOUNT * BYTES_PER_ELEMENT * POINTER_MAXINDEX;
+  INDEX_DATA_MALLOC = 1;
+  INDEX_POINTER_ALLOC = 0;
+  HINDEX_BYTEOFFSET = 0;
+  HINDEX_BYTELENGTH = 1;
+  HINDEX_LENGTH = 2;
+  HINDEX_BEGIN = 3;
+  HINDEX_PARENT = 4;
+  HINDEX_CLASSINDEX = 5;
+  HINDEX_RESVBEGIN = 8;
+  if (isWindow) {
+    sab = new SharedArrayBuffer(BUFFER_SIZE);
+  }
+  u64 = new BigUint64Array(sab);
+  u32 = new Uint32Array(sab);
+  i32 = new Int32Array(sab);
+  f32 = new Float32Array(sab);
+  ui8 = new Uint8Array(sab);
+  u16 = new Uint16Array(sab);
+  dvw = new DataView(sab);
+  iLE = new Uint8Array(Uint16Array.of(1).buffer)[0];
+  if (isWindow) {
+    Atomics.or(u32, INDEX_DATA_MALLOC, MALLOC_BYTEOFFSET);
+    Atomics.or(u32, INDEX_POINTER_ALLOC, HEADER_INDEXCOUNT);
+  }
+  malloc = Atomics.add.bind(Atomics, u32, INDEX_DATA_MALLOC);
+  palloc = Atomics.add.bind(Atomics, u32, INDEX_POINTER_ALLOC, HEADER_INDEXCOUNT);
+  console.log(u32);
+  Storage = class Storage extends Array {
+    constructor() {
+      super().push();
+    }
+
+    store(Class) {
+      var i;
+      if (-1 === (i = this.indexOf(Class))) {
+        i += this.push(Class);
+      }
+      return i;
+    }
+
+  };
+  cscope = new (Scope = class Scope extends Storage {
+    global(Class) {
+      var i;
+      i = this.store(Class);
+      return self[Class] = function(argv) {
+        var ptr;
+        ptr = findChild(null, Class, true);
+        if (argv === self) {
+          return new Class();
+        }
+        return new Class();
+      };
+    }
+
+  });
+  findChild = function(ptri, Class, create = false) {
+    var clsi, ptrj;
+    ptrj = u32[0];
+    if (!ptri) {
+      //? returns last created Class in Global
+      if (!(clsi = cscope.indexOf(Class))) {
+        throw /POINTER_OR_CLASS_REQUIRED/;
+      }
+      while (ptrj -= HEADER_INDEXCOUNT) {
+        if (u32[HINDEX_CLASSINDEX + ptrj] - clsi) {
+          continue;
+        }
+        return new Class(ptrj);
+      }
+    } else {
+      if (!(clsi = cscope.indexOf(Class))) {
+        //? returns last child of this
+        while (ptrj -= HEADER_INDEXCOUNT) {
+          if (u32[HINDEX_PARENT + ptrj] - ptri) {
+            continue;
+          }
+          return new Class(ptrj);
+        }
+      } else {
+        //? returns last Class child of this
+        while (ptrj -= HEADER_INDEXCOUNT) {
+          if (u32[HINDEX_PARENT + ptrj] - ptri) {
+            continue;
+          }
+          if (u32[HINDEX_CLASSINDEX + ptrj] - clsi) {
+            continue;
+          }
+          return new Class(ptrj);
+        }
+      }
+    }
+    if (create) {
+      //? not found and create requested
+      return setChildren(ptri, new Class);
+    }
+    return null;
+  };
+  findChilds = function(ptri, Class, recursive = false, construct = true, childs = []) {
+    var clsi, i, index, list, ptrj;
+    if (recursive && !Class) {
+      throw /CLASS_REQUIRED/;
+    }
+    ptrj = u32[index = 0];
+    list = new Array;
+    if (!ptri) {
+      //? returns all created Class? in Global
+      if (-1 === (clsi = cscope.indexOf(Class))) {
+        //? returns all allocated pointers
+        while (ptrj -= HEADER_INDEXCOUNT) {
+          list[index++] = ptrj;
+        }
+      } else {
+        //? all allocated Classes in Global
+        while (ptrj -= HEADER_INDEXCOUNT) {
+          if (u32[HINDEX_CLASSINDEX + ptrj] - clsi) {
+            continue;
+          }
+          list[index++] = ptrj;
+        }
+      }
+    } else {
+      //? return childs of given pointer
+      if (-1 === (clsi = cscope.indexOf(Class))) {
+        //? returns all allocated pointers
+        while (ptrj -= HEADER_INDEXCOUNT) {
+          if (u32[HINDEX_PARENT + ptrj] - ptri) {
+            continue;
+          }
+          list[index++] = ptrj;
+        }
+      } else {
+        //? all allocated Classes in Global
+        while (ptrj -= HEADER_INDEXCOUNT) {
+          if (u32[HINDEX_PARENT + ptrj] - ptri) {
+            continue;
+          }
+          if (u32[HINDEX_CLASSINDEX + ptrj] - clsi) {
+            continue;
+          }
+          list[index++] = ptrj;
+        }
+      }
+    }
+    if (recursive && (i = index)) {
+      while (i--) {
+        findChilds(list[i], Class, true, construct, childs);
+      }
+    }
+    if (construct) {
+      if (!Class) {
+        while (index--) {
+          Class = cscope[getClassIndex(list[index])];
+          childs.push(new Class(list[index]));
+        }
+      } else {
+        while (index--) {
+          childs.push(new Class(list[index]));
+        }
+      }
+    } else {
+      while (index--) {
+        childs.push(list[index]);
+      }
+    }
+    return childs;
+  };
+  setResvUint32 = function(ptri, index, value) {
+    index += ptri + HINDEX_RESVBEGIN;
+    return u32[index] = value;
+  };
+  getResvUint32 = function(ptri, index) {
+    index += ptri + HINDEX_RESVBEGIN;
+    return u32[index];
+  };
+  setResvUint16 = function(ptri, index, value) {
+    index += (ptri + HINDEX_RESVBEGIN) * 2;
+    return u16[index] = value;
+  };
+  getResvUint16 = function(ptri, index) {
+    index += (ptri + HINDEX_RESVBEGIN) * 2;
+    return u16[index];
+  };
+  setResvUint8 = function(ptri, index, value) {
+    index += (ptri + HINDEX_RESVBEGIN) * 4;
+    return ui8[index] = value;
+  };
+  getResvUint8 = function(ptri, index) {
+    index += (ptri + HINDEX_RESVBEGIN) * 4;
+    return ui8[index];
+  };
+  setResvUint64 = function(ptri, index, value) {
+    index += (ptri + HINDEX_RESVBEGIN) / 2;
+    return Number(u64[index] = BigInt(value));
+  };
+  getResvUint64 = function(ptri, index) {
+    index += (ptri + HINDEX_RESVBEGIN) / 2;
+    return Number(u64[index]);
+  };
+  setByteLength = function(ptri, value) {
+    return u32[ptri + HINDEX_BYTELENGTH] = value;
+  };
+  getByteLength = function(ptri) {
+    return u32[ptri + HINDEX_BYTELENGTH];
+  };
+  setByteOffset = function(ptri, value) {
+    return u32[ptri] = value;
+  };
+  getByteOffset = function(ptri) {
+    return u32[ptri];
+  };
+  setLength = function(ptri, value) {
+    return u32[ptri + HINDEX_LENGTH] = value;
+  };
+  getLength = function(ptri) {
+    return u32[ptri + HINDEX_LENGTH];
+  };
+  setBegin = function(ptri, value) {
+    return u32[ptri + HINDEX_BEGIN] = value;
+  };
+  getBegin = function(ptri) {
+    return u32[ptri + HINDEX_BEGIN];
+  };
+  setParent = function(ptri, ptrj) {
+    return u32[ptri + HINDEX_PARENT] = ptrj;
+  };
+  getParent = function(ptri) {
+    var clsi, ptrj;
+    ptrj = u32[ptri + HINDEX_PARENT];
+    if (!ptrj) {
+      return null;
+    }
+    clsi = u32[ptrj + HINDEX_CLASSINDEX];
+    return new cscope[clsi](ptrj);
+  };
+  setClassIndex = function(ptri, clsi) {
+    return u32[ptri + HINDEX_CLASSINDEX] = clsi || cscope.indexOf(ptri.constructor);
+  };
+  getClassIndex = function(ptri) {
+    return u32[ptri + HINDEX_CLASSINDEX];
+  };
+  cscope.store(Pointer = (function() {
+    class Pointer extends Number {
+      constructor(ptri) {
+        var clsi;
+        super(ptri || (clsi = palloc()));
+        if (clsi) {
+          setClassIndex(this);
+        }
+      }
+
+      store(object, resvU32i = 0) {
+        return setResvUint32(this, resvU32i, this.storage.store(object));
+      }
+
+      object(resvU32i = 0) {
+        return this.storage[getResvUint32(this, resvU32i)];
+      }
+
+      add(ptri) {
+        return setParent(ptri, this);
+      }
+
+      append(ptri) {
+        setParent(ptri, this);
+        return ptri;
+      }
+
+      set(value) {
+        var alignBytes, begin, byteLength, byteOffset;
+        if (!(begin = getBegin(this))) {
+          if (!(byteLength = this.constructor.byteLength)) {
+            byteLength = value.length * BYTES_PER_ELEMENT;
+          }
+          setByteLength(this, byteLength);
+          setLength(this, value.length);
+          if (alignBytes = byteLength % ALIGN_BYTELENGTH) {
+            malloc(alignBytes);
+          }
+          byteOffset = setByteOffset(this, malloc(byteLength));
+          begin = setBegin(this, byteOffset / 4);
+        }
+        if (!this.TypedArray) {
+          f32.set(value, begin);
+        } else {
+          switch (this.TypedArray) {
+            case Uint8Array:
+              ui8.set(value, begin * 4);
+              break;
+            case Uint32Array:
+              u32.set(value, begin);
+              break;
+            case Uint16Array:
+              u16.set(value, begin * 2);
+              break;
+            case Float32Array:
+              f32.set(value, begin);
+              break;
+            case BigUint64Array:
+              u64.set(value, begin / 2);
+          }
+        }
+        return this;
+      }
+
+    };
+
+    Pointer.byteLength = 0;
+
+    Pointer.prototype.storage = new Storage;
+
+    Object.defineProperties(Pointer.prototype, {
+      children: {
+        get: function() {
+          return findChilds(this);
+        }
+      },
+      parent: {
+        get: function() {
+          return getParent(this);
+        }
+      }
+    });
+
+    Object.defineProperties(Pointer.prototype, {
+      ["{{Pointer}}"]: {
+        get: function() {
+          return u32.subarray(this, this + HEADER_INDEXCOUNT);
+        }
+      }
+    });
+
+    return Pointer;
+
+  }).call(this));
+  cscope.global(Scene = (function() {
+    class Scene extends Pointer {};
+
+    Scene.prototype.name = "scene";
+
+    return Scene;
+
+  }).call(this));
+  cscope.store(TextPointer = (function() {
+    class TextPointer extends Pointer {};
+
+    TextPointer.prototype.name = "text";
+
+    return TextPointer;
+
+  }).call(this));
+  console.log(sc = new Scene());
+  console.log(tp = new TextPointer());
+  return console.log(sc.append(tp));
 })();
