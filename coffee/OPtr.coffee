@@ -1,6 +1,8 @@
 self.name = "window"
 root = null
 
+log = console.log
+warn = console.warn
 
 self.init   = ->
     
@@ -4291,6 +4293,13 @@ do  self.main = ->
     palloc = Atomics.add.bind Atomics, u32, INDEX_POINTER_ALLOC, HEADER_INDEXCOUNT
     malign = -> malloc b if b = Atomics.load(u32, INDEX_DATA_MALLOC) % ALIGN_BYTELENGTH
 
+    Object.defineProperties Object, 
+        deleteProperty : value : ( target, prop ) ->
+            Reflect.defineProperty target, prop, value:0
+            Reflect.deleteProperty target, prop; target;
+
+        deleteProperties : value : ( target, ...props ) ->
+            @deleteProperty target, p for p in props; target
 
     class Storage extends Array
 
@@ -4305,11 +4314,19 @@ do  self.main = ->
 
         global      : ( Class ) ->
             i = @store Class
-            self[ Class ] = ( argv ) ->
-                ptr = findChild null, Class, on
-                if  argv is self
-                    return new Class()
-                return new Class()
+
+            self[ Class.name ] = ( Class, argv ) ->
+
+                if !argv or !isNaN argv
+                    return new Class argv
+                
+                object = new Class
+                object . init argv
+
+            .bind null, Class
+
+        findByName  : ( name ) ->
+            @find (c) -> c::name is name
 
 
     findChild       = ( ptri, Class, create = off ) ->
@@ -4452,10 +4469,10 @@ do  self.main = ->
         u32[ ptri + HINDEX_BYTELENGTH ]
 
     setByteOffset   = ( ptri, value ) ->
-        u32[ ptri ] = value
+        u32[ ptri + HINDEX_BYTEOFFSET ] = value
 
     getByteOffset   = ( ptri ) ->
-        u32[ ptri ]
+        u32[ ptri + HINDEX_BYTEOFFSET ]
 
     setLength       = ( ptri, value ) ->
         u32[ ptri + HINDEX_LENGTH ] = value
@@ -4496,6 +4513,19 @@ do  self.main = ->
             super ptri or palloc()
             setClassIndex this if !ptri
 
+        toString    : ->
+            console.error "tostring", this
+            super()
+
+        on          : ( event, handler ) -> 
+            @append ptr = new EventHandler()
+            ptr.set handler, event
+            this
+
+        once        : ( event, handler ) -> this
+
+        emit        : ( event, handler ) -> this
+
         store       : ( object, resvU32i ) ->
             setResvUint32 this, resvU32i, @storage.store object
 
@@ -4503,7 +4533,23 @@ do  self.main = ->
             @storage[ getResvUint32 this, resvU32i ]
 
         append      : ( ptri ) ->
-            setParent ptri, this; ptri
+            setParent ptri, this ; ptri
+
+        init        : ( childs = {} ) ->
+            prototype = @constructor::
+
+            for name, value of childs
+
+                if  Object.hasOwn prototype, name
+                    @[ name ] = value
+                    continue
+                
+                unless Class = cscope.findByName name
+                    throw /NOT_REGISTERED/ + name
+
+                @append new Class().set value
+
+            this
 
         add         : ( ptri ) ->
             setParent ptri, this
@@ -4525,6 +4571,7 @@ do  self.main = ->
                 byteOffset = setByteOffset this, malloc byteLength
                 begin = setBegin this, byteOffset / 4 
             
+
             if !@TypedArray
                 f32.set arrayLike, begin
 
@@ -4549,28 +4596,98 @@ do  self.main = ->
                 u32.subarray this, this + HEADER_INDEXCOUNT
 
 
+
     cscope.global class Scene extends Pointer
 
         name : "scene"
 
+
     cscope.store class TextPointer extends Pointer
 
-        TypedArray : Uint8Array
+        TypedArray      : Uint8Array
 
-        name : "text"
+        name            : "text"
+
+        encoder         : new TextEncoder
+
+        decoder         : new TextDecoder
+
+        decode          : ->
+            @decoder.decode new Uint8Array @subarray
+
+        encode          : ( text = "" ) ->
+            @encoder.encode "#{text}"
+
+
+    cscope.store class EventHandler extends TextPointer
+
+        set             : ( @handler, event = "on.." ) ->
+            super @encode event
+
+        Object.defineProperties this::,
+
+            handler     : 
+                get     : -> @object 0
+                set     : -> @store arguments[0], 0
+
+            event       :
+                get     : -> @decode()
+
+    cscope.global class Color extends Pointer
+
+        @byteLength : 4 * BYTES_PER_ELEMENT
+    
+        name : "color"
+
+    cscope.global class Position extends Pointer
+
+        @byteLength : 4 * BYTES_PER_ELEMENT
+    
+        name : "position"
+
+    cscope.global class Rotation extends Pointer
+
+        @byteLength : 4 * BYTES_PER_ELEMENT
+    
+        name        : "rotation"
+
+    cscope.global class Scale extends Pointer
+
+        @byteLength : 4 * BYTES_PER_ELEMENT
+    
+        name        : "scale"
+
+    cscope.store class Location extends Pointer
+
+        @byteLength : 4 * BYTES_PER_ELEMENT
+    
+        name        : "location"
+
+    cscope.store  class ClearColor extends Color
+
+        name        : "clearColor"
+
+    cscope.global class Shape extends Pointer
+
+        TypedArray  : Float32Array
+
+        name        : "shape"
+
+        Object.defineProperties this::,
+            vertices : 
+                get : -> @subarray
+                set : -> @set arguments[0]
+
 
     for Class in cscope
-        continue unless TypedArray = Class::TypedArray
-
-        Object.defineProperty Class::, "subarray", get : ->
-            new TypedArray sab, getByteOffset(this), getLength(this)
-
-
-    console.log sc = new Scene()
-    console.log sc.set [1, 2]
-    console.log tp = new TextPointer()
-    tp.set [1,2,4]
-    console.log sc.append tp
+        continue unless Class::TypedArray
+        try Object.defineProperty Class::, "subarray", get : ->
+            new this.TypedArray sab, getByteOffset(this), getLength(this)
 
 
+    addEventListener "DOMContentLoaded", ->
+        script = document.body.appendChild( document.createElement "script"
+        ).text = document.querySelector(("[src*='ptr']:not(:empty)")).text
+
+        
     
