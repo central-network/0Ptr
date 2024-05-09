@@ -4275,13 +4275,22 @@ do  self.main = ->
     PTR_CLASSI          = 5 * 4
 
     PTR_ACTIVE          = 6 * 4 + 0
-    PTR_INITED          = 6 * 4 + 1
+    PTR_INITIAL         = 6 * 4 + 1
+    PTR_EVENTID         = 6 * 4 + 2
+    PTR_EVENARGC        = 6 * 4 + 3
     
-    PTR_LINKEDI         = 6 * 4 + 2
-
+    PTR_LINKEDI         = 7 * 4
     PTR_RESVBEGIN       = 8 * 4
 
     PTRKEY              = "{{Pointer}}"
+
+    EVENTSID            = 0
+    EVENTS              =
+        append          : EVENTID_APPEND = ++EVENTSID
+        add             : EVENTID_ADD = ++EVENTSID
+        init            : EVENTID_INIT = ++EVENTSID
+        render          : EVENTID_RENDER = ++EVENTSID
+
 
     sab = new SharedArrayBuffer BUFFER_SIZE if isWindow
     u64 = new BigUint64Array sab
@@ -4311,8 +4320,7 @@ do  self.main = ->
 
     class Storage extends Array
 
-        constructor : ->
-            super().push()
+        constructor : -> super Object
 
         store       : ( object ) ->
             if -1 is i = @indexOf object
@@ -4533,6 +4541,24 @@ do  self.main = ->
     getActive        = ( ptri ) ->
         dvw.getUint8 ptri + PTR_ACTIVE
 
+    setEventId       = ( ptri, eventId ) ->
+        dvw.setUint8 ptri + PTR_EVENTID, eventId ; eventId
+
+    getEventId       = ( ptri ) ->
+        dvw.getUint8 ptri + PTR_EVENTID
+
+    setEventArgc     = ( ptri, argc ) ->
+        dvw.setUint8 ptri + PTR_EVENARGC, argc ; argc
+
+    getEventArgc     = ( ptri ) ->
+        dvw.getUint8 ptri + PTR_EVENARGC
+
+    setInited        = ( ptri, state = 1 ) ->
+        dvw.setUint8 ptri + PTR_INITIAL, state ; ptri
+
+    getInited        = ( ptri ) ->
+        dvw.getUint8 ptri + PTR_INITIAL
+
     setLinked        = ( ptri, stri ) ->
         dvw.setUint16 ptri + PTR_LINKEDI, stri ; stri
 
@@ -4557,21 +4583,31 @@ do  self.main = ->
     getClassIndex   = ( ptri ) ->
         dvw.getUint32 ptri + PTR_CLASSI, iLE
 
+    argcFromFuncDef = ( func ) ->
+        func.toString()
+            .replace( /\s+/, "" )
+            .split(/\)|\(/, 2)
+            .pop()
+            .split( /,/ )
+            .filter(Boolean)
+            .length 
+
     mallocExternal  = ( length, clsi, ptri ) ->
 
         if  -1 is clsi ||= cscope.indexOf ptri
             throw /CLS_OR_PTR_REQUIRED/ 
 
-        constructor = cscope[ clsi ].byteLength
-        TypedArray  = cscope[ clsi ]::TypedArray
-        
+        constructor = cscope[ clsi ]
+        TypedArray  = constructor::TypedArray
+        length      = Math.max length, constructor.length
+
         if !byteLength = constructor.byteLength
 
             byPElement = if !TypedArray
                 BYTES_PER_ELEMENT
             else TypedArray.BYTES_PER_ELEMENT
 
-            byteLength = length * byPElement
+            byteLength = byPElement * length
 
         if !ptri and ptri = palloc()
             setClassIndex ptri, clsi
@@ -4592,7 +4628,7 @@ do  self.main = ->
     
         @byteLength     : 0
 
-        storage         : new Storage
+        storage         : new Storage()
 
         isPointer       : yes
 
@@ -4601,35 +4637,69 @@ do  self.main = ->
         constructor     : ( ptri = 0 ) ->
             super ptri or palloc()
             setClassIndex this if !ptri
-            warn "init", this
+            
+            #warn "debug init:", this 
 
         toString        : ->
             console.error "tostring", this
             super()
 
-        on              : ( event, handler ) -> 
-            setParent ptr = new EventHandler(), this
-            ptr.set handler, event ; this
+        on              : ( event, handler ) ->
+            name = TextPointer::encoder.encode event
+            clsi = cscope.indexOf EventHandler
+            ptri = mallocExternal name.length, clsi
+
+            eventId = EVENTS[event] ||= ++EVENTSID
+            eventArgc = argcFromFuncDef handler
+            
+            setParent ptri, this
+            setEventId ptri, eventId
+            setEventArgc ptri, eventArgc
+            setClassIndex ptri, clsi
+            setLinked ptri, @store handler
+
+            ui8.set name, getByteOffset ptri
+
+            this
 
         once            : ( event, handler ) -> this
 
-        emit            : ( event, handler ) -> this
+        emit            : ( event, data ) ->
+            if !isNaN event then eventId = event
+            else eventId = EVENTS[ event ]
+
+            for ptri from @iterate EventHandler, off
+                continue if eventId - getEventId ptri
+                handler = @storage[ getLinked ptri ]
+
+                unless argc = getEventArgc ptri
+                    return handler.call this
+                
+                unless argc is 1
+                    return handler.call this, data
+
+                return handler.call this, data, new EventHandler ptri
+ 
+            this
 
         store           : ( object ) ->
             @storage.store object
 
         append          : ( ptri ) ->
-            setParent ptri, this ; ptri
+            this.add( ptri )
+                .emit EVENTID_APPEND, ptri ; ptri
 
         add             : ( ptri ) ->
-            setParent ptri, this ; this
+            setParent( ptri, this )
+                .emit EVENTID_ADD, ptri ; this
 
         init            : ( childs = {} ) ->
-            prototype = @constructor::
+            if  getInited this
+                throw [ /INITED_BEFORE/, this ]
 
             for key, value of childs
 
-                if  Object.hasOwn prototype, key
+                if  @hasOwnProperty key
                     this[ key ] = value
                     continue
                 
@@ -4640,7 +4710,10 @@ do  self.main = ->
                 setParent ptri, this
                 Pointer::set.call ptri, value                
 
-            this
+            setInited this, 1
+
+        hasOwnProperty  : ( key ) ->
+            Object.hasOwn Object.getPrototypeOf(this), key
 
         set             : ( arrayLike ) ->
             if !begin = getBegin(this) or getBegin mallocExternal(
@@ -4698,7 +4771,7 @@ do  self.main = ->
 
             handler     : 
                 get     : -> @storage[ getLinked this ]
-                set     : ( fn ) -> setLinked this, @store fn
+                set     : (f) -> setLinked this, @store f
 
             name        :
                 get     : EventHandler::decode
@@ -4706,8 +4779,10 @@ do  self.main = ->
     cscope.global class Color extends Pointer
 
         @byteLength     : 4 * BYTES_PER_ELEMENT
-    
+
         @key            : "color"
+
+        TypedArray      : Float32Array
 
     cscope.global class Position extends Pointer
 
@@ -4715,17 +4790,23 @@ do  self.main = ->
     
         @key            : "position"
 
+        TypedArray      : Float32Array
+
     cscope.global class Rotation extends Pointer
 
         @byteLength     : 4 * BYTES_PER_ELEMENT
     
         @key            : "rotation"
 
+        TypedArray      : Float32Array
+
     cscope.global class Scale extends Pointer
 
         @byteLength     : 4 * BYTES_PER_ELEMENT
     
         @key            : "scale"
+
+        TypedArray      : Float32Array
 
     cscope.store class Location extends Pointer
 
@@ -4736,6 +4817,8 @@ do  self.main = ->
     cscope.store class ClearColor extends Color
 
         @key            : "clearColor"
+
+        TypedArray      : Float32Array
 
     cscope.global class Shape extends Pointer
 
@@ -4754,6 +4837,15 @@ do  self.main = ->
         @key            : "scene"
 
         @iterate        : Shape
+
+        init            : ->
+            super arguments...
+
+            log "selam özgür"
+
+
+
+            this
 
         Object.defineProperties Scene::,
 
@@ -4787,7 +4879,7 @@ do  self.main = ->
 
 
 
-    for Class in cscope
+    for Class, i in cscope
 
         if  Class::TypedArray
             Object.defineProperty Class::, "subarray", get : ->

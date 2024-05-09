@@ -4164,7 +4164,7 @@ self.init   = ->
 
  */
 (self.main = function() {
-  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, ClearColor, Color, EVENTHANDLER_HANDLER, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_INITED, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, cscope, desc, dvw, f32, findActiveChild, findChild, findChilds, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, i32, iLE, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, ref, ref1, sab, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, u16, u32, u64, ui8;
+  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, ClearColor, Color, EVENTHANDLER_HANDLER, EVENTID_ADD, EVENTID_APPEND, EVENTID_INIT, EVENTID_RENDER, EVENTS, EVENTSID, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENARGC, PTR_EVENTID, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, argcFromFuncDef, cscope, desc, dvw, f32, findActiveChild, findChild, findChilds, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventArgc, getEventId, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, i, i32, iLE, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, ref, ref1, sab, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventArgc, setEventId, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, u16, u32, u64, ui8;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -4183,10 +4183,19 @@ self.init   = ->
   PTR_PARENT = 4 * 4;
   PTR_CLASSI = 5 * 4;
   PTR_ACTIVE = 6 * 4 + 0;
-  PTR_INITED = 6 * 4 + 1;
-  PTR_LINKEDI = 6 * 4 + 2;
+  PTR_INITIAL = 6 * 4 + 1;
+  PTR_EVENTID = 6 * 4 + 2;
+  PTR_EVENARGC = 6 * 4 + 3;
+  PTR_LINKEDI = 7 * 4;
   PTR_RESVBEGIN = 8 * 4;
   PTRKEY = "{{Pointer}}";
+  EVENTSID = 0;
+  EVENTS = {
+    append: EVENTID_APPEND = ++EVENTSID,
+    add: EVENTID_ADD = ++EVENTSID,
+    init: EVENTID_INIT = ++EVENTSID,
+    render: EVENTID_RENDER = ++EVENTSID
+  };
   if (isWindow) {
     sab = new SharedArrayBuffer(BUFFER_SIZE);
   }
@@ -4233,7 +4242,7 @@ self.init   = ->
   });
   Storage = class Storage extends Array {
     constructor() {
-      super().push();
+      super(Object);
     }
 
     store(object) {
@@ -4495,6 +4504,27 @@ self.init   = ->
   getActive = function(ptri) {
     return dvw.getUint8(ptri + PTR_ACTIVE);
   };
+  setEventId = function(ptri, eventId) {
+    dvw.setUint8(ptri + PTR_EVENTID, eventId);
+    return eventId;
+  };
+  getEventId = function(ptri) {
+    return dvw.getUint8(ptri + PTR_EVENTID);
+  };
+  setEventArgc = function(ptri, argc) {
+    dvw.setUint8(ptri + PTR_EVENARGC, argc);
+    return argc;
+  };
+  getEventArgc = function(ptri) {
+    return dvw.getUint8(ptri + PTR_EVENARGC);
+  };
+  setInited = function(ptri, state = 1) {
+    dvw.setUint8(ptri + PTR_INITIAL, state);
+    return ptri;
+  };
+  getInited = function(ptri) {
+    return dvw.getUint8(ptri + PTR_INITIAL);
+  };
   setLinked = function(ptri, stri) {
     dvw.setUint16(ptri + PTR_LINKEDI, stri);
     return stri;
@@ -4526,16 +4556,20 @@ self.init   = ->
   getClassIndex = function(ptri) {
     return dvw.getUint32(ptri + PTR_CLASSI, iLE);
   };
+  argcFromFuncDef = function(func) {
+    return func.toString().replace(/\s+/, "").split(/\)|\(/, 2).pop().split(/,/).filter(Boolean).length;
+  };
   mallocExternal = function(length, clsi, ptri) {
     var TypedArray, byPElement, byteLength, byteOffset, constructor;
     if (-1 === (clsi || (clsi = cscope.indexOf(ptri)))) {
       throw /CLS_OR_PTR_REQUIRED/;
     }
-    constructor = cscope[clsi].byteLength;
-    TypedArray = cscope[clsi].prototype.TypedArray;
+    constructor = cscope[clsi];
+    TypedArray = constructor.prototype.TypedArray;
+    length = Math.max(length, constructor.length);
     if (!(byteLength = constructor.byteLength)) {
       byPElement = !TypedArray ? BYTES_PER_ELEMENT : TypedArray.BYTES_PER_ELEMENT;
-      byteLength = length * byPElement;
+      byteLength = byPElement * length;
     }
     if (!ptri && (ptri = palloc())) {
       setClassIndex(ptri, clsi);
@@ -4558,18 +4592,28 @@ self.init   = ->
         if (!ptri) {
           setClassIndex(this);
         }
-        warn("init", this);
       }
 
+      
+      //warn "debug init:", this 
       toString() {
         console.error("tostring", this);
         return super.toString();
       }
 
       on(event, handler) {
-        var ptr;
-        setParent(ptr = new EventHandler(), this);
-        ptr.set(handler, event);
+        var clsi, eventArgc, eventId, name, ptri;
+        name = TextPointer.prototype.encoder.encode(event);
+        clsi = cscope.indexOf(EventHandler);
+        ptri = mallocExternal(name.length, clsi);
+        eventId = EVENTS[event] || (EVENTS[event] = ++EVENTSID);
+        eventArgc = argcFromFuncDef(handler);
+        setParent(ptri, this);
+        setEventId(ptri, eventId);
+        setEventArgc(ptri, eventArgc);
+        setClassIndex(ptri, clsi);
+        setLinked(ptri, this.store(handler));
+        ui8.set(name, getByteOffset(ptri));
         return this;
       }
 
@@ -4577,7 +4621,27 @@ self.init   = ->
         return this;
       }
 
-      emit(event, handler) {
+      emit(event, data) {
+        var argc, eventId, handler, ptri, ref;
+        if (!isNaN(event)) {
+          eventId = event;
+        } else {
+          eventId = EVENTS[event];
+        }
+        ref = this.iterate(EventHandler, false);
+        for (ptri of ref) {
+          if (eventId - getEventId(ptri)) {
+            continue;
+          }
+          handler = this.storage[getLinked(ptri)];
+          if (!(argc = getEventArgc(ptri))) {
+            return handler.call(this);
+          }
+          if (argc !== 1) {
+            return handler.call(this, data);
+          }
+          return handler.call(this, data, new EventHandler(ptri));
+        }
         return this;
       }
 
@@ -4586,21 +4650,23 @@ self.init   = ->
       }
 
       append(ptri) {
-        setParent(ptri, this);
+        this.add(ptri).emit(EVENTID_APPEND, ptri);
         return ptri;
       }
 
       add(ptri) {
-        setParent(ptri, this);
+        setParent(ptri, this).emit(EVENTID_ADD, ptri);
         return this;
       }
 
       init(childs = {}) {
-        var clsi, key, prototype, ptri, value;
-        prototype = this.constructor.prototype;
+        var clsi, key, ptri, value;
+        if (getInited(this)) {
+          throw [/INITED_BEFORE/, this];
+        }
         for (key in childs) {
           value = childs[key];
-          if (Object.hasOwn(prototype, key)) {
+          if (this.hasOwnProperty(key)) {
             this[key] = value;
             continue;
           }
@@ -4611,7 +4677,11 @@ self.init   = ->
           setParent(ptri, this);
           Pointer.prototype.set.call(ptri, value);
         }
-        return this;
+        return setInited(this, 1);
+      }
+
+      hasOwnProperty(key) {
+        return Object.hasOwn(Object.getPrototypeOf(this), key);
       }
 
       set(arrayLike) {
@@ -4650,7 +4720,7 @@ self.init   = ->
 
     Pointer.byteLength = 0;
 
-    Pointer.prototype.storage = new Storage;
+    Pointer.prototype.storage = new Storage();
 
     Pointer.prototype.isPointer = true;
 
@@ -4710,8 +4780,8 @@ self.init   = ->
         get: function() {
           return this.storage[getLinked(this)];
         },
-        set: function(fn) {
-          return setLinked(this, this.store(fn));
+        set: function(f) {
+          return setLinked(this, this.store(f));
         }
       },
       name: {
@@ -4729,6 +4799,8 @@ self.init   = ->
 
     Color.key = "color";
 
+    Color.prototype.TypedArray = Float32Array;
+
     return Color;
 
   }).call(this));
@@ -4738,6 +4810,8 @@ self.init   = ->
     Position.byteLength = 4 * BYTES_PER_ELEMENT;
 
     Position.key = "position";
+
+    Position.prototype.TypedArray = Float32Array;
 
     return Position;
 
@@ -4749,6 +4823,8 @@ self.init   = ->
 
     Rotation.key = "rotation";
 
+    Rotation.prototype.TypedArray = Float32Array;
+
     return Rotation;
 
   }).call(this));
@@ -4758,6 +4834,8 @@ self.init   = ->
     Scale.byteLength = 4 * BYTES_PER_ELEMENT;
 
     Scale.key = "scale";
+
+    Scale.prototype.TypedArray = Float32Array;
 
     return Scale;
 
@@ -4776,6 +4854,8 @@ self.init   = ->
     class ClearColor extends Color {};
 
     ClearColor.key = "clearColor";
+
+    ClearColor.prototype.TypedArray = Float32Array;
 
     return ClearColor;
 
@@ -4799,7 +4879,14 @@ self.init   = ->
 
   }).call(this));
   cscope.global(Scene = (function() {
-    class Scene extends Pointer {};
+    class Scene extends Pointer {
+      init() {
+        super.init(...arguments);
+        log("selam özgür");
+        return this;
+      }
+
+    };
 
     Scene.key = "scene";
 
@@ -4850,8 +4937,8 @@ self.init   = ->
     return RenderingContext;
 
   }).call(this));
-  for (j = 0, len = cscope.length; j < len; j++) {
-    Class = cscope[j];
+  for (i = j = 0, len = cscope.length; j < len; i = ++j) {
+    Class = cscope[i];
     if (Class.prototype.TypedArray) {
       Object.defineProperty(Class.prototype, "subarray", {
         get: function() {

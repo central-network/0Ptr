@@ -94,6 +94,10 @@
             )
         })
 
+        scene.on( "append", function ( shape ) {
+            console.log( "appended", shape )
+        })
+
 
         const mesh1 = Shape({
             position : [ 0, -1, 0 ],
@@ -132,7 +136,7 @@
         for (let a of scene)
             console.warn(a)
 
-
+        self.scene = scene
 
         addEventListener( "contextrestored", function () {
             //render()
