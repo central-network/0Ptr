@@ -4278,9 +4278,13 @@ do  self.main = ->
     PTR_INITIAL         = 6 * 4 + 1
     PTR_EVENTID         = 6 * 4 + 2
     PTR_EVENARGC        = 6 * 4 + 3
+
+    PTR_EVENTRECSV      = 7 * 4 + 0
+    PTR_EVENTONCE       = 7 * 4 + 1
     
-    PTR_LINKEDI         = 7 * 4
-    PTR_RESVBEGIN       = 8 * 4
+    PTR_EVNTCALLS       = 8 * 4
+    PTR_LINKEDI         = 9 * 4
+    PTR_RESVBEGIN       = 10 * 4
 
     PTRKEY              = "{{Pointer}}"
 
@@ -4553,6 +4557,28 @@ do  self.main = ->
     getEventArgc     = ( ptri ) ->
         dvw.getUint8 ptri + PTR_EVENARGC
 
+    setEventRcsv     = ( ptri, recursive ) ->
+        dvw.setUint8 ptri + PTR_EVENTRECSV, recursive ; recursive
+
+    getEventRcsv     = ( ptri ) ->
+        dvw.getUint8 ptri + PTR_EVENTRECSV
+
+    setEventOnce     = ( ptri, once = 1 ) ->
+        dvw.setUint8 ptri + PTR_EVENTONCE, once ; ptri
+
+    getEventOnce     = ( ptri ) ->
+        dvw.getUint8 ptri + PTR_EVENTONCE
+
+    setEventCalls    = ( ptri, calls ) ->
+        dvw.setUint32 ptri + PTR_EVNTCALLS, calls, iLE ; calls
+
+    hitEventCalls    = ( ptri ) ->
+        calls = 1 + dvw.getUint32 ptri + PTR_EVNTCALLS, iLE
+        dvw.setUint32 ptri + PTR_EVNTCALLS, calls, iLE; ptri
+
+    getEventCalls    = ( ptri ) ->
+        dvw.getUint32 ptri + PTR_EVNTCALLS, iLE
+
     setInited        = ( ptri, state = 1 ) ->
         dvw.setUint8 ptri + PTR_INITIAL, state ; ptri
 
@@ -4644,7 +4670,7 @@ do  self.main = ->
             console.error "tostring", this
             super()
 
-        on              : ( event, handler ) ->
+        on              : ( event, handler, recursive = off ) ->
             name = TextPointer::encoder.encode event
             clsi = cscope.indexOf EventHandler
             ptri = mallocExternal name.length, clsi
@@ -4655,43 +4681,60 @@ do  self.main = ->
             setParent ptri, this
             setEventId ptri, eventId
             setEventArgc ptri, eventArgc
+            setEventRcsv ptri, recursive
             setClassIndex ptri, clsi
             setLinked ptri, @store handler
 
-            ui8.set name, getByteOffset ptri
+            ui8.set name, getByteOffset ptri ; ptri
 
-            this
+        once            : -> setEventOnce @on arguments...
 
-        once            : ( event, handler ) -> this
-
-        emit            : ( event, data ) ->
+        emit            : ( event, data, recursiver = off ) ->
             if !isNaN event then eventId = event
             else eventId = EVENTS[ event ]
+            ptre = recursiver or this
 
             for ptri from @iterate EventHandler, off
+
                 continue if eventId - getEventId ptri
-                handler = @storage[ getLinked ptri ]
-
-                unless argc = getEventArgc ptri
-                    return handler.call this
                 
-                unless argc is 1
-                    return handler.call this, data
+                if  getEventOnce( ptri ) and getEventCalls( ptri )
+                    break
 
-                return handler.call this, data, new EventHandler ptri
- 
+                if  recursiver and !getEventRcsv ptri
+                    break
+
+                handler = @storage[ getLinked ptri ]
+                hitEventCalls ptri
+                
+                unless argc = getEventArgc ptri
+                    handler.call ptre
+
+                else if argc is 1
+                    handler.call ptre, data
+
+                else
+                    handler.call ptre, data, new EventHandler( ptri ), this
+
+                break 
+
+            if  parent = getParent this
+                parent.emit event, data, recursiver || ptre
+
             this
 
         store           : ( object ) ->
             @storage.store object
 
         append          : ( ptri ) ->
-            this.add( ptri )
-                .emit EVENTID_APPEND, ptri ; ptri
+            setParent( ptri, this )
+                .emit EVENTID_APPEND, ptri
+            ptri
 
         add             : ( ptri ) ->
             setParent( ptri, this )
-                .emit EVENTID_ADD, ptri ; this
+                .emit EVENTID_ADD, ptri
+            this
 
         init            : ( childs = {} ) ->
             if  getInited this
@@ -4742,6 +4785,8 @@ do  self.main = ->
             parent      : get : -> getParent this
 
             children    : get : -> findChilds this
+
+            eventCalls  : get : -> getEventCalls this
                           
 
     cscope.store class TextPointer extends Pointer
@@ -4760,7 +4805,6 @@ do  self.main = ->
         encode          : ( text = "" ) ->
             @encoder.encode "#{text}"
 
-    EVENTHANDLER_HANDLER = 0
 
     cscope.store class EventHandler extends TextPointer
 

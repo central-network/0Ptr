@@ -4164,7 +4164,7 @@ self.init   = ->
 
  */
 (self.main = function() {
-  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, ClearColor, Color, EVENTHANDLER_HANDLER, EVENTID_ADD, EVENTID_APPEND, EVENTID_INIT, EVENTID_RENDER, EVENTS, EVENTSID, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENARGC, PTR_EVENTID, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, argcFromFuncDef, cscope, desc, dvw, f32, findActiveChild, findChild, findChilds, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventArgc, getEventId, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, i, i32, iLE, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, ref, ref1, sab, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventArgc, setEventId, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, u16, u32, u64, ui8;
+  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, ClearColor, Color, EVENTID_ADD, EVENTID_APPEND, EVENTID_INIT, EVENTID_RENDER, EVENTS, EVENTSID, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENARGC, PTR_EVENTID, PTR_EVENTONCE, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, argcFromFuncDef, cscope, desc, dvw, f32, findActiveChild, findChild, findChilds, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventArgc, getEventCalls, getEventId, getEventOnce, getEventRcsv, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, hitEventCalls, i, i32, iLE, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, ref, ref1, sab, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventArgc, setEventCalls, setEventId, setEventOnce, setEventRcsv, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, u16, u32, u64, ui8;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -4186,8 +4186,11 @@ self.init   = ->
   PTR_INITIAL = 6 * 4 + 1;
   PTR_EVENTID = 6 * 4 + 2;
   PTR_EVENARGC = 6 * 4 + 3;
-  PTR_LINKEDI = 7 * 4;
-  PTR_RESVBEGIN = 8 * 4;
+  PTR_EVENTRECSV = 7 * 4 + 0;
+  PTR_EVENTONCE = 7 * 4 + 1;
+  PTR_EVNTCALLS = 8 * 4;
+  PTR_LINKEDI = 9 * 4;
+  PTR_RESVBEGIN = 10 * 4;
   PTRKEY = "{{Pointer}}";
   EVENTSID = 0;
   EVENTS = {
@@ -4518,6 +4521,33 @@ self.init   = ->
   getEventArgc = function(ptri) {
     return dvw.getUint8(ptri + PTR_EVENARGC);
   };
+  setEventRcsv = function(ptri, recursive) {
+    dvw.setUint8(ptri + PTR_EVENTRECSV, recursive);
+    return recursive;
+  };
+  getEventRcsv = function(ptri) {
+    return dvw.getUint8(ptri + PTR_EVENTRECSV);
+  };
+  setEventOnce = function(ptri, once = 1) {
+    dvw.setUint8(ptri + PTR_EVENTONCE, once);
+    return ptri;
+  };
+  getEventOnce = function(ptri) {
+    return dvw.getUint8(ptri + PTR_EVENTONCE);
+  };
+  setEventCalls = function(ptri, calls) {
+    dvw.setUint32(ptri + PTR_EVNTCALLS, calls, iLE);
+    return calls;
+  };
+  hitEventCalls = function(ptri) {
+    var calls;
+    calls = 1 + dvw.getUint32(ptri + PTR_EVNTCALLS, iLE);
+    dvw.setUint32(ptri + PTR_EVNTCALLS, calls, iLE);
+    return ptri;
+  };
+  getEventCalls = function(ptri) {
+    return dvw.getUint32(ptri + PTR_EVNTCALLS, iLE);
+  };
   setInited = function(ptri, state = 1) {
     dvw.setUint8(ptri + PTR_INITIAL, state);
     return ptri;
@@ -4601,7 +4631,7 @@ self.init   = ->
         return super.toString();
       }
 
-      on(event, handler) {
+      on(event, handler, recursive = false) {
         var clsi, eventArgc, eventId, name, ptri;
         name = TextPointer.prototype.encoder.encode(event);
         clsi = cscope.indexOf(EventHandler);
@@ -4611,36 +4641,49 @@ self.init   = ->
         setParent(ptri, this);
         setEventId(ptri, eventId);
         setEventArgc(ptri, eventArgc);
+        setEventRcsv(ptri, recursive);
         setClassIndex(ptri, clsi);
         setLinked(ptri, this.store(handler));
         ui8.set(name, getByteOffset(ptri));
-        return this;
+        return ptri;
       }
 
-      once(event, handler) {
-        return this;
+      once() {
+        return setEventOnce(this.on(...arguments));
       }
 
-      emit(event, data) {
-        var argc, eventId, handler, ptri, ref;
+      emit(event, data, recursiver = false) {
+        var argc, eventId, handler, parent, ptre, ptri, ref;
         if (!isNaN(event)) {
           eventId = event;
         } else {
           eventId = EVENTS[event];
         }
+        ptre = recursiver || this;
         ref = this.iterate(EventHandler, false);
         for (ptri of ref) {
           if (eventId - getEventId(ptri)) {
             continue;
           }
+          if (getEventOnce(ptri) && getEventCalls(ptri)) {
+            break;
+          }
+          if (recursiver && !getEventRcsv(ptri)) {
+            break;
+          }
           handler = this.storage[getLinked(ptri)];
+          hitEventCalls(ptri);
           if (!(argc = getEventArgc(ptri))) {
-            return handler.call(this);
+            handler.call(ptre);
+          } else if (argc === 1) {
+            handler.call(ptre, data);
+          } else {
+            handler.call(ptre, data, new EventHandler(ptri), this);
           }
-          if (argc !== 1) {
-            return handler.call(this, data);
-          }
-          return handler.call(this, data, new EventHandler(ptri));
+          break;
+        }
+        if (parent = getParent(this)) {
+          parent.emit(event, data, recursiver || ptre);
         }
         return this;
       }
@@ -4650,7 +4693,7 @@ self.init   = ->
       }
 
       append(ptri) {
-        this.add(ptri).emit(EVENTID_APPEND, ptri);
+        setParent(ptri, this).emit(EVENTID_APPEND, ptri);
         return ptri;
       }
 
@@ -4736,6 +4779,11 @@ self.init   = ->
         get: function() {
           return findChilds(this);
         }
+      },
+      eventCalls: {
+        get: function() {
+          return getEventCalls(this);
+        }
       }
     });
 
@@ -4765,7 +4813,6 @@ self.init   = ->
     return TextPointer;
 
   }).call(this));
-  EVENTHANDLER_HANDLER = 0;
   cscope.store(EventHandler = (function() {
     class EventHandler extends TextPointer {
       set(handler1, event = "on..") {
