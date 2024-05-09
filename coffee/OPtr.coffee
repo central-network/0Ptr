@@ -4,6 +4,7 @@ root = null
 log = console.log
 warn = console.warn
 
+###
 self.init   = ->
     
     isWindow = !DedicatedWorkerGlobalScope?
@@ -1821,7 +1822,7 @@ self.init   = ->
                 get : -> classes[ getLinkedPtri this ]
                 set : -> setLinkedPtri this, arguments[0].classIndex
 
-            name            :
+            @key            :
                 get : -> classes[ getLinkedPtri this ]::name
 
 
@@ -2177,7 +2178,7 @@ self.init   = ->
                 get : EventHandler::getCallCount
                 set : EventHandler::setCallCount
 
-            name            :
+            @key            :
                 get : EventHandler::toString
 
     classes.register class EventEmitter     extends Pointer
@@ -2313,8 +2314,10 @@ self.init   = ->
 
             # Copy output buffer to staging buffer
             execEncoder.copyBufferToBuffer( output,
-                0, ### SRC offset ### staging, 
-                0, ### DST offset ### BUFFER_SIZE
+                0, # SRC offset  
+                staging, 
+                0, # DST offset  
+                BUFFER_SIZE
             )
 
             # End frame by passing array of command buffers to command queue for execution
@@ -2460,10 +2463,7 @@ self.init   = ->
                 get : -> @context.drawBuffer
                     
 
-
-
-
-    ###
+    
         class Shape         extends Pointer
 
             self.Shape      = this
@@ -3719,7 +3719,7 @@ self.init   = ->
 
         classes.register class Draw         extends Pointer
 
-            name            : "draw"
+            @key            : "draw"
 
             TypedArray      : Uint32Array
 
@@ -4172,7 +4172,7 @@ self.init   = ->
         createThreads()
         
         listenEvents()
-    ###
+    
 
     self.addEventListener "DOMContentLoaded"    , ->
 
@@ -4246,6 +4246,7 @@ self.init   = ->
 
     return 0xdead;
 
+###    
 do  self.main = ->
 
     isWorker            = DedicatedWorkerGlobalScope?
@@ -4273,6 +4274,11 @@ do  self.main = ->
     PTR_PARENT          = 4 * 4
     PTR_CLASSI          = 5 * 4
 
+    PTR_ACTIVE          = 6 * 4 + 0
+    PTR_INITED          = 6 * 4 + 1
+    
+    PTR_LINKEDI         = 6 * 4 + 2
+
     PTR_RESVBEGIN       = 8 * 4
 
     PTRKEY              = "{{Pointer}}"
@@ -4287,7 +4293,6 @@ do  self.main = ->
     dvw = new DataView sab
     iLE = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
 
-
     if  isWindow
         Atomics.or u32, INDEX_PTRI_MALLOC, HEADER_BYTELENGTH
         Atomics.or u32, INDEX_DATA_MALLOC, MALLOC_BYTEOFFSET
@@ -4297,11 +4302,11 @@ do  self.main = ->
     malign = -> malloc b if b = Atomics.load(u32, INDEX_DATA_MALLOC) % ALIGN_BYTELENGTH
 
     Object.defineProperties Object, 
-        deleteProperty : value : ( target, prop ) ->
+        deleteProperty      : value : ( target, prop ) ->
             Reflect.defineProperty target, prop, value:0
             Reflect.deleteProperty target, prop; target;
 
-        deleteProperties : value : ( target, ...props ) ->
+        deleteProperties    : value : ( target, ...props ) ->
             @deleteProperty target, p for p in props; target
 
     class Storage extends Array
@@ -4338,8 +4343,8 @@ do  self.main = ->
             if  ClassOrPtri.isPointer
                 return super ClassOrPtri.constructor
 
-            if  "string" is typeof name = ClassOrPtri
-                return @findIndex( (c) -> c::name is name ) or -1
+            if  "string" is typeof key = ClassOrPtri
+                return @findIndex( (c) -> c.key is key ) or -1
 
             if !isNaN ptri = ClassOrPtri
                 return dvw.getUint32( PTR_CLASSI + ptri, iLE ) or -1
@@ -4378,12 +4383,38 @@ do  self.main = ->
                     continue if clsi - dvw.getUint32 PTR_CLASSI + ptrj, iLE
                     return new Class ptrj
 
-        if  create
+
+        return unless create
+
         #? not found and create requested
+        setParent ptrj = new Class, ptri ; ptrj
 
-            return setChildren ptri, new Class
+    findActiveChild     = ( ptri, Class, activate = on, construct = on ) ->
+        ptrj = dvw.getUint32 0, iLE
+        clsi = cscope.indexOf Class
+        pasv = 0
 
-        null
+        while ptrj -= HEADER_BYTELENGTH
+            continue if ptri - dvw.getUint32 PTR_PARENT + ptrj, iLE
+            continue if clsi - dvw.getUint32 PTR_CLASSI + ptrj, iLE
+            unless dvw.getUint8 ptri + PTR_ACTIVE
+                pasv ||= ptrj ; continue
+            return new Class ptrj if construct
+            return ptrj
+
+        return 0 unless activate
+
+        if  pasv
+            dvw.setUint8  pasv + PTR_ACTIVE, 1
+            
+        else
+            pasv = palloc()
+            dvw.setUint8  pasv + PTR_ACTIVE, 1
+            dvw.setUint32 pasv + PTR_CLASSI, clsi, iLE
+            dvw.setUint32 pasv + PTR_PARENT, ptri, iLE 
+
+        return pasv unless construct
+        return new Class pasv
 
     findChilds      = ( ptri, Class, recursive = off, construct = on, childs = [] ) ->
         throw /CLASS_REQUIRED/ if recursive and !Class
@@ -4496,15 +4527,28 @@ do  self.main = ->
     getBegin        = ( ptri ) ->
         dvw.getUint32 ptri + PTR_BEGIN, iLE
 
-    setParent       = ( ptri, parent ) ->
-        dvw.setUint32 ptri + PTR_PARENT, parent, iLE ; ptri
+    setActive        = ( ptri, state = 1 ) ->
+        dvw.setUint8 ptri + PTR_ACTIVE, state ; ptri
 
-    getParent       = ( ptri ) ->
+    getActive        = ( ptri ) ->
+        dvw.getUint8 ptri + PTR_ACTIVE
+
+    setLinked        = ( ptri, stri ) ->
+        dvw.setUint16 ptri + PTR_LINKEDI, stri ; stri
+
+    getLinked        = ( ptri ) ->
+        dvw.getUint16 ptri + PTR_LINKEDI
+
+    setParent       = ( ptri, ptrj ) ->
+        dvw.setUint32 ptri + PTR_PARENT, ptrj, iLE ; ptrj
+
+    getParent       = ( ptri, construct = on ) ->
         ptrj = dvw.getUint32 ptri + PTR_PARENT, iLE
         return null unless ptrj
+        return ptrj unless construct
 
-        clsi = dvw.getUint32 ptri + PTR_CLASSI, iLE 
-        new cscope[ clsi ] ptrj if clsi
+        clsi = dvw.getUint32 ptrj + PTR_CLASSI, iLE 
+        new cscope[ clsi ] ptrj
 
     setClassIndex   = ( ptri, clsi ) ->
         clsi ||= cscope.indexOf ptri
@@ -4512,6 +4556,37 @@ do  self.main = ->
 
     getClassIndex   = ( ptri ) ->
         dvw.getUint32 ptri + PTR_CLASSI, iLE
+
+    mallocExternal  = ( length, clsi, ptri ) ->
+
+        if  -1 is clsi ||= cscope.indexOf ptri
+            throw /CLS_OR_PTR_REQUIRED/ 
+
+        constructor = cscope[ clsi ].byteLength
+        TypedArray  = cscope[ clsi ]::TypedArray
+        
+        if !byteLength = constructor.byteLength
+
+            byPElement = if !TypedArray
+                BYTES_PER_ELEMENT
+            else TypedArray.BYTES_PER_ELEMENT
+
+            byteLength = length * byPElement
+
+        if !ptri and ptri = palloc()
+            setClassIndex ptri, clsi
+
+        return ptri unless byteLength
+
+        setByteLength ptri, byteLength
+        setLength ptri, length
+        malign()
+
+        byteOffset = malloc byteLength
+        setByteOffset ptri, byteOffset
+        setBegin ptri, byteOffset / 4 
+
+        ptri
 
     cscope.store class Pointer extends Number
     
@@ -4526,71 +4601,58 @@ do  self.main = ->
         constructor     : ( ptri = 0 ) ->
             super ptri or palloc()
             setClassIndex this if !ptri
+            warn "init", this
 
         toString        : ->
             console.error "tostring", this
             super()
 
         on              : ( event, handler ) -> 
-            @append ptr = new EventHandler()
-            ptr.set handler, event
-            this
+            setParent ptr = new EventHandler(), this
+            ptr.set handler, event ; this
 
         once            : ( event, handler ) -> this
 
         emit            : ( event, handler ) -> this
 
-        store           : ( object, byteOffset = 0 ) ->
-            stri = @storage.store object
-            setResvUint32 byteOffset + this, stri
-
-        object          : ( byteOffset = 0 ) ->
-            stri = getResvUint32 byteOffset + this
-            @storage[ stri ] 
+        store           : ( object ) ->
+            @storage.store object
 
         append          : ( ptri ) ->
             setParent ptri, this ; ptri
 
+        add             : ( ptri ) ->
+            setParent ptri, this ; this
+
         init            : ( childs = {} ) ->
             prototype = @constructor::
 
-            for label , value of childs
+            for key, value of childs
 
-                if  Object.hasOwn prototype, label
-                    this[ label ] = value
+                if  Object.hasOwn prototype, key
+                    this[ key ] = value
                     continue
                 
-                if  -1 is clsi = cscope.indexOf label
-                    throw /NOT_REGISTERED/ + label
+                if  -1 is clsi = cscope.indexOf key
+                    throw /NOT_REGISTERED/ + key
 
-                @append new cscope[clsi]().set value
+                ptri = mallocExternal value.length, clsi
+                setParent ptri, this
+                Pointer::set.call ptri, value                
 
             this
 
-        add             : ( ptri ) ->
-            setParent ptri, this
-
         set             : ( arrayLike ) ->
-            if !begin = getBegin this
-
-                if !byteLength = @constructor.byteLength
-                    
-                    bpe = if !@TypedArray then BYTES_PER_ELEMENT
-                    else @TypedArray.BYTES_PER_ELEMENT
-
-                    byteLength = arrayLike.length * bpe
-
-                setByteLength this, byteLength
-                setLength this, arrayLike.length
-                malign()
-
-                setByteOffset this, byteOffset = malloc byteLength
-                setBegin this, begin = byteOffset / 4 
+            if !begin = getBegin(this) or getBegin mallocExternal(
+                    arrayLike.length, no, this
+                )
+                return this
 
             if !@TypedArray
                 f32.set arrayLike, begin
+                return this
 
-            else switch @TypedArray
+            switch @TypedArray
                 when     Uint8Array then ui8.set arrayLike, begin * 4
                 when    Uint32Array then u32.set arrayLike, begin
                 when    Uint16Array then u16.set arrayLike, begin * 2
@@ -4599,27 +4661,21 @@ do  self.main = ->
 
             this
 
-        Object.defineProperties this::,
+        iterate         : ( Class, construct = on ) ->
+            Iterator.from @[ Symbol.iterator ]( Class, construct )
+
+        Object.defineProperties Pointer::,
 
             parent      : get : -> getParent this
 
             children    : get : -> findChilds this
-
-        Object.defineProperties this::,
-
-            [ PTRKEY ]  : get : -> new Uint32Array sab, this, HEADER_LENGTH
-
-
-    cscope.global class Scene extends Pointer
-
-        name            : "scene"
-
+                          
 
     cscope.store class TextPointer extends Pointer
 
-        TypedArray      : Uint8Array
+        @key            : "text"
 
-        name            : "text"
+        TypedArray      : Uint8Array
 
         encoder         : new TextEncoder
 
@@ -4638,66 +4694,156 @@ do  self.main = ->
         set             : ( @handler, event = "on.." ) ->
             super @encode event
 
-        Object.defineProperties this::,
+        Object.defineProperties EventHandler::,
 
             handler     : 
-                get     : -> @object EVENTHANDLER_HANDLER
-                set     : ( fn ) -> @store fn, EVENTHANDLER_HANDLER
+                get     : -> @storage[ getLinked this ]
+                set     : ( fn ) -> setLinked this, @store fn
 
-            event       :
-                get     : -> @decode()
+            name        :
+                get     : EventHandler::decode
 
     cscope.global class Color extends Pointer
 
         @byteLength     : 4 * BYTES_PER_ELEMENT
     
-        name            : "color"
+        @key            : "color"
 
     cscope.global class Position extends Pointer
 
         @byteLength     : 4 * BYTES_PER_ELEMENT
     
-        name            : "position"
+        @key            : "position"
 
     cscope.global class Rotation extends Pointer
 
         @byteLength     : 4 * BYTES_PER_ELEMENT
     
-        name            : "rotation"
+        @key            : "rotation"
 
     cscope.global class Scale extends Pointer
 
         @byteLength     : 4 * BYTES_PER_ELEMENT
     
-        name            : "scale"
+        @key            : "scale"
 
     cscope.store class Location extends Pointer
 
         @byteLength     : 4 * BYTES_PER_ELEMENT
     
-        name            : "location"
+        @key            : "location"
 
     cscope.store class ClearColor extends Color
 
-        name            : "clearColor"
+        @key            : "clearColor"
 
     cscope.global class Shape extends Pointer
 
         TypedArray      : Float32Array
 
-        name            : "shape"
+        @iterate        : Shape
 
-        Object.defineProperties this::,
+        @key            : "shape"
+
+        Object.defineProperties Shape::,
             vertices    : 
-                get : -> @subarray
-                set : ( arrayLike ) -> @set arrayLike
+                set     : Shape::set
+
+    cscope.global class Scene extends Pointer
+
+        @key            : "scene"
+
+        @iterate        : Shape
+
+        Object.defineProperties Scene::,
+
+            activeContext : get : ->
+                findActiveChild this, RenderingContext
+
+            events        : get : ->
+                child for child from @iterate EventHandler
+
+    cscope.global class RenderingContext extends Pointer
+
+        @key            : "context"
+
+        type            : "webgl2"
+
+        create          : ->
+            document.body.appendChild(
+                document.createElement( "canvas" )
+            ).getContext( @type )
+
+        Object.defineProperties RenderingContext::,
+
+            WebGLObject : get : ->
+                @storage[ getLinked( this ) or setLinked(
+                    this, @store @create()
+                ) ]
+
+
+
+
+
+
 
     for Class in cscope
-        continue unless Class::TypedArray
-        try Object.defineProperty Class::, "subarray", get : ->
-            new this.TypedArray sab, getByteOffset(this), getLength(this)
+
+        if  Class::TypedArray
+            Object.defineProperty Class::, "subarray", get : ->
+                byteOffset  = dvw.getUint32 this + PTR_BYTEOFFSET, iLE
+                length      = dvw.getUint32 this + PTR_LENGTH, iLE
+                new this.TypedArray sab, byteOffset, length
+
+        for key, desc of Object.getOwnPropertyDescriptors Class::
+            continue unless desc.configurable
+            Object.defineProperty Class::, key, {
+                ...desc, enumerable: no, configurable: no
+            }
+            continue
+
+        for key, desc of Object.getOwnPropertyDescriptors Class
+            continue unless desc.configurable
+            if  key is "length" and Class.byteLength
+                Object.defineProperty Class, "length", value : Class.byteLength / (
+                    Class::TypedArray and Class::TypedArray.BYTES_PER_ELEMENT or
+                    BYTES_PER_ELEMENT
+                )
+            else
+                Object.defineProperty Class, key, {
+                    ...desc, enumerable: no, configurable: no
+                }
+            continue
 
 
+    Object.defineProperties Pointer::,
+
+        [ PTRKEY ]          : get   : ->
+            new Uint32Array sab, +this, HEADER_LENGTH
+
+        [ Symbol.iterator ] : value : ( iterc = @constructor.iterate, construct = on ) ->
+
+            clsi = cscope.indexOf iterc
+            ptrj = dvw.getUint32 0, iLE
+            ptri = +this
+
+            if  -1 is clsi then next : ->
+                while ptrj -= HEADER_BYTELENGTH
+                    unless ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
+                        clsi = dvw.getUint32 ptrj + PTR_CLASSI, iLE
+                        return value : ptrj unless construct
+                        return value : new cscope[ clsi ] ptrj
+                done : true
+
+            else next : ->
+                while ptrj -= HEADER_BYTELENGTH
+                    unless ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
+                        unless clsi - dvw.getUint32 ptrj + PTR_CLASSI, iLE
+                            return value : ptrj unless construct
+                            return value : new cscope[ clsi ] ptrj
+                done : true
+
+    
     addEventListener "DOMContentLoaded", ->
         script = document.body.appendChild( document.createElement "script"
         ).text = document.querySelector(("[src*='ptr']:not(:empty)")).text

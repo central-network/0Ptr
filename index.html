@@ -127,8 +127,10 @@
         scene.append(mesh1)
 
 
-        console.log(mesh1, mesh2 ,  scene)
+        console.log(mesh1, mesh2 ,  scene, scene.activeContext)
         
+        for (let a of scene)
+            console.warn(a)
 
 
 
