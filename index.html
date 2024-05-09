@@ -94,10 +94,14 @@
             )
         })
 
-        scene.on( "append", function ( shape ) {
+        scene.once( "append", function ( shape ) {
             console.log( "appended on scene", shape )
         }, 1)
 
+
+        scene.on("add", function (){
+            console.error("add")
+        })
 
         const mesh1 = Shape({
             position : [ 0, -1, 0 ],
@@ -139,14 +143,18 @@
             ]
         })
 
-        scene.append(mesh1)
-        mesh1.append(mesh2)
-        mesh2.append(mesh3)
+        setTimeout(function (){
+            console.log("1s")
+            scene.append(mesh1)
+            mesh1.append(mesh2)
+            mesh2.add(mesh3)
 
-        console.log(mesh1, mesh2 ,  scene, scene.activeContext)
-        
-        for (let a of scene)
-            console.warn(a)
+            console.log(mesh1, mesh2 ,  scene, scene.activeContext)
+            
+            for (let a of scene)
+                console.warn(a)
+
+        }, 1000)
 
         self.scene = scene
 
