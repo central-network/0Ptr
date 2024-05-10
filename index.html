@@ -84,22 +84,19 @@
         const scene = Scene({clearColor : [1, 0, 1]})
 
 
-        scene.on( "render", function () {
-            if ( this.callCount % 1225 === 0 )
+        i = 0
+        scene.on( "render", function ( delta, aframe ) {
+            if ( i++ % 125 === 0 )
             console.log(
-                "calls:", this.callCount,
-                "fps:", this.fps,
-                "epoch", this.epoch,
-                "delta", this.delta
+                "frame:", aframe.count,
+                "fps:", aframe.fps,
+                "epoch", aframe.epoch,
+                "delta", delta,
+                "adelta", aframe.delta
             )
         })
 
-
-
-        scene.on( "append", function ( shape ) {
-            console.log( "appended on scene", shape )
-        }, 1)
-
+        
         const mesh1 = Shape({
             position : [ 0, -1, 0 ],
             color : [ 0, 0, 0, 1],
@@ -128,11 +125,6 @@
             ]
         })
 
-        mesh2.on("add", function (s){
-            console.error("add on:", s)
-        })
-
-
         const mesh3 = Shape({
             rotation : [ 0, Math.PI, 0 ],
             scale : [ 1, 2, 1],
@@ -150,10 +142,9 @@
         mesh1.append(mesh2)
         mesh2.add(mesh3)
 
+
         console.log(mesh1, mesh2 ,  scene, scene.activeContext)
         
-        for (let a of scene)
-            console.warn(a)
 
 
         setTimeout(function (){
@@ -162,7 +153,7 @@
 
             dump()
 
-        }, 1000)
+        }, 101200)
 
         self.scene = scene
 

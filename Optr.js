@@ -4164,7 +4164,7 @@ self.init   = ->
 
  */
 (self.main = function() {
-  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, ClearColor, Color, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENARGC, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, argcFromFuncDef, cscope, decodeText, desc, dvw, emitEvent, encodeText, f32, findActiveChild, findChild, findChilds, findEventId, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventArgc, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getInited, getLength, getLinked, getNextEventId, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, sab, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventArgc, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8;
+  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, ClearColor, Color, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, sab, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -4185,7 +4185,8 @@ self.init   = ->
   PTR_ACTIVE = 6 * 4 + 0;
   PTR_INITIAL = 6 * 4 + 1;
   PTR_EVENTID = 6 * 4 + 2;
-  PTR_EVENARGC = 7 * 4 + 0;
+  
+  //TR_EVENARGC        = 7 * 4 + 0
   PTR_EVENTRECSV = 7 * 4 + 1;
   PTR_EVTMXCALL = 8 * 4;
   PTR_EVNTCALLS = 9 * 4;
@@ -4329,6 +4330,7 @@ self.init   = ->
     }
     //? not found and create requested
     setParent(ptrj = new Class, ptri);
+    ptrj.init();
     return ptrj;
   };
   findActiveChild = function(ptri, Class, activate = true, construct = true) {
@@ -4477,7 +4479,11 @@ self.init   = ->
     return ptri;
   };
   getByteOffset = function(ptri) {
-    return dvw.getUint32(ptri + PTR_BYTEOFFSET, iLE);
+    var byteOffset;
+    if (!(byteOffset = dvw.getUint32(ptri + PTR_BYTEOFFSET, iLE))) {
+      throw [/POINTER_NOT_ALLOCATED/, ptri];
+    }
+    return byteOffset;
   };
   setLength = function(ptri, length) {
     dvw.setUint32(ptri + PTR_LENGTH, length, iLE);
@@ -4507,19 +4513,12 @@ self.init   = ->
   getEventId = function(ptri) {
     return dvw.getUint16(ptri + PTR_EVENTID, iLE);
   };
-  setEventArgc = function(ptri, argc) {
-    dvw.setUint8(ptri + PTR_EVENARGC, argc);
-    return argc;
-  };
-  getEventArgc = function(ptri) {
-    return dvw.getUint8(ptri + PTR_EVENARGC);
-  };
   setEventRcsv = function(ptri, recursive) {
-    dvw.setUint8(ptri + PTR_EVENTRECSV, recursive);
+    dvw.setInt8(ptri + PTR_EVENTRECSV, recursive);
     return recursive;
   };
   getEventRcsv = function(ptri) {
-    return dvw.getUint8(ptri + PTR_EVENTRECSV);
+    return dvw.getInt8(ptri + PTR_EVENTRECSV);
   };
   setEventMaxCall = function(ptri, calls = 1) {
     dvw.setUint8(ptri + PTR_EVTMXCALL, calls);
@@ -4562,10 +4561,7 @@ self.init   = ->
   getParent = function(ptri, construct = true) {
     var clsi, ptrj;
     ptrj = dvw.getUint32(ptri + PTR_PARENT, iLE);
-    if (!ptrj) {
-      return null;
-    }
-    if (!construct) {
+    if (!construct || !ptrj) {
       return ptrj;
     }
     clsi = dvw.getUint32(ptrj + PTR_CLASSI, iLE);
@@ -4579,11 +4575,39 @@ self.init   = ->
   getClassIndex = function(ptri) {
     return dvw.getUint32(ptri + PTR_CLASSI, iLE);
   };
-  argcFromFuncDef = function(func) {
-    if (/native/.test(func.toString())) {
-      return 4;
-    }
-    return func.toString().replace(/\s+/, "").split(/\)|\(/, 2).pop().split(/,/).filter(Boolean).length;
+  setUint64 = function(ptri, byteOffset, value) {
+    dvw.setBigUint64(byteOffset + getByteOffset(ptri), BigInt(value), iLE);
+    return value;
+  };
+  getUint64 = function(ptri, byteOffset) {
+    return Number(dvw.getBigUint64(byteOffset + getByteOffset(ptri), iLE));
+  };
+  setUint32 = function(ptri, byteOffset, value) {
+    dvw.setUint32(byteOffset + getByteOffset(ptri), value, iLE);
+    return value;
+  };
+  getUint32 = function(ptri, byteOffset) {
+    return dvw.getUint32(byteOffset + getByteOffset(ptri), iLE);
+  };
+  setUint16 = function(ptri, byteOffset, value) {
+    dvw.setUint16(byteOffset + getByteOffset(ptri), value, iLE);
+    return value;
+  };
+  getUint16 = function(ptri, byteOffset) {
+    return dvw.getUint16(byteOffset + getByteOffset(ptri), iLE);
+  };
+  setUint8 = function(ptri, byteOffset, value) {
+    return dvw.setUint8(byteOffset + getByteOffset(ptri), value);
+  };
+  getUint8 = function(ptri, byteOffset) {
+    return dvw.getUint8(byteOffset + getByteOffset(ptri));
+  };
+  setFloat32 = function(ptri, byteOffset, value) {
+    dvw.setFloat32(byteOffset + getByteOffset(ptri), value, iLE);
+    return value;
+  };
+  getFloat32 = function(ptri, byteOffset) {
+    return dvw.getFloat32(byteOffset + getByteOffset(ptri), iLE);
   };
   textEncoder = new TextEncoder();
   encodeText = textEncoder.encode.bind(textEncoder);
@@ -4655,6 +4679,28 @@ self.init   = ->
     done = true;
     next = (function() {
       switch (true) {
+        //? ptrIterator( ptri, Class, ... )
+        case Boolean(arguments[0] && arguments[1]):
+          return function() {
+            while (ptrj -= HEADER_BYTELENGTH) {
+              if (ptri - dvw.getUint32(ptrj + PTR_PARENT, iLE)) {
+                continue;
+              }
+              if (clsi - dvw.getUint32(ptrj + PTR_CLASSI, iLE)) {
+                continue;
+              }
+              if (!construct) {
+                return {
+                  value: ptrj
+                };
+              }
+              return {
+                value: new Class(ptrj)
+              };
+            }
+            return {done};
+          };
+        
         //? ptrIterator( null, Class, ... )
         case Boolean(!arguments[0] && arguments[1]):
           return function() {
@@ -4710,39 +4756,14 @@ self.init   = ->
             }
             return {done};
           };
-        
-        //? ptrIterator( ptri, Class, ... )
-        case Boolean(arguments[0] && arguments[1]):
-          return function() {
-            while (ptrj -= HEADER_BYTELENGTH) {
-              if (ptri - dvw.getUint32(ptrj + PTR_PARENT, iLE)) {
-                continue;
-              }
-              if (clsi - dvw.getUint32(ptrj + PTR_CLASSI, iLE)) {
-                continue;
-              }
-              if (!construct) {
-                return {
-                  value: ptrj
-                };
-              }
-              return {
-                value: new Class(ptrj)
-              };
-            }
-            return {done};
-          };
         default:
           throw [/NOT_POSSIBLE/, ptri, Class];
       }
     }).apply(this, arguments);
     return Iterator.from({next});
   };
-  emitEvent = function(ptri, evti, data, recursiving = false) {
-    var argc, handler, p, ptre, ref;
-    if (!evti) {
-      return console.error("NO_EVENT_ID", {ptri}, {data});
-    }
+  emitEvent = function(ptri, evti, args, recursiving = false, superemit = true) {
+    var handler, p, ptre, ref;
     ptre = recursiving || ptri;
     ref = ptrIterator(ptri, EventHandler, false);
     for (p of ref) {
@@ -4756,48 +4777,30 @@ self.init   = ->
         break;
       }
       handler = EventHandler.prototype.storage[getLinked(p)];
-      if (!(argc = getEventArgc(p))) {
-        handler();
-      } else if (argc === 1) {
-        handler(data);
-      } else {
-        handler(data, new EventHandler(p), ptre);
-      }
+      handler.apply(this, args);
       break;
     }
-    if (ptri = dvw.getUint32(ptri + PTR_PARENT, iLE)) {
-      emitEvent(ptri, evti, data, recursiving || ptre);
+    if (superemit && (ptri = dvw.getUint32(ptri + PTR_PARENT, iLE))) {
+      queueMicrotask(emitEvent.bind(null, ptri, evti, args, recursiving || ptre, superemit));
+    }
+    return ptre;
+  };
+  emitInform = function(ptri, evti, args, recursiving = false) {
+    var ptrc, ptre, ref;
+    ptre = recursiving || ptri;
+    emitEvent(ptri, evti, args, recursiving, false);
+    ref = ptrIterator(ptri, null, false);
+    for (ptrc of ref) {
+      emitInform(ptrc, evti, args, recursiving || ptre);
     }
     return ptre;
   };
   isPointer = getClassIndex;
-  getNextEventId = function() {
-    var maxi, ptri, ref;
-    maxi = 0;
-    ref = ptrIterator(null, EventHandler, false);
-    for (ptri of ref) {
-      maxi = Math.max(maxi, getEventId(ptri));
-    }
-    return maxi + 1;
-  };
-  findEventId = function(event) {
-    var arrayView, nameArray, ptri, ref;
-    nameArray = encodeText(event);
-    arrayView = new DataView(nameArray.buffer);
-    ref = ptrIterator(null, EventHandler, false);
-    for (ptri of ref) {
-      if (ptrViewCompare(ptri, arrayView)) {
-        return getEventId(ptri);
-      }
-    }
-    return void 0;
-  };
   strNumberify = function(text) {
-    var length, number;
-    number = 0;
-    length = `${text}`.length;
-    while (length--) {
-      number += text.charCodeAt(length);
+    var i, number;
+    number = i = `${text}`.length;
+    while (i--) {
+      number = number + i * text.charCodeAt(i);
     }
     return number;
   };
@@ -4850,7 +4853,6 @@ self.init   = ->
         }
       }
 
-      
       //warn "debug init:", this 
       toString() {
         console.error("tostring", this);
@@ -4862,11 +4864,11 @@ self.init   = ->
         name = encodeText(event);
         clsi = cscope.indexOf(EventHandler);
         ptri = mallocExternal(name.length, clsi);
+        log(this, event, recursive);
         ui8.set(name, getByteOffset(ptri));
         setClassIndex(ptri, clsi);
         setEventId(ptri, strNumberify(event));
         setParent(ptri, this);
-        setEventArgc(ptri, argcFromFuncDef(handler));
         setEventRcsv(ptri, recursive);
         setLinked(ptri, this.store(handler));
         return ptri;
@@ -4879,16 +4881,19 @@ self.init   = ->
         return ptre;
       }
 
-      emit(event, data) {
-        if (!emitEvent(this, strNumberify(event), data)) {
+      emit(event, ...args) {
+        if (!emitEvent(this, strNumberify(event), args)) {
           console.error("error on event:" + event);
         }
         return this;
       }
 
-      onadd() {}
-
-      onappend() {}
+      inform(event, ...args) {
+        if (!emitInform(this, strNumberify(event), args)) {
+          console.error("error on event:" + event);
+        }
+        return this;
+      }
 
       store(object) {
         return this.storage.store(object);
@@ -4906,10 +4911,13 @@ self.init   = ->
         return this;
       }
 
-      init(childs = {}) {
+      init(childs = {}, setValue) {
         var clsi, key, ptri, value;
         if (getInited(this)) {
           throw [/INITED_BEFORE/, this];
+        }
+        if (!getByteLength(this)) {
+          this.set(setValue);
         }
         for (key in childs) {
           value = childs[key];
@@ -4931,7 +4939,7 @@ self.init   = ->
         return Object.hasOwn(Object.getPrototypeOf(this), key);
       }
 
-      set(arrayLike) {
+      set(arrayLike = []) {
         var begin;
         if (!(begin = getBegin(this) || getBegin(mallocExternal(arrayLike.length, false, this)))) {
           return this;
@@ -5061,14 +5069,6 @@ self.init   = ->
           return setEventCalls(this, c);
         }
       },
-      arguments: {
-        get: function() {
-          return getEventArgc(this);
-        },
-        set: function(c) {
-          return setEventArgc(this, c);
-        }
-      },
       isOnce: {
         get: function() {
           return getEventMaxCall(this) === 1;
@@ -5176,12 +5176,108 @@ self.init   = ->
     return Shape;
 
   }).call(this));
+  cscope.store(AnimationFrame = (function() {
+    var ANIMFRAME_COUNT, ANIMFRAME_DELTA, ANIMFRAME_EPOCH, ANIMFRAME_FPS, ANIMFRAME_START;
+
+    class AnimationFrame extends Pointer {
+      init() {
+        super.init(...arguments).start = Date.now();
+        return this;
+      }
+
+    };
+
+    AnimationFrame.byteLength = 12 * Float32Array.BYTES_PER_ELEMENT;
+
+    ANIMFRAME_START = 0;
+
+    ANIMFRAME_COUNT = 8;
+
+    ANIMFRAME_EPOCH = 12;
+
+    ANIMFRAME_FPS = 16;
+
+    ANIMFRAME_DELTA = 16 + 1;
+
+    Object.defineProperties(AnimationFrame.prototype, {
+      start: {
+        get: function() {
+          return getUint64(this, ANIMFRAME_START);
+        },
+        set: function(v) {
+          return setUint64(this, ANIMFRAME_START, v);
+        }
+      },
+      count: {
+        get: function() {
+          return getUint32(this, ANIMFRAME_COUNT);
+        },
+        set: function(v) {
+          return setUint32(this, ANIMFRAME_COUNT, v);
+        }
+      },
+      epoch: {
+        get: function() {
+          return getFloat32(this, ANIMFRAME_EPOCH);
+        },
+        set: function(v) {
+          return setFloat32(this, ANIMFRAME_EPOCH, v);
+        }
+      },
+      fps: {
+        get: function() {
+          return getUint8(this, ANIMFRAME_FPS);
+        },
+        set: function(v) {
+          return setUint8(this, ANIMFRAME_FPS, v);
+        }
+      },
+      delta: {
+        get: function() {
+          return getUint8(this, ANIMFRAME_DELTA);
+        },
+        set: function(v) {
+          return setUint8(this, ANIMFRAME_DELTA, v);
+        }
+      },
+      now: {
+        get: function() {
+          return getUint64(this, ANIMFRAME_START) + getFloat32(this, ANIMFRAME_EPOCH);
+        }
+      }
+    });
+
+    return AnimationFrame;
+
+  }).call(this));
   cscope.global(Scene = (function() {
     class Scene extends Pointer {
       init() {
+        var aframe, render;
         super.init(...arguments);
-        log("selam özgür");
+        warn("selam özgür");
+        this.activeContext.init();
+        aframe = this.animationFrame;
+        render = function(epoch = 0) {
+          this.emit("beforerender", epoch);
+          this.render(epoch, aframe);
+          requestAnimationFrame(render);
+          return 0;
+        };
+        (render = render.bind(this))();
         return this;
+      }
+
+      render(epoch, aframe) {
+        var delta, fps;
+        delta = epoch - aframe.epoch;
+        fps = 1 / delta * 1000;
+        return this.inform("render", delta, Object.assign(aframe, {
+          epoch,
+          fps,
+          delta,
+          count: aframe.count + 1
+        }));
       }
 
     };
@@ -5191,9 +5287,14 @@ self.init   = ->
     Scene.iterate = Shape;
 
     Object.defineProperties(Scene.prototype, {
+      animationFrame: {
+        get: function() {
+          return findChild(this, AnimationFrame, true);
+        }
+      },
       activeContext: {
         get: function() {
-          return findActiveChild(this, RenderingContext);
+          return findActiveChild(this, RenderingContext, true);
         }
       },
       events: {
@@ -5216,6 +5317,20 @@ self.init   = ->
     class RenderingContext extends Pointer {
       create() {
         return document.body.appendChild(document.createElement("canvas")).getContext(this.type);
+      }
+
+      init() {
+        var gl;
+        super.init(...arguments).on("render", this.onrender.bind(this), 1);
+        gl = this.WebGLObject;
+        gl.clearColor(1, 0, 1, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        return this;
+      }
+
+      onrender(epoch) {
+        //log "onrender on ctx"
+        return 1;
       }
 
     };

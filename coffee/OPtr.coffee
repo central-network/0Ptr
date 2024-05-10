@@ -4278,7 +4278,7 @@ do  self.main = ->
     PTR_INITIAL         = 6 * 4 + 1
     PTR_EVENTID         = 6 * 4 + 2
     
-    PTR_EVENARGC        = 7 * 4 + 0
+    #TR_EVENARGC        = 7 * 4 + 0
     PTR_EVENTRECSV      = 7 * 4 + 1
 
     PTR_EVTMXCALL       = 8 * 4
@@ -4395,7 +4395,8 @@ do  self.main = ->
         return unless create
 
         #? not found and create requested
-        setParent ptrj = new Class, ptri ; ptrj
+        setParent ptrj = new Class, ptri
+        ptrj.init() ; ptrj
 
     findActiveChild     = ( ptri, Class, activate = on, construct = on ) ->
         ptrj = dvw.getUint32 0, iLE
@@ -4521,7 +4522,9 @@ do  self.main = ->
         dvw.setUint32 ptri + PTR_BYTEOFFSET, byteOffset, iLE ; ptri
 
     getByteOffset   = ( ptri ) ->
-        dvw.getUint32 ptri + PTR_BYTEOFFSET, iLE
+        unless byteOffset = dvw.getUint32 ptri + PTR_BYTEOFFSET, iLE
+            throw [ /POINTER_NOT_ALLOCATED/, ptri ]
+        byteOffset
 
     setLength       = ( ptri, length ) ->
         dvw.setUint32 ptri + PTR_LENGTH, length, iLE ; ptri
@@ -4547,17 +4550,11 @@ do  self.main = ->
     getEventId       = ( ptri ) ->
         dvw.getUint16 ptri + PTR_EVENTID, iLE
 
-    setEventArgc     = ( ptri, argc ) ->
-        dvw.setUint8 ptri + PTR_EVENARGC, argc ; argc
-
-    getEventArgc     = ( ptri ) ->
-        dvw.getUint8 ptri + PTR_EVENARGC
-
     setEventRcsv     = ( ptri, recursive ) ->
-        dvw.setUint8 ptri + PTR_EVENTRECSV, recursive ; recursive
+        dvw.setInt8 ptri + PTR_EVENTRECSV, recursive ; recursive
 
     getEventRcsv     = ( ptri ) ->
-        dvw.getUint8 ptri + PTR_EVENTRECSV
+        dvw.getInt8 ptri + PTR_EVENTRECSV
 
     setEventMaxCall = ( ptri, calls = 1 ) ->
         dvw.setUint8 ptri + PTR_EVTMXCALL, calls ; ptri
@@ -4592,11 +4589,10 @@ do  self.main = ->
 
     getParent       = ( ptri, construct = on ) ->
         ptrj = dvw.getUint32 ptri + PTR_PARENT, iLE
-        return null unless ptrj
-        return ptrj unless construct
+        return ptrj if !construct or !ptrj
 
         clsi = dvw.getUint32 ptrj + PTR_CLASSI, iLE 
-        new cscope[ clsi ] ptrj
+        return new cscope[ clsi ] ptrj
 
     setClassIndex   = ( ptri, clsi ) ->
         clsi ||= cscope.indexOf ptri
@@ -4604,18 +4600,37 @@ do  self.main = ->
 
     getClassIndex   = ( ptri ) ->
         dvw.getUint32 ptri + PTR_CLASSI, iLE
+        
+    setUint64       = ( ptri, byteOffset, value ) ->
+        dvw.setBigUint64 byteOffset + getByteOffset(ptri), BigInt(value), iLE ; value
 
-    argcFromFuncDef = ( func ) ->
-        if /native/.test func.toString()
-            return 4
+    getUint64       = ( ptri, byteOffset ) ->
+        Number dvw.getBigUint64 byteOffset + getByteOffset(ptri), iLE
 
-        func.toString()
-            .replace( /\s+/, "" )
-            .split(/\)|\(/, 2)
-            .pop()
-            .split( /,/ )
-            .filter(Boolean)
-            .length 
+    setUint32       = ( ptri, byteOffset, value ) ->
+        dvw.setUint32 byteOffset + getByteOffset(ptri), value, iLE ; value
+
+    getUint32       = ( ptri, byteOffset ) ->
+        dvw.getUint32 byteOffset + getByteOffset(ptri), iLE
+
+    setUint16       = ( ptri, byteOffset, value ) ->
+        dvw.setUint16 byteOffset + getByteOffset(ptri), value, iLE ; value
+
+    getUint16       = ( ptri, byteOffset ) ->
+        dvw.getUint16 byteOffset + getByteOffset(ptri), iLE
+
+    setUint8        = ( ptri, byteOffset, value ) ->
+        dvw.setUint8 byteOffset + getByteOffset(ptri), value
+
+    getUint8        = ( ptri, byteOffset ) ->
+        dvw.getUint8 byteOffset + getByteOffset ptri
+
+    setFloat32      = ( ptri, byteOffset, value ) ->
+        dvw.setFloat32 byteOffset + getByteOffset(ptri), value, iLE ; value
+
+    getFloat32      = ( ptri, byteOffset ) ->
+        dvw.getFloat32 byteOffset + getByteOffset(ptri), iLE
+
 
 
     textEncoder     = new TextEncoder()
@@ -4695,6 +4710,16 @@ do  self.main = ->
         done = yes
         next = switch true
 
+            #? ptrIterator( ptri, Class, ... )
+            when Boolean(  arguments[0] and arguments[1] ) then ->
+                while ptrj -= HEADER_BYTELENGTH
+                    continue if ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
+                    continue if clsi - dvw.getUint32 ptrj + PTR_CLASSI, iLE
+                        
+                    return value : ptrj if !construct
+                    return value : new Class ptrj
+                return { done } 
+
             #? ptrIterator( null, Class, ... )
             when Boolean( !arguments[0] and arguments[1] ) then ->
                 while ptrj -= HEADER_BYTELENGTH
@@ -4723,24 +4748,12 @@ do  self.main = ->
                     return value : new Class ptrj
                 return { done }  
 
-            #? ptrIterator( ptri, Class, ... )
-            when Boolean(  arguments[0] and arguments[1] ) then ->
-                while ptrj -= HEADER_BYTELENGTH
-                    continue if ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
-                    continue if clsi - dvw.getUint32 ptrj + PTR_CLASSI, iLE
-                        
-                    return value : ptrj if !construct
-                    return value : new Class ptrj
-                return { done } 
 
             else throw [ /NOT_POSSIBLE/, ptri, Class ]
 
         Iterator.from { next }
         
-    emitEvent       = ( ptri, evti, data, recursiving = off ) ->
-        unless evti
-            return console.error "NO_EVENT_ID", {ptri}, {data}
-
+    emitEvent       = ( ptri, evti, args, recursiving = off, superemit = on ) ->
         ptre = recursiving or ptri
 
         for p from ptrIterator ptri, EventHandler, off
@@ -4750,42 +4763,31 @@ do  self.main = ->
             break if recursiving and !getEventRcsv(p)
 
             handler = EventHandler::storage[ getLinked p ]
-            
-            unless argc = getEventArgc(p) then handler() 
-            else if argc is 1 then handler data
-            else handler data, new EventHandler(p), ptre
+            handler . apply this, args
 
-            break 
+            break
 
-        if  ptri = dvw.getUint32 ptri + PTR_PARENT, iLE
-            emitEvent ptri, evti, data, recursiving || ptre
+        if  superemit and ptri = dvw.getUint32 ptri + PTR_PARENT, iLE
+            queueMicrotask emitEvent.bind null, ptri, evti, args, recursiving || ptre, superemit
+
+        ptre
+     
+    emitInform      = ( ptri, evti, args, recursiving = off ) ->
+
+        ptre = recursiving or ptri
+        emitEvent ptri, evti, args, recursiving, off
+
+        for ptrc from ptrIterator ptri, null, off
+            emitInform ptrc, evti, args, recursiving || ptre
 
         ptre
 
     isPointer       = getClassIndex
 
-    getNextEventId  = ->
-        maxi = 0
-        for ptri from ptrIterator null, EventHandler, off
-            maxi = Math.max maxi, getEventId ptri
-        maxi + 1
-
-    findEventId     = ( event ) ->
-        nameArray = encodeText event
-        arrayView = new DataView nameArray.buffer
-        
-        for ptri from ptrIterator null, EventHandler, off
-            if  ptrViewCompare ptri, arrayView
-                return getEventId ptri
-
-        undefined
-
     strNumberify    = ( text ) ->
-        number = 0
-        length = "#{text}".length
-        while length--
-            number += text.charCodeAt length
-        number
+        number = i = "#{text}".length
+        number = number + i * text.charCodeAt(i) while i--
+        number 
 
     self.dump       = ->
         a = for ptri from ptrIterator null, null
@@ -4822,7 +4824,6 @@ do  self.main = ->
         constructor     : ( ptri = 0 ) ->
             super ptri or palloc()
             setClassIndex this if !ptri
-            
             #warn "debug init:", this 
 
         toString        : ->
@@ -4830,17 +4831,17 @@ do  self.main = ->
             super()
 
         on              : ( event, handler, recursive = off ) ->
-            
             name = encodeText event
             clsi = cscope.indexOf EventHandler
             ptri = mallocExternal name.length, clsi
+
+            log this, event, recursive
 
             ui8.set name, getByteOffset ptri
 
             setClassIndex ptri, clsi
             setEventId ptri, strNumberify event
             setParent ptri, this
-            setEventArgc ptri, argcFromFuncDef handler
             setEventRcsv ptri, recursive
             setLinked ptri, @store handler
 
@@ -4850,13 +4851,16 @@ do  self.main = ->
             ptre = @on event, handler, recursive 
             setEventMaxCall ptre, maxCallCount; ptre
 
-        emit            : ( event, data ) ->
-            if !emitEvent this, strNumberify( event ), data
+        emit            : ( event, args... ) ->
+            if !emitEvent this, strNumberify( event ), args
                 console.error "error on event:" + event
             this
 
-        onadd           : ->
-        onappend        : ->
+        inform          : ( event, args... ) ->
+            if !emitInform this, strNumberify( event ), args
+                console.error "error on event:" + event
+            this
+
 
         store           : ( object ) ->
             @storage.store object
@@ -4869,9 +4873,11 @@ do  self.main = ->
             setParent( ptri, this )
             @emit "add", ptri ; this
 
-        init            : ( childs = {} ) ->
+        init            : ( childs = {}, setValue ) ->
             if  getInited this
                 throw [ /INITED_BEFORE/, this ]
+
+            @set setValue if !getByteLength this
 
             for key, value of childs
 
@@ -4891,7 +4897,7 @@ do  self.main = ->
         hasOwnProperty  : ( key ) ->
             Object.hasOwn Object.getPrototypeOf(this), key
 
-        set             : ( arrayLike ) ->
+        set             : ( arrayLike = [] ) ->
             if !begin = getBegin(this) or getBegin mallocExternal(
                     arrayLike.length, no, this
                 )
@@ -4967,10 +4973,6 @@ do  self.main = ->
             callCount   :
                 set     : (c) -> setEventCalls this, c
 
-            arguments   :
-                get     : -> getEventArgc this
-                set     : (c) -> setEventArgc this, c
-
             isOnce      :
                 get     : -> getEventMaxCall( this ) is 1
                 set     : -> setEventMaxCall( this , 1 )
@@ -5035,6 +5037,47 @@ do  self.main = ->
             vertices    : 
                 set     : Shape::set
 
+    cscope.store class AnimationFrame extends Pointer
+
+        @byteLength     : 12 * Float32Array.BYTES_PER_ELEMENT
+
+        init            : ->
+            super arguments...
+                .start = Date.now()
+            this
+
+        ANIMFRAME_START  =  0
+        ANIMFRAME_COUNT  =  8
+        ANIMFRAME_EPOCH  = 12
+        ANIMFRAME_FPS    = 16
+        ANIMFRAME_DELTA  = 16 + 1
+
+        Object.defineProperties AnimationFrame::,
+
+            start       :
+                get     : -> getUint64 this, ANIMFRAME_START
+                set     : (v) -> setUint64 this, ANIMFRAME_START, v
+        
+            count       :
+                get     : -> getUint32 this, ANIMFRAME_COUNT
+                set     : (v) -> setUint32 this, ANIMFRAME_COUNT, v
+        
+            epoch       :
+                get     : -> getFloat32 this, ANIMFRAME_EPOCH
+                set     : (v) -> setFloat32 this, ANIMFRAME_EPOCH, v
+        
+            fps         :
+                get     : -> getUint8 this, ANIMFRAME_FPS
+                set     : (v) -> setUint8 this, ANIMFRAME_FPS, v
+        
+            delta       :
+                get     : -> getUint8 this, ANIMFRAME_DELTA
+                set     : (v) -> setUint8 this, ANIMFRAME_DELTA, v
+        
+            now         : get   : ->
+                getUint64( this, ANIMFRAME_START ) +
+                getFloat32 this, ANIMFRAME_EPOCH
+
     cscope.global class Scene extends Pointer
 
         @key            : "scene"
@@ -5043,17 +5086,36 @@ do  self.main = ->
 
         init            : ->
             super arguments...
+            warn "selam özgür"
 
-            log "selam özgür"
+            @activeContext.init()
+            aframe = @animationFrame
+            
+            render = ( epoch = 0 ) ->
 
+                @emit "beforerender", epoch
+                @render epoch, aframe
+                requestAnimationFrame render
+                
+                0
 
+            do render = render.bind this ; this
 
-            this
+        render          : ( epoch, aframe ) ->
+            delta   = epoch - aframe.epoch
+            fps     = 1 / delta * 1000
+
+            @inform "render", delta, Object.assign aframe , {
+                epoch, fps, delta , count : aframe.count + 1
+            }
 
         Object.defineProperties Scene::,
 
+            animationFrame : get : ->
+                findChild this, AnimationFrame, on
+
             activeContext : get : ->
-                findActiveChild this, RenderingContext
+                findActiveChild this, RenderingContext, on
 
             events        : get : ->
                 child for child from ptrIterator this, EventHandler
@@ -5069,13 +5131,26 @@ do  self.main = ->
                 document.createElement( "canvas" )
             ).getContext( @type )
 
+        init            : ->
+            super arguments...
+                .on "render", @onrender.bind( this ), 1
+
+            gl = @WebGLObject
+            gl.clearColor 1, 0, 1, 1
+            gl.clear gl.COLOR_BUFFER_BIT
+
+            this
+
+        onrender        : ( epoch ) ->
+            #log "onrender on ctx"
+            1
+
         Object.defineProperties RenderingContext::,
 
             WebGLObject : get : ->
                 @storage[ getLinked( this ) or setLinked(
                     this, @store @create()
                 ) ]
-
 
 
     for Class, i in cscope
