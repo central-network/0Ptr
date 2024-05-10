@@ -4213,8 +4213,9 @@ self.init   = ->
   malign = function() {
     var b;
     if (b = Atomics.load(u32, INDEX_DATA_MALLOC) % ALIGN_BYTELENGTH) {
-      return malloc(b);
+      malloc(ALIGN_BYTELENGTH - b);
     }
+    return 0;
   };
   Object.defineProperties(Object, {
     deleteProperty: {
@@ -4489,10 +4490,12 @@ self.init   = ->
     dvw.setUint32(ptri + PTR_BYTEOFFSET, byteOffset, iLE);
     return ptri;
   };
-  getByteOffset = function(ptri) {
+  getByteOffset = function(ptri, check = true) {
     var byteOffset;
     if (!(byteOffset = dvw.getUint32(ptri + PTR_BYTEOFFSET, iLE))) {
-      throw [/POINTER_NOT_ALLOCATED/, ptri];
+      if (check) {
+        throw [/POINTER_NOT_ALLOCATED/, ptri];
+      }
     }
     return byteOffset;
   };
@@ -4832,7 +4835,7 @@ self.init   = ->
           evnti: i = getEventId(ptri),
           event: i && ptrStringify(ptri),
           bytes: getByteLength(ptri),
-          offset: getByteOffset(ptri),
+          offset: getByteOffset(ptri, false),
           calls: getEventCalls(ptri)
         });
       }
@@ -4875,7 +4878,6 @@ self.init   = ->
         name = encodeText(event);
         clsi = cscope.indexOf(EventHandler);
         ptri = mallocExternal(name.length, clsi);
-        log(this, event, recursive);
         ui8.set(name, getByteOffset(ptri));
         setClassIndex(ptri, clsi);
         setEventId(ptri, strNumberify(event));
@@ -4973,7 +4975,7 @@ self.init   = ->
             f32.set(arrayLike, begin);
             break;
           case BigUint64Array:
-            u64.set(arrayLike, begin / 2);
+            u64.set([arrayLike].map(BigInt), begin / 2);
         }
         return this;
       }
@@ -5196,13 +5198,17 @@ self.init   = ->
 
     class AnimationFrame extends Pointer {
       init() {
-        super.init(...arguments).start = Date.now();
+        super.init(...arguments).set([Date.now()]);
         return this;
       }
 
     };
 
-    AnimationFrame.byteLength = 12 * Float32Array.BYTES_PER_ELEMENT;
+    AnimationFrame.prototype.TypedArray = BigUint64Array;
+
+    AnimationFrame.byteLength = 6 * BigUint64Array.BYTES_PER_ELEMENT;
+
+    AnimationFrame.key = "aframe";
 
     ANIMFRAME_START = 0;
 
@@ -5382,7 +5388,7 @@ self.init   = ->
         gl = this.WebGLObject;
         this.on("render", this.onrender.bind(this, gl), 1);
         clearColor = findChild(this, ClearColor, true, true);
-        this.append(new CallBinding().set("clearColor", gl.clearColor.apply.bind(gl.clearColor, gl, clearColor.subarray)));
+        this.append(new CallBinding().set("gl.clearColor", gl.clearColor.apply.bind(gl.clearColor, gl, clearColor.subarray)));
         return this;
       }
 
@@ -5396,7 +5402,7 @@ self.init   = ->
         gl.clear(gl.COLOR_BUFFER_BIT);
         ref = ptrIterator(this, CallBinding);
         for (ptri of ref) {
-          if (ptri.name !== "clearColor") {
+          if (ptri.name !== "gl.clearColor") {
             continue;
           }
           return ptri.function();

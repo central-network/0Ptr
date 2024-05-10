@@ -4308,7 +4308,10 @@ do  self.main = ->
 
     malloc = Atomics.add.bind Atomics, u32, INDEX_DATA_MALLOC
     palloc = Atomics.add.bind Atomics, u32, INDEX_PTRI_MALLOC, HEADER_BYTELENGTH
-    malign = -> malloc b if b = Atomics.load(u32, INDEX_DATA_MALLOC) % ALIGN_BYTELENGTH
+    malign = ->
+        if  b = Atomics.load(u32, INDEX_DATA_MALLOC) % ALIGN_BYTELENGTH
+            malloc ALIGN_BYTELENGTH - b
+        0
 
     Object.defineProperties Object, 
         deleteProperty      : value : ( target, prop ) ->
@@ -4530,9 +4533,9 @@ do  self.main = ->
     setByteOffset   = ( ptri, byteOffset ) ->
         dvw.setUint32 ptri + PTR_BYTEOFFSET, byteOffset, iLE ; ptri
 
-    getByteOffset   = ( ptri ) ->
+    getByteOffset   = ( ptri, check = on ) ->
         unless byteOffset = dvw.getUint32 ptri + PTR_BYTEOFFSET, iLE
-            throw [ /POINTER_NOT_ALLOCATED/, ptri ]
+            throw [ /POINTER_NOT_ALLOCATED/, ptri ] if check
         byteOffset
 
     setLength       = ( ptri, length ) ->
@@ -4809,7 +4812,7 @@ do  self.main = ->
             evnti : i = getEventId ptri
             event : i and ptrStringify ptri
             bytes : getByteLength ptri
-            offset : getByteOffset ptri
+            offset : getByteOffset ptri, off
             calls : getEventCalls ptri
 
         s = for o, i in Pointer::storage
@@ -4843,8 +4846,6 @@ do  self.main = ->
             name = encodeText event
             clsi = cscope.indexOf EventHandler
             ptri = mallocExternal name.length, clsi
-
-            log this, event, recursive
 
             ui8.set name, getByteOffset ptri
 
@@ -4920,7 +4921,7 @@ do  self.main = ->
                 when    Uint32Array then u32.set arrayLike, begin
                 when    Uint16Array then u16.set arrayLike, begin * 2
                 when   Float32Array then f32.set arrayLike, begin
-                when BigUint64Array then u64.set arrayLike, begin / 2
+                when BigUint64Array then u64.set [ arrayLike ].map( BigInt ), begin / 2
 
             this
 
@@ -5050,11 +5051,15 @@ do  self.main = ->
 
     cscope.store class AnimationFrame extends Pointer
 
-        @byteLength     : 12 * Float32Array.BYTES_PER_ELEMENT
+        TypedArray      : BigUint64Array
+
+        @byteLength     : 6 * BigUint64Array.BYTES_PER_ELEMENT
+
+        @key            : "aframe"
 
         init            : ->
-            super arguments...
-                .start = Date.now()
+            super( arguments... )
+                .set [ Date.now() ]
             this
 
         ANIMFRAME_START  =  0
@@ -5173,7 +5178,7 @@ do  self.main = ->
             clearColor = findChild this, ClearColor, on, on
 
             @append new CallBinding().set(
-                "clearColor", gl.clearColor.apply.bind(
+                "gl.clearColor", gl.clearColor.apply.bind(
                     gl.clearColor, gl, clearColor.subarray 
                 )
             )
@@ -5189,8 +5194,9 @@ do  self.main = ->
             gl.clear gl.COLOR_BUFFER_BIT
 
             for ptri from ptrIterator this, CallBinding
-                continue if ptri.name isnt "clearColor"
+                continue if ptri.name isnt "gl.clearColor"
                 return ptri.function()
+
             0
 
         Object.defineProperties RenderingContext::,
