@@ -4711,8 +4711,8 @@ do  self.main = ->
 
         yes
     
-    subarrayPtri        = ( ptri, TypedArray = Uint8Array ) ->
-        length = getByteLength( ptri ) / TypedArray.BYTES_PER_ELEMENT
+    subarrayPtri        = ( ptri, TypedArray = Uint8Array, length ) ->
+        length or= getByteLength( ptri ) / TypedArray.BYTES_PER_ELEMENT
         new TypedArray sab, getByteOffset( ptri ), length
 
     ptrStringify        = ( ptri ) ->
@@ -4885,6 +4885,9 @@ do  self.main = ->
             setParent( ptri, this )
             @emit "add", ptri ; this
 
+        call            : ( storei = getLinked this ) ->
+            @storage[ storei ]()
+
         init            : ( childs = {}, setValue ) ->
             if  getInited this
                 throw [ /INITED_BEFORE/, this ]
@@ -4934,6 +4937,14 @@ do  self.main = ->
             children    : get : -> findChilds this
 
             eventCalls  : get : -> getEventCalls this
+
+            dev         : get : -> Object.defineProperties this, 
+
+                hitCall : get : -> @call()
+
+                linkedi : get : -> getLinked this
+
+                linkediOnStorage : get : -> @storage[ getLinked this ]
                           
     Object.defineProperties Pointer::,
 
@@ -5023,11 +5034,7 @@ do  self.main = ->
     
         @key            : "location"
 
-    cscope.store class ClearColor extends Color
-
-        @key            : "clearColor"
-
-        TypedArray      : Float32Array
+    
 
     cscope.global class Mesh extends Pointer
 
@@ -5097,17 +5104,19 @@ do  self.main = ->
             warn "selam özgür"
 
             @activeContext.init()
-            aframe = @animationFrame
+            animframe = @animationFrame
             
-            render = ( epoch = 0 ) ->
+            onframe = ( epoch = 0 ) ->
 
                 @emit "beforerender", epoch
-                @render epoch, aframe
-                requestAnimationFrame render
+                @render epoch, animframe
+                requestAnimationFrame onframe
                 
                 0
 
-            do render = render.bind this ; this
+            do onframe = onframe.bind this
+            
+            this
 
         render          : ( epoch, aframe ) ->
             delta   = epoch - aframe.epoch
@@ -5130,7 +5139,8 @@ do  self.main = ->
             events        : get : ->
                 child for child from ptrIterator this, EventHandler
 
-            clearColr       : get : -> findChild this, ClearColor
+            clearColr       : get : ->
+                findChild this, ClearColor
 
     cscope.store class CallBinding extends TextPointer
 
@@ -5148,7 +5158,124 @@ do  self.main = ->
 
             name        :
                 get     : -> ptrStringify this
-                
+
+
+    cscope.global class ClearMask extends Pointer
+
+        TypedArray      : Uint16Array
+
+        @key            : "clearMask"
+
+        @values         :
+            
+            COLOR       : WebGL2RenderingContext.COLOR_BUFFER_BIT
+
+            DEPTH       : WebGL2RenderingContext.DEPTH_BUFFER_BIT
+
+            STENCIL     : WebGL2RenderingContext.STENCIL_BUFFER_BIT
+
+            COLOR_DEPTH : (
+                WebGL2RenderingContext.COLOR_BUFFER_BIT |
+                WebGL2RenderingContext.DEPTH_BUFFER_BIT
+            )
+
+        @default        = Uint16Array.of 16640  
+
+        @byteLength     : @default.byteLength
+
+        getValue        : ->
+            getUint16 this, 0
+
+        setValue        : (v) ->
+            unless @constructor.values[ v ]
+                throw [ /CLEAR_MASK/, v, this ]
+            setUint16 this, 0, v
+
+        init            : ->
+            super().set( @constructor.default ).call() ; this
+
+        findGLContext   : ( context ) ->
+            if !context and !context = findChild this, RenderingContext, off 
+                if !context = findChild this, RenderingContext, off, on
+                    throw [ /NO_ACTIVE_CONTEXT/, this ]
+            gl = context.WebGLObject
+
+        getBinding      : ( context ) ->
+            gl = @findGLContext context
+            gl.clear.apply.bind gl.clear, gl, subarrayPtri this, Uint16Array, 1 
+        
+    cscope.store class ClearColor extends Color
+
+        @key            : "clearColor"
+
+        TypedArray      : Float32Array
+
+        @default        : Float32Array.of 1, 0, 1, 1
+
+        @byteLength     : @default.byteLength
+
+        set             : ->
+            super( arguments... ).call() ; this
+
+        init            : ->
+            super().set @constructor.default ; this
+
+        findGLContext   : ( context ) ->
+            if !context and !context = findChild this, RenderingContext, off 
+                if !context = findChild this, RenderingContext, off, on
+                    throw [ /NO_ACTIVE_CONTEXT/, this ]
+            gl = context.WebGLObject
+
+        getBinding      : ( context ) ->
+            gl = @findGLContext context
+            gl . clearColor.apply.bind gl.clearColor, gl, subarrayPtri this, Float32Array, 4 
+
+        
+    cscope.store class Viewport extends Pointer
+
+        TypedArray      : Float32Array
+
+        @key            : "viewport"
+
+        @default        : Float32Array.of(
+            0, 0, self.innerWidth, self.innerHeight,
+            self.innerWidth / self.innerHeight,
+            self.devicePixelRatio
+        )
+
+        @byteLength     : @default.byteLength
+
+        set             : ->
+            super( arguments... ).call() ; this
+
+        resize          : ->
+            [   left, top, width, 
+                height, aratio, pratio ] = @subarray
+
+            canvas                  = @canvas
+            canvas.width            = pratio * width
+            canvas.height           = pratio * height
+            canvas.style.width      = CSS.px width
+            canvas.style.height     = CSS.px height
+            canvas.style.inset      = CSS.px 0
+            canvas.style.position   = "fixed"
+
+            @emit "resize"
+
+        init            : ->
+            super().set( @constructor.default ).resize() ; this
+
+        getCanvas       : -> @findGLContext().canvas
+
+        findGLContext   : ( context ) ->
+            if !context and !context = findChild this, RenderingContext, off, off 
+                if !context = findChild this, RenderingContext, off, on
+                    throw [ /NO_ACTIVE_CONTEXT/, this ]
+            gl = context.WebGLObject
+
+        getBinding      : ( context ) ->
+            gl = @findGLContext context
+            gl.viewport.apply.bind gl.viewport, gl, subarrayPtri this, Float32Array, 4 
 
     cscope.global class RenderingContext extends Pointer
 
@@ -5156,52 +5283,107 @@ do  self.main = ->
 
         type            : "webgl2"
 
+        TypedArray      : Uint32Array
+
+        @byteLength     : 24 * 4
+
         create          : ->
             document.body.appendChild(
                 document.createElement( "canvas" )
             ).getContext( @type )
 
         init            : ->
-            super arguments...
+            super( arguments...)
+                .on "render", @onrender.bind( this ), 1
+                
+            log @clearMask
 
-            gl = @WebGLObject
-            @on "render", @onrender.bind( this, gl ), 1
-
-            clearColor = findChild this, ClearColor, on, on
-
-            @append new CallBinding().set(
-                "gl.clearColor", gl.clearColor.apply.bind(
-                    gl.clearColor, gl, clearColor.subarray 
-                )
-            )
+            @clearMask.call()
+            @clearColor.call()
+            @viewport.call()
 
             this
 
-        onrender        : ( gl, epoch ) ->
-            @clear gl
+        onrender        : ( epoch ) ->
+            @clearMask.call()
             
             1
 
-        clear           : ( gl ) ->
-            gl.clear gl.COLOR_BUFFER_BIT
 
-            for ptri from ptrIterator this, CallBinding
-                continue if ptri.name isnt "gl.clearColor"
-                return ptri.function()
+        RDCTX_BYTEOFFSET    = 0    
+        RDCTX_CLEAR_MASK    = 4 
+        RDCTX_CLEAR_COLOR   = 8 
+        RDCTX_VIEWPORT      = 24
 
-            0
+        getViewport     : ->
+            if  ptri = getUint32 this, RDCTX_VIEWPORT
+                return new Viewport ptri
 
-        Object.defineProperties RenderingContext::,
+            unless ptri = findChild this, Viewport, off, on 
+                setParent ptri = new Viewport(), this
+                ptri.init()
+                
+            setLinked ptri, @store ptri.getBinding this
+            @setViewport ptri
 
-            WebGLObject : get : ->
-                @storage[ getLinked( this ) or setLinked(
-                    this, @store @create()
-                ) ]
+        setViewport     : ( ptri ) ->
+            setUint32 this, RDCTX_VIEWPORT, ptri
 
-            
+
+
+        getClearColor   : ->
+            if  ptri = getUint32 this, RDCTX_CLEAR_COLOR
+                return new ClearColor ptri
+
+            unless ptri = findChild this, ClearColor, off, on 
+                setParent ptri = new ClearColor(), this
+                ptri.init()
+                
+            setLinked ptri, @store ptri.getBinding this
+            @setClearColor ptri
+
+        setClearColor   : ( ptri ) ->
+            setUint32 this, RDCTX_CLEAR_COLOR, ptri
+
+
+
+        getClearMask    : ->
+            if  ptri = getUint32 this, RDCTX_CLEAR_MASK
+                return new ClearMask ptri
+
+            unless ptri = findChild this, ClearMask, off, on 
+                setParent ptri = new ClearMask(), this
+                ptri.init()
+                
+            setLinked ptri, @store ptri.getBinding this
+            @setClearMask ptri
+
+        setClearMask    : ( ptri ) ->            
+            setUint32 this, RDCTX_CLEAR_MASK, ptri
+
+
+        Object.defineProperties this::, WebGLObject : get : ->
+            @storage[ getLinked( this ) or setLinked(
+                this, @store @create()
+            ) ]
+
+
+
 
 
     for Class, i in cscope
+
+        for key, desc of Object.getOwnPropertyDescriptors Class::
+            continue unless key[3] and key.startsWith "get"
+            continue unless key[3] isnt c = key[3].toLowerCase()
+            continue unless property = c + key.substring 4
+
+            get = get : desc.value, enumerable: on
+            set = Object.getOwnPropertyDescriptor(
+                Class::, "set" + key.substring 3
+            )?.value
+
+            Object.defineProperty Class::, property, set && { ...get, set } || get
 
         if  Class::TypedArray
             Object.defineProperty Class::, "subarray", get : ->

@@ -4164,7 +4164,7 @@ self.init   = ->
 
  */
 (self.main = function() {
-  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, Color, EVENTID_SET, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, Mesh, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Storage, TextPointer, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, sab, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8;
+  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, ClearMask, Color, EVENTID_SET, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, Mesh, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Storage, TextPointer, Viewport, c, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, get, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, property, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, ref2, ref3, sab, set, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -4681,9 +4681,8 @@ self.init   = ->
     }
     return true;
   };
-  subarrayPtri = function(ptri, TypedArray = Uint8Array) {
-    var length;
-    length = getByteLength(ptri) / TypedArray.BYTES_PER_ELEMENT;
+  subarrayPtri = function(ptri, TypedArray = Uint8Array, length) {
+    length || (length = getByteLength(ptri) / TypedArray.BYTES_PER_ELEMENT);
     return new TypedArray(sab, getByteOffset(ptri), length);
   };
   ptrStringify = function(ptri) {
@@ -4926,6 +4925,10 @@ self.init   = ->
         return this;
       }
 
+      call(storei = getLinked(this)) {
+        return this.storage[storei]();
+      }
+
       init(childs = {}, setValue) {
         var clsi, key, ptri, value;
         if (getInited(this)) {
@@ -5006,6 +5009,27 @@ self.init   = ->
       eventCalls: {
         get: function() {
           return getEventCalls(this);
+        }
+      },
+      dev: {
+        get: function() {
+          return Object.defineProperties(this, {
+            hitCall: {
+              get: function() {
+                return this.call();
+              }
+            },
+            linkedi: {
+              get: function() {
+                return getLinked(this);
+              }
+            },
+            linkediOnStorage: {
+              get: function() {
+                return this.storage[getLinked(this)];
+              }
+            }
+          });
         }
       }
     });
@@ -5155,16 +5179,6 @@ self.init   = ->
     return Location;
 
   }).call(this));
-  cscope.store(ClearColor = (function() {
-    class ClearColor extends Color {};
-
-    ClearColor.key = "clearColor";
-
-    ClearColor.prototype.TypedArray = Float32Array;
-
-    return ClearColor;
-
-  }).call(this));
   cscope.global(Mesh = (function() {
     class Mesh extends Pointer {};
 
@@ -5264,18 +5278,18 @@ self.init   = ->
   cscope.global(Scene = (function() {
     class Scene extends Pointer {
       init() {
-        var aframe, render;
+        var animframe, onframe;
         super.init(...arguments);
         warn("selam özgür");
         this.activeContext.init();
-        aframe = this.animationFrame;
-        render = function(epoch = 0) {
+        animframe = this.animationFrame;
+        onframe = function(epoch = 0) {
           this.emit("beforerender", epoch);
-          this.render(epoch, aframe);
-          requestAnimationFrame(render);
+          this.render(epoch, animframe);
+          requestAnimationFrame(onframe);
           return 0;
         };
-        (render = render.bind(this))();
+        (onframe = onframe.bind(this))();
         return this;
       }
 
@@ -5366,38 +5380,230 @@ self.init   = ->
     return CallBinding;
 
   }).call(this));
+  cscope.global(ClearMask = (function() {
+    class ClearMask extends Pointer {
+      getValue() {
+        return getUint16(this, 0);
+      }
+
+      setValue(v) {
+        if (!this.constructor.values[v]) {
+          throw [/CLEAR_MASK/, v, this];
+        }
+        return setUint16(this, 0, v);
+      }
+
+      init() {
+        super.init().set(this.constructor.default).call();
+        return this;
+      }
+
+      findGLContext(context) {
+        var gl;
+        if (!context && !(context = findChild(this, RenderingContext, false))) {
+          if (!(context = findChild(this, RenderingContext, false, true))) {
+            throw [/NO_ACTIVE_CONTEXT/, this];
+          }
+        }
+        return gl = context.WebGLObject;
+      }
+
+      getBinding(context) {
+        var gl;
+        gl = this.findGLContext(context);
+        return gl.clear.apply.bind(gl.clear, gl, subarrayPtri(this, Uint16Array, 1));
+      }
+
+    };
+
+    ClearMask.prototype.TypedArray = Uint16Array;
+
+    ClearMask.key = "clearMask";
+
+    ClearMask.values = {
+      COLOR: WebGL2RenderingContext.COLOR_BUFFER_BIT,
+      DEPTH: WebGL2RenderingContext.DEPTH_BUFFER_BIT,
+      STENCIL: WebGL2RenderingContext.STENCIL_BUFFER_BIT,
+      COLOR_DEPTH: WebGL2RenderingContext.COLOR_BUFFER_BIT | WebGL2RenderingContext.DEPTH_BUFFER_BIT
+    };
+
+    ClearMask.default = Uint16Array.of(16640);
+
+    ClearMask.byteLength = ClearMask.default.byteLength;
+
+    return ClearMask;
+
+  }).call(this));
+  cscope.store(ClearColor = (function() {
+    class ClearColor extends Color {
+      set() {
+        super.set(...arguments).call();
+        return this;
+      }
+
+      init() {
+        super.init().set(this.constructor.default);
+        return this;
+      }
+
+      findGLContext(context) {
+        var gl;
+        if (!context && !(context = findChild(this, RenderingContext, false))) {
+          if (!(context = findChild(this, RenderingContext, false, true))) {
+            throw [/NO_ACTIVE_CONTEXT/, this];
+          }
+        }
+        return gl = context.WebGLObject;
+      }
+
+      getBinding(context) {
+        var gl;
+        gl = this.findGLContext(context);
+        return gl.clearColor.apply.bind(gl.clearColor, gl, subarrayPtri(this, Float32Array, 4));
+      }
+
+    };
+
+    ClearColor.key = "clearColor";
+
+    ClearColor.prototype.TypedArray = Float32Array;
+
+    ClearColor.default = Float32Array.of(1, 0, 1, 1);
+
+    ClearColor.byteLength = ClearColor.default.byteLength;
+
+    return ClearColor;
+
+  }).call(this));
+  cscope.store(Viewport = (function() {
+    class Viewport extends Pointer {
+      set() {
+        super.set(...arguments).call();
+        return this;
+      }
+
+      resize() {
+        var aratio, canvas, height, left, pratio, top, width;
+        [left, top, width, height, aratio, pratio] = this.subarray;
+        canvas = this.canvas;
+        canvas.width = pratio * width;
+        canvas.height = pratio * height;
+        canvas.style.width = CSS.px(width);
+        canvas.style.height = CSS.px(height);
+        canvas.style.inset = CSS.px(0);
+        canvas.style.position = "fixed";
+        return this.emit("resize");
+      }
+
+      init() {
+        super.init().set(this.constructor.default).resize();
+        return this;
+      }
+
+      getCanvas() {
+        return this.findGLContext().canvas;
+      }
+
+      findGLContext(context) {
+        var gl;
+        if (!context && !(context = findChild(this, RenderingContext, false, false))) {
+          if (!(context = findChild(this, RenderingContext, false, true))) {
+            throw [/NO_ACTIVE_CONTEXT/, this];
+          }
+        }
+        return gl = context.WebGLObject;
+      }
+
+      getBinding(context) {
+        var gl;
+        gl = this.findGLContext(context);
+        return gl.viewport.apply.bind(gl.viewport, gl, subarrayPtri(this, Float32Array, 4));
+      }
+
+    };
+
+    Viewport.prototype.TypedArray = Float32Array;
+
+    Viewport.key = "viewport";
+
+    Viewport.default = Float32Array.of(0, 0, self.innerWidth, self.innerHeight, self.innerWidth / self.innerHeight, self.devicePixelRatio);
+
+    Viewport.byteLength = Viewport.default.byteLength;
+
+    return Viewport;
+
+  }).call(this));
   cscope.global(RenderingContext = (function() {
+    var RDCTX_BYTEOFFSET, RDCTX_CLEAR_COLOR, RDCTX_CLEAR_MASK, RDCTX_VIEWPORT;
+
     class RenderingContext extends Pointer {
       create() {
         return document.body.appendChild(document.createElement("canvas")).getContext(this.type);
       }
 
       init() {
-        var clearColor, gl;
-        super.init(...arguments);
-        gl = this.WebGLObject;
-        this.on("render", this.onrender.bind(this, gl), 1);
-        clearColor = findChild(this, ClearColor, true, true);
-        this.append(new CallBinding().set("gl.clearColor", gl.clearColor.apply.bind(gl.clearColor, gl, clearColor.subarray)));
+        super.init(...arguments).on("render", this.onrender.bind(this), 1);
+        log(this.clearMask);
+        this.clearMask.call();
+        this.clearColor.call();
+        this.viewport.call();
         return this;
       }
 
-      onrender(gl, epoch) {
-        this.clear(gl);
+      onrender(epoch) {
+        this.clearMask.call();
         return 1;
       }
 
-      clear(gl) {
-        var ptri, ref;
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        ref = ptrIterator(this, CallBinding);
-        for (ptri of ref) {
-          if (ptri.name !== "gl.clearColor") {
-            continue;
-          }
-          return ptri.function();
+      getViewport() {
+        var ptri;
+        if (ptri = getUint32(this, RDCTX_VIEWPORT)) {
+          return new Viewport(ptri);
         }
-        return 0;
+        if (!(ptri = findChild(this, Viewport, false, true))) {
+          setParent(ptri = new Viewport(), this);
+          ptri.init();
+        }
+        setLinked(ptri, this.store(ptri.getBinding(this)));
+        return this.setViewport(ptri);
+      }
+
+      setViewport(ptri) {
+        return setUint32(this, RDCTX_VIEWPORT, ptri);
+      }
+
+      getClearColor() {
+        var ptri;
+        if (ptri = getUint32(this, RDCTX_CLEAR_COLOR)) {
+          return new ClearColor(ptri);
+        }
+        if (!(ptri = findChild(this, ClearColor, false, true))) {
+          setParent(ptri = new ClearColor(), this);
+          ptri.init();
+        }
+        setLinked(ptri, this.store(ptri.getBinding(this)));
+        return this.setClearColor(ptri);
+      }
+
+      setClearColor(ptri) {
+        return setUint32(this, RDCTX_CLEAR_COLOR, ptri);
+      }
+
+      getClearMask() {
+        var ptri;
+        if (ptri = getUint32(this, RDCTX_CLEAR_MASK)) {
+          return new ClearMask(ptri);
+        }
+        if (!(ptri = findChild(this, ClearMask, false, true))) {
+          setParent(ptri = new ClearMask(), this);
+          ptri.init();
+        }
+        setLinked(ptri, this.store(ptri.getBinding(this)));
+        return this.setClearMask(ptri);
+      }
+
+      setClearMask(ptri) {
+        return setUint32(this, RDCTX_CLEAR_MASK, ptri);
       }
 
     };
@@ -5405,6 +5611,18 @@ self.init   = ->
     RenderingContext.key = "context";
 
     RenderingContext.prototype.type = "webgl2";
+
+    RenderingContext.prototype.TypedArray = Uint32Array;
+
+    RenderingContext.byteLength = 24 * 4;
+
+    RDCTX_BYTEOFFSET = 0;
+
+    RDCTX_CLEAR_MASK = 4;
+
+    RDCTX_CLEAR_COLOR = 8;
+
+    RDCTX_VIEWPORT = 24;
 
     Object.defineProperties(RenderingContext.prototype, {
       WebGLObject: {
@@ -5419,6 +5637,25 @@ self.init   = ->
   }).call(this));
   for (i = j = 0, len = cscope.length; j < len; i = ++j) {
     Class = cscope[i];
+    ref = Object.getOwnPropertyDescriptors(Class.prototype);
+    for (key in ref) {
+      desc = ref[key];
+      if (!(key[3] && key.startsWith("get"))) {
+        continue;
+      }
+      if (key[3] === (c = key[3].toLowerCase())) {
+        continue;
+      }
+      if (!(property = c + key.substring(4))) {
+        continue;
+      }
+      get = {
+        get: desc.value,
+        enumerable: true
+      };
+      set = (ref1 = Object.getOwnPropertyDescriptor(Class.prototype, "set" + key.substring(3))) != null ? ref1.value : void 0;
+      Object.defineProperty(Class.prototype, property, set && {...get, set} || get);
+    }
     if (Class.prototype.TypedArray) {
       Object.defineProperty(Class.prototype, "subarray", {
         get: function() {
@@ -5429,9 +5666,9 @@ self.init   = ->
         }
       });
     }
-    ref = Object.getOwnPropertyDescriptors(Class.prototype);
-    for (key in ref) {
-      desc = ref[key];
+    ref2 = Object.getOwnPropertyDescriptors(Class.prototype);
+    for (key in ref2) {
+      desc = ref2[key];
       if (!desc.configurable) {
         continue;
       }
@@ -5442,9 +5679,9 @@ self.init   = ->
       });
       continue;
     }
-    ref1 = Object.getOwnPropertyDescriptors(Class);
-    for (key in ref1) {
-      desc = ref1[key];
+    ref3 = Object.getOwnPropertyDescriptors(Class);
+    for (key in ref3) {
+      desc = ref3[key];
       if (!desc.configurable) {
         continue;
       }

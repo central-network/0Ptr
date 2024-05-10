@@ -83,23 +83,31 @@
 
         const scene = Scene({clearColor : [1, 0, 0.5, 1]})
 
+        scene.on("resize", function (){
+            console.log("resized", this )
+        }, 1)
+
 
         i = 0
-        scene.on( "render", function ( delta, aframe ) {
+        0 && scene.on( "render", function ( delta, aframe ) {
+            if ( i++ % 1125 === 0 )
+                dump()
+
             if ( i++ % 125 === 0 )
-            console.log(
-                "frame:", aframe.count,
-                "fps:", aframe.fps,
-                "epoch", aframe.epoch,
-                "delta", delta,
-                "adelta", aframe.delta
-            )
+                console.log(
+                    "frame:", aframe.count,
+                    "fps:", aframe.fps,
+                    "epoch", aframe.epoch,
+                    "delta", delta,
+                    "adelta", aframe.delta
+                )
         })
 
         
         scene.on("set", function (arrayLike){
             console.warn("settled in scene", arrayLike, this)
         }, 1)
+
 
         const mesh1 = Mesh({
             position : [ 0, -1, 0 ],
@@ -135,7 +143,7 @@
         scene.append(mesh1)
         mesh1.append(mesh2)
         mesh2.add(mesh3)
-        
+
         mesh1.vertices = [
             3,   0,  3,
             10,   0,  3,
