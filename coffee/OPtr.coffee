@@ -755,14 +755,14 @@ self.init   = ->
             count   = Atomics.load i32, ptri + PTR_ITER_COUNT
 
             if  index <= count
-                shape   = new Shape ptri
+                mesh   = new Mesh ptri
 
                 begin   = index * 3
                 end     = begin + 3
-                vertex  = shape.vertex index 
-                color   = shape.color
+                vertex  = mesh.vertex index 
+                color   = mesh.color
 
-                for draw in shape.children
+                for draw in mesh.children
                     draw.vertex( index ).set vertex
                     draw.color( index ).set color
 
@@ -2464,9 +2464,9 @@ self.init   = ->
                     
 
     
-        class Shape         extends Pointer
+        class Mesh         extends Pointer
 
-            self.Shape      = this
+            self.Mesh      = this
 
             OFFSET_POSITION : @malloc Position
 
@@ -2495,7 +2495,7 @@ self.init   = ->
 
                 ptr
 
-            Object.defineProperties Shape::,
+            Object.defineProperties Mesh::,
                 pointCount  :
                     get     : -> @vertices.pointCount
 
@@ -3526,9 +3526,9 @@ self.init   = ->
                     start : getUint32 this, @INDEX_POINTS_START
                     count : getUint32 this, @INDEX_POINTS_COUNT                
 
-            draw            : ( shape, type = @LINES ) ->
-                byteLength = shape.pointCount * getUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
-                length     = shape.pointCount * getUint32 this, @INDEX_ALLOC_LENGTH_PER_POINT
+            draw            : ( mesh, type = @LINES ) ->
+                byteLength = mesh.pointCount * getUint32 this, @INDEX_ALLOC_BYTELENGTH_PER_POINT
+                length     = mesh.pointCount * getUint32 this, @INDEX_ALLOC_LENGTH_PER_POINT
 
                 index = switch type
                     when @LINES      then @INDEX_LINES_COUNT
@@ -3538,15 +3538,15 @@ self.init   = ->
 
                 Object.assign new Draw(),
                     drawType   : type
-                    drawCount  : shape.pointCount
-                    drawStart  : getUint32( this, index+2 ) + addUint32 this, index, shape.pointCount
+                    drawCount  : mesh.pointCount
+                    drawStart  : getUint32( this, index+2 ) + addUint32 this, index, mesh.pointCount
                     drawOffset : offset = addUint32( this, index+1, byteLength ) - getByteOffset(this)
                     readBegin  : begin = offset / 4 
                     readLength : length
                     byteOffset : getByteOffset(this) + begin * 4
                     byteLength : length * 4
                     parent     : this
-                    linked     : shape
+                    linked     : mesh
                 
             create          : ( definitions ) ->            
 
@@ -4020,14 +4020,14 @@ self.init   = ->
         return
 
         checkUploads    = ->
-            for shape in Shape.allocs()
-                continue unless shape.willUploadIfNeeded
+            for mesh in Mesh.allocs()
+                continue unless mesh.willUploadIfNeeded
 
                 gl.bufferSubData(
                     gl.ARRAY_BUFFER, draw.uploadOffset,
                     space.drawBuffer, draw.uploadBegin,
                     draw.uploadLength
-                ) for draw in GLDraw.allocs shape.ptri
+                ) for draw in GLDraw.allocs mesh.ptri
 
         @render         = ->
             rendering = 1
@@ -4288,8 +4288,7 @@ do  self.main = ->
     PTR_RESVBEGIN       = 11 * 4
 
     PTRKEY              = "{{Pointer}}"
-
-    
+    EVENTID_SET         = 336
 
 
     sab = new SharedArrayBuffer BUFFER_SIZE if isWindow
@@ -4329,6 +4328,9 @@ do  self.main = ->
             if -1 is i = @indexOf object
                 i += @push object
             i
+
+        newptr      : ( ptri ) ->
+            new this[ getClassIndex ptri ] ptri
 
     cscope = new class Scope extends Storage
 
@@ -4775,12 +4777,14 @@ do  self.main = ->
             break if recursiving and !getEventRcsv(p)
 
             handler = EventHandler::storage[ getLinked p ]
-            handler . apply this, args
+            handler . apply cscope.newptr( ptre ), args
 
             break
 
-        if  superemit and ptri = dvw.getUint32 ptri + PTR_PARENT, iLE
-            queueMicrotask emitEvent.bind null, ptri, evti, args, recursiving || ptre, superemit
+        if  superemit and ptrj = dvw.getUint32 ptri + PTR_PARENT, iLE
+            queueMicrotask( emitEvent.bind( null,
+                ptrj, evti, args, recursiving || ptre, superemit
+            ) )
 
         ptre
      
@@ -4835,8 +4839,7 @@ do  self.main = ->
 
         constructor     : ( ptri = 0 ) ->
             super ptri or palloc()
-            setClassIndex this if !ptri
-            #warn "debug init:", this 
+            ptri || setClassIndex this
 
         toString        : ->
             console.error "tostring", this
@@ -4914,16 +4917,15 @@ do  self.main = ->
 
             if !@TypedArray
                 f32.set arrayLike, begin
-                return this
 
-            switch @TypedArray
+            else switch @TypedArray
                 when     Uint8Array then ui8.set arrayLike, begin * 4
                 when    Uint32Array then u32.set arrayLike, begin
                 when    Uint16Array then u16.set arrayLike, begin * 2
                 when   Float32Array then f32.set arrayLike, begin
                 when BigUint64Array then u64.set [ arrayLike ].map( BigInt ), begin / 2
 
-            this
+            emitEvent this, EVENTID_SET, arguments
 
         Object.defineProperties Pointer::,
 
@@ -4947,16 +4949,6 @@ do  self.main = ->
         @key            : "text"
 
         TypedArray      : Uint8Array
-
-        encoder         : new TextEncoder
-
-        decoder         : new TextDecoder
-
-        decode          : ->
-            @decoder.decode new Uint8Array @subarray
-
-        encode          : ->
-            @encoder.encode text
 
         set             : ( text = "" ) ->
             super encodeText text
@@ -5037,17 +5029,17 @@ do  self.main = ->
 
         TypedArray      : Float32Array
 
-    cscope.global class Shape extends Pointer
+    cscope.global class Mesh extends Pointer
 
         TypedArray      : Float32Array
 
-        @iterate        : Shape
+        @iterate        : Mesh
 
-        @key            : "shape"
+        @key            : "mesh"
 
-        Object.defineProperties Shape::,
+        Object.defineProperties Mesh::,
             vertices    : 
-                set     : Shape::set
+                set     : Mesh::set
 
     cscope.store class AnimationFrame extends Pointer
 
@@ -5098,7 +5090,7 @@ do  self.main = ->
 
         @key            : "scene"
 
-        @iterate        : Shape
+        @iterate        : Mesh
 
         init            : ->
             super arguments...
