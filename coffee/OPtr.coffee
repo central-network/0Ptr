@@ -4668,15 +4668,16 @@ do  self.main = ->
         ptri
 
     ptrViewCompare      = ( ptri, arrayView ) ->
-        length = arrayView.byteLength
-        return no if length - getByteLength ptri
 
-        avw = new DataView arrayView.slice().buffer  
-        ptriOffset = getByteOffset ptri
+        length = arrayView.byteLength
+        if  length - getByteLength ptri
+            return no
+
+        offset = getByteOffset ptri
         
         while length-- then return no if (
-            avw.getUint8( length ) -
-            dvw.getUint8( length + ptriOffset )
+            arrayView.getUint8( length ) -
+            dvw.getUint8( length + offset )
         )
 
         yes
@@ -4688,26 +4689,54 @@ do  self.main = ->
     ptrStringify        = ( ptri ) ->
         decodeText subarrayPtri ptri
     
-    ptrIterator         = ( ptri, Iterate, construct = on ) ->
-        ptri = Math.max ptri, HEADER_BYTELENGTH
-        clsi = cscope.indexOf Iterate 
+    ptrIterator         = ( ptri, Class, construct = on ) ->
+        ptri = ptri or HEADER_BYTELENGTH
+        clsi = cscope.indexOf Class 
         ptrj = dvw.getUint32 0, iLE
+        done = yes
+        next = switch true
 
-        if  -1 is clsi then next = ->
-            while ptrj -= HEADER_BYTELENGTH
-                unless ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
-                    clsi = dvw.getUint32 ptrj + PTR_CLASSI, iLE
-                    return value : ptrj unless construct
-                    return value : new cscope[ clsi ] ptrj
-            done : true
+            #? ptrIterator( null, Class, ... )
+            when Boolean( !ptri and Class ) then ->
+                while ptrj -= HEADER_BYTELENGTH
+                    if !clsi - dvw.getUint32 ptrj + PTR_CLASSI, iLE
+                        if  construct
+                            return value : new Class ptrj
+                        return value : ptrj
+                return { done } 
 
-        else next = ->
-            while ptrj -= HEADER_BYTELENGTH
-                unless ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
-                    unless clsi - dvw.getUint32 ptrj + PTR_CLASSI, iLE
+            #? ptrIterator( null, null, ... )
+            when Boolean( !ptri and !Class ) then ->
+                while ptrj -= HEADER_BYTELENGTH
+                    if  construct and clsi = getClassIndex ptrj
+                        Class = cscope[ clsi ]
+                        return value : new Class ptrj
+                    return value : ptrj
+                return { done } 
+
+            #? ptrIterator( ptri, null, ... )
+            when Boolean( ptri and !Class ) then ->
+                while ptrj -= HEADER_BYTELENGTH
+                    if !ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
                         return value : ptrj unless construct
-                        return value : new cscope[ clsi ] ptrj
-            done : true
+
+                        if  construct and clsi = getClassIndex ptrj
+                            Class = cscope[ clsi ]
+                            return value : new Class ptrj
+
+                return { done }  
+
+            #? ptrIterator( ptri, Class, ... )
+            when Boolean( ptri and Class ) then ->
+                while ptrj -= HEADER_BYTELENGTH
+                    if !ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
+                        if !clsi - dvw.getUint32 ptrj + PTR_CLASSI, iLE
+                            if  construct
+                                return value : new Class ptrj
+                            return value : ptrj
+                return { done } 
+
+            else throw [ /NOT_POSSIBLE/, ptri, Class ]
 
         Iterator.from { next }
         
@@ -4736,20 +4765,45 @@ do  self.main = ->
 
         ptre
 
-    findEventId     = ( nameArray, append = off ) ->
-        if  append is on
+    isPointer       = getClassIndex
 
-            maxEventId = 0        
-            for ptri from ptrIterator null, EventHandler, off
-                return getEventId ptri if ptrViewCompare ptri, nameArray
-                maxEventId = Math.max maxEventId, evti = getEventId ptri
-            return maxEventId + 1
-
+    getNextEventId  = ->
+        maxi = 0
         for ptri from ptrIterator null, EventHandler, off
-            if  ptrViewCompare ptri, nameArray
+            maxi = Math.max maxi, getEventId ptri
+        maxi + 1
+
+    findEventId     = ( event ) ->
+        nameArray = encodeText event
+        arrayView = new DataView nameArray.buffer
+        
+        for ptri from ptrIterator null, EventHandler, off
+            if  ptrViewCompare ptri, arrayView
                 return getEventId ptri
 
         undefined
+
+    self.dump       = ->
+        a = for ptri from ptrIterator null, null
+            key : ptri.constructor.key
+            ptr : ptri
+            ptri : ptri + 0
+            parent : getParent ptri
+            clsi : getClassIndex ptri
+            lnki : getLinked ptri
+            evnti : i = getEventId ptri
+            event : i and ptrStringify ptri
+            bytes : getByteLength ptri
+            offset : getByteOffset ptri
+            calls : getEventCalls ptri
+
+        s = for o, i in Pointer::storage
+            name : o.name
+            construct : o.constructor.name
+            str : o.toString().substring(0, 50) + ".."
+
+        console.table a
+        console.table s
 
     cscope.store class Pointer extends Number
     
@@ -4772,18 +4826,28 @@ do  self.main = ->
             super()
 
         on              : ( event, handler, recursive = off ) ->
+            
+            unless evti = findEventId event
+                evti = getNextEventId()
+
             name = encodeText event
             clsi = cscope.indexOf EventHandler
             ptri = mallocExternal name.length, clsi
 
-            ui8.set name, getByteOffset ptri
-            setEventId ptri, findEventId name, on
+            log new EventHandler ptri
 
-            setParent ptri, this
+            ui8.set name, getByteOffset ptri
+
             setClassIndex ptri, clsi
+            setEventId ptri, evti
+            setParent ptri, this
             setEventArgc ptri, argcFromFuncDef handler
             setEventRcsv ptri, recursive
             setLinked ptri, @store handler
+
+            cscope[event + "-id:" + evti] = findEventId event
+
+            log cscope
 
             ptri
 
@@ -4792,12 +4856,9 @@ do  self.main = ->
             setEventMaxCall ptre, maxCallCount; ptre
 
         emit            : ( event, data ) ->
-            name = encodeText event
-            evti = findEventId name
-
-            unless emitEvent this, evti, data
-                warn "error on event:", event
-
+            evti = findEventId event
+            if !evti or !emitEvent this, evti, data
+                console.error "error on event id(#{evti}):" + event
             this
 
         store           : ( object ) ->
@@ -4888,11 +4949,10 @@ do  self.main = ->
 
     cscope.store class EventHandler extends TextPointer
 
+        @key            : "eventHandler"
+
         set             : ( event = "on..", @handler = -> ) ->
             super @encode event
-
-        @isSameEvent    : ( ptri, event ) ->
-            ptrViewCompare ptri, this::encode event 
 
         Object.defineProperties EventHandler::,
 

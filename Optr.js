@@ -4164,7 +4164,7 @@ self.init   = ->
 
  */
 (self.main = function() {
-  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, ClearColor, Color, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENARGC, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, argcFromFuncDef, cscope, decodeText, desc, dvw, emitEvent, encodeText, f32, findActiveChild, findChild, findChilds, findEventId, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventArgc, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, hitEventCalls, i, i32, iLE, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, sab, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventArgc, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8;
+  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, ClearColor, Color, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENARGC, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, argcFromFuncDef, cscope, decodeText, desc, dvw, emitEvent, encodeText, f32, findActiveChild, findChild, findChilds, findEventId, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventArgc, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getInited, getLength, getLinked, getNextEventId, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, sab, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventArgc, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -4625,15 +4625,14 @@ self.init   = ->
     return ptri;
   };
   ptrViewCompare = function(ptri, arrayView) {
-    var avw, length, ptriOffset;
+    var length, offset;
     length = arrayView.byteLength;
     if (length - getByteLength(ptri)) {
       return false;
     }
-    avw = new DataView(arrayView.slice().buffer);
-    ptriOffset = getByteOffset(ptri);
+    offset = getByteOffset(ptri);
     while (length--) {
-      if (avw.getUint8(length) - dvw.getUint8(length + ptriOffset)) {
+      if (arrayView.getUint8(length) - dvw.getUint8(length + offset)) {
         return false;
       }
     }
@@ -4647,51 +4646,93 @@ self.init   = ->
   ptrStringify = function(ptri) {
     return decodeText(subarrayPtri(ptri));
   };
-  ptrIterator = function(ptri, Iterate, construct = true) {
-    var clsi, next, ptrj;
-    ptri = Math.max(ptri, HEADER_BYTELENGTH);
-    clsi = cscope.indexOf(Iterate);
+  ptrIterator = function(ptri, Class, construct = true) {
+    var clsi, done, next, ptrj;
+    ptri = ptri || HEADER_BYTELENGTH;
+    clsi = cscope.indexOf(Class);
     ptrj = dvw.getUint32(0, iLE);
-    if (-1 === clsi) {
-      next = function() {
-        while (ptrj -= HEADER_BYTELENGTH) {
-          if (!(ptri - dvw.getUint32(ptrj + PTR_PARENT, iLE))) {
-            clsi = dvw.getUint32(ptrj + PTR_CLASSI, iLE);
-            if (!construct) {
-              return {
-                value: ptrj
-              };
-            }
-            return {
-              value: new cscope[clsi](ptrj)
-            };
-          }
-        }
-        return {
-          done: true
-        };
-      };
-    } else {
-      next = function() {
-        while (ptrj -= HEADER_BYTELENGTH) {
-          if (!(ptri - dvw.getUint32(ptrj + PTR_PARENT, iLE))) {
-            if (!(clsi - dvw.getUint32(ptrj + PTR_CLASSI, iLE))) {
-              if (!construct) {
+    done = true;
+    next = (function() {
+      switch (true) {
+        //? ptrIterator( null, Class, ... )
+        case Boolean(!ptri && Class):
+          return function() {
+            while (ptrj -= HEADER_BYTELENGTH) {
+              if (!clsi - dvw.getUint32(ptrj + PTR_CLASSI, iLE)) {
+                if (construct) {
+                  return {
+                    value: new Class(ptrj)
+                  };
+                }
                 return {
                   value: ptrj
                 };
               }
+            }
+            return {done};
+          };
+        
+        //? ptrIterator( null, null, ... )
+        case Boolean(!ptri && !Class):
+          return function() {
+            while (ptrj -= HEADER_BYTELENGTH) {
+              if (construct && (clsi = getClassIndex(ptrj))) {
+                Class = cscope[clsi];
+                return {
+                  value: new Class(ptrj)
+                };
+              }
               return {
-                value: new cscope[clsi](ptrj)
+                value: ptrj
               };
             }
-          }
-        }
-        return {
-          done: true
-        };
-      };
-    }
+            return {done};
+          };
+        
+        //? ptrIterator( ptri, null, ... )
+        case Boolean(ptri && !Class):
+          return function() {
+            while (ptrj -= HEADER_BYTELENGTH) {
+              if (!ptri - dvw.getUint32(ptrj + PTR_PARENT, iLE)) {
+                if (!construct) {
+                  return {
+                    value: ptrj
+                  };
+                }
+                if (construct && (clsi = getClassIndex(ptrj))) {
+                  Class = cscope[clsi];
+                  return {
+                    value: new Class(ptrj)
+                  };
+                }
+              }
+            }
+            return {done};
+          };
+        
+        //? ptrIterator( ptri, Class, ... )
+        case Boolean(ptri && Class):
+          return function() {
+            while (ptrj -= HEADER_BYTELENGTH) {
+              if (!ptri - dvw.getUint32(ptrj + PTR_PARENT, iLE)) {
+                if (!clsi - dvw.getUint32(ptrj + PTR_CLASSI, iLE)) {
+                  if (construct) {
+                    return {
+                      value: new Class(ptrj)
+                    };
+                  }
+                  return {
+                    value: ptrj
+                  };
+                }
+              }
+            }
+            return {done};
+          };
+        default:
+          throw [/NOT_POSSIBLE/, ptri, Class];
+      }
+    })();
     return Iterator.from({next});
   };
   emitEvent = function(ptri, eventId, data, recursiving = false) {
@@ -4726,26 +4767,67 @@ self.init   = ->
     }
     return ptre;
   };
-  findEventId = function(nameArray, append = false) {
-    var evti, maxEventId, ptri, ref, ref1;
-    if (append === true) {
-      maxEventId = 0;
-      ref = ptrIterator(null, EventHandler, false);
-      for (ptri of ref) {
-        if (ptrViewCompare(ptri, nameArray)) {
-          return getEventId(ptri);
-        }
-        maxEventId = Math.max(maxEventId, evti = getEventId(ptri));
-      }
-      return maxEventId + 1;
+  isPointer = getClassIndex;
+  getNextEventId = function() {
+    var maxi, ptri, ref;
+    maxi = 0;
+    ref = ptrIterator(null, EventHandler, false);
+    for (ptri of ref) {
+      maxi = Math.max(maxi, getEventId(ptri));
     }
-    ref1 = ptrIterator(null, EventHandler, false);
-    for (ptri of ref1) {
-      if (ptrViewCompare(ptri, nameArray)) {
+    return maxi + 1;
+  };
+  findEventId = function(event) {
+    var arrayView, nameArray, ptri, ref;
+    nameArray = encodeText(event);
+    arrayView = new DataView(nameArray.buffer);
+    ref = ptrIterator(null, EventHandler, false);
+    for (ptri of ref) {
+      if (ptrViewCompare(ptri, arrayView)) {
         return getEventId(ptri);
       }
     }
     return void 0;
+  };
+  self.dump = function() {
+    var a, i, o, ptri, s;
+    a = (function() {
+      var ref, results;
+      ref = ptrIterator(null, null);
+      results = [];
+      for (ptri of ref) {
+        results.push({
+          key: ptri.constructor.key,
+          ptr: ptri,
+          ptri: ptri + 0,
+          parent: getParent(ptri),
+          clsi: getClassIndex(ptri),
+          lnki: getLinked(ptri),
+          evnti: i = getEventId(ptri),
+          event: i && ptrStringify(ptri),
+          bytes: getByteLength(ptri),
+          offset: getByteOffset(ptri),
+          calls: getEventCalls(ptri)
+        });
+      }
+      return results;
+    })();
+    s = (function() {
+      var j, len, ref, results;
+      ref = Pointer.prototype.storage;
+      results = [];
+      for (i = j = 0, len = ref.length; j < len; i = ++j) {
+        o = ref[i];
+        results.push({
+          name: o.name,
+          construct: o.constructor.name,
+          str: o.toString().substring(0, 50) + ".."
+        });
+      }
+      return results;
+    })();
+    console.table(a);
+    return console.table(s);
   };
   cscope.store(Pointer = (function() {
     class Pointer extends Number {
@@ -4764,17 +4846,23 @@ self.init   = ->
       }
 
       on(event, handler, recursive = false) {
-        var clsi, name, ptri;
+        var clsi, evti, name, ptri;
+        if (!(evti = findEventId(event))) {
+          evti = getNextEventId();
+        }
         name = encodeText(event);
         clsi = cscope.indexOf(EventHandler);
         ptri = mallocExternal(name.length, clsi);
+        log(new EventHandler(ptri));
         ui8.set(name, getByteOffset(ptri));
-        setEventId(ptri, findEventId(name, true));
-        setParent(ptri, this);
         setClassIndex(ptri, clsi);
+        setEventId(ptri, evti);
+        setParent(ptri, this);
         setEventArgc(ptri, argcFromFuncDef(handler));
         setEventRcsv(ptri, recursive);
         setLinked(ptri, this.store(handler));
+        cscope[event + "-id:" + evti] = findEventId(event);
+        log(cscope);
         return ptri;
       }
 
@@ -4786,11 +4874,10 @@ self.init   = ->
       }
 
       emit(event, data) {
-        var evti, name;
-        name = encodeText(event);
-        evti = findEventId(name);
-        if (!emitEvent(this, evti, data)) {
-          warn("error on event:", event);
+        var evti;
+        evti = findEventId(event);
+        if (!evti || !emitEvent(this, evti, data)) {
+          console.error(`error on event id(${evti}):` + event);
         }
         return this;
       }
@@ -4937,11 +5024,9 @@ self.init   = ->
         return super.set(this.encode(event));
       }
 
-      static isSameEvent(ptri, event) {
-        return ptrViewCompare(ptri, this.prototype.encode(event));
-      }
-
     };
+
+    EventHandler.key = "eventHandler";
 
     Object.defineProperties(EventHandler.prototype, {
       handler: {
