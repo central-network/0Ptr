@@ -4360,7 +4360,7 @@ do  self.main = ->
             throw [ /WHAT_IS_THIS/, ClassOrPtri ]
             
 
-    findChild       = ( ptri, Class, create = off ) ->
+    findChild       = ( ptri, Class, create = off, superfind = off ) ->
 
         ptrj = dvw.getUint32 0, iLE
 
@@ -4391,12 +4391,21 @@ do  self.main = ->
                     continue if clsi - dvw.getUint32 PTR_CLASSI + ptrj, iLE
                     return new Class ptrj
 
+                    
+        return null if !superfind and !create
 
-        return unless create
+        if  superfind
+            if !ptrp = dvw.getUint32 PTR_PARENT + ptri, iLE
+                if  create 
+                    if  "boolean" is typeof superfind
+                        superfind = ptri
+                    setParent ptrj = new Class, superfind
+                    return ptrj
+                return null
+            return findChild ptrp, Class, create, superfind
 
-        #? not found and create requested
-        setParent ptrj = new Class, ptri
-        ptrj.init() ; ptrj
+        setParent ptrj = new Class, ptri ; ptrj
+        
 
     findActiveChild     = ( ptri, Class, activate = on, construct = on ) ->
         ptrj = dvw.getUint32 0, iLE
@@ -4861,7 +4870,6 @@ do  self.main = ->
                 console.error "error on event:" + event
             this
 
-
         store           : ( object ) ->
             @storage.store object
 
@@ -4946,16 +4954,19 @@ do  self.main = ->
         decode          : ->
             @decoder.decode new Uint8Array @subarray
 
-        encode          : ( text = "" ) ->
-            @encoder.encode "#{text}"
+        encode          : ->
+            @encoder.encode text
 
+        set             : ( text = "" ) ->
+            super encodeText text
+    
 
     cscope.store class EventHandler extends TextPointer
 
         @key            : "eventHandler"
 
         set             : ( event = "on..", @handler = -> ) ->
-            super @encode event
+            super event
 
         Object.defineProperties EventHandler::,
 
@@ -5112,13 +5123,35 @@ do  self.main = ->
         Object.defineProperties Scene::,
 
             animationFrame : get : ->
-                findChild this, AnimationFrame, on
+                unless aframe = findChild this, AnimationFrame
+                    setParent aframe = new AnimationFrame().init(), this
+                aframe
 
             activeContext : get : ->
                 findActiveChild this, RenderingContext, on
 
             events        : get : ->
                 child for child from ptrIterator this, EventHandler
+
+            clearColr       : get : -> findChild this, ClearColor
+
+    cscope.store class CallBinding extends TextPointer
+
+        set : ( name, @function ) ->
+            super name
+
+        Object.defineProperties CallBinding::,
+
+            function    :
+                get     : -> @storage[ getLinked hitEventCalls this ]
+                set     : (f) -> setLinked this, @store f
+
+            hitCall     :
+                get     : -> @function()
+
+            name        :
+                get     : -> ptrStringify this
+                
 
     cscope.global class RenderingContext extends Pointer
 
@@ -5133,17 +5166,32 @@ do  self.main = ->
 
         init            : ->
             super arguments...
-                .on "render", @onrender.bind( this ), 1
 
             gl = @WebGLObject
-            gl.clearColor 1, 0, 1, 1
-            gl.clear gl.COLOR_BUFFER_BIT
+            @on "render", @onrender.bind( this, gl ), 1
+
+            clearColor = findChild this, ClearColor, on, on
+
+            @append new CallBinding().set(
+                "clearColor", gl.clearColor.apply.bind(
+                    gl.clearColor, gl, clearColor.subarray 
+                )
+            )
 
             this
 
-        onrender        : ( epoch ) ->
-            #log "onrender on ctx"
+        onrender        : ( gl, epoch ) ->
+            @clear gl
+            
             1
+
+        clear           : ( gl ) ->
+            gl.clear gl.COLOR_BUFFER_BIT
+
+            for ptri from ptrIterator this, CallBinding
+                continue if ptri.name isnt "clearColor"
+                return ptri.function()
+            0
 
         Object.defineProperties RenderingContext::,
 
@@ -5151,6 +5199,8 @@ do  self.main = ->
                 @storage[ getLinked( this ) or setLinked(
                     this, @store @create()
                 ) ]
+
+            
 
 
     for Class, i in cscope

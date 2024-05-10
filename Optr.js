@@ -4164,7 +4164,7 @@ self.init   = ->
 
  */
 (self.main = function() {
-  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, ClearColor, Color, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, sab, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8;
+  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, Color, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, sab, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -4288,8 +4288,8 @@ self.init   = ->
     }
 
   });
-  findChild = function(ptri, Class, create = false) {
-    var clsi, ptrj;
+  findChild = function(ptri, Class, create = false, superfind = false) {
+    var clsi, ptrj, ptrp;
     ptrj = dvw.getUint32(0, iLE);
     if (!ptri) {
       //? returns last created Class in Global
@@ -4325,12 +4325,23 @@ self.init   = ->
         }
       }
     }
-    if (!create) {
-      return;
+    if (!superfind && !create) {
+      return null;
     }
-    //? not found and create requested
+    if (superfind) {
+      if (!(ptrp = dvw.getUint32(PTR_PARENT + ptri, iLE))) {
+        if (create) {
+          if ("boolean" === typeof superfind) {
+            superfind = ptri;
+          }
+          setParent(ptrj = new Class, superfind);
+          return ptrj;
+        }
+        return null;
+      }
+      return findChild(ptrp, Class, create, superfind);
+    }
     setParent(ptrj = new Class, ptri);
-    ptrj.init();
     return ptrj;
   };
   findActiveChild = function(ptri, Class, activate = true, construct = true) {
@@ -5016,8 +5027,12 @@ self.init   = ->
         return this.decoder.decode(new Uint8Array(this.subarray));
       }
 
-      encode(text = "") {
-        return this.encoder.encode(`${text}`);
+      encode() {
+        return this.encoder.encode(text);
+      }
+
+      set(text = "") {
+        return super.set(encodeText(text));
       }
 
     };
@@ -5037,7 +5052,7 @@ self.init   = ->
     class EventHandler extends TextPointer {
       set(event = "on..", handler1 = function() {}) {
         this.handler = handler1;
-        return super.set(this.encode(event));
+        return super.set(event);
       }
 
     };
@@ -5289,7 +5304,11 @@ self.init   = ->
     Object.defineProperties(Scene.prototype, {
       animationFrame: {
         get: function() {
-          return findChild(this, AnimationFrame, true);
+          var aframe;
+          if (!(aframe = findChild(this, AnimationFrame))) {
+            setParent(aframe = new AnimationFrame().init(), this);
+          }
+          return aframe;
         }
       },
       activeContext: {
@@ -5307,10 +5326,48 @@ self.init   = ->
           }
           return results;
         }
+      },
+      clearColr: {
+        get: function() {
+          return findChild(this, ClearColor);
+        }
       }
     });
 
     return Scene;
+
+  }).call(this));
+  cscope.store(CallBinding = (function() {
+    class CallBinding extends TextPointer {
+      set(name, _function) {
+        this.function = _function;
+        return super.set(name);
+      }
+
+    };
+
+    Object.defineProperties(CallBinding.prototype, {
+      function: {
+        get: function() {
+          return this.storage[getLinked(hitEventCalls(this))];
+        },
+        set: function(f) {
+          return setLinked(this, this.store(f));
+        }
+      },
+      hitCall: {
+        get: function() {
+          return this.function();
+        }
+      },
+      name: {
+        get: function() {
+          return ptrStringify(this);
+        }
+      }
+    });
+
+    return CallBinding;
 
   }).call(this));
   cscope.global(RenderingContext = (function() {
@@ -5320,17 +5377,31 @@ self.init   = ->
       }
 
       init() {
-        var gl;
-        super.init(...arguments).on("render", this.onrender.bind(this), 1);
+        var clearColor, gl;
+        super.init(...arguments);
         gl = this.WebGLObject;
-        gl.clearColor(1, 0, 1, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
+        this.on("render", this.onrender.bind(this, gl), 1);
+        clearColor = findChild(this, ClearColor, true, true);
+        this.append(new CallBinding().set("clearColor", gl.clearColor.apply.bind(gl.clearColor, gl, clearColor.subarray)));
         return this;
       }
 
-      onrender(epoch) {
-        //log "onrender on ctx"
+      onrender(gl, epoch) {
+        this.clear(gl);
         return 1;
+      }
+
+      clear(gl) {
+        var ptri, ref;
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        ref = ptrIterator(this, CallBinding);
+        for (ptri of ref) {
+          if (ptri.name !== "clearColor") {
+            continue;
+          }
+          return ptri.function();
+        }
+        return 0;
       }
 
     };
