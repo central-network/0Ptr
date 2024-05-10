@@ -4277,12 +4277,12 @@ do  self.main = ->
     PTR_ACTIVE          = 6 * 4 + 0
     PTR_INITIAL         = 6 * 4 + 1
     PTR_EVENTID         = 6 * 4 + 2
-    PTR_EVENARGC        = 6 * 4 + 3
-
-    PTR_EVTMXCALL       = 7 * 4
-    PTR_EVNTCALLS       = 8 * 4
     
-    PTR_EVENTRECSV      = 9 * 4 + 0
+    PTR_EVENARGC        = 7 * 4 + 0
+    PTR_EVENTRECSV      = 7 * 4 + 1
+
+    PTR_EVTMXCALL       = 8 * 4
+    PTR_EVNTCALLS       = 9 * 4
     
     PTR_LINKEDI         = 10 * 4
     PTR_RESVBEGIN       = 11 * 4
@@ -4542,10 +4542,10 @@ do  self.main = ->
         dvw.getUint8 ptri + PTR_ACTIVE
 
     setEventId       = ( ptri, eventId ) ->
-        dvw.setUint8 ptri + PTR_EVENTID, eventId ; eventId
+        dvw.setUint16 ptri + PTR_EVENTID, eventId, iLE ; eventId
 
     getEventId       = ( ptri ) ->
-        dvw.getUint8 ptri + PTR_EVENTID
+        dvw.getUint16 ptri + PTR_EVENTID, iLE
 
     setEventArgc     = ( ptri, argc ) ->
         dvw.setUint8 ptri + PTR_EVENARGC, argc ; argc
@@ -4737,17 +4737,17 @@ do  self.main = ->
 
         Iterator.from { next }
         
-    emitEvent       = ( ptri, eventId, data, recursiving = off ) ->
-        unless eventId
+    emitEvent       = ( ptri, evti, data, recursiving = off ) ->
+        unless evti
             return console.error "NO_EVENT_ID", {ptri}, {data}
 
         ptre = recursiving or ptri
 
         for p from ptrIterator ptri, EventHandler, off
-            
-            continue if eventId - getEventId p
+            continue if evti - getEventId p
+
+            break if hitEventCalls(p) > (getEventMaxCall(p) or Infinity)
             break if recursiving and !getEventRcsv(p)
-            break if hitEventCalls(p) > getEventMaxCall(p)
 
             handler = EventHandler::storage[ getLinked p ]
             
@@ -4758,7 +4758,7 @@ do  self.main = ->
             break 
 
         if  ptri = dvw.getUint32 ptri + PTR_PARENT, iLE
-            emitEvent ptri, eventId, data, recursiving || ptre
+            emitEvent ptri, evti, data, recursiving || ptre
 
         ptre
 
@@ -4779,6 +4779,13 @@ do  self.main = ->
                 return getEventId ptri
 
         undefined
+
+    strNumberify    = ( text ) ->
+        number = 0
+        length = "#{text}".length
+        while length--
+            number += text.charCodeAt length
+        number
 
     self.dump       = ->
         a = for ptri from ptrIterator null, null
@@ -4824,9 +4831,6 @@ do  self.main = ->
 
         on              : ( event, handler, recursive = off ) ->
             
-            unless evti = findEventId event
-                evti = getNextEventId()
-
             name = encodeText event
             clsi = cscope.indexOf EventHandler
             ptri = mallocExternal name.length, clsi
@@ -4834,7 +4838,7 @@ do  self.main = ->
             ui8.set name, getByteOffset ptri
 
             setClassIndex ptri, clsi
-            setEventId ptri, evti
+            setEventId ptri, strNumberify event
             setParent ptri, this
             setEventArgc ptri, argcFromFuncDef handler
             setEventRcsv ptri, recursive
@@ -4847,9 +4851,12 @@ do  self.main = ->
             setEventMaxCall ptre, maxCallCount; ptre
 
         emit            : ( event, data ) ->
-            if !emitEvent this, findEventId( event ), data
+            if !emitEvent this, strNumberify( event ), data
                 console.error "error on event:" + event
             this
+
+        onadd           : ->
+        onappend        : ->
 
         store           : ( object ) ->
             @storage.store object

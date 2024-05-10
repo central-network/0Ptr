@@ -4164,7 +4164,7 @@ self.init   = ->
 
  */
 (self.main = function() {
-  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, ClearColor, Color, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENARGC, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, argcFromFuncDef, cscope, decodeText, desc, dvw, emitEvent, encodeText, f32, findActiveChild, findChild, findChilds, findEventId, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventArgc, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getInited, getLength, getLinked, getNextEventId, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, sab, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventArgc, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8;
+  var ALIGN_BYTELENGTH, BUFFER_SIZE, BYTES_PER_ELEMENT, Class, ClearColor, Color, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENARGC, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, RenderingContext, Rotation, Scale, Scene, Scope, Shape, Storage, TextPointer, argcFromFuncDef, cscope, decodeText, desc, dvw, emitEvent, encodeText, f32, findActiveChild, findChild, findChilds, findEventId, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventArgc, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getInited, getLength, getLinked, getNextEventId, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, len, malign, malloc, mallocExternal, palloc, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, sab, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventArgc, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -4185,10 +4185,10 @@ self.init   = ->
   PTR_ACTIVE = 6 * 4 + 0;
   PTR_INITIAL = 6 * 4 + 1;
   PTR_EVENTID = 6 * 4 + 2;
-  PTR_EVENARGC = 6 * 4 + 3;
-  PTR_EVTMXCALL = 7 * 4;
-  PTR_EVNTCALLS = 8 * 4;
-  PTR_EVENTRECSV = 9 * 4 + 0;
+  PTR_EVENARGC = 7 * 4 + 0;
+  PTR_EVENTRECSV = 7 * 4 + 1;
+  PTR_EVTMXCALL = 8 * 4;
+  PTR_EVNTCALLS = 9 * 4;
   PTR_LINKEDI = 10 * 4;
   PTR_RESVBEGIN = 11 * 4;
   PTRKEY = "{{Pointer}}";
@@ -4501,11 +4501,11 @@ self.init   = ->
     return dvw.getUint8(ptri + PTR_ACTIVE);
   };
   setEventId = function(ptri, eventId) {
-    dvw.setUint8(ptri + PTR_EVENTID, eventId);
+    dvw.setUint16(ptri + PTR_EVENTID, eventId, iLE);
     return eventId;
   };
   getEventId = function(ptri) {
-    return dvw.getUint8(ptri + PTR_EVENTID);
+    return dvw.getUint16(ptri + PTR_EVENTID, iLE);
   };
   setEventArgc = function(ptri, argc) {
     dvw.setUint8(ptri + PTR_EVENARGC, argc);
@@ -4738,21 +4738,21 @@ self.init   = ->
     }).apply(this, arguments);
     return Iterator.from({next});
   };
-  emitEvent = function(ptri, eventId, data, recursiving = false) {
+  emitEvent = function(ptri, evti, data, recursiving = false) {
     var argc, handler, p, ptre, ref;
-    if (!eventId) {
+    if (!evti) {
       return console.error("NO_EVENT_ID", {ptri}, {data});
     }
     ptre = recursiving || ptri;
     ref = ptrIterator(ptri, EventHandler, false);
     for (p of ref) {
-      if (eventId - getEventId(p)) {
+      if (evti - getEventId(p)) {
         continue;
       }
-      if (recursiving && !getEventRcsv(p)) {
+      if (hitEventCalls(p) > (getEventMaxCall(p) || 2e308)) {
         break;
       }
-      if (hitEventCalls(p) > getEventMaxCall(p)) {
+      if (recursiving && !getEventRcsv(p)) {
         break;
       }
       handler = EventHandler.prototype.storage[getLinked(p)];
@@ -4766,7 +4766,7 @@ self.init   = ->
       break;
     }
     if (ptri = dvw.getUint32(ptri + PTR_PARENT, iLE)) {
-      emitEvent(ptri, eventId, data, recursiving || ptre);
+      emitEvent(ptri, evti, data, recursiving || ptre);
     }
     return ptre;
   };
@@ -4791,6 +4791,15 @@ self.init   = ->
       }
     }
     return void 0;
+  };
+  strNumberify = function(text) {
+    var length, number;
+    number = 0;
+    length = `${text}`.length;
+    while (length--) {
+      number += text.charCodeAt(length);
+    }
+    return number;
   };
   self.dump = function() {
     var a, i, o, ptri, s;
@@ -4849,16 +4858,13 @@ self.init   = ->
       }
 
       on(event, handler, recursive = false) {
-        var clsi, evti, name, ptri;
-        if (!(evti = findEventId(event))) {
-          evti = getNextEventId();
-        }
+        var clsi, name, ptri;
         name = encodeText(event);
         clsi = cscope.indexOf(EventHandler);
         ptri = mallocExternal(name.length, clsi);
         ui8.set(name, getByteOffset(ptri));
         setClassIndex(ptri, clsi);
-        setEventId(ptri, evti);
+        setEventId(ptri, strNumberify(event));
         setParent(ptri, this);
         setEventArgc(ptri, argcFromFuncDef(handler));
         setEventRcsv(ptri, recursive);
@@ -4874,11 +4880,15 @@ self.init   = ->
       }
 
       emit(event, data) {
-        if (!emitEvent(this, findEventId(event), data)) {
+        if (!emitEvent(this, strNumberify(event), data)) {
           console.error("error on event:" + event);
         }
         return this;
       }
+
+      onadd() {}
+
+      onappend() {}
 
       store(object) {
         return this.storage.store(object);

@@ -96,7 +96,7 @@
 
 
 
-        scene.once( "append", function ( shape ) {
+        scene.on( "append", function ( shape ) {
             console.log( "appended on scene", shape )
         }, 1)
 
@@ -116,10 +116,6 @@
             ]
         })
 
-        console.warn(mesh1.on("add", function (s){
-            console.error("add on:", s)
-        }, 1))
-
 
         const mesh2 = Shape({
             rotation : [ 0, Math.PI, 0 ],
@@ -130,6 +126,10 @@
                 67,   90,   0,
                 67,   90,  30,
             ]
+        })
+
+        mesh2.on("add", function (s){
+            console.error("add on:", s)
         })
 
 
