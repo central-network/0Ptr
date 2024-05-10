@@ -98,7 +98,7 @@
 
         
         scene.on("set", function (arrayLike){
-            console.warn("mesh settled", arrayLike, this)
+            console.warn("settled in scene", arrayLike, this)
         }, 1)
 
         const mesh1 = Mesh({
@@ -106,6 +106,9 @@
             color : [ 0, 0, 0, 1]
         })
 
+        mesh1.on("set", function (arrayLike){
+            console.error("mesh settled", arrayLike, this)
+        })
 
         const mesh2 = Mesh({
             rotation : [ 0, Math.PI, 0 ],
@@ -129,6 +132,10 @@
             ]
         })
 
+        scene.append(mesh1)
+        mesh1.append(mesh2)
+        mesh2.add(mesh3)
+        
         mesh1.vertices = [
             3,   0,  3,
             10,   0,  3,
@@ -140,9 +147,6 @@
         ]
 
 
-        scene.append(mesh1)
-        mesh1.append(mesh2)
-        mesh2.add(mesh3)
 
 
         console.log(mesh1, mesh2 ,  scene, scene.activeContext)
