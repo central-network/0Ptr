@@ -4648,36 +4648,21 @@ self.init   = ->
   };
   ptrIterator = function(ptri, Class, construct = true) {
     var clsi, done, next, ptrj;
-    ptri = ptri || HEADER_BYTELENGTH;
-    clsi = cscope.indexOf(Class);
+    if (Class) {
+      clsi = cscope.indexOf(Class);
+    }
     ptrj = dvw.getUint32(0, iLE);
     done = true;
     next = (function() {
       switch (true) {
         //? ptrIterator( null, Class, ... )
-        case Boolean(!ptri && Class):
+        case Boolean(!arguments[0] && arguments[1]):
           return function() {
             while (ptrj -= HEADER_BYTELENGTH) {
-              if (!clsi - dvw.getUint32(ptrj + PTR_CLASSI, iLE)) {
-                if (construct) {
-                  return {
-                    value: new Class(ptrj)
-                  };
-                }
-                return {
-                  value: ptrj
-                };
+              if (clsi - dvw.getUint32(ptrj + PTR_CLASSI, iLE)) {
+                continue;
               }
-            }
-            return {done};
-          };
-        
-        //? ptrIterator( null, null, ... )
-        case Boolean(!ptri && !Class):
-          return function() {
-            while (ptrj -= HEADER_BYTELENGTH) {
-              if (construct && (clsi = getClassIndex(ptrj))) {
-                Class = cscope[clsi];
+              if (construct) {
                 return {
                   value: new Class(ptrj)
                 };
@@ -4689,50 +4674,68 @@ self.init   = ->
             return {done};
           };
         
-        //? ptrIterator( ptri, null, ... )
-        case Boolean(ptri && !Class):
+        //? ptrIterator( null, null, ... )
+        case Boolean(!arguments[0] && !arguments[1]):
           return function() {
             while (ptrj -= HEADER_BYTELENGTH) {
-              if (!ptri - dvw.getUint32(ptrj + PTR_PARENT, iLE)) {
-                if (!construct) {
-                  return {
-                    value: ptrj
-                  };
-                }
-                if (construct && (clsi = getClassIndex(ptrj))) {
-                  Class = cscope[clsi];
-                  return {
-                    value: new Class(ptrj)
-                  };
-                }
+              if (!construct) {
+                return {
+                  value: ptrj
+                };
               }
+              Class = cscope[getClassIndex(ptrj)];
+              return {
+                value: new Class(ptrj)
+              };
+            }
+            return {done};
+          };
+        
+        //? ptrIterator( ptri, null, ... )
+        case Boolean(arguments[0] && !arguments[1]):
+          return function() {
+            while (ptrj -= HEADER_BYTELENGTH) {
+              if (ptri - dvw.getUint32(ptrj + PTR_PARENT, iLE)) {
+                continue;
+              }
+              if (!construct) {
+                return {
+                  value: ptrj
+                };
+              }
+              Class = cscope[getClassIndex(ptrj)];
+              return {
+                value: new Class(ptrj)
+              };
             }
             return {done};
           };
         
         //? ptrIterator( ptri, Class, ... )
-        case Boolean(ptri && Class):
+        case Boolean(arguments[0] && arguments[1]):
           return function() {
             while (ptrj -= HEADER_BYTELENGTH) {
-              if (!ptri - dvw.getUint32(ptrj + PTR_PARENT, iLE)) {
-                if (!clsi - dvw.getUint32(ptrj + PTR_CLASSI, iLE)) {
-                  if (construct) {
-                    return {
-                      value: new Class(ptrj)
-                    };
-                  }
-                  return {
-                    value: ptrj
-                  };
-                }
+              if (ptri - dvw.getUint32(ptrj + PTR_PARENT, iLE)) {
+                continue;
               }
+              if (clsi - dvw.getUint32(ptrj + PTR_CLASSI, iLE)) {
+                continue;
+              }
+              if (!construct) {
+                return {
+                  value: ptrj
+                };
+              }
+              return {
+                value: new Class(ptrj)
+              };
             }
             return {done};
           };
         default:
           throw [/NOT_POSSIBLE/, ptri, Class];
       }
-    })();
+    }).apply(this, arguments);
     return Iterator.from({next});
   };
   emitEvent = function(ptri, eventId, data, recursiving = false) {
@@ -4853,7 +4856,6 @@ self.init   = ->
         name = encodeText(event);
         clsi = cscope.indexOf(EventHandler);
         ptri = mallocExternal(name.length, clsi);
-        log(new EventHandler(ptri));
         ui8.set(name, getByteOffset(ptri));
         setClassIndex(ptri, clsi);
         setEventId(ptri, evti);
@@ -4861,8 +4863,6 @@ self.init   = ->
         setEventArgc(ptri, argcFromFuncDef(handler));
         setEventRcsv(ptri, recursive);
         setLinked(ptri, this.store(handler));
-        cscope[event + "-id:" + evti] = findEventId(event);
-        log(cscope);
         return ptri;
       }
 
@@ -4874,10 +4874,8 @@ self.init   = ->
       }
 
       emit(event, data) {
-        var evti;
-        evti = findEventId(event);
-        if (!evti || !emitEvent(this, evti, data)) {
-          console.error(`error on event id(${evti}):` + event);
+        if (!emitEvent(this, findEventId(event), data)) {
+          console.error("error on event:" + event);
         }
         return this;
       }

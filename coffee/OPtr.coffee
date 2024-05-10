@@ -4690,50 +4690,47 @@ do  self.main = ->
         decodeText subarrayPtri ptri
     
     ptrIterator         = ( ptri, Class, construct = on ) ->
-        ptri = ptri or HEADER_BYTELENGTH
-        clsi = cscope.indexOf Class 
+        clsi = cscope.indexOf Class if Class
         ptrj = dvw.getUint32 0, iLE
         done = yes
         next = switch true
 
             #? ptrIterator( null, Class, ... )
-            when Boolean( !ptri and Class ) then ->
+            when Boolean( !arguments[0] and arguments[1] ) then ->
                 while ptrj -= HEADER_BYTELENGTH
-                    if !clsi - dvw.getUint32 ptrj + PTR_CLASSI, iLE
-                        if  construct
-                            return value : new Class ptrj
-                        return value : ptrj
-                return { done } 
+                    continue if clsi - dvw.getUint32 ptrj + PTR_CLASSI, iLE
 
-            #? ptrIterator( null, null, ... )
-            when Boolean( !ptri and !Class ) then ->
-                while ptrj -= HEADER_BYTELENGTH
-                    if  construct and clsi = getClassIndex ptrj
-                        Class = cscope[ clsi ]
-                        return value : new Class ptrj
+                    return value : new Class ptrj if construct
                     return value : ptrj
                 return { done } 
 
-            #? ptrIterator( ptri, null, ... )
-            when Boolean( ptri and !Class ) then ->
+            #? ptrIterator( null, null, ... )
+            when Boolean( !arguments[0] && !arguments[1] ) then ->
                 while ptrj -= HEADER_BYTELENGTH
-                    if !ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
-                        return value : ptrj unless construct
+                    return value : ptrj unless construct
 
-                        if  construct and clsi = getClassIndex ptrj
-                            Class = cscope[ clsi ]
-                            return value : new Class ptrj
+                    Class = cscope[ getClassIndex ptrj ]
+                    return value : new Class ptrj
+                return { done } 
 
+            #? ptrIterator( ptri, null, ... )
+            when Boolean(  arguments[0] && !arguments[1] ) then ->
+                while ptrj -= HEADER_BYTELENGTH
+                    continue if ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
+                    return value : ptrj unless construct
+
+                    Class = cscope[ getClassIndex ptrj ]
+                    return value : new Class ptrj
                 return { done }  
 
             #? ptrIterator( ptri, Class, ... )
-            when Boolean( ptri and Class ) then ->
+            when Boolean(  arguments[0] and arguments[1] ) then ->
                 while ptrj -= HEADER_BYTELENGTH
-                    if !ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
-                        if !clsi - dvw.getUint32 ptrj + PTR_CLASSI, iLE
-                            if  construct
-                                return value : new Class ptrj
-                            return value : ptrj
+                    continue if ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
+                    continue if clsi - dvw.getUint32 ptrj + PTR_CLASSI, iLE
+                        
+                    return value : ptrj if !construct
+                    return value : new Class ptrj
                 return { done } 
 
             else throw [ /NOT_POSSIBLE/, ptri, Class ]
@@ -4834,8 +4831,6 @@ do  self.main = ->
             clsi = cscope.indexOf EventHandler
             ptri = mallocExternal name.length, clsi
 
-            log new EventHandler ptri
-
             ui8.set name, getByteOffset ptri
 
             setClassIndex ptri, clsi
@@ -4845,10 +4840,6 @@ do  self.main = ->
             setEventRcsv ptri, recursive
             setLinked ptri, @store handler
 
-            cscope[event + "-id:" + evti] = findEventId event
-
-            log cscope
-
             ptri
 
         once            : ( event, handler, recursive, maxCallCount = 1 ) ->
@@ -4856,9 +4847,8 @@ do  self.main = ->
             setEventMaxCall ptre, maxCallCount; ptre
 
         emit            : ( event, data ) ->
-            evti = findEventId event
-            if !evti or !emitEvent this, evti, data
-                console.error "error on event id(#{evti}):" + event
+            if !emitEvent this, findEventId( event ), data
+                console.error "error on event:" + event
             this
 
         store           : ( object ) ->
