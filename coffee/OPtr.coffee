@@ -4411,8 +4411,7 @@ do  self.main = ->
 
         setParent ptrj = new Class, ptri ; ptrj
         
-
-    findActiveChild     = ( ptri, Class, activate = on, construct = on ) ->
+    findActiveChild = ( ptri, Class, activate = on, construct = on ) ->
         ptrj = dvw.getUint32 0, iLE
         clsi = cscope.indexOf Class
         pasv = 0
@@ -4528,6 +4527,15 @@ do  self.main = ->
 
     setByteLength   = ( ptri, byteLength ) ->
         dvw.setUint32 ptri + PTR_BYTELENGTH, byteLength, iLE ; ptri
+
+    isPointer       = ( any ) ->
+        return off if on isnt !!any 
+        return any if any.isPointer
+        return off if any % HEADER_BYTELENGTH
+        return any if any instanceof Pointer
+        return off if ArrayBuffer.isView any
+        return any if getClassIndex any
+        return off
 
     getByteLength   = ( ptri ) ->
         dvw.getUint32 ptri + PTR_BYTELENGTH, iLE
@@ -4798,8 +4806,6 @@ do  self.main = ->
 
         ptre
 
-    isPointer       = getClassIndex
-
     strNumberify    = ( text ) ->
         number = i = "#{text}".length
         number = number + i * text.charCodeAt(i) while i--
@@ -4905,9 +4911,15 @@ do  self.main = ->
 
                 ptri = mallocExternal value.length, clsi
                 setParent ptri, this
+
+                value = switch typeof value
+                    when "string" then encodeText value
+                    when "number", "boolean" then [ value ]
+                    else value
+
                 Pointer::set.call ptri, value                
 
-            setInited this, 1
+            setInited this, 1 ; this
 
         hasOwnProperty  : ( key ) ->
             Object.hasOwn Object.getPrototypeOf(this), key
@@ -4918,15 +4930,13 @@ do  self.main = ->
                 )
                 return this
 
-            if !@TypedArray
-                f32.set arrayLike, begin
-
-            else switch @TypedArray
+            switch @TypedArray or arrayLike.constructor or Float32Array
                 when     Uint8Array then ui8.set arrayLike, begin * 4
                 when    Uint32Array then u32.set arrayLike, begin
                 when    Uint16Array then u16.set arrayLike, begin * 2
                 when   Float32Array then f32.set arrayLike, begin
                 when BigUint64Array then u64.set [ arrayLike ].map( BigInt ), begin / 2
+                 
 
             emitEvent this, EVENTID_SET, arguments
 
@@ -4964,6 +4974,9 @@ do  self.main = ->
         set             : ( text = "" ) ->
             super encodeText text
     
+        getValue        : ->
+            ptrStringify this
+
 
     cscope.store class EventHandler extends TextPointer
 
@@ -5101,7 +5114,7 @@ do  self.main = ->
 
         init            : ->
             super arguments...
-            warn "selam özgür"
+            warn "selam özgür", scene: this
 
             @activeContext.init()
             animframe = @animationFrame
@@ -5200,7 +5213,7 @@ do  self.main = ->
                     throw [ /NO_ACTIVE_CONTEXT/, this ]
             gl = context.WebGLObject
 
-        getBinding      : ( context ) ->
+        bindGLCall      : ( context ) ->
             gl = @findGLContext context
             gl.clear.apply.bind gl.clear, gl, subarrayPtri this, Uint16Array, 1 
         
@@ -5226,7 +5239,7 @@ do  self.main = ->
                     throw [ /NO_ACTIVE_CONTEXT/, this ]
             gl = context.WebGLObject
 
-        getBinding      : ( context ) ->
+        bindGLCall      : ( context ) ->
             gl = @findGLContext context
             gl . clearColor.apply.bind gl.clearColor, gl, subarrayPtri this, Float32Array, 4 
 
@@ -5243,7 +5256,7 @@ do  self.main = ->
             self.devicePixelRatio
         )
 
-        @byteLength     : @default.byteLength
+        @byteLength     : 8 * Float32Array.BYTES_PER_ELEMENT
 
         set             : ->
             super( arguments... ).call() ; this
@@ -5260,7 +5273,7 @@ do  self.main = ->
             canvas.style.inset      = CSS.px 0
             canvas.style.position   = "fixed"
 
-            @emit "resize"
+            this
 
         init            : ->
             super().set( @constructor.default ).resize() ; this
@@ -5273,9 +5286,196 @@ do  self.main = ->
                     throw [ /NO_ACTIVE_CONTEXT/, this ]
             gl = context.WebGLObject
 
-        getBinding      : ( context ) ->
+        bindGLCall      : ( context ) ->
             gl = @findGLContext context
             gl.viewport.apply.bind gl.viewport, gl, subarrayPtri this, Float32Array, 4 
+
+
+    cscope.store class Integrity extends TextPointer
+            
+        @key            : "integrity"   
+
+        getQuery        : ->
+            return "[integrity='#{@value}']" if @excludeShared
+            return "[integrity='#{@value}'],[integrity][shared]" 
+
+        find            : ( test = { attribute: 'type', regExp: /\ / }, query ) ->
+            @runQuery( query ).find ( htmlNode ) ->
+                for attribute, regExp of test
+                    unless htmlNode[ attribute ].match regExp
+                        return no
+                return on
+        
+        getNodes        : ( fn, query ) ->
+            @runQuery( query ).filter( fn || -> 1 ) 
+
+        runQuery        : ( query = @query ) ->
+            [ ...document.querySelectorAll query ]
+
+        getExcludeShared : ->
+            Boolean getResvUint8 this
+
+        setExcludeShared : (v) ->
+            setResvUint8 this, Number v
+
+    PROGRAM_GLCONTEXT = 0
+    PROGRAM_GLPROGRAM = 2
+    PROGRAM_GLVSHADER = 4
+    PROGRAM_GLFSHADER = 6
+    PROGRAM_GLABUFFER = 8
+    PROGRAM_INTEGRITY = 10
+
+    PROGRAM_RESVINUSE = 0
+    PROGRAM_RESVISLNK = 0
+
+    cscope.store class Program extends Pointer
+
+        TypedArray      : Uint32Array
+
+        @key            : "program"
+
+        @integrity      : "base"
+
+        @byteLength     : 4 * Uint32Array.BYTES_PER_ELEMENT
+
+        init            : -> super().create() ; this
+
+        set             : -> super( arguments... ).call() ; this
+
+        use             : ->
+            return this if @inUse
+            @link().glContext.useProgram @glProgram
+            @setInUse 1
+            return this
+
+        link            : ->
+            return this if @getIsLinked()
+
+            gl      = @glContext ; program = @glProgram
+            vShader = @glVShader ; fShader = @glFShader
+
+            gl.shaderSource  vShader, @nodeVShader.text
+            gl.compileShader vShader
+
+            unless gl.getShaderParameter vShader, gl.COMPILE_STATUS
+                info = gl.getShaderInfoLog vShader
+                throw "Could not compile vertex shader. \n\n#{info}"
+
+
+            gl.shaderSource  fShader, @nodeFShader.text
+            gl.compileShader fShader
+
+            unless gl.getShaderParameter fShader, gl.COMPILE_STATUS
+                info = gl.getShaderInfoLog fShader
+                throw "Could not compile fragment shader. \n\n#{info}"
+
+            gl.attachShader  program, vShader
+            gl.attachShader  program, fShader
+            gl.linkProgram   program
+
+            unless gl.getProgramParameter program, gl.LINK_STATUS
+                info = gl.getProgramInfoLog program
+                throw "Could not compile WebGL program. \n\n#{info}"
+
+            @setIsLinked 1 ; this
+
+
+        getInUse        : ->
+            getResvUint8 this + PROGRAM_RESVINUSE
+
+        setInUse        : ( v ) ->
+            setResvUint8 this + PROGRAM_RESVINUSE, v
+
+
+        getIsLinked     : ->
+            getResvUint8 this + PROGRAM_RESVISLNK
+
+        setIsLinked     : ( v ) ->
+            setResvUint8 this + PROGRAM_RESVISLNK, v
+
+        create          : ->
+            @glContext = gl = @findGLContext arguments...
+            @glProgram = gl . createProgram()
+            @glVShader = gl . createShader( gl.VERTEX_SHADER )
+            @glFShader = gl . createShader( gl.FRAGMENT_SHADER )
+            @glABuffer = gl . createBuffer()
+
+            @glContext.compileShader @glFShader
+            @glContext.bindBuffer gl.ARRAY_BUFFER, @glABuffer
+
+            this
+
+        getNodeVShader  : ->
+            unless node = @integrity.find type : /vertex/i
+                throw [ /NO_VERTEX_SHADER_HTML_SCRIPT/, @integrity.value ]
+            node
+        
+        getNodeFShader  : ->
+            unless node = @integrity.find type : /fragment/i
+                throw [ /NO_FRAGMENT_SHADER_HTML_SCRIPT/, @integrity.value ]
+            node
+        
+        store           : ( object, validator = off ) ->
+            unless validator
+                return super object
+            super @validate object, validator 
+
+        validate        : ( object, validator ) ->
+            unless object instanceof validator
+                throw [ /VALIDATE_ERR/, object, validator:: ]
+            object
+
+        getIntegrity    : ->
+            if !ptri = getUint16 this, PROGRAM_INTEGRITY
+                if !ptri = findChild this, Integrity, create = off, superfind = on
+                    ptri = new Integrity().init().set( Program.integrity )
+                return @setIntegrity ptri
+            new Integrity ptri  
+
+        setIntegrity    : ( ptri ) ->
+            setUint16 this, PROGRAM_INTEGRITY, ptri ; ptri 
+            
+        getGlContext    : ->
+            @storage[ getUint16 this, PROGRAM_GLCONTEXT ]  
+
+        setGlContext    : ( glContext ) ->
+            setUint16 this, PROGRAM_GLCONTEXT, @store glContext, WebGL2RenderingContext ; glContext  
+            
+        getGlProgram    : ->
+            @storage[ getUint16 this, PROGRAM_GLPROGRAM ]  
+
+        setGlProgram    : ( glProgram ) ->
+            setUint16 this, PROGRAM_GLPROGRAM, @store glProgram, WebGLProgram ; glProgram  
+
+        getGlVShader    : ->
+            @storage[ getUint16 this, PROGRAM_GLVSHADER ]  
+
+        setGlVShader    : ( glVShader ) ->
+            setUint16 this, PROGRAM_GLVSHADER, @store glVShader, WebGLShader ; glVShader  
+
+        getGlFShader    : ->
+            @storage[ getUint16 this, PROGRAM_GLFSHADER ]  
+
+        setGlFShader    : ( glFShader ) ->
+            setUint16 this, PROGRAM_GLFSHADER, @store glFShader, WebGLShader ; glFShader  
+
+        getGlABuffer    : ->
+            @storage[ getUint16 this, PROGRAM_GLABUFFER ]  
+
+        setGlABuffer    : ( glABuffer ) ->
+            setUint16 this, PROGRAM_GLABUFFER, @store glABuffer, WebGLBuffer ; glABuffer  
+
+
+
+        findGLContext   : ( context ) ->
+            if !context and !context = findChild this, RenderingContext, off, off 
+                if !context = findChild this, RenderingContext, off, on
+                    throw [ /NO_ACTIVE_CONTEXT/, this ]
+            gl = context.WebGLObject
+
+        bindGLCall      : ->
+            gl = @findGLContext arguments...
+            gl.useProgram.bind gl, @glProgram
 
     cscope.global class RenderingContext extends Pointer
 
@@ -5296,11 +5496,10 @@ do  self.main = ->
             super( arguments...)
                 .on "render", @onrender.bind( this ), 1
                 
-            log @clearMask
-
             @clearMask.call()
             @clearColor.call()
             @viewport.call()
+            log @program.use()
 
             this
 
@@ -5314,52 +5513,89 @@ do  self.main = ->
         RDCTX_CLEAR_MASK    = 4 
         RDCTX_CLEAR_COLOR   = 8 
         RDCTX_VIEWPORT      = 24
+        RDCTX_PROGRAM       = 56
 
-        getViewport     : ->
+        getProgram          : ->
+            if  ptri = getUint32 this, RDCTX_PROGRAM
+                return new Program ptri
+            
+            @setProgram findChild this, Program, off, on 
+
+
+        setProgram          : ( ptri ) ->
+            if !isPointer ptri  
+                setParent ptri = new Program(), this 
+                ptri.init()
+
+            if !getLinked ptri
+                setLinked ptri, @store ptri.bindGLCall this
+
+            setUint32 this, RDCTX_PROGRAM, ptri ; ptri
+
+
+
+        getViewport         : ->
             if  ptri = getUint32 this, RDCTX_VIEWPORT
                 return new Viewport ptri
 
-            unless ptri = findChild this, Viewport, off, on 
-                setParent ptri = new Viewport(), this
-                ptri.init()
-                
-            setLinked ptri, @store ptri.getBinding this
+            if !ptri = findChild this, Viewport, off, on 
+                return @setViewport Viewport.default
+
             @setViewport ptri
 
-        setViewport     : ( ptri ) ->
-            setUint32 this, RDCTX_VIEWPORT, ptri
+
+        setViewport         : ( ptri ) ->
+            if !isPointer ptri  
+                setParent ptri = new Viewport(), this 
+                ptri.set( [ arguments... ].flat() ).init()
+
+            if !getLinked ptri
+                setLinked ptri, @store ptri.bindGLCall this
+
+            setUint32 this, RDCTX_VIEWPORT, ptri ; ptri
 
 
 
-        getClearColor   : ->
+        getClearColor       : ->
             if  ptri = getUint32 this, RDCTX_CLEAR_COLOR
                 return new ClearColor ptri
 
-            unless ptri = findChild this, ClearColor, off, on 
-                setParent ptri = new ClearColor(), this
-                ptri.init()
+            if !ptri = findChild this, ClearColor, off, on 
+                return @setClearColor ClearColor.default
                 
-            setLinked ptri, @store ptri.getBinding this
-            @setClearColor ptri
-
-        setClearColor   : ( ptri ) ->
-            setUint32 this, RDCTX_CLEAR_COLOR, ptri
+            @setClearColor ptri ; ptri
 
 
+        setClearColor       : ( ptri ) ->
+            if !isPointer ptri  
+                setParent ptri = new ClearColor(), this 
+                ptri.set( [ arguments... ].flat() ).init()
 
-        getClearMask    : ->
+            if !getLinked ptri
+                setLinked ptri, @store ptri.bindGLCall this
+
+            setUint32 this, RDCTX_CLEAR_COLOR, ptri ; ptri
+
+
+
+        getClearMask        : ->
             if  ptri = getUint32 this, RDCTX_CLEAR_MASK
                 return new ClearMask ptri
 
-            unless ptri = findChild this, ClearMask, off, on 
-                setParent ptri = new ClearMask(), this
-                ptri.init()
-                
-            setLinked ptri, @store ptri.getBinding this
+            if !ptri = findChild this, ClearMask, off, on 
+                return @setClearMask ClearMask.default
+            
             @setClearMask ptri
 
-        setClearMask    : ( ptri ) ->            
-            setUint32 this, RDCTX_CLEAR_MASK, ptri
+        setClearMask        : ( ptri ) ->         
+            if !isPointer ptri  
+                setParent ptri = new ClearMask(), this 
+                ptri.set( [ arguments... ].flat() ).init()
+
+            if !getLinked ptri
+                setLinked ptri, @store ptri.bindGLCall this
+
+            setUint32 this, RDCTX_CLEAR_MASK, ptri ; ptri
 
 
         Object.defineProperties this::, WebGLObject : get : ->

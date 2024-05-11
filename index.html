@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <link rel="shortcut icon" href="favicon.ico">
     <script src="./coi-serviceworker.js"></script>
-    <style>
+    <style shared>
         body, html { 
             width: 100vw; height: 100vh; overflow: hidden;
             margin: 0; overscroll-behavior-x: none;
@@ -29,7 +29,7 @@
     </style>
 
 
-    <script type="x-shader/x-fragment">
+    <script integrity="base" shared type="x-shader/x-fragment">
         precision mediump int;
         precision mediump float;
 
@@ -40,7 +40,7 @@
         }
     </script>
 
-    <script type="x-shader/x-vertex">
+    <script integrity="my-avesome-vertex-shader" type="x-shader/x-vertex">
         precision mediump int;
         precision mediump float;
 
@@ -81,7 +81,12 @@
     <script src="Optr.js">
         let red = 0.5, green = 0.3 , blue= 0.8, sign = 1, factor = 0.0025;
 
-        const scene = Scene({clearColor : [1, 0, 0.5, 1]})
+        const scene = Scene({
+            clearColor : [1, 0, 0.5, 1],
+            integrity : "my-avesome-vertex-shader"
+        })
+
+        console.log(scene)
 
         scene.on("resize", function (){
             console.log("resized", this )
@@ -104,19 +109,13 @@
         })
 
         
-        scene.on("set", function (arrayLike){
-            console.warn("settled in scene", arrayLike, this)
-        }, 1)
-
 
         const mesh1 = Mesh({
             position : [ 0, -1, 0 ],
-            color : [ 0, 0, 0, 1]
+            color : [ 0, 0, 0, 1],
+            integrity : "second-vertex-shader"
         })
 
-        mesh1.on("set", function (arrayLike){
-            console.error("mesh settled", arrayLike, this)
-        })
 
         const mesh2 = Mesh({
             rotation : [ 0, Math.PI, 0 ],
@@ -157,7 +156,7 @@
 
 
 
-        console.log(mesh1, mesh2 ,  scene, scene.activeContext)
+        console.log(mesh1, mesh2 ,  scene, scene.animationFrame)
         
 
 
