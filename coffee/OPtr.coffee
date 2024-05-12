@@ -5418,7 +5418,7 @@ do  self.main = ->
             this
 
         init            : ->
-            super( arguments... ).resize()
+            super( arguments... ).resize() ; this
 
         getCanvas       : ->
             @parent.WebGLObject.canvas
@@ -5471,24 +5471,18 @@ do  self.main = ->
 
         @key            : "program"
 
-        is              : ( value ) ->
-            @value is value
-
         use             : ->
-            return this if @inUse
-            @link().glContext.useProgram @glProgram
-            @setInUse 1
-            return this
+            if !getResvUint8 this
+                @storage[ getLinked this ]()
+                @parent.activeProgram = this
+            1
 
-        link            : ->
-            return this if @getIsLinked()
+        getIsUsing      : ->
+            Boolean getResvUint8 this
 
+        getUseNow          : ->
+            @use()
 
-            @setIsLinked 1 ; this
-
-        bindGLCall      : ->
-            gl = @parent.WebGLObject
-            gl.useProgram.bind gl, @glProgram
 
     cscope.global class RenderingContext extends Pointer
 
@@ -5527,18 +5521,24 @@ do  self.main = ->
         RDCTX_VIEWPORT      = 24
         RDCTX_PROGRAMCOUNT  = 56
 
+        getActiveProgram    : ->
+            getResvUint32 this
+
+        setActiveProgram    : ( ptri ) ->
+            setResvUint8 ptri, 1
+            setResvUint8 @activeProgram, 0
+            setResvUint32 this, ptri
+
         getPrograms         : ->
-            list = findChilds this, Program, recursive = off, construct = yes
-            return list.length && list or [ @append( new Program() ).init() ]
+            findChilds this, Program, recursive = off, construct = yes
 
         getViewport         : ->
             if  ptri = getUint32 this, RDCTX_VIEWPORT
                 return new Viewport ptri
 
             if !ptri = findChild this, Viewport, construct = off, superfind = off 
-                setParent ptri = new Viewport(), this
-                ptri . init()
-                ptri . bindGLCall @WebGLObject
+                setParent ptri = new Viewport().init(), this
+                ptri.bindGLCall @WebGLObject
             
             return ptri
 

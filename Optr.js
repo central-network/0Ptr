@@ -5695,7 +5695,8 @@ self.init   = ->
       }
 
       init() {
-        return super.init(...arguments).resize();
+        super.init(...arguments).resize();
+        return this;
       }
 
       getCanvas() {
@@ -5790,31 +5791,20 @@ self.init   = ->
   }).call(this));
   cscope.store(Program = (function() {
     class Program extends TextPointer {
-      is(value) {
-        return this.value === value;
-      }
-
       use() {
-        if (this.inUse) {
-          return this;
+        if (!getResvUint8(this)) {
+          this.storage[getLinked(this)]();
+          this.parent.activeProgram = this;
         }
-        this.link().glContext.useProgram(this.glProgram);
-        this.setInUse(1);
-        return this;
+        return 1;
       }
 
-      link() {
-        if (this.getIsLinked()) {
-          return this;
-        }
-        this.setIsLinked(1);
-        return this;
+      getIsUsing() {
+        return Boolean(getResvUint8(this));
       }
 
-      bindGLCall() {
-        var gl;
-        gl = this.parent.WebGLObject;
-        return gl.useProgram.bind(gl, this.glProgram);
+      getUseNow() {
+        return this.use();
       }
 
     };
@@ -5845,10 +5835,19 @@ self.init   = ->
         return 1;
       }
 
+      getActiveProgram() {
+        return getResvUint32(this);
+      }
+
+      setActiveProgram(ptri) {
+        setResvUint8(ptri, 1);
+        setResvUint8(this.activeProgram, 0);
+        return setResvUint32(this, ptri);
+      }
+
       getPrograms() {
-        var construct, list, recursive;
-        list = findChilds(this, Program, recursive = false, construct = true);
-        return list.length && list || [this.append(new Program()).init()];
+        var construct, recursive;
+        return findChilds(this, Program, recursive = false, construct = true);
       }
 
       getViewport() {
@@ -5857,8 +5856,7 @@ self.init   = ->
           return new Viewport(ptri);
         }
         if (!(ptri = findChild(this, Viewport, construct = false, superfind = false))) {
-          setParent(ptri = new Viewport(), this);
-          ptri.init();
+          setParent(ptri = new Viewport().init(), this);
           ptri.bindGLCall(this.WebGLObject);
         }
         return ptri;
