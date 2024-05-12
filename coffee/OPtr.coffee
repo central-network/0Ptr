@@ -4290,6 +4290,15 @@ do  self.main = ->
     PTRKEY              = "{{Pointer}}"
     EVENTID_SET         = 336
 
+    STATE               =
+        NEEDS_MALLOC    : new (class NEEDS_MALLOC extends Number) 0
+        NEEDS_UPDATE    : new (class NEEDS_UPDATE extends Number) 1
+        UPDATING_NOW    : new (class UPDATING_NOW extends Number) 2
+        NEEDS_UPLOAD    : new (class NEEDS_UPLOAD extends Number) 3
+        DRAWING_DONE    : new (class DRAWING_DONE extends Number) 4
+
+    for label , val of STATE
+        STATE[ +val ] = val
 
     sab = new SharedArrayBuffer BUFFER_SIZE if isWindow
     u64 = new BigUint64Array sab
@@ -4518,6 +4527,12 @@ do  self.main = ->
 
     getResvUint8    = ( byteOffset = 0 ) ->
         dvw.getUint8 byteOffset + PTR_RESVBEGIN
+    
+    asetResvUint8   = ( byteOffset, value ) ->
+        Atomics.store ui8, byteOffset + PTR_RESVBEGIN, value
+
+    agetResvUint8   = ( byteOffset = 0 ) ->
+        Atomics.load ui8, byteOffset + PTR_RESVBEGIN
 
     setResvUint64   = ( byteOffset, value ) ->
         dvw.setBigUint64 byteOffset + PTR_RESVBEGIN, BigInt(value), iLE ; value
@@ -4725,8 +4740,9 @@ do  self.main = ->
 
     ptrStringify        = ( ptri ) ->
         decodeText subarrayPtri ptri
+
     
-    ptrIterator         = ( ptri, Class, construct = on ) ->
+    ptrIterator         = ( ptri, Class, construct = on, PTR_OFFSET = PTR_PARENT ) ->
         clsi = cscope.indexOf Class if Class
         ptrj = dvw.getUint32 0, iLE
         done = yes
@@ -4735,7 +4751,7 @@ do  self.main = ->
             #? ptrIterator( ptri, Class, ... )
             when Boolean(  arguments[0] and arguments[1] ) then ->
                 while ptrj -= HEADER_BYTELENGTH
-                    continue if ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
+                    continue if ptri - dvw.getUint32 ptrj + PTR_OFFSET, iLE
                     continue if clsi - dvw.getUint32 ptrj + PTR_CLASSI, iLE
                         
                     return value : ptrj if !construct
@@ -4763,7 +4779,7 @@ do  self.main = ->
             #? ptrIterator( ptri, null, ... )
             when Boolean(  arguments[0] && !arguments[1] ) then ->
                 while ptrj -= HEADER_BYTELENGTH
-                    continue if ptri - dvw.getUint32 ptrj + PTR_PARENT, iLE
+                    continue if ptri - dvw.getUint32 ptrj + PTR_OFFSET, iLE
                     return value : ptrj unless construct
 
                     Class = cscope[ getClassIndex ptrj ]
@@ -4851,12 +4867,15 @@ do  self.main = ->
             console.error "tostring", this
             super()
 
-        on              : ( event, handler, recursive = off ) ->
-            name = encodeText event
-            clsi = cscope.indexOf EventHandler
-            ptri = mallocExternal name.length, clsi
+        on              : ( events, handler, recursive = off ) ->
+            names = events.split(",")
+            event = names.shift().trim()
+            nameArray = encodeText event
 
-            ui8.set name, getByteOffset ptri
+            clsi = cscope.indexOf EventHandler
+            ptri = mallocExternal nameArray.length, clsi
+
+            ui8.set nameArray, getByteOffset ptri
 
             setClassIndex ptri, clsi
             setEventId ptri, strNumberify event
@@ -4864,7 +4883,9 @@ do  self.main = ->
             setEventRcsv ptri, recursive
             setLinked ptri, @store handler
 
-            ptri
+            return ptri unless names.length
+
+            @on names.join(","), handler, recursive
 
         once            : ( event, handler, recursive, maxCallCount = 1 ) ->
             ptre = @on event, handler, recursive 
@@ -4930,13 +4951,13 @@ do  self.main = ->
                 )
                 return this
 
-            switch @TypedArray or arrayLike.constructor or Float32Array
+            switch @TypedArray or arrayLike.constructor
                 when     Uint8Array then ui8.set arrayLike, begin * 4
                 when    Uint32Array then u32.set arrayLike, begin
+                when   Float32Array, Array then f32.set arrayLike, begin
                 when    Uint16Array then u16.set arrayLike, begin * 2
-                when   Float32Array then f32.set arrayLike, begin
                 when BigUint64Array then u64.set [ arrayLike ].map( BigInt ), begin / 2
-                 
+                else f32.set arrayLike, begin
 
             emitEvent this, EVENTID_SET, arguments
 
@@ -4965,7 +4986,7 @@ do  self.main = ->
             ptrIterator this, @constructor.iterate, on
 
 
-    cscope.store class TextPointer extends Pointer
+    cscope.store  class TextPointer extends Pointer
 
         @key            : "text"
 
@@ -4977,8 +4998,7 @@ do  self.main = ->
         getValue        : ->
             ptrStringify this
 
-
-    cscope.store class EventHandler extends TextPointer
+    cscope.store  class EventHandler extends TextPointer
 
         @key            : "eventHandler"
 
@@ -5041,13 +5061,13 @@ do  self.main = ->
 
         TypedArray      : Float32Array
 
-    cscope.store class Location extends Pointer
+    cscope.store  class Location extends Pointer
 
         @byteLength     : 4 * BYTES_PER_ELEMENT
     
         @key            : "location"
 
-    
+    MESH_DRAW_STATE     = 0
 
     cscope.global class Mesh extends Pointer
 
@@ -5057,11 +5077,32 @@ do  self.main = ->
 
         @key            : "mesh"
 
+        getIntegrity    : ->
+            if !ptri = getLinked this 
+                if !ptri = findChild this, Integrity, create = off, superfind = on
+                    return undefined
+                @integrity = ptri
+            new Integrity ptri
+
+        setIntegrity    : ( ptri ) ->
+            if  "string" is typeof ptri
+                ptri = new Integrity().set ptri
+            setLinked this, ptri ; ptri
+
+        getDrawState    : ->
+            STATE[ agetResvUint8 this + MESH_DRAW_STATE ]
+
+        setDrawState    : ( state ) ->
+            s = STATE[ state ] or throw /NO_DRAW_STATE/
+            asetResvUint8 this + MESH_DRAW_STATE, s
+            @emit "drawstatechange", s
+            s
+
         Object.defineProperties Mesh::,
             vertices    : 
                 set     : Mesh::set
 
-    cscope.store class AnimationFrame extends Pointer
+    cscope.store  class AnimationFrame extends Pointer
 
         TypedArray      : BigUint64Array
 
@@ -5110,20 +5151,19 @@ do  self.main = ->
 
         @key            : "scene"
 
-        @iterate        : Mesh
-
         init            : ->
             super arguments...
             warn "selam özgür", scene: this
 
             @activeContext.init()
             animframe = @animationFrame
-            
+
+            i = 0
             onframe = ( epoch = 0 ) ->
 
                 @emit "beforerender", epoch
                 @render epoch, animframe
-                requestAnimationFrame onframe
+                requestAnimationFrame onframe if ++i < 4
                 
                 0
 
@@ -5134,6 +5174,15 @@ do  self.main = ->
         render          : ( epoch, aframe ) ->
             delta   = epoch - aframe.epoch
             fps     = 1 / delta * 1000
+
+            for mesh from ptrIterator null, Mesh, construct = on
+                switch mesh.drawState
+                    when STATE.NEEDS_MALLOC
+                        if !mesh.integrity.linked
+                            ctx = findChild mesh, RenderingContext, create = off, superfind = on
+
+                        log "alloc needed:", mesh.integrity.value, mesh.integrity.linked
+                        program = mesh.integrity.linked #todo alloc from this
 
             @inform "render", delta, Object.assign aframe , {
                 epoch, fps, delta , count : aframe.count + 1
@@ -5149,13 +5198,8 @@ do  self.main = ->
             activeContext : get : ->
                 findActiveChild this, RenderingContext, on
 
-            events        : get : ->
-                child for child from ptrIterator this, EventHandler
 
-            clearColr       : get : ->
-                findChild this, ClearColor
-
-    cscope.store class CallBinding extends TextPointer
+    cscope.store  class CallBinding extends TextPointer
 
         set : ( name, @function ) ->
             super name
@@ -5171,7 +5215,6 @@ do  self.main = ->
 
             name        :
                 get     : -> ptrStringify this
-
 
     cscope.global class ClearMask extends Pointer
 
@@ -5217,7 +5260,7 @@ do  self.main = ->
             gl = @findGLContext context
             gl.clear.apply.bind gl.clear, gl, subarrayPtri this, Uint16Array, 1 
         
-    cscope.store class ClearColor extends Color
+    cscope.store  class ClearColor extends Color
 
         @key            : "clearColor"
 
@@ -5242,9 +5285,8 @@ do  self.main = ->
         bindGLCall      : ( context ) ->
             gl = @findGLContext context
             gl . clearColor.apply.bind gl.clearColor, gl, subarrayPtri this, Float32Array, 4 
-
         
-    cscope.store class Viewport extends Pointer
+    cscope.store  class Viewport extends Pointer
 
         TypedArray      : Float32Array
 
@@ -5258,8 +5300,18 @@ do  self.main = ->
 
         @byteLength     : 8 * Float32Array.BYTES_PER_ELEMENT
 
-        set             : ->
-            super( arguments... ).call() ; this
+        set             : ( values = [] ) ->
+            [   left = 0, top = 0, width, 
+                height, aratio, pratio ] = values
+
+            width  or= self.innerWidth or 640
+            height or= self.innerHeight or 480
+            aratio or= width/height
+            pratio or= devicePixelRatio or 1
+
+            super( Float32Array.of(
+                left, top, width, height, aratio, pratio
+            ) ).call() ; this
 
         resize          : ->
             [   left, top, width, 
@@ -5276,22 +5328,19 @@ do  self.main = ->
             this
 
         init            : ->
-            super().set( @constructor.default ).resize() ; this
+            super( arguments... ).resize()
 
-        getCanvas       : -> @findGLContext().canvas
+        getCanvas       : ->
+            @parent.WebGLObject.canvas
 
-        findGLContext   : ( context ) ->
-            if !context and !context = findChild this, RenderingContext, off, off 
-                if !context = findChild this, RenderingContext, off, on
-                    throw [ /NO_ACTIVE_CONTEXT/, this ]
-            gl = context.WebGLObject
-
-        bindGLCall      : ( context ) ->
-            gl = @findGLContext context
+        bindGLCall      : ( gl = @parent.WebGLObject ) ->
             gl.viewport.apply.bind gl.viewport, gl, subarrayPtri this, Float32Array, 4 
 
 
-    cscope.store class Integrity extends TextPointer
+    INTEGRITY_RESVTCLSI = 0 
+    INTEGRITY_RESVTEXCL = 1
+
+    cscope.store  class Integrity extends TextPointer
             
         @key            : "integrity"   
 
@@ -5305,6 +5354,20 @@ do  self.main = ->
                     unless htmlNode[ attribute ].match regExp
                         return no
                 return on
+
+        getLinked       : ->
+            if !lnki = getLinked this
+                for ctx from ptrIterator null, RenderingContext, construct = on
+                    program.link() for program in ctx.programs
+                return unless lnki = getLinked this
+
+            clsi = getResvUint8 this + INTEGRITY_RESVTCLSI
+            new cscope[ clsi ] lnki
+
+        setLinked       : ( ptri ) ->
+            throw /ALREADY_LINKED/ if getLinked this
+            setResvUint8 this + INTEGRITY_RESVTCLSI, getClassIndex ptri 
+            setLinked this, ptri; this
         
         getNodes        : ( fn, query ) ->
             @runQuery( query ).filter( fn || -> 1 ) 
@@ -5313,10 +5376,10 @@ do  self.main = ->
             [ ...document.querySelectorAll query ]
 
         getExcludeShared : ->
-            Boolean getResvUint8 this
+            Boolean getResvUint8 this + INTEGRITY_RESVTEXCL
 
         setExcludeShared : (v) ->
-            setResvUint8 this, Number v
+            setResvUint8 this + INTEGRITY_RESVTEXCL, Number v
 
     PROGRAM_GLCONTEXT = 0
     PROGRAM_GLPROGRAM = 2
@@ -5338,7 +5401,7 @@ do  self.main = ->
 
         @byteLength     : 4 * Uint32Array.BYTES_PER_ELEMENT
 
-        init            : -> super().create() ; this
+        init            : -> super().create().link() ; this
 
         set             : -> super( arguments... ).call() ; this
 
@@ -5379,13 +5442,11 @@ do  self.main = ->
 
             @setIsLinked 1 ; this
 
-
         getInUse        : ->
             getResvUint8 this + PROGRAM_RESVINUSE
 
         setInUse        : ( v ) ->
             setResvUint8 this + PROGRAM_RESVINUSE, v
-
 
         getIsLinked     : ->
             getResvUint8 this + PROGRAM_RESVISLNK
@@ -5433,6 +5494,7 @@ do  self.main = ->
             new Integrity ptri  
 
         setIntegrity    : ( ptri ) ->
+            Integrity::setLinked.call ptri, this
             setUint16 this, PROGRAM_INTEGRITY, ptri ; ptri 
             
         getGlContext    : ->
@@ -5464,7 +5526,6 @@ do  self.main = ->
 
         setGlABuffer    : ( glABuffer ) ->
             setUint16 this, PROGRAM_GLABUFFER, @store glABuffer, WebGLBuffer ; glABuffer  
-
 
 
         findGLContext   : ( context ) ->
@@ -5499,8 +5560,7 @@ do  self.main = ->
             @clearMask.call()
             @clearColor.call()
             @viewport.call()
-            log @program.use()
-
+            
             this
 
         onrender        : ( epoch ) ->
@@ -5513,14 +5573,11 @@ do  self.main = ->
         RDCTX_CLEAR_MASK    = 4 
         RDCTX_CLEAR_COLOR   = 8 
         RDCTX_VIEWPORT      = 24
-        RDCTX_PROGRAM       = 56
+        RDCTX_PROGRAMCOUNT  = 56
 
-        getProgram          : ->
-            if  ptri = getUint32 this, RDCTX_PROGRAM
-                return new Program ptri
-            
-            @setProgram findChild this, Program, off, on 
-
+        getPrograms         : ->
+            list = findChilds this, Program, recursive = off, construct = yes
+            return list.length && list or [ @append( new Program() ).init() ]
 
         setProgram          : ( ptri ) ->
             if !isPointer ptri  
@@ -5533,27 +5590,26 @@ do  self.main = ->
             setUint32 this, RDCTX_PROGRAM, ptri ; ptri
 
 
-
         getViewport         : ->
             if  ptri = getUint32 this, RDCTX_VIEWPORT
                 return new Viewport ptri
 
-            if !ptri = findChild this, Viewport, off, on 
-                return @setViewport Viewport.default
-
-            @setViewport ptri
-
+            if !ptri = findChild this, Viewport, construct = off, superfind = off 
+                setParent ptri = new Viewport(), this
+                ptri . init()
+                ptri . bindGLCall @WebGLObject
+            
+            return ptri
 
         setViewport         : ( ptri ) ->
             if !isPointer ptri  
                 setParent ptri = new Viewport(), this 
-                ptri.set( [ arguments... ].flat() ).init()
+                ptri.set( arguments[0] ).init()
 
             if !getLinked ptri
-                setLinked ptri, @store ptri.bindGLCall this
+                setLinked ptri, @store ptri.bindGLCall @WebGLObject
 
             setUint32 this, RDCTX_VIEWPORT, ptri ; ptri
-
 
 
         getClearColor       : ->
@@ -5565,17 +5621,17 @@ do  self.main = ->
                 
             @setClearColor ptri ; ptri
 
-
         setClearColor       : ( ptri ) ->
+            warn "setClearColor:", ptri
             if !isPointer ptri  
-                setParent ptri = new ClearColor(), this 
-                ptri.set( [ arguments... ].flat() ).init()
+                setParent ptri = new ClearColor(), this
+                ptri.set arguments[0]
+                ptri.init()
 
             if !getLinked ptri
                 setLinked ptri, @store ptri.bindGLCall this
 
             setUint32 this, RDCTX_CLEAR_COLOR, ptri ; ptri
-
 
 
         getClearMask        : ->
@@ -5590,7 +5646,7 @@ do  self.main = ->
         setClearMask        : ( ptri ) ->         
             if !isPointer ptri  
                 setParent ptri = new ClearMask(), this 
-                ptri.set( [ arguments... ].flat() ).init()
+                ptri.set( arguments[0] ).init()
 
             if !getLinked ptri
                 setLinked ptri, @store ptri.bindGLCall this

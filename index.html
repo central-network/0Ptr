@@ -44,6 +44,26 @@
         precision mediump int;
         precision mediump float;
 
+        uniform mat4 u_Frustrum;
+        uniform float u_PointSize;
+        
+        attribute vec3 a_Position;
+        attribute vec2 a_Scale;
+        attribute vec4 a_Color;
+
+        varying vec4 v_Color;
+
+        void main() {
+            gl_Position = u_Frustrum * vec4(a_Position, 1.) * vec4(a_Scale, 1., 1.);
+            gl_PointSize = u_PointSize;
+            v_Color = a_Color;
+        }
+    </script>
+
+    <script integrity="base" type="x-shader/x-vertex">
+        precision mediump int;
+        precision mediump float;
+
         attribute vec4 a_Position;
         attribute vec4 a_Color;
 
@@ -83,10 +103,19 @@
 
         const scene = Scene({
             clearColor : [1, 0, 0.5, 1],
-            integrity : "my-avesome-vertex-shader"
+            integrity : "base"
         })
 
+        const secondContext = RenderingContext({
+            viewport : Float32Array.of( 10, 20, 120, 50 ),
+            integrity : "my-avesome-vertex-shader",
+            clearColor : [ 1, .1, 0, 1]
+        })
+
+        scene.add(secondContext)
+
         console.log(scene)
+        console.log(secondContext)
 
         scene.on("resize", function (){
             console.log("resized", this )
@@ -113,7 +142,7 @@
         const mesh1 = Mesh({
             position : [ 0, -1, 0 ],
             color : [ 0, 0, 0, 1],
-            integrity : "second-vertex-shader"
+            integrity : "my-avesome-vertex-shader"
         })
 
 
@@ -141,7 +170,9 @@
 
         scene.append(mesh1)
         mesh1.append(mesh2)
-        mesh2.add(mesh3)
+        mesh1.add(mesh3)
+
+        scene.add(new Position().set([3,0,-5]))
 
         mesh1.vertices = [
             3,   0,  3,
@@ -156,7 +187,7 @@
 
 
 
-        console.log(mesh1, mesh2 ,  scene, scene.animationFrame)
+        console.log(mesh1, mesh2 ,  scene, scene.activeContext)
         
 
 
