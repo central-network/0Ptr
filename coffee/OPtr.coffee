@@ -4284,7 +4284,7 @@ do  self.main = ->
     PTR_EVTMXCALL       = 8 * 4
     PTR_EVNTCALLS       = 9 * 4
     
-    PTR_LINKEDI         = 10 * 4
+    PTR_LINKED          = 10 * 4
     PTR_RESVBEGIN       = 11 * 4
 
     PTRKEY              = "{{Pointer}}"
@@ -4446,6 +4446,25 @@ do  self.main = ->
 
         return pasv unless construct
         return new Class pasv
+
+    findLinkeds     = ( ptri, Class, construct = on ) ->
+        ptrj = dvw.getUint32 index = 0, iLE
+        clsi = cscope.indexOf Class
+        list = new Array
+
+        if !construct
+            while ptrj -= HEADER_BYTELENGTH
+                continue if ptri - dvw.getUint32 PTR_LINKED + ptrj, iLE
+                continue if clsi - dvw.getUint32 PTR_CLASSI + ptrj, iLE
+                list[ index++ ] = ptrj
+
+        else
+            while ptrj -= HEADER_BYTELENGTH
+                continue if ptri - dvw.getUint32 PTR_LINKED + ptrj, iLE
+                continue if clsi - dvw.getUint32 PTR_CLASSI + ptrj, iLE
+                list[ index++ ] = new Class ptrj
+
+        list
 
     findChilds      = ( ptri, Class, recursive = off, construct = on, childs = [] ) ->
         throw /CLASS_REQUIRED/ if recursive and !Class
@@ -4616,10 +4635,10 @@ do  self.main = ->
         dvw.getUint8 ptri + PTR_INITIAL
 
     setLinked        = ( ptri, stri ) ->
-        dvw.setUint16 ptri + PTR_LINKEDI, stri ; stri
+        dvw.setUint32 ptri + PTR_LINKED, stri, iLE ; stri
 
     getLinked        = ( ptri ) ->
-        dvw.getUint16 ptri + PTR_LINKEDI
+        dvw.getUint32 ptri + PTR_LINKED, iLE
 
     setParent       = ( ptri, ptrj ) ->
         dvw.setUint32 ptri + PTR_PARENT, ptrj, iLE ; ptrj
@@ -4790,7 +4809,7 @@ do  self.main = ->
                 while ptrj -= HEADER_BYTELENGTH
                     return value : ptrj unless construct
 
-                    Class = cscope[ getClassIndex ptrj ]
+                    Class = cscope[ dvw.getUint32 ptrj + PTR_CLASSI, iLE ]
                     return value : new Class ptrj
                 return { done } 
 
@@ -4800,7 +4819,7 @@ do  self.main = ->
                     continue if ptri - dvw.getUint32 ptrj + PTR_OFFSET, iLE
                     return value : ptrj unless construct
 
-                    Class = cscope[ getClassIndex ptrj ]
+                    Class = cscope[ dvw.getUint32 ptrj + PTR_CLASSI, iLE ]
                     return value : new Class ptrj
                 return { done }  
 
@@ -5117,6 +5136,9 @@ do  self.main = ->
             setParent ptri = new Program , context
             setLinked this , ptri . set this.value
 
+            unless getInited ptri.parent
+                ptri.parent.init()
+
             gl          = context.WebGLObject
 
             vShader     = do =>
@@ -5251,7 +5273,7 @@ do  self.main = ->
 
                 @emit "beforerender", epoch
                 @render epoch, animframe
-                requestAnimationFrame onframe if ++i < 2
+                requestAnimationFrame onframe if ++i < 4
                 
                 0
 
@@ -5262,14 +5284,6 @@ do  self.main = ->
         render          : ( epoch, aframe ) ->
             delta   = epoch - aframe.epoch
             fps     = 1 / delta * 1000
-
-            for mesh from ptrIterator null, Mesh, construct = on
-                log 1, "mesh:", mesh
-                for drawCall in mesh.children when drawCall.isDrawCall
-                    log 2, "    drawcall :", drawCall
-                    log 3, "        context :", drawCall.program.parent
-                    log 3, "        program :", drawCall.program, "<-- #{drawCall.program.value}"
-
 
             @inform "render", delta, Object.assign aframe , {
                 epoch, fps, delta , count : aframe.count + 1
@@ -5418,53 +5432,15 @@ do  self.main = ->
             this
 
         init            : ->
-            super( arguments... ).resize() ; this
+            super( arguments... ).resize().bind() ; this
 
         getCanvas       : ->
             @parent.WebGLObject.canvas
 
-        bindGLCall      : ( gl = @parent.WebGLObject ) ->
-            gl.viewport.apply.bind gl.viewport, gl, subarrayPtri this, Float32Array, 4 
+        bind            : ->
+            gl = @parent.WebGLObject
+            gl . viewport.apply.bind gl.viewport, gl, subarrayPtri this, Float32Array, 4 
 
-
-    INTEGRITY_RESVTCLSI = 0 
-    INTEGRITY_RESVTEXCL = 1
-
-    cscope.store  class Integrity extends TextPointer
-            
-        @key            : "integrity"   
-
-        getQuery        : ->
-            return "[program='#{@value}']" if @excludeShared
-            return "[program='#{@value}'],[program][default]" 
-
-        find            : ( test = { attribute: 'type', regExp: /\ / }, query ) ->
-            @runQuery( query ).find ( htmlNode ) ->
-                for attribute, regExp of test
-                    unless htmlNode[ attribute ].match regExp
-                        return no
-                return on
-
-        getLinked       : ->
-            return unless lnki = getLinked this
-            new Program lnki
-
-        setLinked       : ( ptri ) ->
-            throw /ALREADY_LINKED/ if getLinked this
-            setResvUint8 this + INTEGRITY_RESVTCLSI, getClassIndex ptri 
-            setLinked this, ptri; this
-        
-        getNodes        : ( fn, query ) ->
-            @runQuery( query ).filter( fn || -> 1 ) 
-
-        runQuery        : ( query = @query ) ->
-            [ ...document.querySelectorAll query ]
-
-        getExcludeShared : ->
-            Boolean getResvUint8 this + INTEGRITY_RESVTEXCL
-
-        setExcludeShared : (v) ->
-            setResvUint8 this + INTEGRITY_RESVTEXCL, Number v
 
 
     cscope.store class Program extends TextPointer
@@ -5480,8 +5456,11 @@ do  self.main = ->
         getIsUsing      : ->
             Boolean getResvUint8 this
 
-        getUseNow          : ->
-            @use()
+        getDrawCalls    : ->
+            dc for dc from ptrIterator this, DrawCall, on, PTR_LINKED 
+
+        getUseNow       : -> @use()
+
 
 
     cscope.global class RenderingContext extends Pointer
@@ -5495,14 +5474,15 @@ do  self.main = ->
         @byteLength     : 24 * 4
 
         create          : ->
-            document.body.appendChild(
-                document.createElement( "canvas" )
-            ).getContext( @type )
+            canvas = document.createElement "canvas" 
+            document.body.prepend canvas 
+            canvas.getContext @type
 
         init            : ->
             super( arguments...)
                 .on "render", @onrender.bind( this ), 1
                 
+            warn this
             @clearMask.call()
             @clearColor.call()
             @viewport.call()
@@ -5511,6 +5491,7 @@ do  self.main = ->
 
         onrender        : ( epoch ) ->
             @clearMask.call()
+            log this
             
             1
 
@@ -5537,18 +5518,15 @@ do  self.main = ->
                 return new Viewport ptri
 
             if !ptri = findChild this, Viewport, construct = off, superfind = off 
-                setParent ptri = new Viewport().init(), this
-                ptri.bindGLCall @WebGLObject
+                setParent ptri = new Viewport(), this
+                ptri.init()
             
-            return ptri
+            return new Viewport ptri
 
         setViewport         : ( ptri ) ->
             if !isPointer ptri  
                 setParent ptri = new Viewport(), this 
                 ptri.set( arguments[0] ).init()
-
-            if !getLinked ptri
-                setLinked ptri, @store ptri.bindGLCall @WebGLObject
 
             setUint32 this, RDCTX_VIEWPORT, ptri ; ptri
 

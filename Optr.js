@@ -4164,7 +4164,7 @@ self.init   = ->
 
  */
 (self.main = function() {
-  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, ClearMask, Color, DRAWING_DONE, DrawCall, EVENTID_SET, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, INTEGRITY_RESVTCLSI, INTEGRITY_RESVTEXCL, Integrity, Location, MALLOC_BYTEOFFSET, MESH_DRAW_STATE, Mesh, NEEDS_MALLOC, NEEDS_UPDATE, NEEDS_UPLOAD, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, Program, RenderingContext, Rotation, STATE, Scale, Scene, Scope, Storage, TextPointer, UPDATING_NOW, Viewport, agetResvUint8, asetResvUint8, c, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, get, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, label, len, malign, malloc, mallocExternal, palloc, property, ptrByteCompare, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, ref2, ref3, ref4, sab, set, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8, val;
+  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, ClearMask, Color, DRAWING_DONE, DrawCall, EVENTID_SET, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, MESH_DRAW_STATE, Mesh, NEEDS_MALLOC, NEEDS_UPDATE, NEEDS_UPLOAD, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKED, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, Program, RenderingContext, Rotation, STATE, Scale, Scene, Scope, Storage, TextPointer, UPDATING_NOW, Viewport, agetResvUint8, asetResvUint8, c, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, findLinkeds, get, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, label, len, malign, malloc, mallocExternal, palloc, property, ptrByteCompare, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, ref2, ref3, ref4, sab, set, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8, val;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -4190,7 +4190,7 @@ self.init   = ->
   PTR_EVENTRECSV = 7 * 4 + 1;
   PTR_EVTMXCALL = 8 * 4;
   PTR_EVNTCALLS = 9 * 4;
-  PTR_LINKEDI = 10 * 4;
+  PTR_LINKED = 10 * 4;
   PTR_RESVBEGIN = 11 * 4;
   PTRKEY = "{{Pointer}}";
   EVENTID_SET = 336;
@@ -4397,6 +4397,34 @@ self.init   = ->
       return pasv;
     }
     return new Class(pasv);
+  };
+  findLinkeds = function(ptri, Class, construct = true) {
+    var clsi, index, list, ptrj;
+    ptrj = dvw.getUint32(index = 0, iLE);
+    clsi = cscope.indexOf(Class);
+    list = new Array;
+    if (!construct) {
+      while (ptrj -= HEADER_BYTELENGTH) {
+        if (ptri - dvw.getUint32(PTR_LINKED + ptrj, iLE)) {
+          continue;
+        }
+        if (clsi - dvw.getUint32(PTR_CLASSI + ptrj, iLE)) {
+          continue;
+        }
+        list[index++] = ptrj;
+      }
+    } else {
+      while (ptrj -= HEADER_BYTELENGTH) {
+        if (ptri - dvw.getUint32(PTR_LINKED + ptrj, iLE)) {
+          continue;
+        }
+        if (clsi - dvw.getUint32(PTR_CLASSI + ptrj, iLE)) {
+          continue;
+        }
+        list[index++] = new Class(ptrj);
+      }
+    }
+    return list;
   };
   findChilds = function(ptri, Class, recursive = false, construct = true, childs = []) {
     var clsi, i, index, list, ptrj;
@@ -4605,11 +4633,11 @@ self.init   = ->
     return dvw.getUint8(ptri + PTR_INITIAL);
   };
   setLinked = function(ptri, stri) {
-    dvw.setUint16(ptri + PTR_LINKEDI, stri);
+    dvw.setUint32(ptri + PTR_LINKED, stri, iLE);
     return stri;
   };
   getLinked = function(ptri) {
-    return dvw.getUint16(ptri + PTR_LINKEDI);
+    return dvw.getUint32(ptri + PTR_LINKED, iLE);
   };
   setParent = function(ptri, ptrj) {
     dvw.setUint32(ptri + PTR_PARENT, ptrj, iLE);
@@ -4805,7 +4833,7 @@ self.init   = ->
                   value: ptrj
                 };
               }
-              Class = cscope[getClassIndex(ptrj)];
+              Class = cscope[dvw.getUint32(ptrj + PTR_CLASSI, iLE)];
               return {
                 value: new Class(ptrj)
               };
@@ -4825,7 +4853,7 @@ self.init   = ->
                   value: ptrj
                 };
               }
-              Class = cscope[getClassIndex(ptrj)];
+              Class = cscope[dvw.getUint32(ptrj + PTR_CLASSI, iLE)];
               return {
                 value: new Class(ptrj)
               };
@@ -5293,6 +5321,9 @@ self.init   = ->
         }
         setParent(ptri = new Program, context);
         setLinked(this, ptri.set(this.value));
+        if (!getInited(ptri.parent)) {
+          ptri.parent.init();
+        }
         gl = context.WebGLObject;
         vShader = (() => {
           var info, vSource;
@@ -5476,7 +5507,7 @@ self.init   = ->
         onframe = function(epoch = 0) {
           this.emit("beforerender", epoch);
           this.render(epoch, animframe);
-          if (++i < 2) {
+          if (++i < 4) {
             requestAnimationFrame(onframe);
           }
           return 0;
@@ -5486,23 +5517,9 @@ self.init   = ->
       }
 
       render(epoch, aframe) {
-        var construct, delta, drawCall, fps, j, len, mesh, ref, ref1;
+        var delta, fps;
         delta = epoch - aframe.epoch;
         fps = 1 / delta * 1000;
-        ref = ptrIterator(null, Mesh, construct = true);
-        for (mesh of ref) {
-          log(1, "mesh:", mesh);
-          ref1 = mesh.children;
-          for (j = 0, len = ref1.length; j < len; j++) {
-            drawCall = ref1[j];
-            if (!drawCall.isDrawCall) {
-              continue;
-            }
-            log(2, "    drawcall :", drawCall);
-            log(3, "        context :", drawCall.program.parent);
-            log(3, "        program :", drawCall.program, `<-- ${drawCall.program.value}`);
-          }
-        }
         return this.inform("render", delta, Object.assign(aframe, {
           epoch,
           fps,
@@ -5695,7 +5712,7 @@ self.init   = ->
       }
 
       init() {
-        super.init(...arguments).resize();
+        super.init(...arguments).resize().bind();
         return this;
       }
 
@@ -5703,7 +5720,9 @@ self.init   = ->
         return this.parent.WebGLObject.canvas;
       }
 
-      bindGLCall(gl = this.parent.WebGLObject) {
+      bind() {
+        var gl;
+        gl = this.parent.WebGLObject;
         return gl.viewport.apply.bind(gl.viewport, gl, subarrayPtri(this, Float32Array, 4));
       }
 
@@ -5720,75 +5739,6 @@ self.init   = ->
     return Viewport;
 
   }).call(this));
-  INTEGRITY_RESVTCLSI = 0;
-  INTEGRITY_RESVTEXCL = 1;
-  cscope.store(Integrity = (function() {
-    class Integrity extends TextPointer {
-      getQuery() {
-        if (this.excludeShared) {
-          return `[program='${this.value}']`;
-        }
-        return `[program='${this.value}'],[program][default]`;
-      }
-
-      find(test = {
-          attribute: 'type',
-          regExp: /\ /
-        }, query) {
-        return this.runQuery(query).find(function(htmlNode) {
-          var attribute, regExp;
-          for (attribute in test) {
-            regExp = test[attribute];
-            if (!htmlNode[attribute].match(regExp)) {
-              return false;
-            }
-          }
-          return true;
-        });
-      }
-
-      getLinked() {
-        var lnki;
-        if (!(lnki = getLinked(this))) {
-          return;
-        }
-        return new Program(lnki);
-      }
-
-      setLinked(ptri) {
-        if (getLinked(this)) {
-          throw /ALREADY_LINKED/;
-        }
-        setResvUint8(this + INTEGRITY_RESVTCLSI, getClassIndex(ptri));
-        setLinked(this, ptri);
-        return this;
-      }
-
-      getNodes(fn, query) {
-        return this.runQuery(query).filter(fn || function() {
-          return 1;
-        });
-      }
-
-      runQuery(query = this.query) {
-        return [...document.querySelectorAll(query)];
-      }
-
-      getExcludeShared() {
-        return Boolean(getResvUint8(this + INTEGRITY_RESVTEXCL));
-      }
-
-      setExcludeShared(v) {
-        return setResvUint8(this + INTEGRITY_RESVTEXCL, Number(v));
-      }
-
-    };
-
-    Integrity.key = "integrity";
-
-    return Integrity;
-
-  }).call(this));
   cscope.store(Program = (function() {
     class Program extends TextPointer {
       use() {
@@ -5801,6 +5751,16 @@ self.init   = ->
 
       getIsUsing() {
         return Boolean(getResvUint8(this));
+      }
+
+      getDrawCalls() {
+        var dc, ref, results;
+        ref = ptrIterator(this, DrawCall, true, PTR_LINKED);
+        results = [];
+        for (dc of ref) {
+          results.push(dc);
+        }
+        return results;
       }
 
       getUseNow() {
@@ -5819,11 +5779,15 @@ self.init   = ->
 
     class RenderingContext extends Pointer {
       create() {
-        return document.body.appendChild(document.createElement("canvas")).getContext(this.type);
+        var canvas;
+        canvas = document.createElement("canvas");
+        document.body.prepend(canvas);
+        return canvas.getContext(this.type);
       }
 
       init() {
         super.init(...arguments).on("render", this.onrender.bind(this), 1);
+        warn(this);
         this.clearMask.call();
         this.clearColor.call();
         this.viewport.call();
@@ -5832,6 +5796,7 @@ self.init   = ->
 
       onrender(epoch) {
         this.clearMask.call();
+        log(this);
         return 1;
       }
 
@@ -5856,19 +5821,16 @@ self.init   = ->
           return new Viewport(ptri);
         }
         if (!(ptri = findChild(this, Viewport, construct = false, superfind = false))) {
-          setParent(ptri = new Viewport().init(), this);
-          ptri.bindGLCall(this.WebGLObject);
+          setParent(ptri = new Viewport(), this);
+          ptri.init();
         }
-        return ptri;
+        return new Viewport(ptri);
       }
 
       setViewport(ptri) {
         if (!isPointer(ptri)) {
           setParent(ptri = new Viewport(), this);
           ptri.set(arguments[0]).init();
-        }
-        if (!getLinked(ptri)) {
-          setLinked(ptri, this.store(ptri.bindGLCall(this.WebGLObject)));
         }
         setUint32(this, RDCTX_VIEWPORT, ptri);
         return ptri;

@@ -124,13 +124,13 @@
         let red = 0.5, green = 0.3 , blue= 0.8, sign = 1, factor = 0.0025;
 
         const scene = Scene({
-            clearColor : [1, 0, 0.5, 1],
+            clearColor : [1, 1, 0.5, 1],
         })
 
         const firstContext = scene.defaultContext;
         const secondContext = RenderingContext({
             viewport : Float32Array.of( 10, 20, 120, 50 ),
-            clearColor : [ 1, .1, 0, 1]
+            clearColor : [ 0, 1, 0, 1]
         })
 
         scene.add(secondContext)
