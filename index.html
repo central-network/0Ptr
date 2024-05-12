@@ -29,7 +29,7 @@
     </style>
 
 
-    <script integrity="base" shared type="x-shader/x-fragment">
+    <script program="default" shared type="x-shader/x-fragment">
         precision mediump int;
         precision mediump float;
 
@@ -40,7 +40,17 @@
         }
     </script>
 
-    <script integrity="my-avesome-vertex-shader" type="x-shader/x-vertex">
+
+    <script program="pink-shader" type="x-shader/x-fragment">
+        precision mediump int;
+        precision mediump float;
+
+        void main() {
+            gl_FragColor = vec4(1., 0., 1., 1.);
+        }
+    </script>
+
+    <script program="my-avesome-vertex-shader" type="x-shader/x-vertex">
         precision mediump int;
         precision mediump float;
 
@@ -49,18 +59,14 @@
         
         attribute vec3 a_Position;
         attribute vec2 a_Scale;
-        attribute vec4 a_Color;
-
-        varying vec4 v_Color;
 
         void main() {
             gl_Position = u_Frustrum * vec4(a_Position, 1.) * vec4(a_Scale, 1., 1.);
             gl_PointSize = u_PointSize;
-            v_Color = a_Color;
         }
     </script>
 
-    <script integrity="base" type="x-shader/x-vertex">
+    <script program="default" type="x-shader/x-vertex">
         precision mediump int;
         precision mediump float;
 
@@ -71,6 +77,22 @@
 
         void main() {
             gl_Position = a_Position;
+            v_Color = a_Color;
+        }
+    </script>
+
+
+    <script program="another-vertex-shader" type="x-shader/x-vertex">
+        precision mediump int;
+        precision mediump float;
+
+        attribute vec3 a_Position;
+        attribute vec4 a_Color;
+
+        varying vec4 v_Color;
+
+        void main() {
+            gl_Position = vec4(a_Position, 1.);
             v_Color = a_Color;
         }
     </script>
@@ -103,19 +125,19 @@
 
         const scene = Scene({
             clearColor : [1, 0, 0.5, 1],
-            integrity : "base"
         })
 
+        const firstContext = scene.defaultContext;
         const secondContext = RenderingContext({
             viewport : Float32Array.of( 10, 20, 120, 50 ),
-            integrity : "my-avesome-vertex-shader",
             clearColor : [ 1, .1, 0, 1]
         })
 
         scene.add(secondContext)
 
-        console.log(scene)
-        console.log(secondContext)
+        console.log("scene:", scene)
+        console.log("firstContext:", firstContext)
+        console.log("secondContext:", secondContext)
 
         scene.on("resize", function (){
             console.log("resized", this )
@@ -142,7 +164,10 @@
         const mesh1 = Mesh({
             position : [ 0, -1, 0 ],
             color : [ 0, 0, 0, 1],
-            integrity : "my-avesome-vertex-shader"
+            drawings : [{
+                vShader : "my-avesome-vertex-shader",
+                fShader : "pink-shader"
+            }]
         })
 
 
@@ -168,11 +193,31 @@
             ]
         })
 
-        scene.append(mesh1)
+        const mesh4 = Mesh({
+            rotation : [ 0, Math.PI, 0 ],
+            drawings : [{
+                context : secondContext,
+                vShader : "another-vertex-shader",
+                fShader : "default"
+            },{
+                context : secondContext,
+            },{
+                vShader : "my-avesome-vertex-shader",
+                fShader : "pink-shader"
+            }],
+            scale : [ 1, 2, 1],
+            color : [0,0,0,1],
+            vertices : [
+                67,   60,   0,
+                67,   90,   0,
+                67,   90,  30,
+            ]
+        })
+
         mesh1.append(mesh2)
         mesh1.add(mesh3)
-
-        scene.add(new Position().set([3,0,-5]))
+        scene.add(mesh1)
+        scene.add(mesh4)
 
         mesh1.vertices = [
             3,   0,  3,
@@ -185,9 +230,6 @@
         ]
 
 
-
-
-        console.log(mesh1, mesh2 ,  scene, scene.activeContext)
         
 
 

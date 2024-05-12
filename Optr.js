@@ -4164,7 +4164,7 @@ self.init   = ->
 
  */
 (self.main = function() {
-  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, ClearMask, Color, DRAWING_DONE, EVENTID_SET, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, INTEGRITY_RESVTCLSI, INTEGRITY_RESVTEXCL, Integrity, Location, MALLOC_BYTEOFFSET, MESH_DRAW_STATE, Mesh, NEEDS_MALLOC, NEEDS_UPDATE, NEEDS_UPLOAD, POINTER_MAXINDEX, PROGRAM_GLABUFFER, PROGRAM_GLCONTEXT, PROGRAM_GLFSHADER, PROGRAM_GLPROGRAM, PROGRAM_GLVSHADER, PROGRAM_INTEGRITY, PROGRAM_RESVINUSE, PROGRAM_RESVISLNK, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, Program, RenderingContext, Rotation, STATE, Scale, Scene, Scope, Storage, TextPointer, UPDATING_NOW, Viewport, agetResvUint8, asetResvUint8, c, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, get, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, label, len, malign, malloc, mallocExternal, palloc, property, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, ref2, ref3, sab, set, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8, val;
+  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, ClearMask, Color, DRAWING_DONE, DrawCall, EVENTID_SET, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, INTEGRITY_RESVTCLSI, INTEGRITY_RESVTEXCL, Integrity, Location, MALLOC_BYTEOFFSET, MESH_DRAW_STATE, Mesh, NEEDS_MALLOC, NEEDS_UPDATE, NEEDS_UPLOAD, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKEDI, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, Program, RenderingContext, Rotation, STATE, Scale, Scene, Scope, Storage, TextPointer, UPDATING_NOW, Viewport, agetResvUint8, asetResvUint8, c, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, get, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, label, len, malign, malloc, mallocExternal, palloc, property, ptrByteCompare, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, ref2, ref3, ref4, sab, set, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8, val;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -4705,6 +4705,26 @@ self.init   = ->
     setBegin(ptri, byteOffset / 4);
     return ptri;
   };
+  ptrByteCompare = function(ptri, ptrj, length = 0) {
+    var offsetA, offsetB;
+    if (!length) {
+      length = getByteLength(ptri);
+      if (length - getByteLength(ptrj)) {
+        return 0;
+      }
+    }
+    offsetA = getByteOffset(ptri);
+    offsetB = getByteOffset(ptrj);
+    if (offsetA === offsetB) {
+      return 1;
+    }
+    while (length--) {
+      if (dvw.getUint8(length + offsetA) - dvw.getUint8(length + offsetB)) {
+        return 0;
+      }
+    }
+    return 1;
+  };
   ptrViewCompare = function(ptri, arrayView) {
     var length, offset;
     length = arrayView.byteLength;
@@ -4971,13 +4991,13 @@ self.init   = ->
         return this.storage[storei]();
       }
 
-      init(childs = {}, setValue) {
+      init(childs = {}, arrayLike) {
         var clsi, key, ptri, value;
         if (getInited(this)) {
           throw [/INITED_BEFORE/, this];
         }
         if (!getByteLength(this)) {
-          this.set(setValue);
+          this.set(arrayLike);
         }
         for (key in childs) {
           value = childs[key];
@@ -4988,7 +5008,7 @@ self.init   = ->
           if (-1 === (clsi = cscope.indexOf(key))) {
             throw /NOT_REGISTERED/ + key;
           }
-          ptri = mallocExternal(value.length, clsi);
+          ptri = mallocExternal(value != null ? value.length : void 0, clsi);
           setParent(ptri, this);
           value = (function() {
             switch (typeof value) {
@@ -5050,6 +5070,15 @@ self.init   = ->
     Pointer.isPClass = true;
 
     Object.defineProperties(Pointer.prototype, {
+      root: {
+        get: function() {
+          var ptri;
+          if (!getParent(ptri = getParent(this))) {
+            return ptri;
+          }
+          return ptri.root;
+        }
+      },
       parent: {
         get: function() {
           return getParent(this);
@@ -5238,25 +5267,92 @@ self.init   = ->
 
   }).call(this));
   MESH_DRAW_STATE = 0;
-  cscope.global(Mesh = (function() {
-    class Mesh extends Pointer {
-      getIntegrity() {
-        var create, ptri, superfind;
-        if (!(ptri = getLinked(this))) {
-          if (!(ptri = findChild(this, Integrity, create = false, superfind = true))) {
-            return void 0;
-          }
-          this.integrity = ptri;
-        }
-        return new Integrity(ptri);
+  cscope.global(DrawCall = (function() {
+    class DrawCall extends TextPointer {
+      getProgram() {
+        return new Program(getLinked(this));
       }
 
-      setIntegrity(ptri) {
-        if ("string" === typeof ptri) {
-          ptri = new Integrity().set(ptri);
+      queryDocument(program, type) {
+        return document.querySelector(`[program='${program}'][type*='${type}']`);
+      }
+
+      init(context, vScript, fScript) {
+        var construct, fShader, gl, j, len, program, ptri, recursive, ref, vShader;
+        super.init().set(`${(vScript || (vScript = 'default'))} ${(fScript || (fScript = 'default'))}`);
+        context || (context = findChild(null, Scene).defaultContext);
+        ref = findChilds(context, Program, recursive = false, construct = true);
+        for (j = 0, len = ref.length; j < len; j++) {
+          ptri = ref[j];
+          if (!ptrByteCompare(ptri, this)) {
+            continue;
+          }
+          if (setLinked(this, ptri)) {
+            return this;
+          }
         }
-        setLinked(this, ptri);
-        return ptri;
+        setParent(ptri = new Program, context);
+        setLinked(this, ptri.set(this.value));
+        gl = context.WebGLObject;
+        vShader = (() => {
+          var info, vSource;
+          vSource = this.queryDocument(vScript, "vert").text;
+          vShader = gl.createShader(gl.VERTEX_SHADER);
+          gl.shaderSource(vShader, vSource);
+          gl.compileShader(vShader);
+          if (!gl.getShaderParameter(vShader, gl.COMPILE_STATUS)) {
+            info = gl.getShaderInfoLog(vShader);
+            throw `Could not compile vertex shader. \n\n${info}, \nsource:${vSource}`;
+          }
+          return vShader;
+        })();
+        fShader = (() => {
+          var fSource, info;
+          fSource = this.queryDocument(fScript, "frag").text;
+          fShader = gl.createShader(gl.FRAGMENT_SHADER);
+          gl.shaderSource(fShader, fSource);
+          gl.compileShader(fShader);
+          if (!gl.getShaderParameter(fShader, gl.COMPILE_STATUS)) {
+            info = gl.getShaderInfoLog(fShader);
+            throw `Could not compile fragment shader. \n\n${info}`;
+          }
+          return fShader;
+        })();
+        program = (() => {
+          var info;
+          program = gl.createProgram();
+          gl.attachShader(program, vShader);
+          gl.attachShader(program, fShader);
+          gl.linkProgram(program);
+          if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            info = gl.getProgramInfoLog(program);
+            throw `Could not compile WebGL program. \n\n${info}`;
+          }
+          return program;
+        })();
+        setLinked(ptri, ptri.store(gl.useProgram.bind(gl, program)));
+        return this;
+      }
+
+    };
+
+    DrawCall.key = "drawCall";
+
+    DrawCall.prototype.isDrawCall = true;
+
+    return DrawCall;
+
+  }).call(this));
+  cscope.global(Mesh = (function() {
+    class Mesh extends Pointer {
+      setDrawings(drawings = []) {
+        var context, fShader, j, len, ptri, vShader;
+        for (j = 0, len = drawings.length; j < len; j++) {
+          ({context, vShader, fShader} = drawings[j]);
+          setParent(ptri = new DrawCall, this);
+          ptri.init(context, vShader, fShader);
+        }
+        return this;
       }
 
       getDrawState() {
@@ -5264,13 +5360,12 @@ self.init   = ->
       }
 
       setDrawState(state) {
-        var s;
-        s = STATE[state] || (function() {
-          throw /NO_DRAW_STATE/;
+        state = STATE[state] || (function() {
+          throw /DRAW_STATE/;
         })();
-        asetResvUint8(this + MESH_DRAW_STATE, s);
-        this.emit("drawstatechange", s);
-        return s;
+        asetResvUint8(this + MESH_DRAW_STATE, state);
+        this.emit("drawstatechange", state);
+        return state;
       }
 
     };
@@ -5376,13 +5471,12 @@ self.init   = ->
         warn("selam özgür", {
           scene: this
         });
-        this.activeContext.init();
         animframe = this.animationFrame;
         i = 0;
         onframe = function(epoch = 0) {
           this.emit("beforerender", epoch);
           this.render(epoch, animframe);
-          if (++i < 4) {
+          if (++i < 2) {
             requestAnimationFrame(onframe);
           }
           return 0;
@@ -5392,18 +5486,21 @@ self.init   = ->
       }
 
       render(epoch, aframe) {
-        var construct, create, ctx, delta, fps, mesh, program, ref, superfind;
+        var construct, delta, drawCall, fps, j, len, mesh, ref, ref1;
         delta = epoch - aframe.epoch;
         fps = 1 / delta * 1000;
         ref = ptrIterator(null, Mesh, construct = true);
         for (mesh of ref) {
-          switch (mesh.drawState) {
-            case STATE.NEEDS_MALLOC:
-              if (!mesh.integrity.linked) {
-                ctx = findChild(mesh, RenderingContext, create = false, superfind = true);
-              }
-              log("alloc needed:", mesh.integrity.value, mesh.integrity.linked);
-              program = mesh.integrity.linked; //todo alloc from this
+          log(1, "mesh:", mesh);
+          ref1 = mesh.children;
+          for (j = 0, len = ref1.length; j < len; j++) {
+            drawCall = ref1[j];
+            if (!drawCall.isDrawCall) {
+              continue;
+            }
+            log(2, "    drawcall :", drawCall);
+            log(3, "        context :", drawCall.program.parent);
+            log(3, "        program :", drawCall.program, `<-- ${drawCall.program.value}`);
           }
         }
         return this.inform("render", delta, Object.assign(aframe, {
@@ -5428,9 +5525,14 @@ self.init   = ->
           return aframe;
         }
       },
-      activeContext: {
+      defaultContext: {
         get: function() {
-          return findActiveChild(this, RenderingContext, true);
+          var create, ptri, superfind;
+          if (!(ptri = getLinked(this))) {
+            ptri = findChild(this, RenderingContext, create = true, superfind = false);
+            setLinked(this, ptri);
+          }
+          return new RenderingContext(ptri);
         }
       }
     });
@@ -5623,9 +5725,9 @@ self.init   = ->
     class Integrity extends TextPointer {
       getQuery() {
         if (this.excludeShared) {
-          return `[integrity='${this.value}']`;
+          return `[program='${this.value}']`;
         }
-        return `[integrity='${this.value}'],[integrity][shared]`;
+        return `[program='${this.value}'],[program][default]`;
       }
 
       find(test = {
@@ -5645,22 +5747,11 @@ self.init   = ->
       }
 
       getLinked() {
-        var clsi, construct, ctx, j, len, lnki, program, ref, ref1;
+        var lnki;
         if (!(lnki = getLinked(this))) {
-          ref = ptrIterator(null, RenderingContext, construct = true);
-          for (ctx of ref) {
-            ref1 = ctx.programs;
-            for (j = 0, len = ref1.length; j < len; j++) {
-              program = ref1[j];
-              program.link();
-            }
-          }
-          if (!(lnki = getLinked(this))) {
-            return;
-          }
+          return;
         }
-        clsi = getResvUint8(this + INTEGRITY_RESVTCLSI);
-        return new cscope[clsi](lnki);
+        return new Program(lnki);
       }
 
       setLinked(ptri) {
@@ -5697,24 +5788,10 @@ self.init   = ->
     return Integrity;
 
   }).call(this));
-  PROGRAM_GLCONTEXT = 0;
-  PROGRAM_GLPROGRAM = 2;
-  PROGRAM_GLVSHADER = 4;
-  PROGRAM_GLFSHADER = 6;
-  PROGRAM_GLABUFFER = 8;
-  PROGRAM_INTEGRITY = 10;
-  PROGRAM_RESVINUSE = 0;
-  PROGRAM_RESVISLNK = 0;
   cscope.store(Program = (function() {
-    class Program extends Pointer {
-      init() {
-        super.init().create().link();
-        return this;
-      }
-
-      set() {
-        super.set(...arguments).call();
-        return this;
+    class Program extends TextPointer {
+      is(value) {
+        return this.value === value;
       }
 
       use() {
@@ -5727,186 +5804,22 @@ self.init   = ->
       }
 
       link() {
-        var fShader, gl, info, program, vShader;
         if (this.getIsLinked()) {
           return this;
-        }
-        gl = this.glContext;
-        program = this.glProgram;
-        vShader = this.glVShader;
-        fShader = this.glFShader;
-        gl.shaderSource(vShader, this.nodeVShader.text);
-        gl.compileShader(vShader);
-        if (!gl.getShaderParameter(vShader, gl.COMPILE_STATUS)) {
-          info = gl.getShaderInfoLog(vShader);
-          throw `Could not compile vertex shader. \n\n${info}`;
-        }
-        gl.shaderSource(fShader, this.nodeFShader.text);
-        gl.compileShader(fShader);
-        if (!gl.getShaderParameter(fShader, gl.COMPILE_STATUS)) {
-          info = gl.getShaderInfoLog(fShader);
-          throw `Could not compile fragment shader. \n\n${info}`;
-        }
-        gl.attachShader(program, vShader);
-        gl.attachShader(program, fShader);
-        gl.linkProgram(program);
-        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-          info = gl.getProgramInfoLog(program);
-          throw `Could not compile WebGL program. \n\n${info}`;
         }
         this.setIsLinked(1);
         return this;
       }
 
-      getInUse() {
-        return getResvUint8(this + PROGRAM_RESVINUSE);
-      }
-
-      setInUse(v) {
-        return setResvUint8(this + PROGRAM_RESVINUSE, v);
-      }
-
-      getIsLinked() {
-        return getResvUint8(this + PROGRAM_RESVISLNK);
-      }
-
-      setIsLinked(v) {
-        return setResvUint8(this + PROGRAM_RESVISLNK, v);
-      }
-
-      create() {
-        var gl;
-        this.glContext = gl = this.findGLContext(...arguments);
-        this.glProgram = gl.createProgram();
-        this.glVShader = gl.createShader(gl.VERTEX_SHADER);
-        this.glFShader = gl.createShader(gl.FRAGMENT_SHADER);
-        this.glABuffer = gl.createBuffer();
-        this.glContext.compileShader(this.glFShader);
-        this.glContext.bindBuffer(gl.ARRAY_BUFFER, this.glABuffer);
-        return this;
-      }
-
-      getNodeVShader() {
-        var node;
-        if (!(node = this.integrity.find({
-          type: /vertex/i
-        }))) {
-          throw [/NO_VERTEX_SHADER_HTML_SCRIPT/, this.integrity.value];
-        }
-        return node;
-      }
-
-      getNodeFShader() {
-        var node;
-        if (!(node = this.integrity.find({
-          type: /fragment/i
-        }))) {
-          throw [/NO_FRAGMENT_SHADER_HTML_SCRIPT/, this.integrity.value];
-        }
-        return node;
-      }
-
-      store(object, validator = false) {
-        if (!validator) {
-          return super.store(object);
-        }
-        return super.store(this.validate(object, validator));
-      }
-
-      validate(object, validator) {
-        if (!(object instanceof validator)) {
-          throw [/VALIDATE_ERR/, object, validator.prototype];
-        }
-        return object;
-      }
-
-      getIntegrity() {
-        var create, ptri, superfind;
-        if (!(ptri = getUint16(this, PROGRAM_INTEGRITY))) {
-          if (!(ptri = findChild(this, Integrity, create = false, superfind = true))) {
-            ptri = new Integrity().init().set(Program.integrity);
-          }
-          return this.setIntegrity(ptri);
-        }
-        return new Integrity(ptri);
-      }
-
-      setIntegrity(ptri) {
-        Integrity.prototype.setLinked.call(ptri, this);
-        setUint16(this, PROGRAM_INTEGRITY, ptri);
-        return ptri;
-      }
-
-      getGlContext() {
-        return this.storage[getUint16(this, PROGRAM_GLCONTEXT)];
-      }
-
-      setGlContext(glContext) {
-        setUint16(this, PROGRAM_GLCONTEXT, this.store(glContext, WebGL2RenderingContext));
-        return glContext;
-      }
-
-      getGlProgram() {
-        return this.storage[getUint16(this, PROGRAM_GLPROGRAM)];
-      }
-
-      setGlProgram(glProgram) {
-        setUint16(this, PROGRAM_GLPROGRAM, this.store(glProgram, WebGLProgram));
-        return glProgram;
-      }
-
-      getGlVShader() {
-        return this.storage[getUint16(this, PROGRAM_GLVSHADER)];
-      }
-
-      setGlVShader(glVShader) {
-        setUint16(this, PROGRAM_GLVSHADER, this.store(glVShader, WebGLShader));
-        return glVShader;
-      }
-
-      getGlFShader() {
-        return this.storage[getUint16(this, PROGRAM_GLFSHADER)];
-      }
-
-      setGlFShader(glFShader) {
-        setUint16(this, PROGRAM_GLFSHADER, this.store(glFShader, WebGLShader));
-        return glFShader;
-      }
-
-      getGlABuffer() {
-        return this.storage[getUint16(this, PROGRAM_GLABUFFER)];
-      }
-
-      setGlABuffer(glABuffer) {
-        setUint16(this, PROGRAM_GLABUFFER, this.store(glABuffer, WebGLBuffer));
-        return glABuffer;
-      }
-
-      findGLContext(context) {
-        var gl;
-        if (!context && !(context = findChild(this, RenderingContext, false, false))) {
-          if (!(context = findChild(this, RenderingContext, false, true))) {
-            throw [/NO_ACTIVE_CONTEXT/, this];
-          }
-        }
-        return gl = context.WebGLObject;
-      }
-
       bindGLCall() {
         var gl;
-        gl = this.findGLContext(...arguments);
+        gl = this.parent.WebGLObject;
         return gl.useProgram.bind(gl, this.glProgram);
       }
 
     };
 
-    Program.prototype.TypedArray = Uint32Array;
-
     Program.key = "program";
-
-    Program.integrity = "base";
-
-    Program.byteLength = 4 * Uint32Array.BYTES_PER_ELEMENT;
 
     return Program;
 
@@ -5936,18 +5849,6 @@ self.init   = ->
         var construct, list, recursive;
         list = findChilds(this, Program, recursive = false, construct = true);
         return list.length && list || [this.append(new Program()).init()];
-      }
-
-      setProgram(ptri) {
-        if (!isPointer(ptri)) {
-          setParent(ptri = new Program(), this);
-          ptri.init();
-        }
-        if (!getLinked(ptri)) {
-          setLinked(ptri, this.store(ptri.bindGLCall(this)));
-        }
-        setUint32(this, RDCTX_PROGRAM, ptri);
-        return ptri;
       }
 
       getViewport() {
@@ -5988,7 +5889,6 @@ self.init   = ->
       }
 
       setClearColor(ptri) {
-        warn("setClearColor:", ptri);
         if (!isPointer(ptri)) {
           setParent(ptri = new ClearColor(), this);
           ptri.set(arguments[0]);
@@ -6060,7 +5960,7 @@ self.init   = ->
     ref = Object.getOwnPropertyDescriptors(Class.prototype);
     for (key in ref) {
       desc = ref[key];
-      if (!(key[3] && key.startsWith("get"))) {
+      if (!(key[3] && key.substring(1).startsWith("et"))) {
         continue;
       }
       if (key[3] === (c = key[3].toLowerCase())) {
@@ -6069,12 +5969,27 @@ self.init   = ->
       if (!(property = c + key.substring(4))) {
         continue;
       }
-      get = {
-        get: desc.value,
-        enumerable: true
-      };
-      set = (ref1 = Object.getOwnPropertyDescriptor(Class.prototype, "set" + key.substring(3))) != null ? ref1.value : void 0;
-      Object.defineProperty(Class.prototype, property, set && {...get, set} || get);
+      get = (ref1 = Object.getOwnPropertyDescriptor(Class.prototype, "get" + key.substring(3))) != null ? ref1.value : void 0;
+      set = (ref2 = Object.getOwnPropertyDescriptor(Class.prototype, "set" + key.substring(3))) != null ? ref2.value : void 0;
+      if (get && set) {
+        Object.defineProperty(Class.prototype, property, {
+          enumerable: true,
+          get,
+          set
+        });
+      }
+      if (get && !set) {
+        Object.defineProperty(Class.prototype, property, {
+          enumerable: true,
+          get
+        });
+      }
+      if (!get && set) {
+        Object.defineProperty(Class.prototype, property, {
+          enumerable: true,
+          set
+        });
+      }
     }
     if (Class.prototype.TypedArray) {
       Object.defineProperty(Class.prototype, "subarray", {
@@ -6086,9 +6001,9 @@ self.init   = ->
         }
       });
     }
-    ref2 = Object.getOwnPropertyDescriptors(Class.prototype);
-    for (key in ref2) {
-      desc = ref2[key];
+    ref3 = Object.getOwnPropertyDescriptors(Class.prototype);
+    for (key in ref3) {
+      desc = ref3[key];
       if (!desc.configurable) {
         continue;
       }
@@ -6099,9 +6014,9 @@ self.init   = ->
       });
       continue;
     }
-    ref3 = Object.getOwnPropertyDescriptors(Class);
-    for (key in ref3) {
-      desc = ref3[key];
+    ref4 = Object.getOwnPropertyDescriptors(Class);
+    for (key in ref4) {
+      desc = ref4[key];
       if (!desc.configurable) {
         continue;
       }

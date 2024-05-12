@@ -4719,6 +4719,24 @@ do  self.main = ->
 
         ptri
 
+    ptrByteCompare      = ( ptri, ptrj, length = 0 ) ->
+        
+        if !length
+            length = getByteLength ptri 
+            return 0 if length - getByteLength ptrj
+
+        offsetA = getByteOffset ptri
+        offsetB = getByteOffset ptrj
+
+        return 1 if offsetA is offsetB
+        
+        while length-- then return 0 if (
+            dvw.getUint8( length + offsetA ) -
+            dvw.getUint8( length + offsetB )
+        )
+
+        1
+
     ptrViewCompare      = ( ptri, arrayView ) ->
 
         length = arrayView.byteLength
@@ -4915,11 +4933,11 @@ do  self.main = ->
         call            : ( storei = getLinked this ) ->
             @storage[ storei ]()
 
-        init            : ( childs = {}, setValue ) ->
+        init            : ( childs = {}, arrayLike ) ->
             if  getInited this
                 throw [ /INITED_BEFORE/, this ]
 
-            @set setValue if !getByteLength this
+            @set arrayLike if !getByteLength this
 
             for key, value of childs
 
@@ -4930,7 +4948,7 @@ do  self.main = ->
                 if  -1 is clsi = cscope.indexOf key
                     throw /NOT_REGISTERED/ + key
 
-                ptri = mallocExternal value.length, clsi
+                ptri = mallocExternal value?.length, clsi
                 setParent ptri, this
 
                 value = switch typeof value
@@ -4962,6 +4980,11 @@ do  self.main = ->
             emitEvent this, EVENTID_SET, arguments
 
         Object.defineProperties Pointer::,
+
+            root        : get : -> 
+                unless getParent ptri = getParent this
+                    return ptri
+                ptri.root
 
             parent      : get : -> getParent this
 
@@ -5069,6 +5092,78 @@ do  self.main = ->
 
     MESH_DRAW_STATE     = 0
 
+
+    cscope.global class DrawCall extends TextPointer
+
+        @key            : "drawCall"
+
+        isDrawCall      : yes
+
+        getProgram      : ->
+            new Program getLinked this
+
+        queryDocument   : ( program, type ) ->
+            document.querySelector("[program='#{program}'][type*='#{type}']")
+
+        init            : ( context, vScript, fScript ) ->
+
+            super().set "#{vScript ||= 'default'} #{fScript ||= 'default'}"
+            context ||= findChild( null, Scene ).defaultContext
+
+            for ptri in findChilds context, Program, recursive = off, construct = on
+                continue unless ptrByteCompare( ptri, this )
+                return this if setLinked( this, ptri )
+
+            setParent ptri = new Program , context
+            setLinked this , ptri . set this.value
+
+            gl          = context.WebGLObject
+
+            vShader     = do =>
+                vSource = @queryDocument( vScript, "vert" ).text
+                vShader = gl.createShader gl.VERTEX_SHADER
+
+                gl.shaderSource vShader, vSource
+                gl.compileShader vShader
+
+                unless gl.getShaderParameter vShader, gl.COMPILE_STATUS
+                    info = gl.getShaderInfoLog vShader
+                    throw "Could not compile vertex shader. \n\n#{info}, \nsource:#{vSource}"
+
+                vShader
+
+            fShader     = do =>
+                fSource = @queryDocument( fScript, "frag" ).text
+                fShader = gl.createShader gl.FRAGMENT_SHADER
+
+                gl.shaderSource fShader, fSource
+                gl.compileShader fShader
+
+                unless gl.getShaderParameter fShader, gl.COMPILE_STATUS
+                    info = gl.getShaderInfoLog fShader
+                    throw "Could not compile fragment shader. \n\n#{info}"
+
+                fShader
+
+            program     = do =>
+                program = gl.createProgram()
+
+                gl.attachShader program, vShader
+                gl.attachShader program, fShader
+
+                gl.linkProgram program
+
+                unless gl.getProgramParameter program, gl.LINK_STATUS
+                    info = gl.getProgramInfoLog program
+                    throw "Could not compile WebGL program. \n\n#{info}"
+
+                program
+
+            setLinked ptri, ptri.store gl.useProgram.bind gl, program
+            
+            this
+
+       
     cscope.global class Mesh extends Pointer
 
         TypedArray      : Float32Array
@@ -5077,26 +5172,19 @@ do  self.main = ->
 
         @key            : "mesh"
 
-        getIntegrity    : ->
-            if !ptri = getLinked this 
-                if !ptri = findChild this, Integrity, create = off, superfind = on
-                    return undefined
-                @integrity = ptri
-            new Integrity ptri
-
-        setIntegrity    : ( ptri ) ->
-            if  "string" is typeof ptri
-                ptri = new Integrity().set ptri
-            setLinked this, ptri ; ptri
+        setDrawings     : ( drawings = [] ) ->
+            for { context , vShader, fShader } in drawings
+                setParent ptri = new DrawCall, this
+                ptri.init context, vShader, fShader
+            this
 
         getDrawState    : ->
             STATE[ agetResvUint8 this + MESH_DRAW_STATE ]
 
         setDrawState    : ( state ) ->
-            s = STATE[ state ] or throw /NO_DRAW_STATE/
-            asetResvUint8 this + MESH_DRAW_STATE, s
-            @emit "drawstatechange", s
-            s
+            state = STATE[ state ] or throw /DRAW_STATE/
+            asetResvUint8 this + MESH_DRAW_STATE, state
+            @emit "drawstatechange", state ; state
 
         Object.defineProperties Mesh::,
             vertices    : 
@@ -5147,6 +5235,7 @@ do  self.main = ->
                 getUint64( this, ANIMFRAME_START ) +
                 getFloat32 this, ANIMFRAME_EPOCH
 
+
     cscope.global class Scene extends Pointer
 
         @key            : "scene"
@@ -5155,7 +5244,6 @@ do  self.main = ->
             super arguments...
             warn "selam özgür", scene: this
 
-            @activeContext.init()
             animframe = @animationFrame
 
             i = 0
@@ -5163,7 +5251,7 @@ do  self.main = ->
 
                 @emit "beforerender", epoch
                 @render epoch, animframe
-                requestAnimationFrame onframe if ++i < 4
+                requestAnimationFrame onframe if ++i < 2
                 
                 0
 
@@ -5176,13 +5264,12 @@ do  self.main = ->
             fps     = 1 / delta * 1000
 
             for mesh from ptrIterator null, Mesh, construct = on
-                switch mesh.drawState
-                    when STATE.NEEDS_MALLOC
-                        if !mesh.integrity.linked
-                            ctx = findChild mesh, RenderingContext, create = off, superfind = on
+                log 1, "mesh:", mesh
+                for drawCall in mesh.children when drawCall.isDrawCall
+                    log 2, "    drawcall :", drawCall
+                    log 3, "        context :", drawCall.program.parent
+                    log 3, "        program :", drawCall.program, "<-- #{drawCall.program.value}"
 
-                        log "alloc needed:", mesh.integrity.value, mesh.integrity.linked
-                        program = mesh.integrity.linked #todo alloc from this
 
             @inform "render", delta, Object.assign aframe , {
                 epoch, fps, delta , count : aframe.count + 1
@@ -5195,8 +5282,11 @@ do  self.main = ->
                     setParent aframe = new AnimationFrame().init(), this
                 aframe
 
-            activeContext : get : ->
-                findActiveChild this, RenderingContext, on
+            defaultContext : get : ->
+                unless ptri = getLinked this
+                    ptri = findChild this, RenderingContext, create = on, superfind = off
+                    setLinked this, ptri
+                new RenderingContext ptri
 
 
     cscope.store  class CallBinding extends TextPointer
@@ -5345,8 +5435,8 @@ do  self.main = ->
         @key            : "integrity"   
 
         getQuery        : ->
-            return "[integrity='#{@value}']" if @excludeShared
-            return "[integrity='#{@value}'],[integrity][shared]" 
+            return "[program='#{@value}']" if @excludeShared
+            return "[program='#{@value}'],[program][default]" 
 
         find            : ( test = { attribute: 'type', regExp: /\ / }, query ) ->
             @runQuery( query ).find ( htmlNode ) ->
@@ -5356,13 +5446,8 @@ do  self.main = ->
                 return on
 
         getLinked       : ->
-            if !lnki = getLinked this
-                for ctx from ptrIterator null, RenderingContext, construct = on
-                    program.link() for program in ctx.programs
-                return unless lnki = getLinked this
-
-            clsi = getResvUint8 this + INTEGRITY_RESVTCLSI
-            new cscope[ clsi ] lnki
+            return unless lnki = getLinked this
+            new Program lnki
 
         setLinked       : ( ptri ) ->
             throw /ALREADY_LINKED/ if getLinked this
@@ -5381,29 +5466,13 @@ do  self.main = ->
         setExcludeShared : (v) ->
             setResvUint8 this + INTEGRITY_RESVTEXCL, Number v
 
-    PROGRAM_GLCONTEXT = 0
-    PROGRAM_GLPROGRAM = 2
-    PROGRAM_GLVSHADER = 4
-    PROGRAM_GLFSHADER = 6
-    PROGRAM_GLABUFFER = 8
-    PROGRAM_INTEGRITY = 10
 
-    PROGRAM_RESVINUSE = 0
-    PROGRAM_RESVISLNK = 0
-
-    cscope.store class Program extends Pointer
-
-        TypedArray      : Uint32Array
+    cscope.store class Program extends TextPointer
 
         @key            : "program"
 
-        @integrity      : "base"
-
-        @byteLength     : 4 * Uint32Array.BYTES_PER_ELEMENT
-
-        init            : -> super().create().link() ; this
-
-        set             : -> super( arguments... ).call() ; this
+        is              : ( value ) ->
+            @value is value
 
         use             : ->
             return this if @inUse
@@ -5414,128 +5483,11 @@ do  self.main = ->
         link            : ->
             return this if @getIsLinked()
 
-            gl      = @glContext ; program = @glProgram
-            vShader = @glVShader ; fShader = @glFShader
-
-            gl.shaderSource  vShader, @nodeVShader.text
-            gl.compileShader vShader
-
-            unless gl.getShaderParameter vShader, gl.COMPILE_STATUS
-                info = gl.getShaderInfoLog vShader
-                throw "Could not compile vertex shader. \n\n#{info}"
-
-
-            gl.shaderSource  fShader, @nodeFShader.text
-            gl.compileShader fShader
-
-            unless gl.getShaderParameter fShader, gl.COMPILE_STATUS
-                info = gl.getShaderInfoLog fShader
-                throw "Could not compile fragment shader. \n\n#{info}"
-
-            gl.attachShader  program, vShader
-            gl.attachShader  program, fShader
-            gl.linkProgram   program
-
-            unless gl.getProgramParameter program, gl.LINK_STATUS
-                info = gl.getProgramInfoLog program
-                throw "Could not compile WebGL program. \n\n#{info}"
 
             @setIsLinked 1 ; this
 
-        getInUse        : ->
-            getResvUint8 this + PROGRAM_RESVINUSE
-
-        setInUse        : ( v ) ->
-            setResvUint8 this + PROGRAM_RESVINUSE, v
-
-        getIsLinked     : ->
-            getResvUint8 this + PROGRAM_RESVISLNK
-
-        setIsLinked     : ( v ) ->
-            setResvUint8 this + PROGRAM_RESVISLNK, v
-
-        create          : ->
-            @glContext = gl = @findGLContext arguments...
-            @glProgram = gl . createProgram()
-            @glVShader = gl . createShader( gl.VERTEX_SHADER )
-            @glFShader = gl . createShader( gl.FRAGMENT_SHADER )
-            @glABuffer = gl . createBuffer()
-
-            @glContext.compileShader @glFShader
-            @glContext.bindBuffer gl.ARRAY_BUFFER, @glABuffer
-
-            this
-
-        getNodeVShader  : ->
-            unless node = @integrity.find type : /vertex/i
-                throw [ /NO_VERTEX_SHADER_HTML_SCRIPT/, @integrity.value ]
-            node
-        
-        getNodeFShader  : ->
-            unless node = @integrity.find type : /fragment/i
-                throw [ /NO_FRAGMENT_SHADER_HTML_SCRIPT/, @integrity.value ]
-            node
-        
-        store           : ( object, validator = off ) ->
-            unless validator
-                return super object
-            super @validate object, validator 
-
-        validate        : ( object, validator ) ->
-            unless object instanceof validator
-                throw [ /VALIDATE_ERR/, object, validator:: ]
-            object
-
-        getIntegrity    : ->
-            if !ptri = getUint16 this, PROGRAM_INTEGRITY
-                if !ptri = findChild this, Integrity, create = off, superfind = on
-                    ptri = new Integrity().init().set( Program.integrity )
-                return @setIntegrity ptri
-            new Integrity ptri  
-
-        setIntegrity    : ( ptri ) ->
-            Integrity::setLinked.call ptri, this
-            setUint16 this, PROGRAM_INTEGRITY, ptri ; ptri 
-            
-        getGlContext    : ->
-            @storage[ getUint16 this, PROGRAM_GLCONTEXT ]  
-
-        setGlContext    : ( glContext ) ->
-            setUint16 this, PROGRAM_GLCONTEXT, @store glContext, WebGL2RenderingContext ; glContext  
-            
-        getGlProgram    : ->
-            @storage[ getUint16 this, PROGRAM_GLPROGRAM ]  
-
-        setGlProgram    : ( glProgram ) ->
-            setUint16 this, PROGRAM_GLPROGRAM, @store glProgram, WebGLProgram ; glProgram  
-
-        getGlVShader    : ->
-            @storage[ getUint16 this, PROGRAM_GLVSHADER ]  
-
-        setGlVShader    : ( glVShader ) ->
-            setUint16 this, PROGRAM_GLVSHADER, @store glVShader, WebGLShader ; glVShader  
-
-        getGlFShader    : ->
-            @storage[ getUint16 this, PROGRAM_GLFSHADER ]  
-
-        setGlFShader    : ( glFShader ) ->
-            setUint16 this, PROGRAM_GLFSHADER, @store glFShader, WebGLShader ; glFShader  
-
-        getGlABuffer    : ->
-            @storage[ getUint16 this, PROGRAM_GLABUFFER ]  
-
-        setGlABuffer    : ( glABuffer ) ->
-            setUint16 this, PROGRAM_GLABUFFER, @store glABuffer, WebGLBuffer ; glABuffer  
-
-
-        findGLContext   : ( context ) ->
-            if !context and !context = findChild this, RenderingContext, off, off 
-                if !context = findChild this, RenderingContext, off, on
-                    throw [ /NO_ACTIVE_CONTEXT/, this ]
-            gl = context.WebGLObject
-
         bindGLCall      : ->
-            gl = @findGLContext arguments...
+            gl = @parent.WebGLObject
             gl.useProgram.bind gl, @glProgram
 
     cscope.global class RenderingContext extends Pointer
@@ -5579,17 +5531,6 @@ do  self.main = ->
             list = findChilds this, Program, recursive = off, construct = yes
             return list.length && list or [ @append( new Program() ).init() ]
 
-        setProgram          : ( ptri ) ->
-            if !isPointer ptri  
-                setParent ptri = new Program(), this 
-                ptri.init()
-
-            if !getLinked ptri
-                setLinked ptri, @store ptri.bindGLCall this
-
-            setUint32 this, RDCTX_PROGRAM, ptri ; ptri
-
-
         getViewport         : ->
             if  ptri = getUint32 this, RDCTX_VIEWPORT
                 return new Viewport ptri
@@ -5622,7 +5563,6 @@ do  self.main = ->
             @setClearColor ptri ; ptri
 
         setClearColor       : ( ptri ) ->
-            warn "setClearColor:", ptri
             if !isPointer ptri  
                 setParent ptri = new ClearColor(), this
                 ptri.set arguments[0]
@@ -5666,16 +5606,21 @@ do  self.main = ->
     for Class, i in cscope
 
         for key, desc of Object.getOwnPropertyDescriptors Class::
-            continue unless key[3] and key.startsWith "get"
+            continue unless key[3] and key.substring(1).startsWith "et"
             continue unless key[3] isnt c = key[3].toLowerCase()
             continue unless property = c + key.substring 4
 
-            get = get : desc.value, enumerable: on
+            get = Object.getOwnPropertyDescriptor(
+                Class::, "get" + key.substring 3
+            )?.value
+
             set = Object.getOwnPropertyDescriptor(
                 Class::, "set" + key.substring 3
             )?.value
 
-            Object.defineProperty Class::, property, set && { ...get, set } || get
+            Object.defineProperty Class::, property, { enumerable: on, get, set } if  get &&  set
+            Object.defineProperty Class::, property, { enumerable: on, get      } if  get && !set
+            Object.defineProperty Class::, property, { enumerable: on, set      } if !get &&  set
 
         if  Class::TypedArray
             Object.defineProperty Class::, "subarray", get : ->
