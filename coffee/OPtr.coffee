@@ -5482,8 +5482,31 @@ do  self.main = ->
 
         @key            : "vertexAttribPointer"
 
-        enable          : ->
-            @storage[ getLinked this ]()
+        enable          : -> @storage[ getResvUint32 this + 4 ]()
+
+        getGl           : -> @storage[ getLinked this ]
+
+        setFn           : -> setResvUint32 this + 4, @store arguments[0]
+
+        setIndex        : -> setResvUint8 this, arguments[0]
+
+        getIndex        : -> getResvUint8 this
+
+        set1f           : -> @gl.vertexAttrib1f  @index, arguments... ; this
+        
+        set2f           : -> @gl.vertexAttrib2f  @index, arguments... ; this
+        
+        set3f           : -> @gl.vertexAttrib3f  @index, arguments... ; this
+        
+        set4f           : -> @gl.vertexAttrib4f  @index, arguments... ; this
+        
+        set1fv          : -> @gl.vertexAttrib1fv @index, arguments[0] ; this
+        
+        set2fv          : -> @gl.vertexAttrib2fv @index, arguments[0] ; this
+        
+        set3fv          : -> @gl.vertexAttrib3fv @index, arguments[0] ; this
+
+        set4fv          : -> @gl.vertexAttrib4fv @index, arguments[0] ; this
 
     cscope.store class Program extends TextPointer
 
@@ -5545,7 +5568,11 @@ do  self.main = ->
                     @enableVertexAttribArray arguments[0]
 
                 setParent pt = new VertexAttribPointer, vertexArray
-                setLinked pt , @store fn.bind gl, at.pointerArgs...
+                setLinked pt , pt.store gl 
+                
+                pt.set at.name 
+                pt.setFn fn.bind gl, at.pointerArgs...
+                pt.setIndex at.location
 
                 pt.enable()
 
@@ -5602,7 +5629,7 @@ do  self.main = ->
                 attrib = gl.getActiveAttrib glProgram, numAttribs
 
                 attrib . location   = gl . getAttribLocation glProgram, attrib.name
-                attrib . normalized = gl . getVertexAttrib numAttribs, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
+                attrib . normalized = gl . getVertexAttrib attrib.location, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
                 attrib . typename   = tn = keyof attrib.type
                 
                 attrib . offset     = parameters.ATTRIBUTES_STRIDE
@@ -5638,7 +5665,6 @@ do  self.main = ->
 
         Object.defineProperty Program::, "BYTES_PER_POINT", get : ->
             getResvUint8( this + 1 ) or setResvUint8 this + 1, @parameters.ATTRIBUTES_STRIDE
-
 
     cscope.global class RenderingContext extends Pointer
 

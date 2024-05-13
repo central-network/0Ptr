@@ -5803,7 +5803,63 @@ self.init   = ->
   cscope.store(VertexAttribPointer = (function() {
     class VertexAttribPointer extends TextPointer {
       enable() {
-        return this.storage[getLinked(this)]();
+        return this.storage[getResvUint32(this + 4)]();
+      }
+
+      getGl() {
+        return this.storage[getLinked(this)];
+      }
+
+      setFn() {
+        return setResvUint32(this + 4, this.store(arguments[0]));
+      }
+
+      setIndex() {
+        return setResvUint8(this, arguments[0]);
+      }
+
+      getIndex() {
+        return getResvUint8(this);
+      }
+
+      set1f() {
+        this.gl.vertexAttrib1f(this.index, ...arguments);
+        return this;
+      }
+
+      set2f() {
+        this.gl.vertexAttrib2f(this.index, ...arguments);
+        return this;
+      }
+
+      set3f() {
+        this.gl.vertexAttrib3f(this.index, ...arguments);
+        return this;
+      }
+
+      set4f() {
+        this.gl.vertexAttrib4f(this.index, ...arguments);
+        return this;
+      }
+
+      set1fv() {
+        this.gl.vertexAttrib1fv(this.index, arguments[0]);
+        return this;
+      }
+
+      set2fv() {
+        this.gl.vertexAttrib2fv(this.index, arguments[0]);
+        return this;
+      }
+
+      set3fv() {
+        this.gl.vertexAttrib3fv(this.index, arguments[0]);
+        return this;
+      }
+
+      set4fv() {
+        this.gl.vertexAttrib4fv(this.index, arguments[0]);
+        return this;
       }
 
     };
@@ -5879,7 +5935,10 @@ self.init   = ->
             return this.enableVertexAttribArray(arguments[0]);
           };
           setParent(pt = new VertexAttribPointer, vertexArray);
-          setLinked(pt, this.store(fn.bind(gl, ...at.pointerArgs)));
+          setLinked(pt, pt.store(gl));
+          pt.set(at.name);
+          pt.setFn(fn.bind(gl, ...at.pointerArgs));
+          pt.setIndex(at.location);
           pt.enable();
         }
         fn = this.store(gl.bindVertexArray.bind(gl, va));
@@ -5963,7 +6022,7 @@ self.init   = ->
           while (numAttribs--) {
             attrib = gl.getActiveAttrib(glProgram, numAttribs);
             attrib.location = gl.getAttribLocation(glProgram, attrib.name);
-            attrib.normalized = gl.getVertexAttrib(numAttribs, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED);
+            attrib.normalized = gl.getVertexAttrib(attrib.location, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED);
             attrib.typename = tn = keyof(attrib.type);
             attrib.offset = parameters.ATTRIBUTES_STRIDE;
             attrib.glsize = (function() {
