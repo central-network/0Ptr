@@ -161,10 +161,7 @@
         const mesh1 = Mesh({
             position : [ 0, -1, 0 ],
             color : [ 0, 0, 0, 1],
-            drawings : [{
-                vShader : "my-avesome-vertex-shader",
-                fShader : "pink-shader"
-            }]
+            uuid : "1"
         })
 
 
@@ -172,16 +169,22 @@
             rotation : [ 0, Math.PI, 0 ],
             scale : [ 1, 2, 1],
             color : [0,0,0,1],
+            uuid : "2",
             vertices : [
                 67,   60,   0,
                 67,   90,   0,
                 67,   90,  30,
-            ]
+            ],
+            drawings : [{
+                vShader : "my-avesome-vertex-shader",
+                fShader : "pink-shader"
+            }]
         })
 
         const mesh3 = Mesh({
             rotation : [ 0, Math.PI, 0 ],
             scale : [ 1, 2, 1],
+            uuid : "3",
             color : [0,0,0,1],
             vertices : [
                 67,   60,   0,
@@ -192,6 +195,7 @@
 
         const mesh4 = Mesh({
             rotation : [ 0, Math.PI, 0 ],
+            uuid : "4",
             drawings : [{
                 context : secondContext,
                 vShader : "another-vertex-shader",
@@ -211,9 +215,9 @@
             ]
         })
 
-        mesh1.append(mesh2)
-        mesh1.add(mesh3)
-        scene.add(mesh1)
+        mesh2.add(mesh3)
+        mesh1.add(mesh2)
+        mesh4.add(mesh1)
         scene.add(mesh4)
 
         mesh1.vertices = [
@@ -226,10 +230,8 @@
             10,  3,  3,
         ]
 
-        console.warn(secondContext)
-        console.warn(firstContext)
+        console.warn(mesh1)
 
-        dump()
         
 
 

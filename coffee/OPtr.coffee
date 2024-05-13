@@ -4577,9 +4577,9 @@ do  self.main = ->
     setByteLength   = ( ptri, byteLength ) ->
         dvw.setUint32 ptri + PTR_BYTELENGTH, byteLength, iLE ; ptri
 
-    isPointer       = ( any ) ->
-        return off if on isnt !!any 
-        return any if any.isPointer
+    isPointer       = ( any = 0 ) ->
+        return off if off is any instanceof Number 
+        return any if any.isPointer and any % HEADER_BYTELENGTH
         return off if any % HEADER_BYTELENGTH
         return any if any instanceof Pointer
         return off if ArrayBuffer.isView any
@@ -4989,6 +4989,7 @@ do  self.main = ->
                     when "number", "boolean" then [ value ]
                     else value
 
+
                 Pointer::set.call ptri, value                
 
             setInited this, 1 ; this
@@ -5123,34 +5124,63 @@ do  self.main = ->
     
         @key            : "location"
 
-    MESH_DRAW_STATE     = 0
 
-    cscope.global class DrawCall extends TextPointer
+    cscope.global class DrawCall extends Pointer
 
         @key            : "drawCall"
 
+        TypedArray      : Float32Array
+
         isDrawCall      : yes
 
-        getProgram      : ->
-            new Program getLinked this
+        getProgram      : -> new Program getLinked this
 
         queryDocument   : ( program, type ) ->
             document.querySelector("[program='#{program}'][type*='#{type}']")
 
-        init            : ( context, vScript, fScript ) ->
+        getVShader      : -> @program.vShader
 
-            super().set "#{vScript ||= 'default'} #{fScript ||= 'default'}"
-            context ||= findChild( null, Scene ).defaultContext
+        getFShader      : -> @program.fShader
 
+        getContext      : -> @program.parent
+
+        mallocDraw      : ->
+            drawBuffer = @context.drawBuffer 
+            pointCount = @parent.pointCount
+            byteLength = @program.BYTES_PER_POINT * pointCount
+            
+            mallocExternal byteLength/4, null, this
+            
+            drawOffset = drawBuffer.malloc byteLength
+            byteOffset = getByteOffset this 
+
+            log "allocation from:", drawBuffer, "for:", this, {
+                byteLength, pointCount, drawOffset, byteOffset 
+            }
+
+        init            : ( context, vScript = "default", fScript = "default" ) ->
+
+            super()
+
+            vScript = vScript.value if isPointer vScript
+            fScript = fScript.value if isPointer fScript
+            context = context || findChild( null, Scene ).defaultContext
+
+            if !context . isPointer
+                context = new RenderingContext context
+            alias = "#{vScript} #{fScript}"
+            
             for ptri in findChilds context, Program, recursive = off, construct = on
-                continue unless ptrByteCompare( ptri, this )
-                return this if setLinked( this, ptri )
+                continue unless ptri.alias is alias 
+                setLinked this, ptri
+                return this 
 
             setParent ptri = new Program , context
-            setLinked this , ptri . set this.value
+            setLinked this , ptri
 
             unless getInited ptri.parent
-                ptri.parent.init()
+                ptri.parent.init() 
+                
 
             gl          = context.WebGLObject
 
@@ -5165,7 +5195,11 @@ do  self.main = ->
                     info = gl.getShaderInfoLog vShader
                     throw "Could not compile vertex shader. \n\n#{info}, \nsource:#{vSource}"
 
-                vShader
+                vshptri = new VertexShader()
+                vshptri . glObject = vShader
+                vshptri . set vScript ; vshptri
+
+
 
             fShader     = do =>
                 fSource = @queryDocument( fScript, "frag" ).text
@@ -5178,13 +5212,15 @@ do  self.main = ->
                     info = gl.getShaderInfoLog fShader
                     throw "Could not compile fragment shader. \n\n#{info}"
 
-                fShader
+                fshptri = new FragmentShader()
+                fshptri . glObject = fShader
+                fshptri . set fScript ; fshptri
 
             program     = do =>
                 program = gl.createProgram()
 
-                gl.attachShader program, vShader
-                gl.attachShader program, fShader
+                gl.attachShader program, vShader.glObject
+                gl.attachShader program, fShader.glObject
 
                 gl.linkProgram program
 
@@ -5194,11 +5230,32 @@ do  self.main = ->
 
                 program
 
+            setParent vShader, ptri
+            setParent fShader, ptri
             setLinked ptri, ptri.store gl.useProgram.bind gl, program
             
             this
 
        
+    cscope.global class UUID extends TextPointer
+            
+        @key            : "uuid"
+
+    cscope.store  class Drawings extends Pointer
+
+        @key            : "drawings"
+
+        @iterate        : DrawCall
+
+        getPointCount   : ->
+            getResvUint32( this ) or
+            setResvUint32( this, getLength( @parent ) / 3 ) 
+
+    MESH_DRAW_STATE     = 0
+    
+    MESH_DRAWINGS       = 4
+
+
     cscope.global class Mesh extends Pointer
 
         TypedArray      : Float32Array
@@ -5207,23 +5264,52 @@ do  self.main = ->
 
         @key            : "mesh"
 
-        setDrawings     : ( drawings = [] ) ->
+        setDrawings     : ( drawings = [] ) ->            
             for { context , vShader, fShader } in drawings
-                setParent ptri = new DrawCall, this
+                setParent ptri = new DrawCall, @drawings
                 ptri.init context, vShader, fShader
             this
 
+        getDrawings     : ( drawings = [] ) ->
+            if !ptri = getResvUint32 this + MESH_DRAWINGS
+                
+                setResvUint32 this + MESH_DRAWINGS, ptri = new Drawings
+                setParent ptri, this
+                parent = @parent
+
+                while parent
+                    drawings = parent.drawings
+
+                    if !drawings or !drawings.children.length
+                        parent = getParent parent
+                        continue
+
+                    for dcl in findChilds drawings, DrawCall
+                        { context, vShader, fShader } = dcl
+                        setParent ptrj = new DrawCall, ptri
+                        ptrj.init context, vShader, fShader
+
+                    break
+
+            new Drawings ptri
+
+
         getDrawState    : ->
-            STATE[ agetResvUint8 this + MESH_DRAW_STATE ]
+            STATE[ agetResvUint8 this + MESH_DRAW_STATE ] or
+            throw /DRAW_STATE/ + this
 
         setDrawState    : ( state ) ->
             state = STATE[ state ] or throw /DRAW_STATE/
             asetResvUint8 this + MESH_DRAW_STATE, state
             @emit "drawstatechange", state ; state
 
+
         Object.defineProperties Mesh::,
             vertices    : 
                 set     : Mesh::set
+
+            id          : 
+                get     : -> findChild( this, UUID )?.value
 
     cscope.store  class AnimationFrame extends Pointer
 
@@ -5285,6 +5371,14 @@ do  self.main = ->
             onframe = ( epoch = 0 ) ->
 
                 @emit "beforerender", epoch
+
+                for mesh from ptrIterator null, Mesh, construct = on
+                    if  mesh.drawState is STATE.NEEDS_MALLOC
+                        dc.mallocDraw() for dc from mesh.drawings
+
+                    log "mesh", mesh.id, mesh, mesh.drawState 
+                    
+
                 @render epoch, animframe
                 requestAnimationFrame onframe if ++i < 2
                 
@@ -5316,7 +5410,7 @@ do  self.main = ->
                 new RenderingContext ptri
 
 
-    cscope.store  class CallBinding extends TextPointer
+    cscope.store class CallBinding extends TextPointer
 
         set : ( name, @function ) ->
             super name
@@ -5377,7 +5471,7 @@ do  self.main = ->
             gl = @findGLContext context
             gl.clear.apply.bind gl.clear, gl, subarrayPtri this, Uint16Array, 1 
         
-    cscope.store  class ClearColor extends Color
+    cscope.store class ClearColor extends Color
 
         @key            : "clearColor"
 
@@ -5403,7 +5497,7 @@ do  self.main = ->
             gl = @findGLContext context
             gl . clearColor.apply.bind gl.clearColor, gl, subarrayPtri this, Float32Array, 4 
         
-    cscope.store  class Viewport extends Pointer
+    cscope.store class Viewport extends Pointer
 
         TypedArray      : Float32Array
 
@@ -5462,9 +5556,24 @@ do  self.main = ->
             0
 
         resize          : ( byteLength, type = 35044 ) ->
-            gl = @bind() and @parent.WebGLObject
+            @bind()
+
+            gl = @parent.WebGLObject 
             gl . bufferData gl.ARRAY_BUFFER, byteLength, type
+            
             this
+
+        getGlObject     : ->
+            @storage[ getResvUint32 this + 4 ]
+
+        setGlObject     : ( glObject ) ->
+            setResvUint32 this + 4, @store glObject
+
+        getByteLength   : -> getByteLength this
+
+        malloc          : ( byteLength = 0, byteOffset = @byteLength ) ->
+            setByteLength this , byteLength += byteOffset
+            @resize byteLength ; byteOffset
 
     cscope.store class VertexArray extends Pointer
 
@@ -5508,7 +5617,24 @@ do  self.main = ->
 
         vertexAttrib4fv : -> @gl.vertexAttrib4fv @location, arguments[0] ; this
 
-    cscope.store class Program extends TextPointer
+    cscope.store class VertexShader extends TextPointer
+
+        @key            : "vertexShader"
+
+        getGlObject     : -> @storage[ getLinked this ]
+        
+        setGlObject     : -> setLinked this, @store arguments[0]
+
+    cscope.store class FragmentShader extends TextPointer
+
+        @key            : "fragmentShader"
+
+        getGlObject     : -> @storage[ getLinked this ]
+        
+        setGlObject     : -> setLinked this, @store arguments[0]
+
+
+    cscope.store class Program extends Pointer
 
         @key            : "program"
 
@@ -5524,6 +5650,15 @@ do  self.main = ->
 
             1
 
+        getVShader      : ->
+            findChild this, VertexShader, create = off, superfind = off
+
+        getFShader      : ->
+            findChild this, FragmentShader, create = off, superfind = off
+
+        getAlias        : ->
+            "#{@vShader.value} #{@fShader.value}" 
+
         getIsUsing      : ->
             Boolean getResvUint8 this
 
@@ -5531,26 +5666,10 @@ do  self.main = ->
             dc for dc from ptrIterator this, DrawCall, construct = on, PTR_LINKED 
 
         bindDrawBuffer  : ->
-
-            if  ptri = getResvUint32 this + 8
-                return new DrawBuffer( ptri ).bind()
-            
-            if  ptri = findChild this, DrawBuffer, create = off, superfind = on
-                drawBuffer = new DrawBuffer ptri
-
-            else
-                ptri = drawBuffer = new DrawBuffer
-                gl   = @parent.WebGLObject
-                buff = gl.createBuffer()
-                fn   = @store gl.bindBuffer.bind gl, gl.ARRAY_BUFFER, buff
-
-                setLinked ptri, fn
-                setParent ptri, getParent this
-
-                drawBuffer.resize 512
-
-            setResvUint32 this + 8, ptri
-            drawBuffer.bind(); this
+            if !ptri = getResvUint32 this + 8
+                ptri = setResvUint32 this + 8, @parent.drawBuffer
+                
+            new DrawBuffer( ptri ).bind()
 
         bindVertexArray : ->
             if  ptri = getResvUint32 this + 4
@@ -5780,6 +5899,22 @@ do  self.main = ->
                 ptri.init()
             
             return new Viewport ptri
+
+        getDrawBuffer   : ->
+            drawBuffer = findChild this, DrawBuffer, create = on
+            
+            if !getLinked drawBuffer
+                buff = gl.createBuffer() if gl = @WebGLObject
+                func = gl.bindBuffer.bind gl, gl.ARRAY_BUFFER, buff
+
+                setLinked drawBuffer, @store func
+
+                drawBuffer.setGlObject buff
+                drawBuffer.bind()
+                drawBuffer.resize 512
+
+            drawBuffer
+            
 
         setViewport         : ( ptri ) ->
             if !isPointer ptri  

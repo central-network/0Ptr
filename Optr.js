@@ -4164,7 +4164,7 @@ self.init   = ->
 
  */
 (self.main = function() {
-  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, ClearMask, Color, DRAWING_DONE, DrawBuffer, DrawCall, EVENTID_SET, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, MESH_DRAW_STATE, Mesh, NEEDS_MALLOC, NEEDS_UPDATE, NEEDS_UPLOAD, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKED, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, Program, RenderingContext, Rotation, STATE, Scale, Scene, Scope, Storage, TextPointer, UPDATING_NOW, VertexArray, VertexAttribPointer, Viewport, agetResvUint8, asetResvUint8, c, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, findLinkeds, get, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, glcls, glkey, glval, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, keyof, label, len, malign, malloc, mallocExternal, palloc, property, ptrByteCompare, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, ref2, ref3, ref4, sab, set, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8, val;
+  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, ClearMask, Color, DRAWING_DONE, DrawBuffer, DrawCall, Drawings, EVENTID_SET, EventHandler, FragmentShader, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, MESH_DRAWINGS, MESH_DRAW_STATE, Mesh, NEEDS_MALLOC, NEEDS_UPDATE, NEEDS_UPLOAD, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKED, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, Program, RenderingContext, Rotation, STATE, Scale, Scene, Scope, Storage, TextPointer, UPDATING_NOW, UUID, VertexArray, VertexAttribPointer, VertexShader, Viewport, agetResvUint8, asetResvUint8, c, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, findLinkeds, get, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, glcls, glkey, glval, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, keyof, label, len, malign, malloc, mallocExternal, palloc, property, ptrByteCompare, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, ref2, ref3, ref4, sab, set, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8, val;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -4559,11 +4559,11 @@ self.init   = ->
     dvw.setUint32(ptri + PTR_BYTELENGTH, byteLength, iLE);
     return ptri;
   };
-  isPointer = function(any) {
-    if (true !== !!any) {
+  isPointer = function(any = 0) {
+    if (false === any instanceof Number) {
       return false;
     }
-    if (any.isPointer) {
+    if (any.isPointer && any % HEADER_BYTELENGTH) {
       return any;
     }
     if (any % HEADER_BYTELENGTH) {
@@ -5320,9 +5320,8 @@ self.init   = ->
     return Location;
 
   }).call(this));
-  MESH_DRAW_STATE = 0;
   cscope.global(DrawCall = (function() {
-    class DrawCall extends TextPointer {
+    class DrawCall extends Pointer {
       getProgram() {
         return new Program(getLinked(this));
       }
@@ -5331,28 +5330,60 @@ self.init   = ->
         return document.querySelector(`[program='${program}'][type*='${type}']`);
       }
 
-      init(context, vScript, fScript) {
-        var construct, fShader, gl, j, len, program, ptri, recursive, ref, vShader;
-        super.init().set(`${(vScript || (vScript = 'default'))} ${(fScript || (fScript = 'default'))}`);
-        context || (context = findChild(null, Scene).defaultContext);
+      getVShader() {
+        return this.program.vShader;
+      }
+
+      getFShader() {
+        return this.program.fShader;
+      }
+
+      getContext() {
+        return this.program.parent;
+      }
+
+      mallocDraw() {
+        var byteLength, byteOffset, drawBuffer, drawOffset, pointCount;
+        drawBuffer = this.context.drawBuffer;
+        pointCount = this.parent.pointCount;
+        byteLength = this.program.BYTES_PER_POINT * pointCount;
+        mallocExternal(byteLength / 4, null, this);
+        drawOffset = drawBuffer.malloc(byteLength);
+        byteOffset = getByteOffset(this);
+        return log("allocation from:", drawBuffer, "for:", this, {byteLength, pointCount, drawOffset, byteOffset});
+      }
+
+      init(context, vScript = "default", fScript = "default") {
+        var alias, construct, fShader, gl, j, len, program, ptri, recursive, ref, vShader;
+        super.init();
+        if (isPointer(vScript)) {
+          vScript = vScript.value;
+        }
+        if (isPointer(fScript)) {
+          fScript = fScript.value;
+        }
+        context = context || findChild(null, Scene).defaultContext;
+        if (!context.isPointer) {
+          context = new RenderingContext(context);
+        }
+        alias = `${vScript} ${fScript}`;
         ref = findChilds(context, Program, recursive = false, construct = true);
         for (j = 0, len = ref.length; j < len; j++) {
           ptri = ref[j];
-          if (!ptrByteCompare(ptri, this)) {
+          if (ptri.alias !== alias) {
             continue;
           }
-          if (setLinked(this, ptri)) {
-            return this;
-          }
+          setLinked(this, ptri);
+          return this;
         }
         setParent(ptri = new Program, context);
-        setLinked(this, ptri.set(this.value));
+        setLinked(this, ptri);
         if (!getInited(ptri.parent)) {
           ptri.parent.init();
         }
         gl = context.WebGLObject;
         vShader = (() => {
-          var info, vSource;
+          var info, vSource, vshptri;
           vSource = this.queryDocument(vScript, "vert").text;
           vShader = gl.createShader(gl.VERTEX_SHADER);
           gl.shaderSource(vShader, vSource);
@@ -5361,10 +5392,13 @@ self.init   = ->
             info = gl.getShaderInfoLog(vShader);
             throw `Could not compile vertex shader. \n\n${info}, \nsource:${vSource}`;
           }
-          return vShader;
+          vshptri = new VertexShader();
+          vshptri.glObject = vShader;
+          vshptri.set(vScript);
+          return vshptri;
         })();
         fShader = (() => {
-          var fSource, info;
+          var fSource, fshptri, info;
           fSource = this.queryDocument(fScript, "frag").text;
           fShader = gl.createShader(gl.FRAGMENT_SHADER);
           gl.shaderSource(fShader, fSource);
@@ -5373,13 +5407,16 @@ self.init   = ->
             info = gl.getShaderInfoLog(fShader);
             throw `Could not compile fragment shader. \n\n${info}`;
           }
-          return fShader;
+          fshptri = new FragmentShader();
+          fshptri.glObject = fShader;
+          fshptri.set(fScript);
+          return fshptri;
         })();
         program = (() => {
           var info;
           program = gl.createProgram();
-          gl.attachShader(program, vShader);
-          gl.attachShader(program, fShader);
+          gl.attachShader(program, vShader.glObject);
+          gl.attachShader(program, fShader.glObject);
           gl.linkProgram(program);
           if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
             info = gl.getProgramInfoLog(program);
@@ -5387,6 +5424,8 @@ self.init   = ->
           }
           return program;
         })();
+        setParent(vShader, ptri);
+        setParent(fShader, ptri);
         setLinked(ptri, ptri.store(gl.useProgram.bind(gl, program)));
         return this;
       }
@@ -5395,25 +5434,79 @@ self.init   = ->
 
     DrawCall.key = "drawCall";
 
+    DrawCall.prototype.TypedArray = Float32Array;
+
     DrawCall.prototype.isDrawCall = true;
 
     return DrawCall;
 
   }).call(this));
+  cscope.global(UUID = (function() {
+    class UUID extends TextPointer {};
+
+    UUID.key = "uuid";
+
+    return UUID;
+
+  }).call(this));
+  cscope.store(Drawings = (function() {
+    class Drawings extends Pointer {
+      getPointCount() {
+        return getResvUint32(this) || setResvUint32(this, getLength(this.parent) / 3);
+      }
+
+    };
+
+    Drawings.key = "drawings";
+
+    Drawings.iterate = DrawCall;
+
+    return Drawings;
+
+  }).call(this));
+  MESH_DRAW_STATE = 0;
+  MESH_DRAWINGS = 4;
   cscope.global(Mesh = (function() {
     class Mesh extends Pointer {
       setDrawings(drawings = []) {
         var context, fShader, j, len, ptri, vShader;
         for (j = 0, len = drawings.length; j < len; j++) {
           ({context, vShader, fShader} = drawings[j]);
-          setParent(ptri = new DrawCall, this);
+          setParent(ptri = new DrawCall, this.drawings);
           ptri.init(context, vShader, fShader);
         }
         return this;
       }
 
+      getDrawings(drawings = []) {
+        var context, dcl, fShader, j, len, parent, ptri, ptrj, ref, vShader;
+        if (!(ptri = getResvUint32(this + MESH_DRAWINGS))) {
+          setResvUint32(this + MESH_DRAWINGS, ptri = new Drawings);
+          setParent(ptri, this);
+          parent = this.parent;
+          while (parent) {
+            drawings = parent.drawings;
+            if (!drawings || !drawings.children.length) {
+              parent = getParent(parent);
+              continue;
+            }
+            ref = findChilds(drawings, DrawCall);
+            for (j = 0, len = ref.length; j < len; j++) {
+              dcl = ref[j];
+              ({context, vShader, fShader} = dcl);
+              setParent(ptrj = new DrawCall, ptri);
+              ptrj.init(context, vShader, fShader);
+            }
+            break;
+          }
+        }
+        return new Drawings(ptri);
+      }
+
       getDrawState() {
-        return STATE[agetResvUint8(this + MESH_DRAW_STATE)];
+        return STATE[agetResvUint8(this + MESH_DRAW_STATE)] || (function() {
+          throw /DRAW_STATE/ + this;
+        }).call(this);
       }
 
       setDrawState(state) {
@@ -5436,6 +5529,12 @@ self.init   = ->
     Object.defineProperties(Mesh.prototype, {
       vertices: {
         set: Mesh.prototype.set
+      },
+      id: {
+        get: function() {
+          var ref;
+          return (ref = findChild(this, UUID)) != null ? ref.value : void 0;
+        }
       }
     });
 
@@ -5531,7 +5630,18 @@ self.init   = ->
         animframe = this.animationFrame;
         i = 0;
         onframe = function(epoch = 0) {
+          var construct, dc, mesh, ref, ref1;
           this.emit("beforerender", epoch);
+          ref = ptrIterator(null, Mesh, construct = true);
+          for (mesh of ref) {
+            if (mesh.drawState === STATE.NEEDS_MALLOC) {
+              ref1 = mesh.drawings;
+              for (dc of ref1) {
+                dc.mallocDraw();
+              }
+            }
+            log("mesh", mesh.id, mesh, mesh.drawState);
+          }
           this.render(epoch, animframe);
           if (++i < 2) {
             requestAnimationFrame(onframe);
@@ -5773,9 +5883,28 @@ self.init   = ->
 
       resize(byteLength, type = 35044) {
         var gl;
-        gl = this.bind() && this.parent.WebGLObject;
+        this.bind();
+        gl = this.parent.WebGLObject;
         gl.bufferData(gl.ARRAY_BUFFER, byteLength, type);
         return this;
+      }
+
+      getGlObject() {
+        return this.storage[getResvUint32(this + 4)];
+      }
+
+      setGlObject(glObject) {
+        return setResvUint32(this + 4, this.store(glObject));
+      }
+
+      getByteLength() {
+        return getByteLength(this);
+      }
+
+      malloc(byteLength = 0, byteOffset = this.byteLength) {
+        setByteLength(this, byteLength += byteOffset);
+        this.resize(byteLength);
+        return byteOffset;
       }
 
     };
@@ -5879,8 +6008,42 @@ self.init   = ->
     return VertexAttribPointer;
 
   }).call(this));
+  cscope.store(VertexShader = (function() {
+    class VertexShader extends TextPointer {
+      getGlObject() {
+        return this.storage[getLinked(this)];
+      }
+
+      setGlObject() {
+        return setLinked(this, this.store(arguments[0]));
+      }
+
+    };
+
+    VertexShader.key = "vertexShader";
+
+    return VertexShader;
+
+  }).call(this));
+  cscope.store(FragmentShader = (function() {
+    class FragmentShader extends TextPointer {
+      getGlObject() {
+        return this.storage[getLinked(this)];
+      }
+
+      setGlObject() {
+        return setLinked(this, this.store(arguments[0]));
+      }
+
+    };
+
+    FragmentShader.key = "fragmentShader";
+
+    return FragmentShader;
+
+  }).call(this));
   cscope.store(Program = (function() {
-    class Program extends TextPointer {
+    class Program extends Pointer {
       use() {
         if (!getResvUint8(this)) {
           setResvUint8(this, 1);
@@ -5891,6 +6054,20 @@ self.init   = ->
           this.bindVertexArray();
         }
         return 1;
+      }
+
+      getVShader() {
+        var create, superfind;
+        return findChild(this, VertexShader, create = false, superfind = false);
+      }
+
+      getFShader() {
+        var create, superfind;
+        return findChild(this, FragmentShader, create = false, superfind = false);
+      }
+
+      getAlias() {
+        return `${this.vShader.value} ${this.fShader.value}`;
       }
 
       getIsUsing() {
@@ -5908,24 +6085,11 @@ self.init   = ->
       }
 
       bindDrawBuffer() {
-        var buff, create, drawBuffer, fn, gl, ptri, superfind;
-        if (ptri = getResvUint32(this + 8)) {
-          return new DrawBuffer(ptri).bind();
+        var ptri;
+        if (!(ptri = getResvUint32(this + 8))) {
+          ptri = setResvUint32(this + 8, this.parent.drawBuffer);
         }
-        if (ptri = findChild(this, DrawBuffer, create = false, superfind = true)) {
-          drawBuffer = new DrawBuffer(ptri);
-        } else {
-          ptri = drawBuffer = new DrawBuffer;
-          gl = this.parent.WebGLObject;
-          buff = gl.createBuffer();
-          fn = this.store(gl.bindBuffer.bind(gl, gl.ARRAY_BUFFER, buff));
-          setLinked(ptri, fn);
-          setParent(ptri, getParent(this));
-          drawBuffer.resize(512);
-        }
-        setResvUint32(this + 8, ptri);
-        drawBuffer.bind();
-        return this;
+        return new DrawBuffer(ptri).bind();
       }
 
       bindVertexArray() {
@@ -6177,6 +6341,22 @@ self.init   = ->
           ptri.init();
         }
         return new Viewport(ptri);
+      }
+
+      getDrawBuffer() {
+        var buff, create, drawBuffer, func, gl;
+        drawBuffer = findChild(this, DrawBuffer, create = true);
+        if (!getLinked(drawBuffer)) {
+          if (gl = this.WebGLObject) {
+            buff = gl.createBuffer();
+          }
+          func = gl.bindBuffer.bind(gl, gl.ARRAY_BUFFER, buff);
+          setLinked(drawBuffer, this.store(func));
+          drawBuffer.setGlObject(buff);
+          drawBuffer.bind();
+          drawBuffer.resize(512);
+        }
+        return drawBuffer;
       }
 
       setViewport(ptri) {
