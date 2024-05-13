@@ -5451,26 +5451,112 @@ do  self.main = ->
             gl = @parent.WebGLObject
             gl . viewport.apply.bind gl.viewport, gl, subarrayPtri this, Float32Array, 4 
 
+
+    cscope.store class DrawBuffer extends Pointer
+
+        @key            : "drawBuffer"
+
+        bind            : ->
+            if !getResvUint8 this
+                setResvUint8 this, 1
+                @storage[ getLinked this ]()
+                warn @constructor.name, " --> enable --> ", this
+                return 1
+            0
+
+        resize          : ( byteLength, type = 35044 ) ->
+            gl = @bind() and @parent.WebGLObject
+            gl . bufferData gl.ARRAY_BUFFER, byteLength, type
+
+            warn @constructor.name, " --> resize --> ", this, "byteLength:", byteLength
+            this
+
+    cscope.store class VertexArray extends Pointer
+
+        @key            : "vertexArray"
+
+        enable          : ->
+            @storage[ getLinked this ]()
+
+    cscope.store class VertexAttribPointer extends TextPointer
+
+        @key            : "vertexAttribPointer"
+
+        enable          : ->
+            @storage[ getLinked this ]()
+
     cscope.store class Program extends TextPointer
 
         @key            : "program"
 
         use             : ->
             if !getResvUint8 this
-                @storage[ getLinked this ]()
-                @parent.activeProgram = this
+                setResvUint8 this, 1
+
+                @storage.at( getLinked this )()
+                @parent.setActiveProgram( this )
+
+            if  @bindDrawBuffer()
+                @bindVertexArray()
+
             1
 
         getIsUsing      : ->
             Boolean getResvUint8 this
 
         getDrawCalls    : ->
-            dc for dc from ptrIterator this, DrawCall, on, PTR_LINKED 
+            dc for dc from ptrIterator this, DrawCall, construct = on, PTR_LINKED 
 
-        getUseNow       : -> @use()
+        bindDrawBuffer  : ->
+
+            if  ptri = getResvUint32 this + 8
+                return new DrawBuffer( ptri ).bind()
+            
+            if  ptri = findChild this, DrawBuffer, create = off, superfind = on
+                drawBuffer = new DrawBuffer ptri
+
+            else
+                ptri = drawBuffer = new DrawBuffer
+                gl   = @parent.WebGLObject
+                buff = gl.createBuffer()
+                fn   = @store gl.bindBuffer.bind gl, gl.ARRAY_BUFFER, buff
+
+                setLinked ptri, fn
+                setParent ptri, getParent this
+
+                drawBuffer.resize 512
+
+            setResvUint32 this + 8, ptri
+            drawBuffer.bind(); this
+
+        bindVertexArray : ->
+            if  ptri = getResvUint32 this + 4
+                return new VertexArray( ptri ).enable()
+
+            setResvUint32 this + 4, vertexArray = new VertexArray()
+
+            gl = this.parent.WebGLObject
+            va = gl.createVertexArray()
+            gl . bindVertexArray va
+
+            for at in @parameters.ATTRIBUTES
+                fn = ->
+                    @vertexAttribPointer arguments...
+                    @enableVertexAttribArray arguments[0]
+
+                setParent pt = new VertexAttribPointer, vertexArray
+                setLinked pt , @store fn.bind gl, at.pointerArgs...
+
+                pt.enable()
+
+            fn = @store gl.bindVertexArray.bind gl, va
+
+            setLinked vertexArray, fn
+            setParent vertexArray, this
+
+            vertexArray.enable()
 
         getGlObjects    : ->
-            
             glContext = gl = @parent.WebGLObject if @use()
             glProgram = @parent.parameters.CURRENT_PROGRAM
 
@@ -5510,36 +5596,48 @@ do  self.main = ->
                 parameters[ s ].INFO_LOG = gl.getShaderInfoLog gls
                 
             numAttribs = parameters.ACTIVE_ATTRIBUTES
+            parameters . VERTEX_ARRAY_NAME = ""
             parameters . ATTRIBUTES_STRIDE = 0
             parameters . ATTRIBUTES = while numAttribs--
                 attrib = gl.getActiveAttrib glProgram, numAttribs
 
                 attrib . location   = gl . getAttribLocation glProgram, attrib.name
+                attrib . normalized = gl . getVertexAttrib numAttribs, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
                 attrib . typename   = tn = keyof attrib.type
                 
                 attrib . offset     = parameters.ATTRIBUTES_STRIDE
-                attrib . length     = do ->
+                attrib . glsize     = do ->
                     name = tn.constructor.name
                     switch ( valtyp = name.split("_").pop() ).substring 0, 3
                         when "VEC" then valtyp[3] * 1
                         when "MAT" then valtyp[3] * ( valtyp[5] || 1 )
 
-                attrib . BYTES_PER_ATTRIBUTE = attrib . length *
-                    switch tn.constructor.name.split("_")[0]
-                        when "FLOAT" then 4
-                        when "UNSIGNED_BYTE" then 1
+                attrib . BYTES_PER_ATTRIBUTE = attrib . glsize *
+                    switch attrib.gltype = gl[ tn.constructor.name.split("_")[0] ]
+                        when gl.FLOAT           then 4
+                        when gl.UNSIGNED_BYTE   then 1
                         else throw /DEFINED/
 
+                parameters . VERTEX_ARRAY_NAME += " #{attrib.name} "
+                parameters . VERTEX_ARRAY_NAME  =
+                    parameters . VERTEX_ARRAY_NAME.trim()
 
                 parameters . ATTRIBUTES_STRIDE +=
                     attrib . BYTES_PER_ATTRIBUTE
 
                 attrib
 
-
+            for attrib in parameters . ATTRIBUTES
+                attrib . pointerArgs = [
+                    attrib.location, attrib.glsize, attrib.gltype,
+                    attrib.normalized, parameters . ATTRIBUTES_STRIDE,
+                    attrib.offset
+                ]
 
             parameters
 
+        Object.defineProperty Program::, "BYTES_PER_POINT", get : ->
+            getResvUint8( this + 1 ) or setResvUint8 this + 1, @parameters.ATTRIBUTES_STRIDE
 
 
     cscope.global class RenderingContext extends Pointer
@@ -5627,8 +5725,7 @@ do  self.main = ->
             getResvUint32 this
 
         setActiveProgram    : ( ptri ) ->
-            setResvUint8 ptri, 1
-            setResvUint8 @activeProgram, 0
+            setResvUint8 getResvUint32(this), 0
             setResvUint32 this, ptri
 
         getPrograms         : ->

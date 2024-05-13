@@ -4164,7 +4164,7 @@ self.init   = ->
 
  */
 (self.main = function() {
-  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, ClearMask, Color, DRAWING_DONE, DrawCall, EVENTID_SET, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, MESH_DRAW_STATE, Mesh, NEEDS_MALLOC, NEEDS_UPDATE, NEEDS_UPLOAD, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKED, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, Program, RenderingContext, Rotation, STATE, Scale, Scene, Scope, Storage, TextPointer, UPDATING_NOW, Viewport, agetResvUint8, asetResvUint8, c, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, findLinkeds, get, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, glcls, glkey, glval, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, keyof, label, len, malign, malloc, mallocExternal, palloc, property, ptrByteCompare, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, ref2, ref3, ref4, sab, set, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8, val;
+  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, ClearMask, Color, DRAWING_DONE, DrawBuffer, DrawCall, EVENTID_SET, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, MESH_DRAW_STATE, Mesh, NEEDS_MALLOC, NEEDS_UPDATE, NEEDS_UPLOAD, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKED, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, Program, RenderingContext, Rotation, STATE, Scale, Scene, Scope, Storage, TextPointer, UPDATING_NOW, VertexArray, VertexAttribPointer, Viewport, agetResvUint8, asetResvUint8, c, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, findLinkeds, get, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, glcls, glkey, glval, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, keyof, label, len, malign, malloc, mallocExternal, palloc, property, ptrByteCompare, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, ref2, ref3, ref4, sab, set, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8, val;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -5760,12 +5760,69 @@ self.init   = ->
     return Viewport;
 
   }).call(this));
+  cscope.store(DrawBuffer = (function() {
+    class DrawBuffer extends Pointer {
+      bind() {
+        if (!getResvUint8(this)) {
+          setResvUint8(this, 1);
+          this.storage[getLinked(this)]();
+          warn(this.constructor.name, " --> enable --> ", this);
+          return 1;
+        }
+        return 0;
+      }
+
+      resize(byteLength, type = 35044) {
+        var gl;
+        gl = this.bind() && this.parent.WebGLObject;
+        gl.bufferData(gl.ARRAY_BUFFER, byteLength, type);
+        warn(this.constructor.name, " --> resize --> ", this, "byteLength:", byteLength);
+        return this;
+      }
+
+    };
+
+    DrawBuffer.key = "drawBuffer";
+
+    return DrawBuffer;
+
+  }).call(this));
+  cscope.store(VertexArray = (function() {
+    class VertexArray extends Pointer {
+      enable() {
+        return this.storage[getLinked(this)]();
+      }
+
+    };
+
+    VertexArray.key = "vertexArray";
+
+    return VertexArray;
+
+  }).call(this));
+  cscope.store(VertexAttribPointer = (function() {
+    class VertexAttribPointer extends TextPointer {
+      enable() {
+        return this.storage[getLinked(this)]();
+      }
+
+    };
+
+    VertexAttribPointer.key = "vertexAttribPointer";
+
+    return VertexAttribPointer;
+
+  }).call(this));
   cscope.store(Program = (function() {
     class Program extends TextPointer {
       use() {
         if (!getResvUint8(this)) {
-          this.storage[getLinked(this)]();
-          this.parent.activeProgram = this;
+          setResvUint8(this, 1);
+          this.storage.at(getLinked(this))();
+          this.parent.setActiveProgram(this);
+        }
+        if (this.bindDrawBuffer()) {
+          this.bindVertexArray();
         }
         return 1;
       }
@@ -5775,8 +5832,8 @@ self.init   = ->
       }
 
       getDrawCalls() {
-        var dc, ref, results;
-        ref = ptrIterator(this, DrawCall, true, PTR_LINKED);
+        var construct, dc, ref, results;
+        ref = ptrIterator(this, DrawCall, construct = true, PTR_LINKED);
         results = [];
         for (dc of ref) {
           results.push(dc);
@@ -5784,8 +5841,51 @@ self.init   = ->
         return results;
       }
 
-      getUseNow() {
-        return this.use();
+      bindDrawBuffer() {
+        var buff, create, drawBuffer, fn, gl, ptri, superfind;
+        if (ptri = getResvUint32(this + 8)) {
+          return new DrawBuffer(ptri).bind();
+        }
+        if (ptri = findChild(this, DrawBuffer, create = false, superfind = true)) {
+          drawBuffer = new DrawBuffer(ptri);
+        } else {
+          ptri = drawBuffer = new DrawBuffer;
+          gl = this.parent.WebGLObject;
+          buff = gl.createBuffer();
+          fn = this.store(gl.bindBuffer.bind(gl, gl.ARRAY_BUFFER, buff));
+          setLinked(ptri, fn);
+          setParent(ptri, getParent(this));
+          drawBuffer.resize(512);
+        }
+        setResvUint32(this + 8, ptri);
+        drawBuffer.bind();
+        return this;
+      }
+
+      bindVertexArray() {
+        var at, fn, gl, j, len, pt, ptri, ref, va, vertexArray;
+        if (ptri = getResvUint32(this + 4)) {
+          return new VertexArray(ptri).enable();
+        }
+        setResvUint32(this + 4, vertexArray = new VertexArray());
+        gl = this.parent.WebGLObject;
+        va = gl.createVertexArray();
+        gl.bindVertexArray(va);
+        ref = this.parameters.ATTRIBUTES;
+        for (j = 0, len = ref.length; j < len; j++) {
+          at = ref[j];
+          fn = function() {
+            this.vertexAttribPointer(...arguments);
+            return this.enableVertexAttribArray(arguments[0]);
+          };
+          setParent(pt = new VertexAttribPointer, vertexArray);
+          setLinked(pt, this.store(fn.bind(gl, ...at.pointerArgs)));
+          pt.enable();
+        }
+        fn = this.store(gl.bindVertexArray.bind(gl, va));
+        setLinked(vertexArray, fn);
+        setParent(vertexArray, this);
+        return vertexArray.enable();
       }
 
       getGlObjects() {
@@ -5809,7 +5909,7 @@ self.init   = ->
       }
 
       getParameters() {
-        var attrib, gl, glFShader, glProgram, glVShader, gls, j, k, len, len1, numAttribs, p, parameters, pname, ref, ref1, ref2, s, shaders, split, tn, value;
+        var attrib, gl, glFShader, glProgram, glVShader, gls, j, k, l, len, len1, len2, numAttribs, p, parameters, pname, ref, ref1, ref2, ref3, s, shaders, split, tn, value;
         ({
           glContext: gl,
           glProgram,
@@ -5855,6 +5955,7 @@ self.init   = ->
           parameters[s].INFO_LOG = gl.getShaderInfoLog(gls);
         }
         numAttribs = parameters.ACTIVE_ATTRIBUTES;
+        parameters.VERTEX_ARRAY_NAME = "";
         parameters.ATTRIBUTES_STRIDE = 0;
         parameters.ATTRIBUTES = (function() {
           var results;
@@ -5862,9 +5963,10 @@ self.init   = ->
           while (numAttribs--) {
             attrib = gl.getActiveAttrib(glProgram, numAttribs);
             attrib.location = gl.getAttribLocation(glProgram, attrib.name);
+            attrib.normalized = gl.getVertexAttrib(numAttribs, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED);
             attrib.typename = tn = keyof(attrib.type);
             attrib.offset = parameters.ATTRIBUTES_STRIDE;
-            attrib.length = (function() {
+            attrib.glsize = (function() {
               var name, valtyp;
               name = tn.constructor.name;
               switch ((valtyp = name.split("_").pop()).substring(0, 3)) {
@@ -5874,27 +5976,40 @@ self.init   = ->
                   return valtyp[3] * (valtyp[5] || 1);
               }
             })();
-            attrib.BYTES_PER_ATTRIBUTE = attrib.length * (function() {
-              switch (tn.constructor.name.split("_")[0]) {
-                case "FLOAT":
+            attrib.BYTES_PER_ATTRIBUTE = attrib.glsize * (function() {
+              switch (attrib.gltype = gl[tn.constructor.name.split("_")[0]]) {
+                case gl.FLOAT:
                   return 4;
-                case "UNSIGNED_BYTE":
+                case gl.UNSIGNED_BYTE:
                   return 1;
                 default:
                   throw /DEFINED/;
               }
             })();
+            parameters.VERTEX_ARRAY_NAME += ` ${attrib.name} `;
+            parameters.VERTEX_ARRAY_NAME = parameters.VERTEX_ARRAY_NAME.trim();
             parameters.ATTRIBUTES_STRIDE += attrib.BYTES_PER_ATTRIBUTE;
             results.push(attrib);
           }
           return results;
         })();
+        ref3 = parameters.ATTRIBUTES;
+        for (l = 0, len2 = ref3.length; l < len2; l++) {
+          attrib = ref3[l];
+          attrib.pointerArgs = [attrib.location, attrib.glsize, attrib.gltype, attrib.normalized, parameters.ATTRIBUTES_STRIDE, attrib.offset];
+        }
         return parameters;
       }
 
     };
 
     Program.key = "program";
+
+    Object.defineProperty(Program.prototype, "BYTES_PER_POINT", {
+      get: function() {
+        return getResvUint8(this + 1) || setResvUint8(this + 1, this.parameters.ATTRIBUTES_STRIDE);
+      }
+    });
 
     return Program;
 
@@ -5952,8 +6067,7 @@ self.init   = ->
       }
 
       setActiveProgram(ptri) {
-        setResvUint8(ptri, 1);
-        setResvUint8(this.activeProgram, 0);
+        setResvUint8(getResvUint32(this), 0);
         return setResvUint32(this, ptri);
       }
 
