@@ -5766,7 +5766,6 @@ self.init   = ->
         if (!getResvUint8(this)) {
           setResvUint8(this, 1);
           this.storage[getLinked(this)]();
-          warn(this.constructor.name, " --> enable --> ", this);
           return 1;
         }
         return 0;
@@ -5776,7 +5775,6 @@ self.init   = ->
         var gl;
         gl = this.bind() && this.parent.WebGLObject;
         gl.bufferData(gl.ARRAY_BUFFER, byteLength, type);
-        warn(this.constructor.name, " --> resize --> ", this, "byteLength:", byteLength);
         return this;
       }
 
@@ -5802,63 +5800,75 @@ self.init   = ->
   }).call(this));
   cscope.store(VertexAttribPointer = (function() {
     class VertexAttribPointer extends TextPointer {
+      upload() {
+        return this.storage[getLinked(this)](...arguments);
+      }
+
       enable() {
         return this.storage[getResvUint32(this + 4)]();
       }
 
       getGl() {
-        return this.storage[getLinked(this)];
+        return this.storage[getResvUint32(this + 8)];
       }
 
-      setFn() {
+      setGl() {
+        return setResvUint32(this + 8, this.store(arguments[0]));
+      }
+
+      setEnableFn() {
         return setResvUint32(this + 4, this.store(arguments[0]));
       }
 
-      setIndex() {
+      setUploadFn() {
+        return setLinked(this, this.store(arguments[0]));
+      }
+
+      setLocation() {
         return setResvUint8(this, arguments[0]);
       }
 
-      getIndex() {
+      getLocation() {
         return getResvUint8(this);
       }
 
-      set1f() {
-        this.gl.vertexAttrib1f(this.index, ...arguments);
+      vertexAttrib1f() {
+        this.gl.vertexAttrib1f(this.location, ...arguments);
         return this;
       }
 
-      set2f() {
-        this.gl.vertexAttrib2f(this.index, ...arguments);
+      vertexAttrib2f() {
+        this.gl.vertexAttrib2f(this.location, ...arguments);
         return this;
       }
 
-      set3f() {
-        this.gl.vertexAttrib3f(this.index, ...arguments);
+      vertexAttrib3f() {
+        this.gl.vertexAttrib3f(this.location, ...arguments);
         return this;
       }
 
-      set4f() {
-        this.gl.vertexAttrib4f(this.index, ...arguments);
+      vertexAttrib4f() {
+        this.gl.vertexAttrib4f(this.location, ...arguments);
         return this;
       }
 
-      set1fv() {
-        this.gl.vertexAttrib1fv(this.index, arguments[0]);
+      vertexAttrib1fv() {
+        this.gl.vertexAttrib1fv(this.location, arguments[0]);
         return this;
       }
 
-      set2fv() {
-        this.gl.vertexAttrib2fv(this.index, arguments[0]);
+      vertexAttrib2fv() {
+        this.gl.vertexAttrib2fv(this.location, arguments[0]);
         return this;
       }
 
-      set3fv() {
-        this.gl.vertexAttrib3fv(this.index, arguments[0]);
+      vertexAttrib3fv() {
+        this.gl.vertexAttrib3fv(this.location, arguments[0]);
         return this;
       }
 
-      set4fv() {
-        this.gl.vertexAttrib4fv(this.index, arguments[0]);
+      vertexAttrib4fv() {
+        this.gl.vertexAttrib4fv(this.location, arguments[0]);
         return this;
       }
 
@@ -5919,7 +5929,7 @@ self.init   = ->
       }
 
       bindVertexArray() {
-        var at, fn, gl, j, len, pt, ptri, ref, va, vertexArray;
+        var at, fn, gl, j, len, ptri, ref, va, vertexArray;
         if (ptri = getResvUint32(this + 4)) {
           return new VertexArray(ptri).enable();
         }
@@ -5930,16 +5940,35 @@ self.init   = ->
         ref = this.parameters.ATTRIBUTES;
         for (j = 0, len = ref.length; j < len; j++) {
           at = ref[j];
-          fn = function() {
+          setParent(ptri = new VertexAttribPointer, vertexArray);
+          ptri.setEnableFn((function() {
             this.vertexAttribPointer(...arguments);
             return this.enableVertexAttribArray(arguments[0]);
-          };
-          setParent(pt = new VertexAttribPointer, vertexArray);
-          setLinked(pt, pt.store(gl));
-          pt.set(at.name);
-          pt.setFn(fn.bind(gl, ...at.pointerArgs));
-          pt.setIndex(at.location);
-          pt.enable();
+          }).bind(gl, ...at.pointerArgs));
+          ptri.setUploadFn(((function() {
+            if (at.isVector) {
+              switch (at.glsize) {
+                case 1:
+                  return gl.vertexAttrib1fv;
+                case 2:
+                  return gl.vertexAttrib2fv;
+                case 3:
+                  return gl.vertexAttrib3fv;
+                case 4:
+                  return gl.vertexAttrib4fv;
+              }
+            } else if (at.isNumber) {
+              return gl.vertexAttrib1f;
+            } else if (at.isMatrix) {
+              return function() {
+                throw /UNDEFINED/;
+              };
+            }
+          })()).bind(gl, at.location));
+          Object.assign(ptri.set(at.name), {
+            gl,
+            location: at.location
+          }).enable();
         }
         fn = this.store(gl.bindVertexArray.bind(gl, va));
         setLinked(vertexArray, fn);
@@ -6025,6 +6054,9 @@ self.init   = ->
             attrib.normalized = gl.getVertexAttrib(attrib.location, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED);
             attrib.typename = tn = keyof(attrib.type);
             attrib.offset = parameters.ATTRIBUTES_STRIDE;
+            attrib.isVector = /VEC/.test(tn.constructor.name);
+            attrib.isMatrix = /MAT/.test(tn.constructor.name);
+            attrib.isNumber = /VEC|MAT/.test(tn.constructor.name);
             attrib.glsize = (function() {
               var name, valtyp;
               name = tn.constructor.name;
@@ -6247,6 +6279,9 @@ self.init   = ->
         continue;
       }
       if (!(property = c + key.substring(4))) {
+        continue;
+      }
+      if (Object.getOwnPropertyDescriptor(Class.prototype, property)) {
         continue;
       }
       get = (ref1 = Object.getOwnPropertyDescriptor(Class.prototype, "get" + key.substring(3))) != null ? ref1.value : void 0;

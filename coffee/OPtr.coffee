@@ -5125,7 +5125,6 @@ do  self.main = ->
 
     MESH_DRAW_STATE     = 0
 
-
     cscope.global class DrawCall extends TextPointer
 
         @key            : "drawCall"
@@ -5451,7 +5450,6 @@ do  self.main = ->
             gl = @parent.WebGLObject
             gl . viewport.apply.bind gl.viewport, gl, subarrayPtri this, Float32Array, 4 
 
-
     cscope.store class DrawBuffer extends Pointer
 
         @key            : "drawBuffer"
@@ -5460,53 +5458,55 @@ do  self.main = ->
             if !getResvUint8 this
                 setResvUint8 this, 1
                 @storage[ getLinked this ]()
-                warn @constructor.name, " --> enable --> ", this
                 return 1
             0
 
         resize          : ( byteLength, type = 35044 ) ->
             gl = @bind() and @parent.WebGLObject
             gl . bufferData gl.ARRAY_BUFFER, byteLength, type
-
-            warn @constructor.name, " --> resize --> ", this, "byteLength:", byteLength
             this
 
     cscope.store class VertexArray extends Pointer
 
         @key            : "vertexArray"
 
-        enable          : ->
-            @storage[ getLinked this ]()
+        enable          : -> @storage[ getLinked this ]()
 
     cscope.store class VertexAttribPointer extends TextPointer
 
         @key            : "vertexAttribPointer"
 
+        upload          : -> @storage[ getLinked this ] arguments... 
+
         enable          : -> @storage[ getResvUint32 this + 4 ]()
 
-        getGl           : -> @storage[ getLinked this ]
+        getGl           : -> @storage[ getResvUint32 this + 8 ]
 
-        setFn           : -> setResvUint32 this + 4, @store arguments[0]
+        setGl           : -> setResvUint32 this + 8, @store arguments[0]
 
-        setIndex        : -> setResvUint8 this, arguments[0]
+        setEnableFn     : -> setResvUint32 this + 4, @store arguments[0]
+        
+        setUploadFn     : -> setLinked this, @store arguments[0]
 
-        getIndex        : -> getResvUint8 this
+        setLocation     : -> setResvUint8 this, arguments[0]
 
-        set1f           : -> @gl.vertexAttrib1f  @index, arguments... ; this
-        
-        set2f           : -> @gl.vertexAttrib2f  @index, arguments... ; this
-        
-        set3f           : -> @gl.vertexAttrib3f  @index, arguments... ; this
-        
-        set4f           : -> @gl.vertexAttrib4f  @index, arguments... ; this
-        
-        set1fv          : -> @gl.vertexAttrib1fv @index, arguments[0] ; this
-        
-        set2fv          : -> @gl.vertexAttrib2fv @index, arguments[0] ; this
-        
-        set3fv          : -> @gl.vertexAttrib3fv @index, arguments[0] ; this
+        getLocation     : -> getResvUint8 this
 
-        set4fv          : -> @gl.vertexAttrib4fv @index, arguments[0] ; this
+        vertexAttrib1f  : -> @gl.vertexAttrib1f  @location, arguments... ; this
+        
+        vertexAttrib2f  : -> @gl.vertexAttrib2f  @location, arguments... ; this
+        
+        vertexAttrib3f  : -> @gl.vertexAttrib3f  @location, arguments... ; this
+        
+        vertexAttrib4f  : -> @gl.vertexAttrib4f  @location, arguments... ; this
+        
+        vertexAttrib1fv : -> @gl.vertexAttrib1fv @location, arguments[0] ; this
+        
+        vertexAttrib2fv : -> @gl.vertexAttrib2fv @location, arguments[0] ; this
+        
+        vertexAttrib3fv : -> @gl.vertexAttrib3fv @location, arguments[0] ; this
+
+        vertexAttrib4fv : -> @gl.vertexAttrib4fv @location, arguments[0] ; this
 
     cscope.store class Program extends TextPointer
 
@@ -5563,18 +5563,27 @@ do  self.main = ->
             gl . bindVertexArray va
 
             for at in @parameters.ATTRIBUTES
-                fn = ->
+
+                setParent ptri = new VertexAttribPointer, vertexArray
+
+                ptri.setEnableFn ( ->
                     @vertexAttribPointer arguments...
                     @enableVertexAttribArray arguments[0]
+                ).bind gl, at.pointerArgs... 
 
-                setParent pt = new VertexAttribPointer, vertexArray
-                setLinked pt , pt.store gl 
-                
-                pt.set at.name 
-                pt.setFn fn.bind gl, at.pointerArgs...
-                pt.setIndex at.location
-
-                pt.enable()
+                ptri.setUploadFn (
+                    if  at.isVector then switch at.glsize
+                        when 1 then gl.vertexAttrib1fv
+                        when 2 then gl.vertexAttrib2fv
+                        when 3 then gl.vertexAttrib3fv
+                        when 4 then gl.vertexAttrib4fv
+                    else if at.isNumber then gl.vertexAttrib1f
+                    else if at.isMatrix then -> throw /UNDEFINED/
+                ).bind gl, at.location
+                                    
+                Object.assign( ptri.set( at.name ), {
+                    gl, location : at.location
+                } ).enable()
 
             fn = @store gl.bindVertexArray.bind gl, va
 
@@ -5633,6 +5642,11 @@ do  self.main = ->
                 attrib . typename   = tn = keyof attrib.type
                 
                 attrib . offset     = parameters.ATTRIBUTES_STRIDE
+                
+                attrib . isVector   = /VEC/.test tn.constructor.name
+                attrib . isMatrix   = /MAT/.test tn.constructor.name
+                attrib . isNumber   = /VEC|MAT/.test tn.constructor.name
+
                 attrib . glsize     = do ->
                     name = tn.constructor.name
                     switch ( valtyp = name.split("_").pop() ).substring 0, 3
@@ -5831,6 +5845,7 @@ do  self.main = ->
             continue unless key[3] and key.substring(1).startsWith "et"
             continue unless key[3] isnt c = key[3].toLowerCase()
             continue unless property = c + key.substring 4
+            continue if Object.getOwnPropertyDescriptor Class::, property
 
             get = Object.getOwnPropertyDescriptor(
                 Class::, "get" + key.substring 3
