@@ -4310,6 +4310,21 @@ do  self.main = ->
     dvw = new DataView sab
     iLE = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
 
+    glkey = Object.keys WebGL2RenderingContext
+    glval = Object.values WebGL2RenderingContext
+    glcls = {}
+    keyof = ( type ) ->
+        return type if (type < 256) or (type > 65536)
+        return type if /\s+/.test "#{type}"
+        return type if "#{type}" isnt "#{type}".toUpperCase()
+
+        switch typeof type
+            when "number" then name = glkey.at glval.indexOf type
+            when "string" then type = glval.at glkey.indexOf name = type
+            else return type
+
+        glcls[ name + type ] ||= eval "new (class #{name} extends Number {})(#{type})"
+    
     if  isWindow
         Atomics.or u32, INDEX_PTRI_MALLOC, HEADER_BYTELENGTH
         Atomics.or u32, INDEX_DATA_MALLOC, MALLOC_BYTEOFFSET
@@ -4687,8 +4702,7 @@ do  self.main = ->
     getFloat32      = ( ptri, byteOffset ) ->
         dvw.getFloat32 byteOffset + getByteOffset(ptri), iLE
 
-
-
+    
     textEncoder     = new TextEncoder()
 
     encodeText      = textEncoder.encode.bind textEncoder
@@ -5273,7 +5287,7 @@ do  self.main = ->
 
                 @emit "beforerender", epoch
                 @render epoch, animframe
-                requestAnimationFrame onframe if ++i < 4
+                requestAnimationFrame onframe if ++i < 2
                 
                 0
 
@@ -5421,12 +5435,11 @@ do  self.main = ->
             [   left, top, width, 
                 height, aratio, pratio ] = @subarray
 
-            canvas                  = @canvas
+            canvas                  = @parent.WebGLObject.canvas
             canvas.width            = pratio * width
             canvas.height           = pratio * height
             canvas.style.width      = CSS.px width
             canvas.style.height     = CSS.px height
-            canvas.style.inset      = CSS.px 0
             canvas.style.position   = "fixed"
 
             this
@@ -5434,14 +5447,9 @@ do  self.main = ->
         init            : ->
             super( arguments... ).resize().bind() ; this
 
-        getCanvas       : ->
-            @parent.WebGLObject.canvas
-
         bind            : ->
             gl = @parent.WebGLObject
             gl . viewport.apply.bind gl.viewport, gl, subarrayPtri this, Float32Array, 4 
-
-
 
     cscope.store class Program extends TextPointer
 
@@ -5460,6 +5468,77 @@ do  self.main = ->
             dc for dc from ptrIterator this, DrawCall, on, PTR_LINKED 
 
         getUseNow       : -> @use()
+
+        getGlObjects    : ->
+            
+            glContext = gl = @parent.WebGLObject if @use()
+            glProgram = @parent.parameters.CURRENT_PROGRAM
+
+            for gls in gl.getAttachedShaders glProgram
+                switch gl.getShaderParameter gls, gl.SHADER_TYPE
+                    when gl.  VERTEX_SHADER then glVShader = gls
+                    when gl.FRAGMENT_SHADER then glFShader = gls
+
+            return { glContext, glProgram, glVShader, glFShader }
+
+        getParameters   : ->
+            { glContext : gl, glProgram, glVShader, glFShader } = @glObjects
+            ( parameters = VERTEX_SHADER : {}, FRAGMENT_SHADER : {} )
+
+            split = -> arguments[0].split( /\n|\r\n|\s+|\t/g ).filter( Boolean )
+            
+            for p in split(
+                "DELETE_STATUS LINK_STATUS VALIDATE_STATUS ATTACHED_SHADERS 
+                 ACTIVE_ATTRIBUTES ACTIVE_UNIFORMS TRANSFORM_FEEDBACK_BUFFER_MODE 
+                 TRANSFORM_FEEDBACK_VARYINGS ACTIVE_UNIFORM_BLOCKS"
+            ) then parameters[p] = gl.getProgramParameter glProgram, gl[p] 
+
+            for pname, value of parameters
+                parameters[ pname ] = keyof value
+
+            ( shaders = VERTEX_SHADER: glVShader, FRAGMENT_SHADER: glFShader )
+
+            for s, gls of shaders then for p in split(
+                "DELETE_STATUS COMPILE_STATUS SHADER_TYPE"
+            ) then parameters[s][p] = gl.getShaderParameter gls, gl[p] 
+
+            for s, gls of shaders 
+                for pname, value of parameters[ s ]
+                    parameters[ s ][ pname ] = keyof value
+
+                parameters[ s ].SHADER_SOURCE = gl.getShaderSource gls
+                parameters[ s ].INFO_LOG = gl.getShaderInfoLog gls
+                
+            numAttribs = parameters.ACTIVE_ATTRIBUTES
+            parameters . ATTRIBUTES_STRIDE = 0
+            parameters . ATTRIBUTES = while numAttribs--
+                attrib = gl.getActiveAttrib glProgram, numAttribs
+
+                attrib . location   = gl . getAttribLocation glProgram, attrib.name
+                attrib . typename   = tn = keyof attrib.type
+                
+                attrib . offset     = parameters.ATTRIBUTES_STRIDE
+                attrib . length     = do ->
+                    name = tn.constructor.name
+                    switch ( valtyp = name.split("_").pop() ).substring 0, 3
+                        when "VEC" then valtyp[3] * 1
+                        when "MAT" then valtyp[3] * ( valtyp[5] || 1 )
+
+                attrib . BYTES_PER_ATTRIBUTE = attrib . length *
+                    switch tn.constructor.name.split("_")[0]
+                        when "FLOAT" then 4
+                        when "UNSIGNED_BYTE" then 1
+                        else throw /DEFINED/
+
+
+                parameters . ATTRIBUTES_STRIDE +=
+                    attrib . BYTES_PER_ATTRIBUTE
+
+                attrib
+
+
+
+            parameters
 
 
 
@@ -5482,7 +5561,6 @@ do  self.main = ->
             super( arguments...)
                 .on "render", @onrender.bind( this ), 1
                 
-            warn this
             @clearMask.call()
             @clearColor.call()
             @viewport.call()
@@ -5491,10 +5569,53 @@ do  self.main = ->
 
         onrender        : ( epoch ) ->
             @clearMask.call()
-            log this
             
             1
 
+        getAttibutes    : ->
+            @WebGLObject.getContextAttributes()
+
+        getParameters   : ->
+            gl = @WebGLObject ; parameters = {} ; for pname in "
+            RENDERER VENDOR VERSION VIEWPORT FRONT_FACE CURRENT_PROGRAM CULL_FACE CULL_FACE_MODE BLEND BLEND_COLOR
+            READ_BUFFER COPY_READ_BUFFER_BINDING COPY_WRITE_BUFFER_BINDING DRAW_FRAMEBUFFER_BINDING PACK_SKIP_ROWS
+            FRAGMENT_SHADER_DERIVATIVE_HINT SAMPLE_COVERAGE SAMPLER_BINDING TEXTURE_BINDING_2D_ARRAY RED_BITS
+            MAX_3D_TEXTURE_SIZE MAX_ARRAY_TEXTURE_LAYERS MAX_CLIENT_WAIT_TIMEOUT_WEBGL MAX_COLOR_ATTACHMENTS 
+            MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS MAX_COMBINED_UNIFORM_BLOCKS MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS 
+            MAX_DRAW_BUFFERS MAX_ELEMENT_INDEX MAX_ELEMENTS_INDICES MAX_ELEMENTS_VERTICES MAX_FRAGMENT_INPUT_COMPONENTS 
+            MAX_FRAGMENT_UNIFORM_BLOCKS MAX_FRAGMENT_UNIFORM_COMPONENTS MAX_PROGRAM_TEXEL_OFFSET MAX_SAMPLES 
+            MAX_SERVER_WAIT_TIMEOUT MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS SAMPLE_ALPHA_TO_COVERAGE
+            MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS MAX_UNIFORM_BLOCK_SIZE 
+            MAX_UNIFORM_BUFFER_BINDINGS MAX_TEXTURE_LOD_BIAS MAX_VARYING_COMPONENTS MAX_VERTEX_OUTPUT_COMPONENTS 
+            MAX_VERTEX_UNIFORM_BLOCKS MAX_VERTEX_UNIFORM_COMPONENTS MIN_PROGRAM_TEXEL_OFFSET PACK_ROW_LENGTH 
+            PIXEL_PACK_BUFFER_BINDING PIXEL_UNPACK_BUFFER_BINDING RASTERIZER_DISCARD READ_FRAMEBUFFER_BINDING    
+            TEXTURE_BINDING_3D TRANSFORM_FEEDBACK_ACTIVE TRANSFORM_FEEDBACK_BINDING TRANSFORM_FEEDBACK_BUFFER_BINDING 
+            TRANSFORM_FEEDBACK_PAUSED UNIFORM_BUFFER_BINDING UNIFORM_BUFFER_OFFSET_ALIGNMENT UNPACK_IMAGE_HEIGHT 
+            UNPACK_ROW_LENGTH UNPACK_SKIP_IMAGES UNPACK_SKIP_PIXELS UNPACK_SKIP_ROWS VERTEX_ARRAY_BINDING ACTIVE_TEXTURE 
+            ALIASED_LINE_WIDTH_RANGE ALIASED_POINT_SIZE_RANGE ALPHA_BITS ARRAY_BUFFER_BINDING BLEND_DST_ALPHA BLEND_DST_RGB 
+            BLEND_EQUATION BLEND_EQUATION_ALPHA BLEND_EQUATION_RGB BLEND_SRC_ALPHA BLEND_SRC_RGB BLUE_BITS COLOR_CLEAR_VALUE 
+            COLOR_WRITEMASK COMPRESSED_TEXTURE_FORMATS DEPTH_BITS DEPTH_CLEAR_VALUE DEPTH_FUNC DEPTH_RANGE DEPTH_TEST DITHER 
+            ELEMENT_ARRAY_BUFFER_BINDING FRAMEBUFFER_BINDING GENERATE_MIPMAP_HINT GREEN_BITS IMPLEMENTATION_COLOR_READ_FORMAT 
+            IMPLEMENTATION_COLOR_READ_TYPE LINE_WIDTH MAX_COMBINED_TEXTURE_IMAGE_UNITS MAX_CUBE_MAP_TEXTURE_SIZE 
+            MAX_FRAGMENT_UNIFORM_VECTORS MAX_RENDERBUFFER_SIZE MAX_TEXTURE_IMAGE_UNITS DEPTH_WRITEMASK PACK_SKIP_PIXELS
+            MAX_TEXTURE_SIZE MAX_VARYING_VECTORS MAX_VERTEX_ATTRIBS MAX_VERTEX_TEXTURE_IMAGE_UNITS SAMPLES SCISSOR_BOX
+            MAX_VIEWPORT_DIMS PACK_ALIGNMENT POLYGON_OFFSET_FACTOR POLYGON_OFFSET_FILL POLYGON_OFFSET_UNITS  
+            RENDERBUFFER_BINDING SAMPLE_BUFFERS SAMPLE_COVERAGE_INVERT SAMPLE_COVERAGE_VALUE MAX_VERTEX_UNIFORM_VECTORS 
+            SCISSOR_TEST SHADING_LANGUAGE_VERSION STENCIL_BACK_FAIL STENCIL_BACK_FUNC STENCIL_BACK_PASS_DEPTH_FAIL 
+            STENCIL_BACK_PASS_DEPTH_PASS STENCIL_BACK_REF STENCIL_BACK_VALUE_MASK STENCIL_BACK_WRITEMASK STENCIL_BITS 
+            STENCIL_CLEAR_VALUE STENCIL_FAIL STENCIL_FUNC STENCIL_PASS_DEPTH_FAIL STENCIL_PASS_DEPTH_PASS STENCIL_REF 
+            STENCIL_TEST STENCIL_VALUE_MASK STENCIL_WRITEMASK SUBPIXEL_BITS TEXTURE_BINDING_2D TEXTURE_BINDING_CUBE_MAP 
+            UNPACK_ALIGNMENT UNPACK_COLORSPACE_CONVERSION_WEBGL UNPACK_FLIP_Y_WEBGL UNPACK_PREMULTIPLY_ALPHA_WEBGL
+            ".split(/\n|\r\n|\s+|\t/g).filter(Boolean) then parameters[ pname ] = gl.getParameter gl[ pname ] 
+
+            for i in [ 0 ... parameters.MAX_DRAW_BUFFERS ]
+                DRAW_BUFFERi = "DRAW_BUFFER#{i}"
+                parameters[ DRAW_BUFFERi ] = gl.getParameter gl[ DRAW_BUFFERi ]
+
+            for pname, value of parameters
+                parameters[ pname ] = keyof value
+
+            parameters
 
         RDCTX_BYTEOFFSET    = 0    
         RDCTX_CLEAR_MASK    = 4 

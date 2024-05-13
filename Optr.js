@@ -4164,7 +4164,7 @@ self.init   = ->
 
  */
 (self.main = function() {
-  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, ClearMask, Color, DRAWING_DONE, DrawCall, EVENTID_SET, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, MESH_DRAW_STATE, Mesh, NEEDS_MALLOC, NEEDS_UPDATE, NEEDS_UPLOAD, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKED, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, Program, RenderingContext, Rotation, STATE, Scale, Scene, Scope, Storage, TextPointer, UPDATING_NOW, Viewport, agetResvUint8, asetResvUint8, c, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, findLinkeds, get, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, label, len, malign, malloc, mallocExternal, palloc, property, ptrByteCompare, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, ref2, ref3, ref4, sab, set, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8, val;
+  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, ClearMask, Color, DRAWING_DONE, DrawCall, EVENTID_SET, EventHandler, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, MESH_DRAW_STATE, Mesh, NEEDS_MALLOC, NEEDS_UPDATE, NEEDS_UPLOAD, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKED, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, Program, RenderingContext, Rotation, STATE, Scale, Scene, Scope, Storage, TextPointer, UPDATING_NOW, Viewport, agetResvUint8, asetResvUint8, c, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, findLinkeds, get, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, glcls, glkey, glval, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, keyof, label, len, malign, malloc, mallocExternal, palloc, property, ptrByteCompare, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, ref2, ref3, ref4, sab, set, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8, val;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -4216,6 +4216,32 @@ self.init   = ->
   u16 = new Uint16Array(sab);
   dvw = new DataView(sab);
   iLE = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
+  glkey = Object.keys(WebGL2RenderingContext);
+  glval = Object.values(WebGL2RenderingContext);
+  glcls = {};
+  keyof = function(type) {
+    var name, name1;
+    if ((type < 256) || (type > 65536)) {
+      return type;
+    }
+    if (/\s+/.test(`${type}`)) {
+      return type;
+    }
+    if (`${type}` !== `${type}`.toUpperCase()) {
+      return type;
+    }
+    switch (typeof type) {
+      case "number":
+        name = glkey.at(glval.indexOf(type));
+        break;
+      case "string":
+        type = glval.at(glkey.indexOf(name = type));
+        break;
+      default:
+        return type;
+    }
+    return glcls[name1 = name + type] || (glcls[name1] = eval(`new (class ${name} extends Number {})(${type})`));
+  };
   if (isWindow) {
     Atomics.or(u32, INDEX_PTRI_MALLOC, HEADER_BYTELENGTH);
     Atomics.or(u32, INDEX_DATA_MALLOC, MALLOC_BYTEOFFSET);
@@ -5507,7 +5533,7 @@ self.init   = ->
         onframe = function(epoch = 0) {
           this.emit("beforerender", epoch);
           this.render(epoch, animframe);
-          if (++i < 4) {
+          if (++i < 2) {
             requestAnimationFrame(onframe);
           }
           return 0;
@@ -5701,12 +5727,11 @@ self.init   = ->
       resize() {
         var aratio, canvas, height, left, pratio, top, width;
         [left, top, width, height, aratio, pratio] = this.subarray;
-        canvas = this.canvas;
+        canvas = this.parent.WebGLObject.canvas;
         canvas.width = pratio * width;
         canvas.height = pratio * height;
         canvas.style.width = CSS.px(width);
         canvas.style.height = CSS.px(height);
-        canvas.style.inset = CSS.px(0);
         canvas.style.position = "fixed";
         return this;
       }
@@ -5714,10 +5739,6 @@ self.init   = ->
       init() {
         super.init(...arguments).resize().bind();
         return this;
-      }
-
-      getCanvas() {
-        return this.parent.WebGLObject.canvas;
       }
 
       bind() {
@@ -5767,6 +5788,110 @@ self.init   = ->
         return this.use();
       }
 
+      getGlObjects() {
+        var gl, glContext, glFShader, glProgram, glVShader, gls, j, len, ref;
+        if (this.use()) {
+          glContext = gl = this.parent.WebGLObject;
+        }
+        glProgram = this.parent.parameters.CURRENT_PROGRAM;
+        ref = gl.getAttachedShaders(glProgram);
+        for (j = 0, len = ref.length; j < len; j++) {
+          gls = ref[j];
+          switch (gl.getShaderParameter(gls, gl.SHADER_TYPE)) {
+            case gl.VERTEX_SHADER:
+              glVShader = gls;
+              break;
+            case gl.FRAGMENT_SHADER:
+              glFShader = gls;
+          }
+        }
+        return {glContext, glProgram, glVShader, glFShader};
+      }
+
+      getParameters() {
+        var attrib, gl, glFShader, glProgram, glVShader, gls, j, k, len, len1, numAttribs, p, parameters, pname, ref, ref1, ref2, s, shaders, split, tn, value;
+        ({
+          glContext: gl,
+          glProgram,
+          glVShader,
+          glFShader
+        } = this.glObjects);
+        (parameters = {
+          VERTEX_SHADER: {},
+          FRAGMENT_SHADER: {}
+        });
+        split = function() {
+          return arguments[0].split(/\n|\r\n|\s+|\t/g).filter(Boolean);
+        };
+        ref = split("DELETE_STATUS LINK_STATUS VALIDATE_STATUS ATTACHED_SHADERS ACTIVE_ATTRIBUTES ACTIVE_UNIFORMS TRANSFORM_FEEDBACK_BUFFER_MODE TRANSFORM_FEEDBACK_VARYINGS ACTIVE_UNIFORM_BLOCKS");
+        for (j = 0, len = ref.length; j < len; j++) {
+          p = ref[j];
+          parameters[p] = gl.getProgramParameter(glProgram, gl[p]);
+        }
+        for (pname in parameters) {
+          value = parameters[pname];
+          parameters[pname] = keyof(value);
+        }
+        (shaders = {
+          VERTEX_SHADER: glVShader,
+          FRAGMENT_SHADER: glFShader
+        });
+        for (s in shaders) {
+          gls = shaders[s];
+          ref1 = split("DELETE_STATUS COMPILE_STATUS SHADER_TYPE");
+          for (k = 0, len1 = ref1.length; k < len1; k++) {
+            p = ref1[k];
+            parameters[s][p] = gl.getShaderParameter(gls, gl[p]);
+          }
+        }
+        for (s in shaders) {
+          gls = shaders[s];
+          ref2 = parameters[s];
+          for (pname in ref2) {
+            value = ref2[pname];
+            parameters[s][pname] = keyof(value);
+          }
+          parameters[s].SHADER_SOURCE = gl.getShaderSource(gls);
+          parameters[s].INFO_LOG = gl.getShaderInfoLog(gls);
+        }
+        numAttribs = parameters.ACTIVE_ATTRIBUTES;
+        parameters.ATTRIBUTES_STRIDE = 0;
+        parameters.ATTRIBUTES = (function() {
+          var results;
+          results = [];
+          while (numAttribs--) {
+            attrib = gl.getActiveAttrib(glProgram, numAttribs);
+            attrib.location = gl.getAttribLocation(glProgram, attrib.name);
+            attrib.typename = tn = keyof(attrib.type);
+            attrib.offset = parameters.ATTRIBUTES_STRIDE;
+            attrib.length = (function() {
+              var name, valtyp;
+              name = tn.constructor.name;
+              switch ((valtyp = name.split("_").pop()).substring(0, 3)) {
+                case "VEC":
+                  return valtyp[3] * 1;
+                case "MAT":
+                  return valtyp[3] * (valtyp[5] || 1);
+              }
+            })();
+            attrib.BYTES_PER_ATTRIBUTE = attrib.length * (function() {
+              switch (tn.constructor.name.split("_")[0]) {
+                case "FLOAT":
+                  return 4;
+                case "UNSIGNED_BYTE":
+                  return 1;
+                default:
+                  throw /DEFINED/;
+              }
+            })();
+            parameters.ATTRIBUTES_STRIDE += attrib.BYTES_PER_ATTRIBUTE;
+            results.push(attrib);
+          }
+          return results;
+        })();
+        return parameters;
+      }
+
     };
 
     Program.key = "program";
@@ -5787,7 +5912,6 @@ self.init   = ->
 
       init() {
         super.init(...arguments).on("render", this.onrender.bind(this), 1);
-        warn(this);
         this.clearMask.call();
         this.clearColor.call();
         this.viewport.call();
@@ -5796,8 +5920,31 @@ self.init   = ->
 
       onrender(epoch) {
         this.clearMask.call();
-        log(this);
         return 1;
+      }
+
+      getAttibutes() {
+        return this.WebGLObject.getContextAttributes();
+      }
+
+      getParameters() {
+        var DRAW_BUFFERi, gl, i, j, k, len, parameters, pname, ref, ref1, value;
+        gl = this.WebGLObject;
+        parameters = {};
+        ref = "RENDERER VENDOR VERSION VIEWPORT FRONT_FACE CURRENT_PROGRAM CULL_FACE CULL_FACE_MODE BLEND BLEND_COLOR READ_BUFFER COPY_READ_BUFFER_BINDING COPY_WRITE_BUFFER_BINDING DRAW_FRAMEBUFFER_BINDING PACK_SKIP_ROWS FRAGMENT_SHADER_DERIVATIVE_HINT SAMPLE_COVERAGE SAMPLER_BINDING TEXTURE_BINDING_2D_ARRAY RED_BITS MAX_3D_TEXTURE_SIZE MAX_ARRAY_TEXTURE_LAYERS MAX_CLIENT_WAIT_TIMEOUT_WEBGL MAX_COLOR_ATTACHMENTS MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS MAX_COMBINED_UNIFORM_BLOCKS MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS MAX_DRAW_BUFFERS MAX_ELEMENT_INDEX MAX_ELEMENTS_INDICES MAX_ELEMENTS_VERTICES MAX_FRAGMENT_INPUT_COMPONENTS MAX_FRAGMENT_UNIFORM_BLOCKS MAX_FRAGMENT_UNIFORM_COMPONENTS MAX_PROGRAM_TEXEL_OFFSET MAX_SAMPLES MAX_SERVER_WAIT_TIMEOUT MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS SAMPLE_ALPHA_TO_COVERAGE MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS MAX_UNIFORM_BLOCK_SIZE MAX_UNIFORM_BUFFER_BINDINGS MAX_TEXTURE_LOD_BIAS MAX_VARYING_COMPONENTS MAX_VERTEX_OUTPUT_COMPONENTS MAX_VERTEX_UNIFORM_BLOCKS MAX_VERTEX_UNIFORM_COMPONENTS MIN_PROGRAM_TEXEL_OFFSET PACK_ROW_LENGTH PIXEL_PACK_BUFFER_BINDING PIXEL_UNPACK_BUFFER_BINDING RASTERIZER_DISCARD READ_FRAMEBUFFER_BINDING TEXTURE_BINDING_3D TRANSFORM_FEEDBACK_ACTIVE TRANSFORM_FEEDBACK_BINDING TRANSFORM_FEEDBACK_BUFFER_BINDING TRANSFORM_FEEDBACK_PAUSED UNIFORM_BUFFER_BINDING UNIFORM_BUFFER_OFFSET_ALIGNMENT UNPACK_IMAGE_HEIGHT UNPACK_ROW_LENGTH UNPACK_SKIP_IMAGES UNPACK_SKIP_PIXELS UNPACK_SKIP_ROWS VERTEX_ARRAY_BINDING ACTIVE_TEXTURE ALIASED_LINE_WIDTH_RANGE ALIASED_POINT_SIZE_RANGE ALPHA_BITS ARRAY_BUFFER_BINDING BLEND_DST_ALPHA BLEND_DST_RGB BLEND_EQUATION BLEND_EQUATION_ALPHA BLEND_EQUATION_RGB BLEND_SRC_ALPHA BLEND_SRC_RGB BLUE_BITS COLOR_CLEAR_VALUE COLOR_WRITEMASK COMPRESSED_TEXTURE_FORMATS DEPTH_BITS DEPTH_CLEAR_VALUE DEPTH_FUNC DEPTH_RANGE DEPTH_TEST DITHER ELEMENT_ARRAY_BUFFER_BINDING FRAMEBUFFER_BINDING GENERATE_MIPMAP_HINT GREEN_BITS IMPLEMENTATION_COLOR_READ_FORMAT IMPLEMENTATION_COLOR_READ_TYPE LINE_WIDTH MAX_COMBINED_TEXTURE_IMAGE_UNITS MAX_CUBE_MAP_TEXTURE_SIZE MAX_FRAGMENT_UNIFORM_VECTORS MAX_RENDERBUFFER_SIZE MAX_TEXTURE_IMAGE_UNITS DEPTH_WRITEMASK PACK_SKIP_PIXELS MAX_TEXTURE_SIZE MAX_VARYING_VECTORS MAX_VERTEX_ATTRIBS MAX_VERTEX_TEXTURE_IMAGE_UNITS SAMPLES SCISSOR_BOX MAX_VIEWPORT_DIMS PACK_ALIGNMENT POLYGON_OFFSET_FACTOR POLYGON_OFFSET_FILL POLYGON_OFFSET_UNITS RENDERBUFFER_BINDING SAMPLE_BUFFERS SAMPLE_COVERAGE_INVERT SAMPLE_COVERAGE_VALUE MAX_VERTEX_UNIFORM_VECTORS SCISSOR_TEST SHADING_LANGUAGE_VERSION STENCIL_BACK_FAIL STENCIL_BACK_FUNC STENCIL_BACK_PASS_DEPTH_FAIL STENCIL_BACK_PASS_DEPTH_PASS STENCIL_BACK_REF STENCIL_BACK_VALUE_MASK STENCIL_BACK_WRITEMASK STENCIL_BITS STENCIL_CLEAR_VALUE STENCIL_FAIL STENCIL_FUNC STENCIL_PASS_DEPTH_FAIL STENCIL_PASS_DEPTH_PASS STENCIL_REF STENCIL_TEST STENCIL_VALUE_MASK STENCIL_WRITEMASK SUBPIXEL_BITS TEXTURE_BINDING_2D TEXTURE_BINDING_CUBE_MAP UNPACK_ALIGNMENT UNPACK_COLORSPACE_CONVERSION_WEBGL UNPACK_FLIP_Y_WEBGL UNPACK_PREMULTIPLY_ALPHA_WEBGL".split(/\n|\r\n|\s+|\t/g).filter(Boolean);
+        for (j = 0, len = ref.length; j < len; j++) {
+          pname = ref[j];
+          parameters[pname] = gl.getParameter(gl[pname]);
+        }
+        for (i = k = 0, ref1 = parameters.MAX_DRAW_BUFFERS; (0 <= ref1 ? k < ref1 : k > ref1); i = 0 <= ref1 ? ++k : --k) {
+          DRAW_BUFFERi = `DRAW_BUFFER${i}`;
+          parameters[DRAW_BUFFERi] = gl.getParameter(gl[DRAW_BUFFERi]);
+        }
+        for (pname in parameters) {
+          value = parameters[pname];
+          parameters[pname] = keyof(value);
+        }
+        return parameters;
       }
 
       getActiveProgram() {
