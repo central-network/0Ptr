@@ -4365,7 +4365,7 @@ do  self.main = ->
                 if !argv or !isNaN argv
                     return new Class argv
                 
-                object = new Class
+                object = Class.New
                 object . init argv
 
             .bind null, Class
@@ -4390,14 +4390,21 @@ do  self.main = ->
     RESVERVDS = {}
 
     dumpClassResvs = ->
-        for clsi, conf of RESVERVDS
-            prefix = cscope[clsi].name.toUpperCase()
-            for prop, opts of conf when isNaN prop 
-                suffix = prop.toUpperCase()
-                warn 4, "PTRI_OFFSET_#{prefix}_#{suffix}".padEnd(35, " ") + " = #{opts.byteOffset};"
 
+        dumped = [ , ]
+        for clsi, conf of RESVERVDS when prefix = cscope[clsi].name.toUpperCase()
+            for prop, opts of conf when isNaN( prop ) and suffix = prop.toUpperCase() 
+                dumped.push "PTRI_OFFSET_#{prefix}_#{suffix}".padEnd(35, " ") + " = #{opts.byteOffset};"
+        dumped . join "\n"
 
-    requestIdleCallback dumpClassResvs
+        #? requestIdleCallback -> warn dumpClassResvs()
+        #?  
+        #?          PTRI_OFFSET_DRAWCALL_DSTOFFSET      = 40;
+        #?          PTRI_OFFSET_DRAWCALL_DRAWSTART      = 44;
+        #?          PTRI_OFFSET_DRAWCALL_DRAWCOUNT      = 48;
+        #?          PTRI_OFFSET_DRAWCALL_DRAWFN         = 52;
+        #?          PTRI_OFFSET_DRAWCALL_UPLOADFN       = 56;
+        #?   
 
     resvClassBytes = ( Class, alias, byteLength, alignBytes = off ) ->
 
@@ -4482,12 +4489,12 @@ do  self.main = ->
                 if  create 
                     if  "boolean" is typeof superfind
                         superfind = ptri
-                    setParent ptrj = new Class, superfind
+                    setParent ptrj = Class.New, superfind
                     return ptrj
                 return null
             return findChild ptrp, Class, create, superfind
 
-        setParent ptrj = new Class, ptri ; ptrj
+        setParent ptrj = Class.New, ptri ; ptrj
         
     findActiveChild = ( ptri, Class, activate = on, construct = on ) ->
         ptrj = dvw.getUint32 0, iLE
@@ -4640,7 +4647,7 @@ do  self.main = ->
         dvw.getUint16 ptrAliasOffset( ptri, alias, 2 ), iLE
 
     setAliasUint8    = ( ptri, alias, value ) ->
-        dvw.setUint8  ptrAliasOffset( ptri, alias, 1 ), value
+        dvw.setUint8  ptrAliasOffset( ptri, alias, 1 ), value ; value
 
     getAliasUint8    = ( ptri, alias ) ->
         dvw.getUint8  ptrAliasOffset( ptri, alias, 1 )
@@ -4995,10 +5002,6 @@ do  self.main = ->
 
         @isPClass       : yes
 
-        constructor     : ( ptri = 0 ) ->
-            super ptri or palloc()
-            ptri || setClassIndex this
-
         toString        : ->
             console.error "tostring", this
             super()
@@ -5098,12 +5101,19 @@ do  self.main = ->
 
             emitEvent this, EVENTID_SET, arguments
 
+        Object.defineProperties Pointer,
+            New         : get : -> setClassIndex new this palloc()
+
+            NewInit     : get : -> setClassIndex( new this palloc() ).init()
+
         Object.defineProperties Pointer::,
 
-            root        : get : -> 
-                unless getParent ptri = getParent this
-                    return ptri
-                ptri.root
+            root        : get : ->
+                root = @parent
+                while root
+                    warn "getting root: ", this, root
+                    root = root.parent 
+                root 
 
             parent      : get : -> getParent this
 
@@ -5126,7 +5136,6 @@ do  self.main = ->
 
         [ Symbol.iterator ] : value : ->
             ptrIterator this, @constructor.iterate, on
-
 
     cscope.store  class TextPointer extends Pointer
 
@@ -5187,6 +5196,11 @@ do  self.main = ->
 
         TypedArray      : Float32Array
 
+        [ Symbol.iterator ] : ->
+            yield getFloat32 this, 0
+            yield getFloat32 this, 4
+            yield getFloat32 this, 8
+
     cscope.global class Rotation extends Pointer
 
         @byteLength     : 4 * BYTES_PER_ELEMENT
@@ -5194,6 +5208,11 @@ do  self.main = ->
         @key            : "rotation"
 
         TypedArray      : Float32Array
+
+        [ Symbol.iterator ] : ->
+            yield getFloat32 this, 0
+            yield getFloat32 this, 4
+            yield getFloat32 this, 8
 
     cscope.global class Scale extends Pointer
 
@@ -5203,13 +5222,16 @@ do  self.main = ->
 
         TypedArray      : Float32Array
 
+        [ Symbol.iterator ] : ->
+            yield getFloat32 this, 0
+            yield getFloat32 this, 4
+            yield getFloat32 this, 8
+
     cscope.store  class Location extends Pointer
 
         @byteLength     : 4 * BYTES_PER_ELEMENT
     
         @key            : "location"
-
-
 
     cscope.global class DrawCall extends Pointer
 
@@ -5221,25 +5243,49 @@ do  self.main = ->
 
         getProgram      : -> new Program getLinked this
 
+        getVShader      : ->
+            if !ptri = findChild this, VertexShader
+                setParent ptri = VertexShader.New, this
+                ptri.set "default"
+            ptri
+    
+        getFShader      : ->
+            if !ptri = findChild this, FragmentShader
+                setParent ptri = FragmentShader.New, this
+                ptri.set "default"
+            ptri
+
+        getContext      : ->
+            if !ptri = getAliasUint32 this, "context"
+                @setContext ptri = @root.defaultContext
+            new RenderingContext ptri
+        
+        setContext      : ->
+            setAliasUint32 this, "context", arguments[0]
+
+        getContext      : ->
+            getAliasUint32( this, "context" ) or
+            setAliasUint32( this, "context", @root.defaultContext )
+
+
         queryDocument   : ( program, type ) ->
             document.querySelector("[program='#{program}'][type*='#{type}']")
 
-        getVShader      : -> @program.vShader
+        getMesh         : -> @parent.parent
 
-        getFShader      : -> @program.fShader
-
-        getContext      : -> @program.parent
-
-        mallocDraw      : ->
+        malloc          : ->
             drawBuffer = @context.drawBuffer 
             drawCount  = @parent.pointCount
-            byteLength = @program.BYTES_PER_POINT * drawCount
+            byteLength = @program.BYTES_PER_POINT * @parent.pointCount
+            length     = byteLength / @TypedArray.BYTES_PER_ELEMENT
 
-            mallocExternal byteLength/4, null, this
-            
+            unless byteLength * length
+                throw DRAWCALL_MALLOC_FOR_ZERO: this
+            else mallocExternal length, null, this
+
             dstOffset  = drawBuffer.malloc byteLength
             drawStart  = dstOffset / @program.BYTES_PER_POINT  
-            byteOffset = getByteOffset this 
+            drawCount  = @parent.pointCount
 
             gl         = @context.WebGLObject
             draw       = gl.drawArrays.bind gl, gl.TRIANGLES, drawStart, drawCount
@@ -5252,17 +5298,51 @@ do  self.main = ->
             setAliasUint32 this, "drawfn"   , @store draw
             setAliasUint32 this, "uploadfn" , @store upload
 
-            log RESVERVDS: RESVERVDS
-
             this
 
-        getHitUpload    : -> @upload()
-
-        getHitDraw      : -> @draw()
+        getHitCalls     : -> @update(); @upload(); @draw()
 
         draw            : -> @storage[ getAliasUint32 this, "drawfn" ]()
         
         upload          : -> @storage[ getAliasUint32 this, "uploadfn" ]()
+
+        update          : ->
+            pointCount = @parent.pointCount
+            vertices = @mesh.subarray
+            stride = @program.BYTES_PER_POINT
+
+            [ dx, dy, dz ] = findChild( @mesh, Position ) or [ 0, 0, 0 ]
+            [ rx, ry, rz ] = findChild( @mesh, Rotation ) or [ 0, 0, 0 ]
+            [ sx, sy, sz ] = findChild( @mesh, Scale    ) or [ 1, 1, 1 ]
+
+            [ sinx, cosx ] = [ Math.sin(rx), Math.cos(rx) ]
+            [ siny, cosy ] = [ Math.sin(ry), Math.cos(ry) ]
+            [ sinz, cosz ] = [ Math.sin(rz), Math.cos(rz) ]
+
+            a_Poisiton = 0 #todo find in vertexAttribPointer
+
+            while pointCount--
+                [ x, y, z ] = vertices.subarray pointCount * 3, 3 * pointCount + 3
+
+                x *= +cosy * +sinz  +  -siny * +cosz
+                x += dx
+                x *= sx
+                
+                y *= +cosx * -sinz  +  +sinx * +cosz
+                y += dy
+                y *= sy
+                
+                z *= +cosx * +siny  +  -sinx * +cosy
+                z += dz
+                z *= sz
+
+                setFloat32 this, a_Poisiton + 0, x
+                setFloat32 this, a_Poisiton + 4, y
+                setFloat32 this, a_Poisiton + 8, z
+
+                a_Poisiton += stride
+
+            this
 
         init            : ( context, vScript = "default", fScript = "default" ) ->
 
@@ -5270,7 +5350,9 @@ do  self.main = ->
 
             vScript = vScript.value if isPointer vScript
             fScript = fScript.value if isPointer fScript
-            context = context || findChild( null, Scene ).defaultContext
+            unless context 
+                log @root
+                throw /NO_CONTEXT_TODRAWCALL/ 
 
             if !context . isPointer
                 context = new RenderingContext context
@@ -5281,7 +5363,7 @@ do  self.main = ->
                 setLinked this, ptri
                 return this 
 
-            setParent ptri = new Program , context
+            setParent ptri = Program.New, context
             setLinked this , ptri
 
             unless getInited ptri.parent
@@ -5301,10 +5383,9 @@ do  self.main = ->
                     info = gl.getShaderInfoLog vShader
                     throw "Could not compile vertex shader. \n\n#{info}, \nsource:#{vSource}"
 
-                vshptri = new VertexShader()
+                vshptri = VertexShader.New
                 vshptri . glObject = vShader
                 vshptri . set vScript ; vshptri
-
 
 
             fShader     = do =>
@@ -5318,7 +5399,7 @@ do  self.main = ->
                     info = gl.getShaderInfoLog fShader
                     throw "Could not compile fragment shader. \n\n#{info}"
 
-                fshptri = new FragmentShader()
+                fshptri = FragmentShader.New
                 fshptri . glObject = fShader
                 fshptri . set fScript ; fshptri
 
@@ -5342,7 +5423,6 @@ do  self.main = ->
             
             this
 
-       
     cscope.global class UUID extends TextPointer
             
         @key            : "uuid"
@@ -5357,11 +5437,6 @@ do  self.main = ->
             getResvUint32( this ) or
             setResvUint32( this, getLength( @parent ) / 3 ) 
 
-    MESH_DRAW_STATE     = 0
-    
-    MESH_DRAWINGS       = 4
-
-
     cscope.global class Mesh extends Pointer
 
         TypedArray      : Float32Array
@@ -5370,17 +5445,28 @@ do  self.main = ->
 
         @key            : "mesh"
 
-        setDrawings     : ( drawings = [] ) ->            
+        setDrawings     : ( drawings = [] ) -> 
+            setAliasUint32 this, "drawings", ptri = Drawings.New
+            setParent ptri, this
+
             for { context , vShader, fShader } in drawings
-                setParent ptri = new DrawCall, @drawings
-                ptri.init context, vShader, fShader
+
+                setParent drawcall = DrawCall.New, ptri
+
+                drawcall.setContext context
+                drawcall.add VertexShader.New.set vShader or "default"
+                drawcall.add FragmentShader.New.set fShader or "default"
+
+                continue
+
             this
 
         getDrawings     : ( drawings = [] ) ->
-            if !ptri = getResvUint32 this + MESH_DRAWINGS
+            if !ptri = getAliasUint32 this, "drawings"
                 
-                setResvUint32 this + MESH_DRAWINGS, ptri = new Drawings
+                setAliasUint32 this, "drawings", ptri = Drawings.New
                 setParent ptri, this
+
                 parent = @parent
 
                 while parent
@@ -5390,10 +5476,13 @@ do  self.main = ->
                         parent = getParent parent
                         continue
 
-                    for dcl in findChilds drawings, DrawCall
-                        { context, vShader, fShader } = dcl
-                        setParent ptrj = new DrawCall, ptri
-                        ptrj.init context, vShader, fShader
+                    for pdrawcall in findChilds drawings, DrawCall
+
+                        setParent drawcall = DrawCall.New, ptri
+                        drawcall.setContext pdrawcall.context
+
+                        drawcall.add VertexShader.New.set pdrawcall.vShader.value 
+                        drawcall.add FragmentShader.New.set pdrawcall.fShader.value  
 
                     break
 
@@ -5401,12 +5490,12 @@ do  self.main = ->
 
 
         getDrawState    : ->
-            STATE[ agetResvUint8 this + MESH_DRAW_STATE ] or
+            STATE[ getAliasUint8 this, "drawState" ] or
             throw /DRAW_STATE/ + this
 
         setDrawState    : ( state ) ->
             state = STATE[ state ] or throw /DRAW_STATE/
-            asetResvUint8 this + MESH_DRAW_STATE, state
+            setAliasUint8 this, "drawState", state
             @emit "drawstatechange", state ; state
 
 
@@ -5462,7 +5551,6 @@ do  self.main = ->
                 getUint64( this, ANIMFRAME_START ) +
                 getFloat32 this, ANIMFRAME_EPOCH
 
-
     cscope.global class Scene extends Pointer
 
         @key            : "scene"
@@ -5471,22 +5559,13 @@ do  self.main = ->
             super arguments...
             warn "selam özgür", scene: this
 
-            animframe = @animationFrame
+            onrender = @render.bind this, @animationFrame
 
             i = 0
             onframe = ( epoch = 0 ) ->
 
-                @emit "beforerender", epoch
-
-                for mesh from ptrIterator null, Mesh, construct = on
-                    if  mesh.drawState is STATE.NEEDS_MALLOC
-                        dc.mallocDraw() for dc from mesh.drawings
-
-                    log "mesh", mesh.id, mesh, mesh.drawState 
-                    
-
-                @render epoch, animframe
-                requestAnimationFrame onframe if ++i < 2
+                queueMicrotask -> onrender epoch
+                requestAnimationFrame onframe if ++i < 4
                 
                 0
 
@@ -5494,9 +5573,23 @@ do  self.main = ->
             
             this
 
-        render          : ( epoch, aframe ) ->
+        render          : ( aframe, epoch ) ->
             delta   = epoch - aframe.epoch
             fps     = 1 / delta * 1000
+
+            for mesh from ptrIterator(0, Mesh) when 0 is this - mesh.root
+            
+                log "mesh", mesh.root, mesh.id, mesh, mesh.drawState 
+
+                if  mesh.drawState is STATE.NEEDS_MALLOC
+                    draw.malloc() for draw from mesh.drawings
+                    mesh.drawState = STATE.NEEDS_UPDATE
+                    continue
+
+                if  mesh.drawState is STATE.NEEDS_UPDATE
+                    draw.update() for draw from mesh.drawings
+                    mesh.drawState = STATE.NEEDS_UPLOAD
+                    continue
 
             @inform "render", delta, Object.assign aframe , {
                 epoch, fps, delta , count : aframe.count + 1
@@ -5506,7 +5599,7 @@ do  self.main = ->
 
             animationFrame : get : ->
                 unless aframe = findChild this, AnimationFrame
-                    setParent aframe = new AnimationFrame().init(), this
+                    setParent aframe = AnimationFrame.NewInit, this
                 aframe
 
             defaultContext : get : ->
@@ -5669,13 +5762,8 @@ do  self.main = ->
             
             this
 
-        getGlObject     : ->
-            @storage[ getResvUint32 this + 4 ]
-
-        setGlObject     : ( glObject ) ->
-            setResvUint32 this + 4, @store glObject
-
-        getByteLength   : -> getByteLength this
+        getByteLength   : -> 
+            getByteLength this
 
         malloc          : ( byteLength = 0, byteOffset = @byteLength ) ->
             setByteLength this , byteLength += byteOffset
@@ -5745,43 +5833,44 @@ do  self.main = ->
         @key            : "program"
 
         use             : ->
-            if !getResvUint8 this
-                setResvUint8 this, 1
-
+            if !@isUsing and @isUsing = 1
                 @storage.at( getLinked this )()
                 @parent.setActiveProgram( this )
 
-            if  @bindDrawBuffer()
-                @bindVertexArray()
+            @bindDrawBuffer()
+            @bindVertexArray()
 
             1
 
-        getVShader      : ->
-            findChild this, VertexShader, create = off, superfind = off
+        getVShader      : -> findChild this, VertexShader
+            
+        getFShader      : -> findChild this, FragmentShader
+        
+        getAlias        : -> "#{@vShader.value} #{@fShader.value}" 
 
-        getFShader      : ->
-            findChild this, FragmentShader, create = off, superfind = off
+        getIsUsing      : -> getAliasUint8 this, "isUsing"
 
-        getAlias        : ->
-            "#{@vShader.value} #{@fShader.value}" 
+        setIsUsing      : -> setAliasUint8 this, "isUsing", arguments[0]
 
-        getIsUsing      : ->
-            Boolean getResvUint8 this
-
-        getDrawCalls    : ->
-            dc for dc from ptrIterator this, DrawCall, construct = on, PTR_LINKED 
+        getDrawCalls    : -> d for d from ptrIterator this, DrawCall, 1, PTR_LINKED 
 
         bindDrawBuffer  : ->
-            if !ptri = getResvUint32 this + 8
-                ptri = setResvUint32 this + 8, @parent.drawBuffer
+            if !ptri = getAliasUint32 this, "drawBuffer"
+                ptri = setAliasUint32 this, "drawBuffer", @parent.drawBuffer
                 
             new DrawBuffer( ptri ).bind()
 
+        findAttribPointer : ( alias ) ->
+            name = encodeText alias
+            for ptri in findChilds this, VertexAttribPointer, recursive = on
+                return ptri if ptrByteCompare ptri, name
+            null
+
         bindVertexArray : ->
-            if  ptri = getResvUint32 this + 4
+            if  ptri = getAliasUint32 this, "vertexArray"
                 return new VertexArray( ptri ).enable()
 
-            setResvUint32 this + 4, vertexArray = new VertexArray()
+            setAliasUint32 this, "vertexArray", vertexArray = VertexArray.New
 
             gl = this.parent.WebGLObject
             va = gl.createVertexArray()
@@ -5789,7 +5878,7 @@ do  self.main = ->
 
             for at in @parameters.ATTRIBUTES
 
-                setParent ptri = new VertexAttribPointer, vertexArray
+                setParent ptri = VertexAttribPointer.New, vertexArray
 
                 ptri.setEnableFn ( ->
                     @vertexAttribPointer arguments...
@@ -5829,6 +5918,8 @@ do  self.main = ->
             return { glContext, glProgram, glVShader, glFShader }
 
         getParameters   : ->
+            @storage.at( getLinked this )()
+
             { glContext : gl, glProgram, glVShader, glFShader } = @glObjects
             ( parameters = VERTEX_SHADER : {}, FRAGMENT_SHADER : {} )
 
@@ -5903,7 +5994,8 @@ do  self.main = ->
             parameters
 
         Object.defineProperty Program::, "BYTES_PER_POINT", get : ->
-            getResvUint8( this + 1 ) or setResvUint8 this + 1, @parameters.ATTRIBUTES_STRIDE
+            getAliasUint8( this, "BYTES_PER_POINT" ) or
+            setAliasUint8( this, "BYTES_PER_POINT", @parameters.ATTRIBUTES_STRIDE )
 
     cscope.global class RenderingContext extends Pointer
 
@@ -6001,21 +6093,21 @@ do  self.main = ->
                 return new Viewport ptri
 
             if !ptri = findChild this, Viewport, construct = off, superfind = off 
-                setParent ptri = new Viewport(), this
+                setParent ptri = Viewport.New, this
                 ptri.init()
             
-            return new Viewport ptri
+            new Viewport ptri
 
         getDrawBuffer   : ->
             drawBuffer = findChild this, DrawBuffer, create = on
             
             if !getLinked drawBuffer
+
                 buff = gl.createBuffer() if gl = @WebGLObject
                 func = gl.bindBuffer.bind gl, gl.ARRAY_BUFFER, buff
 
                 setLinked drawBuffer, @store func
 
-                drawBuffer.setGlObject buff
                 drawBuffer.bind()
                 drawBuffer.resize 512
 
@@ -6024,7 +6116,7 @@ do  self.main = ->
 
         setViewport         : ( ptri ) ->
             if !isPointer ptri  
-                setParent ptri = new Viewport(), this 
+                setParent ptri = Viewport.New, this 
                 ptri.set( arguments[0] ).init()
 
             setUint32 this, RDCTX_VIEWPORT, ptri ; ptri
@@ -6041,7 +6133,7 @@ do  self.main = ->
 
         setClearColor       : ( ptri ) ->
             if !isPointer ptri  
-                setParent ptri = new ClearColor(), this
+                setParent ptri = ClearColor.New, this
                 ptri.set arguments[0]
                 ptri.init()
 
@@ -6049,7 +6141,6 @@ do  self.main = ->
                 setLinked ptri, @store ptri.bindGLCall this
 
             setUint32 this, RDCTX_CLEAR_COLOR, ptri ; ptri
-
 
         getClearMask        : ->
             if  ptri = getUint32 this, RDCTX_CLEAR_MASK
@@ -6062,7 +6153,7 @@ do  self.main = ->
 
         setClearMask        : ( ptri ) ->         
             if !isPointer ptri  
-                setParent ptri = new ClearMask(), this 
+                setParent ptri = ClearMask.New, this 
                 ptri.set( arguments[0] ).init()
 
             if !getLinked ptri
