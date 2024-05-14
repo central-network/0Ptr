@@ -4280,12 +4280,11 @@ do  self.main = ->
     
     #TR_EVENARGC        = 7 * 4 + 0
     PTR_EVENTRECSV      = 7 * 4 + 1
-
-    PTR_EVTMXCALL       = 8 * 4
-    PTR_EVNTCALLS       = 9 * 4
+    PTR_EVTMXCALL       = 7 * 4 + 2
+    PTR_EVNTCALLS       = 8 * 4
     
-    PTR_LINKED          = 10 * 4
-    PTR_RESVBEGIN       = 11 * 4
+    PTR_LINKED          = 9 * 4
+    PTR_RESVBEGIN       = 10 * 4
 
     PTRKEY              = "{{Pointer}}"
     EVENTID_SET         = 336
@@ -4388,6 +4387,61 @@ do  self.main = ->
 
             throw [ /WHAT_IS_THIS/, ClassOrPtri ]
             
+    RESVERVDS = {}
+
+    dumpClassResvs = ->
+        for clsi, conf of RESVERVDS
+            prefix = cscope[clsi].name.toUpperCase()
+            for prop, opts of conf when isNaN prop 
+                suffix = prop.toUpperCase()
+                warn 4, "PTRI_OFFSET_#{prefix}_#{suffix}".padEnd(35, " ") + " = #{opts.byteOffset};"
+
+
+    requestIdleCallback dumpClassResvs
+
+    resvClassBytes = ( Class, alias, byteLength, alignBytes = off ) ->
+
+        clsi = cscope.indexOf Class
+
+        if !reservs = RESVERVDS[ clsi ] 
+            resvbuf = new ArrayBuffer HEADER_BYTELENGTH - PTR_RESVBEGIN
+            resvui8 = new Uint8Array resvbuf
+
+            reservs = RESVERVDS[ clsi ] = {
+                [ 1 ] : new     Uint8Array resvbuf
+                [ 2 ] : new    Uint16Array resvbuf
+                [ 4 ] : new    Uint32Array resvbuf
+                [ 8 ] : new BigUint64Array resvbuf
+            }
+
+        if  resvdp = reservs[ alias ]
+            return resvdp.byteOffset
+        
+        reservs[ alias ] = { byteLength, Class }
+        resvui8 = new Uint8Array reservs[1].buffer
+
+        switch BPE = alignBytes || byteLength
+            when 1, 2, 4, 8
+                v = if BPE is 8 then BigInt(0) else (0)
+                o = BPE * i = reservs[ BPE ].indexOf(v)
+
+                if !( i+1 ) || ( resvui8.byteLength < o + byteLength )
+                    throw MAXBYTESEXCEED_RESVALIAS : alias
+
+                reservs[ alias ].typedIndex = i
+                reservs[ alias ].resvOffset = o
+                reservs[ alias ].byteOffset = o + PTR_RESVBEGIN
+                    
+                resvui8.fill 1, o, o + byteLength
+
+                if  resvui8.byteLength <= o + byteLength
+                    throw MAXBYTESEXCEED_RESVALIAS : alias
+
+            else throw /NON_RESV/
+
+        return reservs[ alias ].byteOffset
+
+    
 
     findChild       = ( ptri, Class, create = off, superfind = off ) ->
 
@@ -4562,6 +4616,37 @@ do  self.main = ->
     getResvUint8    = ( byteOffset = 0 ) ->
         dvw.getUint8 byteOffset + PTR_RESVBEGIN
     
+
+    ptrAliasOffset   = ( ptri, alias, BYTES_PER_ELEMENT ) ->
+        
+        reservs = RESVERVDS[ getClassIndex( ptri ) ] || {}
+        
+        unless reservs[ alias ] then return resvClassBytes(
+            ptri.constructor, alias , BYTES_PER_ELEMENT
+        )
+
+        ptri + reservs[ alias ].byteOffset
+        
+    setAliasUint32   = ( ptri, alias, value ) ->
+        dvw.setUint32 ptrAliasOffset( ptri, alias, 4 ), value, iLE ; value
+
+    getAliasUint32   = ( ptri, alias ) ->
+        dvw.getUint32 ptrAliasOffset( ptri, alias, 4 ), iLE
+
+    setAliasUint16   = ( ptri, alias, value ) ->
+        dvw.setUint16 ptrAliasOffset( ptri, alias, 2 ), value, iLE ; value
+
+    getAliasUint16   = ( ptri, alias ) ->
+        dvw.getUint16 ptrAliasOffset( ptri, alias, 2 ), iLE
+
+    setAliasUint8    = ( ptri, alias, value ) ->
+        dvw.setUint8  ptrAliasOffset( ptri, alias, 1 ), value
+
+    getAliasUint8    = ( ptri, alias ) ->
+        dvw.getUint8  ptrAliasOffset( ptri, alias, 1 )
+    
+
+        
     asetResvUint8   = ( byteOffset, value ) ->
         Atomics.store ui8, byteOffset + PTR_RESVBEGIN, value
 
@@ -5125,6 +5210,7 @@ do  self.main = ->
         @key            : "location"
 
 
+
     cscope.global class DrawCall extends Pointer
 
         @key            : "drawCall"
@@ -5146,17 +5232,37 @@ do  self.main = ->
 
         mallocDraw      : ->
             drawBuffer = @context.drawBuffer 
-            pointCount = @parent.pointCount
-            byteLength = @program.BYTES_PER_POINT * pointCount
-            
+            drawCount  = @parent.pointCount
+            byteLength = @program.BYTES_PER_POINT * drawCount
+
             mallocExternal byteLength/4, null, this
             
-            drawOffset = drawBuffer.malloc byteLength
+            dstOffset  = drawBuffer.malloc byteLength
+            drawStart  = dstOffset / @program.BYTES_PER_POINT  
             byteOffset = getByteOffset this 
 
-            log "allocation from:", drawBuffer, "for:", this, {
-                byteLength, pointCount, drawOffset, byteOffset 
-            }
+            gl         = @context.WebGLObject
+            draw       = gl.drawArrays.bind gl, gl.TRIANGLES, drawStart, drawCount
+            upload     = gl.bufferSubData.bind gl, gl.ARRAY_BUFFER, dstOffset, @subarray
+
+            setAliasUint32 this, "dstOffset", dstOffset
+            setAliasUint32 this, "drawStart", drawStart
+            setAliasUint32 this, "drawCount", drawCount
+
+            setAliasUint32 this, "drawfn"   , @store draw
+            setAliasUint32 this, "uploadfn" , @store upload
+
+            log RESVERVDS: RESVERVDS
+
+            this
+
+        getHitUpload    : -> @upload()
+
+        getHitDraw      : -> @draw()
+
+        draw            : -> @storage[ getAliasUint32 this, "drawfn" ]()
+        
+        upload          : -> @storage[ getAliasUint32 this, "uploadfn" ]()
 
         init            : ( context, vScript = "default", fScript = "default" ) ->
 

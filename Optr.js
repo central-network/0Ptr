@@ -4164,7 +4164,7 @@ self.init   = ->
 
  */
 (self.main = function() {
-  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, ClearMask, Color, DRAWING_DONE, DrawBuffer, DrawCall, Drawings, EVENTID_SET, EventHandler, FragmentShader, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, MESH_DRAWINGS, MESH_DRAW_STATE, Mesh, NEEDS_MALLOC, NEEDS_UPDATE, NEEDS_UPLOAD, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKED, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, Program, RenderingContext, Rotation, STATE, Scale, Scene, Scope, Storage, TextPointer, UPDATING_NOW, UUID, VertexArray, VertexAttribPointer, VertexShader, Viewport, agetResvUint8, asetResvUint8, c, cscope, decodeText, desc, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, findLinkeds, get, getActive, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, glcls, glkey, glval, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, keyof, label, len, malign, malloc, mallocExternal, palloc, property, ptrByteCompare, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, ref2, ref3, ref4, sab, set, setActive, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8, val;
+  var ALIGN_BYTELENGTH, AnimationFrame, BUFFER_SIZE, BYTES_PER_ELEMENT, CallBinding, Class, ClearColor, ClearMask, Color, DRAWING_DONE, DrawBuffer, DrawCall, Drawings, EVENTID_SET, EventHandler, FragmentShader, HEADER_BYTELENGTH, HEADER_LENGTH, INDEX_DATA_MALLOC, INDEX_PTRI_MALLOC, Location, MALLOC_BYTEOFFSET, MESH_DRAWINGS, MESH_DRAW_STATE, Mesh, NEEDS_MALLOC, NEEDS_UPDATE, NEEDS_UPLOAD, POINTER_MAXINDEX, PTRKEY, PTR_ACTIVE, PTR_BEGIN, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSI, PTR_EVENTID, PTR_EVENTRECSV, PTR_EVNTCALLS, PTR_EVTMXCALL, PTR_INITIAL, PTR_LENGTH, PTR_LINKED, PTR_PARENT, PTR_RESVBEGIN, Pointer, Position, Program, RESVERVDS, RenderingContext, Rotation, STATE, Scale, Scene, Scope, Storage, TextPointer, UPDATING_NOW, UUID, VertexArray, VertexAttribPointer, VertexShader, Viewport, agetResvUint8, asetResvUint8, c, cscope, decodeText, desc, dumpClassResvs, dvw, emitEvent, emitInform, encodeText, f32, findActiveChild, findChild, findChilds, findLinkeds, get, getActive, getAliasUint16, getAliasUint32, getAliasUint8, getBegin, getByteLength, getByteOffset, getClassIndex, getEventCalls, getEventId, getEventMaxCall, getEventRcsv, getFloat32, getInited, getLength, getLinked, getParent, getResvUint16, getResvUint32, getResvUint64, getResvUint8, getUint16, getUint32, getUint64, getUint8, glcls, glkey, glval, hitEventCalls, i, i32, iLE, isPointer, isWindow, isWorker, j, key, keyof, label, len, malign, malloc, mallocExternal, palloc, property, ptrAliasOffset, ptrByteCompare, ptrIterator, ptrStringify, ptrViewCompare, ref, ref1, ref2, ref3, ref4, resvClassBytes, sab, set, setActive, setAliasUint16, setAliasUint32, setAliasUint8, setBegin, setByteLength, setByteOffset, setClassIndex, setEventCalls, setEventId, setEventMaxCall, setEventRcsv, setFloat32, setInited, setLength, setLinked, setParent, setResvUint16, setResvUint32, setResvUint64, setResvUint8, setUint16, setUint32, setUint64, setUint8, strNumberify, subarrayPtri, textDecoder, textEncoder, u16, u32, u64, ui8, val;
   isWorker = typeof DedicatedWorkerGlobalScope !== "undefined" && DedicatedWorkerGlobalScope !== null;
   isWindow = !isWorker;
   BUFFER_SIZE = 1e6 * 8;
@@ -4188,10 +4188,10 @@ self.init   = ->
   
   //TR_EVENARGC        = 7 * 4 + 0
   PTR_EVENTRECSV = 7 * 4 + 1;
-  PTR_EVTMXCALL = 8 * 4;
-  PTR_EVNTCALLS = 9 * 4;
-  PTR_LINKED = 10 * 4;
-  PTR_RESVBEGIN = 11 * 4;
+  PTR_EVTMXCALL = 7 * 4 + 2;
+  PTR_EVNTCALLS = 8 * 4;
+  PTR_LINKED = 9 * 4;
+  PTR_RESVBEGIN = 10 * 4;
   PTRKEY = "{{Pointer}}";
   EVENTID_SET = 336;
   STATE = {
@@ -4331,6 +4331,75 @@ self.init   = ->
     }
 
   });
+  RESVERVDS = {};
+  dumpClassResvs = function() {
+    var clsi, conf, opts, prefix, prop, results, suffix;
+    results = [];
+    for (clsi in RESVERVDS) {
+      conf = RESVERVDS[clsi];
+      prefix = cscope[clsi].name.toUpperCase();
+      results.push((function() {
+        var results1;
+        results1 = [];
+        for (prop in conf) {
+          opts = conf[prop];
+          if (!(isNaN(prop))) {
+            continue;
+          }
+          suffix = prop.toUpperCase();
+          results1.push(warn(4, `PTRI_OFFSET_${prefix}_${suffix}`.padEnd(35, " ") + ` = ${opts.byteOffset};`));
+        }
+        return results1;
+      })());
+    }
+    return results;
+  };
+  requestIdleCallback(dumpClassResvs);
+  resvClassBytes = function(Class, alias, byteLength, alignBytes = false) {
+    var BPE, clsi, i, o, reservs, resvbuf, resvdp, resvui8, v;
+    clsi = cscope.indexOf(Class);
+    if (!(reservs = RESVERVDS[clsi])) {
+      resvbuf = new ArrayBuffer(HEADER_BYTELENGTH - PTR_RESVBEGIN);
+      resvui8 = new Uint8Array(resvbuf);
+      reservs = RESVERVDS[clsi] = {
+        [1]: new Uint8Array(resvbuf),
+        [2]: new Uint16Array(resvbuf),
+        [4]: new Uint32Array(resvbuf),
+        [8]: new BigUint64Array(resvbuf)
+      };
+    }
+    if (resvdp = reservs[alias]) {
+      return resvdp.byteOffset;
+    }
+    reservs[alias] = {byteLength, Class};
+    resvui8 = new Uint8Array(reservs[1].buffer);
+    switch (BPE = alignBytes || byteLength) {
+      case 1:
+      case 2:
+      case 4:
+      case 8:
+        v = BPE === 8 ? BigInt(0) : 0;
+        o = BPE * (i = reservs[BPE].indexOf(v));
+        if (!(i + 1) || (resvui8.byteLength < o + byteLength)) {
+          throw {
+            MAXBYTESEXCEED_RESVALIAS: alias
+          };
+        }
+        reservs[alias].typedIndex = i;
+        reservs[alias].resvOffset = o;
+        reservs[alias].byteOffset = o + PTR_RESVBEGIN;
+        resvui8.fill(1, o, o + byteLength);
+        if (resvui8.byteLength <= o + byteLength) {
+          throw {
+            MAXBYTESEXCEED_RESVALIAS: alias
+          };
+        }
+        break;
+      default:
+        throw /NON_RESV/;
+    }
+    return reservs[alias].byteOffset;
+  };
   findChild = function(ptri, Class, create = false, superfind = false) {
     var clsi, ptrj, ptrp;
     ptrj = dvw.getUint32(0, iLE);
@@ -4541,6 +4610,34 @@ self.init   = ->
   };
   getResvUint8 = function(byteOffset = 0) {
     return dvw.getUint8(byteOffset + PTR_RESVBEGIN);
+  };
+  ptrAliasOffset = function(ptri, alias, BYTES_PER_ELEMENT) {
+    var reservs;
+    reservs = RESVERVDS[getClassIndex(ptri)] || {};
+    if (!reservs[alias]) {
+      return resvClassBytes(ptri.constructor, alias, BYTES_PER_ELEMENT);
+    }
+    return ptri + reservs[alias].byteOffset;
+  };
+  setAliasUint32 = function(ptri, alias, value) {
+    dvw.setUint32(ptrAliasOffset(ptri, alias, 4), value, iLE);
+    return value;
+  };
+  getAliasUint32 = function(ptri, alias) {
+    return dvw.getUint32(ptrAliasOffset(ptri, alias, 4), iLE);
+  };
+  setAliasUint16 = function(ptri, alias, value) {
+    dvw.setUint16(ptrAliasOffset(ptri, alias, 2), value, iLE);
+    return value;
+  };
+  getAliasUint16 = function(ptri, alias) {
+    return dvw.getUint16(ptrAliasOffset(ptri, alias, 2), iLE);
+  };
+  setAliasUint8 = function(ptri, alias, value) {
+    return dvw.setUint8(ptrAliasOffset(ptri, alias, 1), value);
+  };
+  getAliasUint8 = function(ptri, alias) {
+    return dvw.getUint8(ptrAliasOffset(ptri, alias, 1));
   };
   asetResvUint8 = function(byteOffset, value) {
     return Atomics.store(ui8, byteOffset + PTR_RESVBEGIN, value);
@@ -5343,14 +5440,42 @@ self.init   = ->
       }
 
       mallocDraw() {
-        var byteLength, byteOffset, drawBuffer, drawOffset, pointCount;
+        var byteLength, byteOffset, draw, drawBuffer, drawCount, drawStart, dstOffset, gl, upload;
         drawBuffer = this.context.drawBuffer;
-        pointCount = this.parent.pointCount;
-        byteLength = this.program.BYTES_PER_POINT * pointCount;
+        drawCount = this.parent.pointCount;
+        byteLength = this.program.BYTES_PER_POINT * drawCount;
         mallocExternal(byteLength / 4, null, this);
-        drawOffset = drawBuffer.malloc(byteLength);
+        dstOffset = drawBuffer.malloc(byteLength);
+        drawStart = dstOffset / this.program.BYTES_PER_POINT;
         byteOffset = getByteOffset(this);
-        return log("allocation from:", drawBuffer, "for:", this, {byteLength, pointCount, drawOffset, byteOffset});
+        gl = this.context.WebGLObject;
+        draw = gl.drawArrays.bind(gl, gl.TRIANGLES, drawStart, drawCount);
+        upload = gl.bufferSubData.bind(gl, gl.ARRAY_BUFFER, dstOffset, this.subarray);
+        setAliasUint32(this, "dstOffset", dstOffset);
+        setAliasUint32(this, "drawStart", drawStart);
+        setAliasUint32(this, "drawCount", drawCount);
+        setAliasUint32(this, "drawfn", this.store(draw));
+        setAliasUint32(this, "uploadfn", this.store(upload));
+        log({
+          RESVERVDS: RESVERVDS
+        });
+        return this;
+      }
+
+      getHitUpload() {
+        return this.upload();
+      }
+
+      getHitDraw() {
+        return this.draw();
+      }
+
+      draw() {
+        return this.storage[getAliasUint32(this, "drawfn")]();
+      }
+
+      upload() {
+        return this.storage[getAliasUint32(this, "uploadfn")]();
       }
 
       init(context, vScript = "default", fScript = "default") {
