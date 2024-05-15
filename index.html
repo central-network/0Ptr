@@ -120,15 +120,19 @@
     </script>	
 </head>
 <body title="146.853.146.838 ops/sec">    
-    <script src="0ptr2.js">
+    <script src="0ptr2.js" type="module">
+        import { Scene, Mesh, RenderingContext } from "./0ptr2.js"
+
+        console.warn({ Scene, Mesh, RenderingContext })
+
         let red = 0.5, green = 0.3 , blue= 0.8, sign = 1, factor = 0.0025;
 
-        const scene = Scene({
+        const scene = Scene.from({
             clearColor : [1, 1, 0.5, 1],
         })
 
         const firstContext = scene.defaultContext;
-        const secondContext = RenderingContext({
+        const secondContext = RenderingContext.from({
             viewport : Float32Array.of( 10, 20, 320, 240 ),
             clearColor : [ 0, 1, 0, 1]
         })
@@ -158,33 +162,33 @@
 
         
 
-        const mesh1 = Mesh({
+        const mesh1 = Mesh.from({
             position : [ 0, -1, 0 ],
             color : [ 0, 0, 0, 1],
             uuid : "1"
         })
 
 
-        const mesh2 = Mesh({
+        const mesh2 = Mesh.from({
             rotation : [ 0, Math.PI, 0 ],
             scale : [ 1, 2, 1],
             color : [0,0,0,1],
-            uuid : "2",
+            id : "2",
             vertices : [
                 67,   60,   0,
                 67,   90,   0,
                 67,   90,  30,
             ],
-            drawings : [{
-                vShader : "my-avesome-vertex-shader",
-                fShader : "pink-shader"
+            drawCall : [{
+                vertexShader : "my-avesome-vertex-shader",
+                fragmentShader : "pink-shader"
             }]
         })
 
-        const mesh3 = Mesh({
+        const mesh3 = Mesh.from({
             rotation : [ 0, Math.PI, 0 ],
             scale : [ 1, 2, 1],
-            uuid : "3",
+            id : "3",
             color : [0,0,0,1],
             position : [1, .4, 0],
             vertices : [
@@ -194,18 +198,18 @@
             ]
         })
 
-        const mesh4 = Mesh({
+        const mesh4 = Mesh.from({
             rotation : [ 0, Math.PI, 0 ],
-            uuid : "4",
-            drawings : [{
-                context : secondContext,
-                vShader : "another-vertex-shader",
-                fShader : "default"
+            id : "4",
+            drawCall : [{
+                renderingContext : secondContext,
+                vertexShader : "another-vertex-shader",
+                fragmentShader : "default"
             },{
-                context : secondContext,
+                renderingContext : secondContext,
             },{
-                vShader : "my-avesome-vertex-shader",
-                fShader : "pink-shader"
+                vertexShader : "my-avesome-vertex-shader",
+                fragmentShader : "pink-shader"
             }],
             scale : [ 1, 2, 1],
             color : [0,0,0,1],
