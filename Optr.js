@@ -5497,6 +5497,10 @@ self.init   = ->
         return this.parent.parent;
       }
 
+      getAlias() {
+        return `${this.vShader.value} ${this.fShader.value}`;
+      }
+
       malloc() {
         var byteLength, draw, drawBuffer, drawCount, drawStart, dstOffset, gl, length, upload;
         drawBuffer = this.context.drawBuffer;
@@ -5569,27 +5573,16 @@ self.init   = ->
         return this;
       }
 
-      init(context, vScript = "default", fScript = "default") {
-        var alias, construct, fShader, gl, j, len, program, ptri, recursive, ref, vShader;
+      init() {
+        var construct, context, fScript, fShader, gl, j, len, program, ptri, recursive, ref, vScript, vShader;
         super.init();
-        if (isPointer(vScript)) {
-          vScript = vScript.value;
-        }
-        if (isPointer(fScript)) {
-          fScript = fScript.value;
-        }
-        if (!context) {
-          log(this.root);
-          throw /NO_CONTEXT_TODRAWCALL/;
-        }
-        if (!context.isPointer) {
-          context = new RenderingContext(context);
-        }
-        alias = `${vScript} ${fScript}`;
+        vScript = this.vShader.value;
+        fScript = this.fShader.value;
+        context = this.context;
         ref = findChilds(context, Program, recursive = false, construct = true);
         for (j = 0, len = ref.length; j < len; j++) {
           ptri = ref[j];
-          if (ptri.alias !== alias) {
+          if (ptri.alias !== this.alias) {
             continue;
           }
           setLinked(this, ptri);

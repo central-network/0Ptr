@@ -5267,11 +5267,13 @@ do  self.main = ->
             getAliasUint32( this, "context" ) or
             setAliasUint32( this, "context", @root.defaultContext )
 
-
         queryDocument   : ( program, type ) ->
             document.querySelector("[program='#{program}'][type*='#{type}']")
 
         getMesh         : -> @parent.parent
+
+        getAlias        : ->
+            "#{@vShader.value} #{@fShader.value}"
 
         malloc          : ->
             drawBuffer = @context.drawBuffer 
@@ -5344,22 +5346,15 @@ do  self.main = ->
 
             this
 
-        init            : ( context, vScript = "default", fScript = "default" ) ->
-
+        init            : ->
             super()
 
-            vScript = vScript.value if isPointer vScript
-            fScript = fScript.value if isPointer fScript
-            unless context 
-                log @root
-                throw /NO_CONTEXT_TODRAWCALL/ 
-
-            if !context . isPointer
-                context = new RenderingContext context
-            alias = "#{vScript} #{fScript}"
+            vScript = @vShader.value
+            fScript = @fShader.value
+            context = @context
             
             for ptri in findChilds context, Program, recursive = off, construct = on
-                continue unless ptri.alias is alias 
+                continue unless ptri.alias is @alias 
                 setLinked this, ptri
                 return this 
 
@@ -5608,7 +5603,6 @@ do  self.main = ->
                     setLinked this, ptri
                 new RenderingContext ptri
 
-
     cscope.store class CallBinding extends TextPointer
 
         set : ( name, @function ) ->
@@ -5826,7 +5820,6 @@ do  self.main = ->
         getGlObject     : -> @storage[ getLinked this ]
         
         setGlObject     : -> setLinked this, @store arguments[0]
-
 
     cscope.store class Program extends Pointer
 
@@ -6166,7 +6159,6 @@ do  self.main = ->
             @storage[ getLinked( this ) or setLinked(
                 this, @store @create()
             ) ]
-
 
 
 
