@@ -39,7 +39,7 @@ export default classes = new Object {
 
 #* export|class|extends|Pointer|Number|Text|\s+
 
-{ log, warn, error, table, debug } = console
+{ log, warn, error, table, debug, delay } = console
 
 sab = new SharedArrayBuffer 1e7
 dvw = new DataView sab
@@ -53,8 +53,23 @@ POINTER_BYTELENGTH  = BPE * POINTER_LENGTH
 
 PTR_CLASSINDEX      = 0 * BPE
 PTR_PARENT          = 1 * BPE
-PTR_BYTEOFFSET      = 2 * BPE
-PTR_BYTELENGTH      = 3 * BPE
+PTR_LINKED          = 2 * BPE
+
+PTR_BYTEOFFSET      = 3 * BPE
+PTR_BYTELENGTH      = 4 * BPE
+
+
+RENDERING_CONTEXT_GLOBJECT  = 3 * BPE # PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
+RENDERING_CONTEXT_VIEWPORT  = 4 * BPE # PTR_BYTELENGTH #? HAS NO BYTELENGTH
+
+VIEWPORT_X                  = 3 * BPE # PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
+VIEWPORT_Y                  = 4 * BPE # PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
+VIEWPORT_TOP                = 5 * BPE 
+VIEWPORT_LEFT               = 6 * BPE 
+VIEWPORT_WITDH              = 7 * BPE 
+VIEWPORT_HEIGHT             = 8 * BPE 
+VIEWPORT_ASPECT_RATIO       = 9 * BPE
+VIEWPORT_PIXEL_RATIO        = 10 * BPE
 
 #* laskdşlkalsşkdşalkdşlaskdşlaskd
 
@@ -63,6 +78,7 @@ malloc = Atomics.add.bind Atomics, u32, 1
 
 palloc malloc POINTER_BYTELENGTH * 1e5
 
+assign = Object.assign
 define = Object.defineProperties
 getown = Object.getOwnPropertyDescriptor
 encode = TextEncoder::encode.bind new TextEncoder
@@ -78,6 +94,11 @@ export storage = new (class Storage extends Array
     add             : (o) -> @[ @length ] = o ; this ) 0xff
 
 #* lşasdklkasşdkaşsldkşasldkşalsdkasşlkdlşsakd
+
+setTimeDelay    = ->
+    fn  = arguments[ 0 ]
+    ->  clearTimeout( delay ) or delay =
+        setTimeout( fn.bind( this ), 40 )
 
 getByteOffset   = ( ptri ) ->
     dvw.getUint32 ptri + PTR_BYTEOFFSET, iLE
@@ -121,17 +142,41 @@ setParent       = ( child, parent ) ->
 getParent       = ( ptri ) ->
     dvw.getUint32 ptri + PTR_PARENT, iLE
 
-getPtriUint32   = ( ptri, byteOffset ) ->
-    dvw.getUint32 byteOffset + getByteOffset( ptri ), iLE
+getUint8        = ( ptri, byteOffset ) ->
+    dvw.getUint8   byteOffset + getByteOffset( ptri )
 
-setPtriUint32   = ( ptri, byteOffset, value ) ->
-    dvw.setUint32 byteOffset + getByteOffset( ptri ), value, iLE ; value
+setUint8        = ( ptri, byteOffset, value ) ->
+    dvw.setUint8   byteOffset + getByteOffset( ptri ), value ; value
 
-getPtriFloat32  = ( ptri, byteOffset ) ->
+getUint32       = ( ptri, byteOffset ) ->
+    dvw.getUint32  byteOffset + getByteOffset( ptri ), iLE
+
+setUint32       = ( ptri, byteOffset, value ) ->
+    dvw.setUint32  byteOffset + getByteOffset( ptri ), value, iLE ; value
+
+getFloat32      = ( ptri, byteOffset ) ->
     dvw.getFloat32 byteOffset + getByteOffset( ptri ), iLE
 
-setPtriFloat32  = ( ptri, byteOffset, value ) ->
+setFloat32      = ( ptri, byteOffset, value ) ->
     dvw.setFloat32 byteOffset + getByteOffset( ptri ), value, iLE ; value
+
+getPtriUint8    = ( byteOffset ) ->
+    dvw.getUint8   byteOffset
+
+setPtriUint8    = ( byteOffset, value ) ->
+    dvw.setUint8   byteOffset, value ; value
+
+getPtriUint32   = ( byteOffset ) ->
+    dvw.getUint32  byteOffset, iLE
+
+setPtriUint32   = ( byteOffset, value ) ->
+    dvw.setUint32  byteOffset, value, iLE ; value
+
+getPtriFloat32  = ( byteOffset ) ->
+    dvw.getFloat32 byteOffset, iLE
+
+setPtriFloat32  = ( byteOffset, value ) ->
+    dvw.setFloat32 byteOffset, value, iLE ; value
 
 storeForUint8   = ( any ) ->
     storage.fillFirstEmpty any
@@ -172,6 +217,20 @@ subarrayUint32  = ( ptri, begin, end ) ->
     end ||= length + begin ||= begin or 0
     u32.subarray begin + offset, end + offset 
 
+findChild       = ( ptri, Class, inherit = off ) ->
+    return unless ptri
+
+    ptrj = Atomics.load u32
+    clsi = storage.indexOf Class
+
+    while ptrj -= POINTER_BYTELENGTH
+        continue if ptri - getParent ptrj
+        continue if clsi - getClassIndex ptrj
+        return ptr_Pointer ptrj
+
+    return unless inherit
+
+    findChild getParent( ptri ), Class, inherit
 
 define Pointer::            , [ '{{Pointer}}' ] :
     get : -> new Uint32Array sab, this, POINTER_LENGTH    
@@ -250,11 +309,116 @@ define Color                , byteLength        :
     value : 4 * 4
 define Color::              , TypedArray        :
     value : Float32Array
+define RenderingContext::   , glObject          :
+    get : ->
+        if !stri = getPtriUint8 this + RENDERING_CONTEXT_GLOBJECT
+            node = document.createElement "canvas"
+            stri = storeForUint8 node.getContext "webgl2"
+
+            setPtriUint8 this + RENDERING_CONTEXT_GLOBJECT, stri
+
+            window.document.body.appendChild node
+            window.addEventListener "resize", @onresize.bind this
+            window.dispatchEvent new Event "resize"
+
+        storage[ stri ]
+
+define RenderingContext::   , onresize          :
+    value : setTimeDelay ->
+
+        {   top, left,
+            width, height,
+            pixelRatio
+        } = @viewport
+
+        assign @glObject.canvas,
+            width       : pixelRatio * width
+            height      : pixelRatio * height
+
+        assign @glObject.canvas.style,
+            position   : "fixed"
+            top        : "#{top}px"
+            left       : "#{left}px"
+            width      : "#{width}px"
+            height     : "#{height}px"
+
+        @
+
 define RenderingContext::   , getViewport       :
-    value : -> new_Pointer Viewport
+    value : ->
+        if !ptrj = getPtriUint8 this + RENDERING_CONTEXT_VIEWPORT
+            if !ptrj = findChild this , Viewport, inherit = on
+                return addChildren this , new_Pointer Viewport
+            return @setViewport ptrj
+        return new Viewport ptrj
+
+define RenderingContext::   , setViewport       :
+    value : ( ptrj ) ->
+        setPtriUint8 this + RENDERING_CONTEXT_VIEWPORT, ptrj
+define Viewport::           , isFullScreen      :
+    get : -> !!document.fullscreenElement
+define Viewport::           , isFullWindow      :
+    get : -> !getPtriFloat32 this + VIEWPORT_WITDH
+define Viewport::           , getX              :
+    value : ->
+        getPtriFloat32 this + VIEWPORT_X
+define Viewport::           , setX              :
+    value : ( value ) ->
+        setPtriFloat32 this + VIEWPORT_X, value
+define Viewport::           , getY              :
+    value : ->
+        getPtriFloat32 this + VIEWPORT_Y
+define Viewport::           , setY              :
+    value : ( value ) ->
+        setPtriFloat32 this + VIEWPORT_Y, value
+define Viewport::           , getLeft           :
+    value : ->
+        getPtriFloat32 this + VIEWPORT_LEFT
+define Viewport::           , setLeft           :
+    value : ( value ) ->
+        setPtriFloat32 this + VIEWPORT_LEFT, value
+define Viewport::           , getTop            :
+    value : ->
+        getPtriFloat32 this + VIEWPORT_TOP
+define Viewport::           , setTop            :
+    value : ( value ) ->
+        setPtriFloat32 this + VIEWPORT_TOP, value
+define Viewport::           , getWidth          :
+    value : ->
+        if !width = getPtriFloat32 this + VIEWPORT_WITDH
+            return self.innerWidth or 320
+        return width
+define Viewport::           , setWidth          :
+    value : ( value ) ->
+        setPtriFloat32 this + VIEWPORT_WITDH, value
+define Viewport::           , getHeight         :
+    value : ->
+        if !getPtriFloat32 this + VIEWPORT_HEIGHT
+            return self.innerHeight or 240
+        return height
+define Viewport::           , setHeight         :
+    value : ( value ) ->
+        setPtriFloat32 this + VIEWPORT_HEIGHT, value
+define Viewport::           , getAspectRatio    :
+    value : ->
+        if !ratio = getPtriFloat32 this + VIEWPORT_ASPECT_RATIO
+            return @width / @height
+        return ratio
+define Viewport::           , setAspectRatio    :
+    value : ( value ) ->
+        setPtriFloat32 this + VIEWPORT_ASPECT_RATIO, value
+define Viewport::           , getPixelRatio     :
+    value : ->
+        if !ratio = getPtriFloat32 this + VIEWPORT_PIXEL_RATIO
+            return self.devicePixelRatio or 1
+        return ratio
+define Viewport::           , setPixelRatio     :
+    value : ( value ) ->
+        setPtriFloat32 this + VIEWPORT_PIXEL_RATIO, value
 
 #? <------->
 
+    
 
 for name , Class of classes
 
@@ -265,7 +429,6 @@ for name , Class of classes
 
         continue unless /get|set/.test key = name.substring 0, 3
         continue unless className = name.substring 3
-        continue unless Property = storage.findByName className
         continue unless no is Object.hasOwn( Class::, prop =
             className[0].toLowerCase() + className.substring 1 )
 
@@ -290,9 +453,14 @@ for name , Class of classes
 
 
 warn rc = new_Pointer( RenderingContext )
+warn vp = new_Pointer( Viewport )
 warn p0 = Program.from({ vertexShader : "hello world vs" })
 warn p1 = Program.from([ { fragmentShader : "hello world fs" }, { vertexShader : "hello world vs" } ])
 warn "p0.add p1:", p0.add p1
+warn "rc.add vp:", p1.add vp
 warn "p0.append p1:", p0.append p1
 warn "rc.append p0:", rc.append p0
 warn "rc:", rc
+warn "rc.viewport:", rc.viewport
+warn "p0.findChild:", findChild p0, Viewport, on
+warn "rc.glObject:", rc.glObject

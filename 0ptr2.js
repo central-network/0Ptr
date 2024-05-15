@@ -1,5 +1,5 @@
 //? hello world <3
-var BPE, Class, POINTER_BYTELENGTH, POINTER_LENGTH, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_PARENT, Property, Storage, addChildren, className, classes, d, debug, decode, define, dvw, encode, error, get, getByteLength, getByteOffset, getClassIndex, getParent, getPtriFloat32, getPtriUint32, getown, iLE, key, log, malloc, name, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptr_Pointer, rc, sab, set, setByteLength, setByteOffset, setClassIndex, setParent, setPtriFloat32, setPtriUint32, sliceUint8, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, warn;
+var BPE, Class, POINTER_BYTELENGTH, POINTER_LENGTH, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, Storage, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, assign, className, classes, d, debug, decode, define, delay, dvw, encode, error, findChild, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, iLE, key, log, malloc, name, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptr_Pointer, rc, sab, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint32, setPtriUint8, setTimeDelay, setUint32, setUint8, sliceUint8, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp, warn;
 
 export var Pointer = class Pointer extends Number {};
 
@@ -58,7 +58,7 @@ export var AllocArray = class AllocArray extends Pointer {};
 export default classes = new Object({Scene, DrawCall, Viewport, ClearColor, ClearMask, Color, Scale, Rotation, Position, Vertices, Mesh, Id, VertexShader, FragmentShader, EventHandler, Program, RenderingContext, VertexArray, Attribute, Uniform, CPU, GPU, AllocArray});
 
 //* export|class|extends|Pointer|Number|Text|\s+
-({log, warn, error, table, debug} = console);
+({log, warn, error, table, debug, delay} = console);
 
 sab = new SharedArrayBuffer(1e7);
 
@@ -80,9 +80,31 @@ PTR_CLASSINDEX = 0 * BPE;
 
 PTR_PARENT = 1 * BPE;
 
-PTR_BYTEOFFSET = 2 * BPE;
+PTR_LINKED = 2 * BPE;
 
-PTR_BYTELENGTH = 3 * BPE;
+PTR_BYTEOFFSET = 3 * BPE;
+
+PTR_BYTELENGTH = 4 * BPE;
+
+RENDERING_CONTEXT_GLOBJECT = 3 * BPE; // PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
+
+RENDERING_CONTEXT_VIEWPORT = 4 * BPE; // PTR_BYTELENGTH #? HAS NO BYTELENGTH
+
+VIEWPORT_X = 3 * BPE; // PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
+
+VIEWPORT_Y = 4 * BPE; // PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
+
+VIEWPORT_TOP = 5 * BPE;
+
+VIEWPORT_LEFT = 6 * BPE;
+
+VIEWPORT_WITDH = 7 * BPE;
+
+VIEWPORT_HEIGHT = 8 * BPE;
+
+VIEWPORT_ASPECT_RATIO = 9 * BPE;
+
+VIEWPORT_PIXEL_RATIO = 10 * BPE;
 
 //* laskdşlkalsşkdşalkdşlaskdşlaskd
 palloc = Atomics.add.bind(Atomics, u32, 0, POINTER_BYTELENGTH);
@@ -90,6 +112,8 @@ palloc = Atomics.add.bind(Atomics, u32, 0, POINTER_BYTELENGTH);
 malloc = Atomics.add.bind(Atomics, u32, 1);
 
 palloc(malloc(POINTER_BYTELENGTH * 1e5));
+
+assign = Object.assign;
 
 define = Object.defineProperties;
 
@@ -136,6 +160,14 @@ export var storage = new (Storage = class Storage extends Array {
 })(0xff);
 
 //* lşasdklkasşdkaşsldkşasldkşalsdkasşlkdlşsakd
+setTimeDelay = function() {
+  var fn;
+  fn = arguments[0];
+  return function() {
+    return clearTimeout(delay) || (delay = setTimeout(fn.bind(this), 40));
+  };
+};
+
 getByteOffset = function(ptri) {
   return dvw.getUint32(ptri + PTR_BYTEOFFSET, iLE);
 };
@@ -192,21 +224,57 @@ getParent = function(ptri) {
   return dvw.getUint32(ptri + PTR_PARENT, iLE);
 };
 
-getPtriUint32 = function(ptri, byteOffset) {
+getUint8 = function(ptri, byteOffset) {
+  return dvw.getUint8(byteOffset + getByteOffset(ptri));
+};
+
+setUint8 = function(ptri, byteOffset, value) {
+  dvw.setUint8(byteOffset + getByteOffset(ptri), value);
+  return value;
+};
+
+getUint32 = function(ptri, byteOffset) {
   return dvw.getUint32(byteOffset + getByteOffset(ptri), iLE);
 };
 
-setPtriUint32 = function(ptri, byteOffset, value) {
+setUint32 = function(ptri, byteOffset, value) {
   dvw.setUint32(byteOffset + getByteOffset(ptri), value, iLE);
   return value;
 };
 
-getPtriFloat32 = function(ptri, byteOffset) {
+getFloat32 = function(ptri, byteOffset) {
   return dvw.getFloat32(byteOffset + getByteOffset(ptri), iLE);
 };
 
-setPtriFloat32 = function(ptri, byteOffset, value) {
+setFloat32 = function(ptri, byteOffset, value) {
   dvw.setFloat32(byteOffset + getByteOffset(ptri), value, iLE);
+  return value;
+};
+
+getPtriUint8 = function(byteOffset) {
+  return dvw.getUint8(byteOffset);
+};
+
+setPtriUint8 = function(byteOffset, value) {
+  dvw.setUint8(byteOffset, value);
+  return value;
+};
+
+getPtriUint32 = function(byteOffset) {
+  return dvw.getUint32(byteOffset, iLE);
+};
+
+setPtriUint32 = function(byteOffset, value) {
+  dvw.setUint32(byteOffset, value, iLE);
+  return value;
+};
+
+getPtriFloat32 = function(byteOffset) {
+  return dvw.getFloat32(byteOffset, iLE);
+};
+
+setPtriFloat32 = function(byteOffset, value) {
+  dvw.setFloat32(byteOffset, value, iLE);
   return value;
 };
 
@@ -252,6 +320,28 @@ subarrayUint32 = function(ptri, begin, end) {
   length = getByteLength(ptri) / 4;
   end || (end = length + (begin || (begin = begin || 0)));
   return u32.subarray(begin + offset, end + offset);
+};
+
+findChild = function(ptri, Class, inherit = false) {
+  var clsi, ptrj;
+  if (!ptri) {
+    return;
+  }
+  ptrj = Atomics.load(u32);
+  clsi = storage.indexOf(Class);
+  while (ptrj -= POINTER_BYTELENGTH) {
+    if (ptri - getParent(ptrj)) {
+      continue;
+    }
+    if (clsi - getClassIndex(ptrj)) {
+      continue;
+    }
+    return ptr_Pointer(ptrj);
+  }
+  if (!inherit) {
+    return;
+  }
+  return findChild(getParent(ptri), Class, inherit);
 };
 
 define(Pointer.prototype, {
@@ -428,9 +518,221 @@ define(Color.prototype, {
 });
 
 define(RenderingContext.prototype, {
+  glObject: {
+    get: function() {
+      var node, stri;
+      if (!(stri = getPtriUint8(this + RENDERING_CONTEXT_GLOBJECT))) {
+        node = document.createElement("canvas");
+        stri = storeForUint8(node.getContext("webgl2"));
+        setPtriUint8(this + RENDERING_CONTEXT_GLOBJECT, stri);
+        window.document.body.appendChild(node);
+        window.addEventListener("resize", this.onresize.bind(this));
+        window.dispatchEvent(new Event("resize"));
+      }
+      return storage[stri];
+    }
+  }
+});
+
+define(RenderingContext.prototype, {
+  onresize: {
+    value: setTimeDelay(function() {
+      var height, left, pixelRatio, top, width;
+      ({top, left, width, height, pixelRatio} = this.viewport);
+      assign(this.glObject.canvas, {
+        width: pixelRatio * width,
+        height: pixelRatio * height
+      });
+      assign(this.glObject.canvas.style, {
+        position: "fixed",
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${width}px`,
+        height: `${height}px`
+      });
+      return this;
+    })
+  }
+});
+
+define(RenderingContext.prototype, {
   getViewport: {
     value: function() {
-      return new_Pointer(Viewport);
+      var inherit, ptrj;
+      if (!(ptrj = getPtriUint8(this + RENDERING_CONTEXT_VIEWPORT))) {
+        if (!(ptrj = findChild(this, Viewport, inherit = true))) {
+          return addChildren(this, new_Pointer(Viewport));
+        }
+        return this.setViewport(ptrj);
+      }
+      return new Viewport(ptrj);
+    }
+  }
+});
+
+define(RenderingContext.prototype, {
+  setViewport: {
+    value: function(ptrj) {
+      return setPtriUint8(this + RENDERING_CONTEXT_VIEWPORT, ptrj);
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  isFullScreen: {
+    get: function() {
+      return !!document.fullscreenElement;
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  isFullWindow: {
+    get: function() {
+      return !getPtriFloat32(this + VIEWPORT_WITDH);
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  getX: {
+    value: function() {
+      return getPtriFloat32(this + VIEWPORT_X);
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  setX: {
+    value: function(value) {
+      return setPtriFloat32(this + VIEWPORT_X, value);
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  getY: {
+    value: function() {
+      return getPtriFloat32(this + VIEWPORT_Y);
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  setY: {
+    value: function(value) {
+      return setPtriFloat32(this + VIEWPORT_Y, value);
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  getLeft: {
+    value: function() {
+      return getPtriFloat32(this + VIEWPORT_LEFT);
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  setLeft: {
+    value: function(value) {
+      return setPtriFloat32(this + VIEWPORT_LEFT, value);
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  getTop: {
+    value: function() {
+      return getPtriFloat32(this + VIEWPORT_TOP);
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  setTop: {
+    value: function(value) {
+      return setPtriFloat32(this + VIEWPORT_TOP, value);
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  getWidth: {
+    value: function() {
+      var width;
+      if (!(width = getPtriFloat32(this + VIEWPORT_WITDH))) {
+        return self.innerWidth || 320;
+      }
+      return width;
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  setWidth: {
+    value: function(value) {
+      return setPtriFloat32(this + VIEWPORT_WITDH, value);
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  getHeight: {
+    value: function() {
+      if (!getPtriFloat32(this + VIEWPORT_HEIGHT)) {
+        return self.innerHeight || 240;
+      }
+      return height;
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  setHeight: {
+    value: function(value) {
+      return setPtriFloat32(this + VIEWPORT_HEIGHT, value);
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  getAspectRatio: {
+    value: function() {
+      var ratio;
+      if (!(ratio = getPtriFloat32(this + VIEWPORT_ASPECT_RATIO))) {
+        return this.width / this.height;
+      }
+      return ratio;
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  setAspectRatio: {
+    value: function(value) {
+      return setPtriFloat32(this + VIEWPORT_ASPECT_RATIO, value);
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  getPixelRatio: {
+    value: function() {
+      var ratio;
+      if (!(ratio = getPtriFloat32(this + VIEWPORT_PIXEL_RATIO))) {
+        return self.devicePixelRatio || 1;
+      }
+      return ratio;
+    }
+  }
+});
+
+define(Viewport.prototype, {
+  setPixelRatio: {
+    value: function(value) {
+      return setPtriFloat32(this + VIEWPORT_PIXEL_RATIO, value);
     }
   }
 });
@@ -449,9 +751,6 @@ for (name in classes) {
       continue;
     }
     if (!(className = name.substring(3))) {
-      continue;
-    }
-    if (!(Property = storage.findByName(className))) {
       continue;
     }
     if (false !== Object.hasOwn(Class.prototype, prop = className[0].toLowerCase() + className.substring(1))) {
@@ -492,6 +791,8 @@ for (name in classes) {
 //? <------->
 warn(rc = new_Pointer(RenderingContext));
 
+warn(vp = new_Pointer(Viewport));
+
 warn(p0 = Program.from({
   vertexShader: "hello world vs"
 }));
@@ -507,8 +808,16 @@ warn(p1 = Program.from([
 
 warn("p0.add p1:", p0.add(p1));
 
+warn("rc.add vp:", p1.add(vp));
+
 warn("p0.append p1:", p0.append(p1));
 
 warn("rc.append p0:", rc.append(p0));
 
 warn("rc:", rc);
+
+warn("rc.viewport:", rc.viewport);
+
+warn("p0.findChild:", findChild(p0, Viewport, true));
+
+warn("rc.glObject:", rc.glObject);
