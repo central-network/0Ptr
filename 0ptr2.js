@@ -472,29 +472,42 @@ findChilds = function(ptri, Class, construct = true) {
   list = new PtriArray;
   i = 0;
   if (!ptri) {
-    while (ptrj -= POINTER_BYTELENGTH) {
-      if (clsi - getClassIndex(ptrj)) {
-        continue;
-      }
-      if (!construct) {
+    if (!construct) {
+      while (ptrj -= POINTER_BYTELENGTH) {
+        if (clsi - getClassIndex(ptrj)) {
+          continue;
+        }
         list[i++] = ptrj;
-      } else {
+      }
+    } else {
+      while (ptrj -= POINTER_BYTELENGTH) {
+        if (clsi - getClassIndex(ptrj)) {
+          continue;
+        }
         list[i++] = ptr_Pointer(ptrj);
       }
     }
-    return list;
-  }
-  while (ptrj -= POINTER_BYTELENGTH) {
-    if (ptri - getParent(ptrj)) {
-      continue;
-    }
-    if (clsi - getClassIndex(ptrj)) {
-      continue;
-    }
+  } else {
     if (!construct) {
-      list[i++] = ptrj;
+      while (ptrj -= POINTER_BYTELENGTH) {
+        if (ptri - getParent(ptrj)) {
+          continue;
+        }
+        if (clsi - getClassIndex(ptrj)) {
+          continue;
+        }
+        list[i++] = ptrj;
+      }
     } else {
-      list[i++] = ptr_Pointer(ptrj);
+      while (ptrj -= POINTER_BYTELENGTH) {
+        if (ptri - getParent(ptrj)) {
+          continue;
+        }
+        if (clsi - getClassIndex(ptrj)) {
+          continue;
+        }
+        list[i++] = ptr_Pointer(ptrj);
+      }
     }
   }
   return list;
@@ -1478,7 +1491,6 @@ define(ShaderSource.prototype, {
 
 define(ShaderSource.prototype, {
   BYTES_PER_POINT: {
-    enumerable: true,
     get: function() {
       var bpp;
       if (!(bpp = getPtriUint32(this + SHADER_SOURCE_BYTES_PERP))) {

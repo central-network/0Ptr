@@ -309,23 +309,30 @@ findChild       = ( ptri, Class, inherit = off ) ->
 findChilds      = ( ptri, Class, construct = on ) ->
     ptrj = Atomics.load u32
     clsi = storage.indexOf Class
-    list = new PtriArray
+    list = new PtriArray ; i = 0
 
-    i = 0
     if !ptri
+        if !construct
+            while ptrj -= POINTER_BYTELENGTH
+                continue if clsi - getClassIndex ptrj
+                list[ i++ ] = ptrj
 
-        while ptrj -= POINTER_BYTELENGTH
-            continue if clsi - getClassIndex ptrj
-            if !construct then list[ i++ ] = ptrj
-            else list[ i++ ] = ptr_Pointer ptrj
+        else
+            while ptrj -= POINTER_BYTELENGTH
+                continue if clsi - getClassIndex ptrj
+                list[ i++ ] = ptr_Pointer ptrj
 
-        return list
-
-    while ptrj -= POINTER_BYTELENGTH
-        continue if ptri - getParent ptrj
-        continue if clsi - getClassIndex ptrj
-        if !construct then list[ i++ ] = ptrj
-        else list[ i++ ] = ptr_Pointer ptrj
+    else
+        if !construct
+            while ptrj -= POINTER_BYTELENGTH
+                continue if ptri - getParent ptrj
+                continue if clsi - getClassIndex ptrj
+                list[ i++ ] = ptrj
+        else    
+            while ptrj -= POINTER_BYTELENGTH
+                continue if ptri - getParent ptrj
+                continue if clsi - getClassIndex ptrj
+                list[ i++ ] = ptr_Pointer ptrj
 
     return list
 
@@ -333,8 +340,7 @@ findPointer     = ( test ) ->
     ptrj = Atomics.load u32
     
     while ptrj -= POINTER_BYTELENGTH
-        if test ptr = ptr_Pointer ptrj
-            return ptr 
+        return ptr if test ptr = ptr_Pointer ptrj
 
     return
 
@@ -805,9 +811,7 @@ define ShaderSource::       , programs          :
     get : ->
         ptri = +this
         findChilds( null, Program ).filter (p) -> 0 is ptri - p.shaderSource
-
 define ShaderSource::       , BYTES_PER_POINT   :
-    enumerable: on,
     get : ->
         if !bpp = getPtriUint32 this + SHADER_SOURCE_BYTES_PERP
             bpp = setPtriUint32 this + SHADER_SOURCE_BYTES_PERP, @parameters.ATTRIBUTES_STRIDE
@@ -956,7 +960,6 @@ define ShaderSource::       , getParameters     :
         gl=null
 
         parameters
-
 
 palloc malloc POINTER_BYTELENGTH * 1e5
 
