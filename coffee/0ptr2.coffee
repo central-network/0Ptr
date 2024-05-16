@@ -60,7 +60,7 @@ PTR_BYTEOFFSET              = 3 * BPE
 PTR_BYTELENGTH              = 4 * BPE
 
 PROGRAM_GLPROGRAM           = 5 * BPE
-PROGRAM_USEPROGRAM          = PROGRAM_GLPROGRAM + 1
+PROGRAM_USEBINDING          = PROGRAM_GLPROGRAM + 1
 PROGRAM_ISINUSE             = PROGRAM_GLPROGRAM + 2
 PROGRAM_SHADER_SOURCE       = 6 * BPE
 
@@ -483,24 +483,29 @@ define Viewport::           , getPixelRatio     :
 define Viewport::           , setPixelRatio     :
     value : ( value ) ->
         setPtriFloat32 this + VIEWPORT_PIXEL_RATIO, value
-define Program::            , getIsInUse        :
-    value : -> getPtriUint8 this + PROGRAM_ISINUSE
-define Program::            , setIsInUse        :
-    value : (v) ->
-        return setPtriUint8 ptri + PROGRAM_ISINUSE, 0 if !v
-
-        ptri = +this
-        for ptrj in findChilds @parent, Program, construct = off
-            setPtriUint8 ptrj + PROGRAM_ISINUSE, 0 if ptrj - ptri
-        setPtriUint8 ptri + PROGRAM_ISINUSE, 1
+define Program::            , debug             :
+    get : -> Object.defineProperties this,
+        use : get : @use
+define Program::            , inUse             :
+    enumerable : on,
+    get : -> getPtriUint8 this + PROGRAM_ISINUSE
 define Program::            , use               :
-    get : ->
+    value : ->
         if !getPtriUint8 this + PROGRAM_ISINUSE
-            if !stri = getPtriUint8 this + PROGRAM_USEPROGRAM
-                [ gl, program ] = [ @parent.glObject, @glObject ]
-                stri = storeForUint8 gl.useProgram.bind gl, program
-                setPtriUint8 this + PROGRAM_USEPROGRAM, stri
-        @isInUse = storage[ stri ]() or 1
+            setPtriUint8 this + PROGRAM_ISINUSE, 1
+
+            ptri = +this
+            for ptrj in findChilds @parent, Program, construct = no
+                setPtriUint8 ptrj + PROGRAM_ISINUSE, 0 if ptri - ptrj
+
+            if !stri = getPtriUint8 ptri + PROGRAM_USEBINDING
+                stri = setPtriUint8 ptri + PROGRAM_USEBINDING,
+                    storeForUint8 @parent.glObject.useProgram.bind(
+                        @parent.glObject, @glObject
+                    )
+
+            storage[ stri ]()
+        1
 define Program::            , name              :
     enumerable : on
     get : -> decode sliceUint8 this
@@ -522,7 +527,6 @@ define Program::            , glObject          :
                 gl.deleteShader vShader
                 throw "Could not compile vertex shader. \n\n#{info}, \nsource:#{vSource}"
 
-    
             #? create fragment shader ----------->
             fSource = @shaderSource.fragmentShader
             fShader = gl.createShader gl.FRAGMENT_SHADER 
@@ -536,8 +540,6 @@ define Program::            , glObject          :
                 gl.deleteShader fShader
                 throw "Could not compile vertex shader. \n\n#{info}, \nsource:#{vSource}"
     
-
-
             #? create program and link ----------->
             program = gl.createProgram()
             
