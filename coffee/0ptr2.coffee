@@ -60,10 +60,12 @@ PTR_BYTEOFFSET              = 3 * BPE
 PTR_BYTELENGTH              = 4 * BPE
 
 PROGRAM_GLPROGRAM           = 5 * BPE
+PROGRAM_USEPROGRAM          = PROGRAM_GLPROGRAM + 1
+PROGRAM_ISINUSE             = PROGRAM_GLPROGRAM + 2
 PROGRAM_SHADER_SOURCE       = 6 * BPE
 
-RENDERING_CONTEXT_GLOBJECT  = 3 * BPE # PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
-RENDERING_CONTEXT_VIEWPORT  = 4 * BPE # PTR_BYTELENGTH #? HAS NO BYTELENGTH
+RENDERING_CONTEXT_GLOBJECT  = 5 * BPE
+RENDERING_CONTEXT_VIEWPORT  = 6 * BPE
 
 VIEWPORT_X                  = 3 * BPE # PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
 VIEWPORT_Y                  = 4 * BPE # PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
@@ -89,7 +91,7 @@ malloc = Atomics.add.bind Atomics, u32, 1
 export storage = new (class Storage extends Array
     constructor     : -> super( arguments... ).add null
     findByName      : -> @find((i) => i and i.name is arguments[0])
-    fillFirstEmpty  : (o) -> @[ i = @findIndex((v) -> !v) ] = o ; i
+    fillFirstEmpty  : (o) -> @[ i = @findIndex((v, j) -> j && !v) ] = o ; i
     pushOrFindIndex : (o) -> i += @push o if -1 is i = @indexOf o ; i
     add             : (o) -> @[ @length ] = o ; this ) 0xff
 
@@ -101,7 +103,7 @@ addListener     = ( element, event, handler ) ->
     element.addEventListener event, handler ; element
 
 hitListener     = ( element, event, detail ) ->
-    element.dispatchEvent new Event event, { detail }
+    element.dispatchEvent new CustomEvent event, { detail }
 
 appendElement   = ( element ) ->
     document.body.appendChild element ; element
@@ -116,7 +118,7 @@ queryDocument   = ( query, all = off ) ->
 hitOnTimeout    = ->
     fn  = arguments[ 0 ]
     ->  clearTimeout( delay ) or delay =
-        setTimeout( fn.bind( this ), 40 )
+        setTimeout( fn.bind( this, arguments... ), 40 )
 
 getByteOffset   = ( ptri ) ->
     dvw.getUint32 ptri + PTR_BYTEOFFSET, iLE
@@ -268,6 +270,22 @@ findChild       = ( ptri, Class, inherit = off ) ->
 
     findChild getParent( ptri ), Class, inherit
 
+findChilds      = ( ptri, Class, construct = on ) ->
+    return unless ptri
+
+    ptrj = Atomics.load u32
+    clsi = storage.indexOf Class
+    list = new PtriArray
+
+    i = 0
+    while ptrj -= POINTER_BYTELENGTH
+        continue if ptri - getParent ptrj
+        continue if clsi - getClassIndex ptrj
+        if !construct then list[ i++ ] = ptrj
+        else list[ i++ ] = ptr_Pointer ptrj
+
+    return list
+
 findPointer     = ( test ) ->
     ptrj = Atomics.load u32
     
@@ -369,24 +387,25 @@ define RenderingContext::   , glObject          :
             setPtriUint8 this + RENDERING_CONTEXT_GLOBJECT, stri
 
             addListener window, "resize", @onresize.bind this
-            hitListener window, "resize", this
+            hitListener window, "resize", node
 
         storage[ stri ]
 define RenderingContext::   , canvas            :
     get   : -> @glObject.canvas
 define RenderingContext::   , onresize          :
     value : hitOnTimeout ->
+        canvas = arguments[0].detail or @canvas
 
         {   top, left,
             width, height,
             pixelRatio
         } = @viewport
 
-        assign @canvas,
+        assign canvas,
             width       : pixelRatio * width
             height      : pixelRatio * height
 
-        assign @canvas.style,
+        assign canvas.style,
             position   : "fixed"
             top        : "#{top}px"
             left       : "#{left}px"
@@ -396,14 +415,14 @@ define RenderingContext::   , onresize          :
         @
 define RenderingContext::   , getViewport       :
     value : ->
-        if !ptrj = getPtriUint8 this + RENDERING_CONTEXT_VIEWPORT
+        if !ptrj = getPtriUint32 this + RENDERING_CONTEXT_VIEWPORT
             if !ptrj = findChild this , Viewport, inherit = on
                 return addChildren this , new_Pointer Viewport
             return @setViewport ptrj
         return new Viewport ptrj
 define RenderingContext::   , setViewport       :
     value : ( ptrj ) ->
-        setPtriUint8 this + RENDERING_CONTEXT_VIEWPORT, ptrj
+        setPtriUint32 this + RENDERING_CONTEXT_VIEWPORT, ptrj
 define Viewport::           , isFullScreen      :
     get : -> !!document.fullscreenElement
 define Viewport::           , isFullWindow      :
@@ -464,6 +483,24 @@ define Viewport::           , getPixelRatio     :
 define Viewport::           , setPixelRatio     :
     value : ( value ) ->
         setPtriFloat32 this + VIEWPORT_PIXEL_RATIO, value
+define Program::            , getIsInUse        :
+    value : -> getPtriUint8 this + PROGRAM_ISINUSE
+define Program::            , setIsInUse        :
+    value : (v) ->
+        return setPtriUint8 ptri + PROGRAM_ISINUSE, 0 if !v
+
+        ptri = +this
+        for ptrj in findChilds @parent, Program, construct = off
+            setPtriUint8 ptrj + PROGRAM_ISINUSE, 0 if ptrj - ptri
+        setPtriUint8 ptri + PROGRAM_ISINUSE, 1
+define Program::            , use               :
+    get : ->
+        if !getPtriUint8 this + PROGRAM_ISINUSE
+            if !stri = getPtriUint8 this + PROGRAM_USEPROGRAM
+                [ gl, program ] = [ @parent.glObject, @glObject ]
+                stri = storeForUint8 gl.useProgram.bind gl, program
+                setPtriUint8 this + PROGRAM_USEPROGRAM, stri
+        @isInUse = storage[ stri ]() or 1
 define Program::            , name              :
     enumerable : on
     get : -> decode sliceUint8 this
@@ -471,7 +508,51 @@ define Program::            , name              :
 define Program::            , glObject          :
     get : ->
         if !stri = getPtriUint8 this + PROGRAM_GLPROGRAM
-            stri = storeForUint8 @parent.glObject.createProgram()
+            gl = @parent.glObject
+
+            #? create vertex shader ------------> 
+            vSource = @shaderSource.vertexShader
+            vShader = gl.createShader gl.VERTEX_SHADER 
+    
+            gl.shaderSource vShader, vSource
+            gl.compileShader vShader
+    
+            unless gl.getShaderParameter vShader, gl.COMPILE_STATUS
+                info = gl.getShaderInfoLog vShader
+                gl.deleteShader vShader
+                throw "Could not compile vertex shader. \n\n#{info}, \nsource:#{vSource}"
+
+    
+            #? create fragment shader ----------->
+            fSource = @shaderSource.fragmentShader
+            fShader = gl.createShader gl.FRAGMENT_SHADER 
+    
+            gl.shaderSource fShader, fSource
+            gl.compileShader fShader
+    
+            unless gl.getShaderParameter fShader, gl.COMPILE_STATUS
+                info = gl.getShaderInfoLog fShader
+                gl.deleteShader vShader
+                gl.deleteShader fShader
+                throw "Could not compile vertex shader. \n\n#{info}, \nsource:#{vSource}"
+    
+
+
+            #? create program and link ----------->
+            program = gl.createProgram()
+            
+            gl.attachShader program, vShader
+            gl.attachShader program, fShader
+            gl.linkProgram program
+    
+            unless gl.getProgramParameter program, gl.LINK_STATUS
+                info = gl.getProgramInfoLog program
+                gl.deleteShader vShader
+                gl.deleteShader fShader
+                gl.deleteProgram program
+                throw "Could not compile WebGL program. \n\n#{info}"
+
+            stri = storeForUint8 program
             setPtriUint8 this + PROGRAM_GLPROGRAM, stri
         storage[ stri ]
 define Program::            , getShaderSource   :
@@ -554,6 +635,7 @@ for Class, idex in noChilds = [ ShaderSource, Viewport ]
 
 warn "sc:", sc = new_Pointer( Scene )
 warn "ss1:", ss1 = new_Pointer( ShaderSource ).set("default")
+warn "ss1:", ss2 = new_Pointer( ShaderSource ).set("my-avesome-vertex-shader")
 warn "rc1:", rc1 = new_Pointer( RenderingContext )
 warn "vp1:", vp1 = new_Pointer( Viewport )
 
@@ -568,9 +650,10 @@ warn "rc2.add bp2:", rc2.add vp2
 
 warn "sc.add vp1:", sc.add vp1
 warn "sc.add ss1:", sc.add ss1
+warn "sc.add ss2:", sc.add ss2
 warn "sc.add rc1:", sc.add rc1
 warn "sc.add rc2:", sc.add rc2
-warn "rc2.add p1:", rc2.add p1
+warn "rc1.add p1:", rc1.add p1
 
 warn "rc1.findChild Inheritable Viewport:", findChild rc1, Viewport, on
 warn "rc2.findChild Inheritable Viewport:", findChild rc2, Viewport, on

@@ -1,5 +1,5 @@
 //? hello world <3
-var BPE, Class, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_SHADER_SOURCE, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, Storage, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, dvw, encode, error, findChild, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, idex, j, key, len, log, malloc, name, new_Pointer, new_Uint32Array, new_Uint8Array, noChilds, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
+var BPE, Class, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEPROGRAM, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, Storage, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, dvw, encode, error, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, idex, k, key, len, log, malloc, name, new_Pointer, new_Uint32Array, new_Uint8Array, noChilds, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
 
 export var Pointer = class Pointer extends Number {};
 
@@ -92,11 +92,15 @@ PTR_BYTELENGTH = 4 * BPE;
 
 PROGRAM_GLPROGRAM = 5 * BPE;
 
+PROGRAM_USEPROGRAM = PROGRAM_GLPROGRAM + 1;
+
+PROGRAM_ISINUSE = PROGRAM_GLPROGRAM + 2;
+
 PROGRAM_SHADER_SOURCE = 6 * BPE;
 
-RENDERING_CONTEXT_GLOBJECT = 3 * BPE; // PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
+RENDERING_CONTEXT_GLOBJECT = 5 * BPE;
 
-RENDERING_CONTEXT_VIEWPORT = 4 * BPE; // PTR_BYTELENGTH #? HAS NO BYTELENGTH
+RENDERING_CONTEXT_VIEWPORT = 6 * BPE;
 
 VIEWPORT_X = 3 * BPE; // PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
 
@@ -144,8 +148,8 @@ export var storage = new (Storage = class Storage extends Array {
 
   fillFirstEmpty(o) {
     var i;
-    this[i = this.findIndex(function(v) {
-      return !v;
+    this[i = this.findIndex(function(v, j) {
+      return j && !v;
     })] = o;
     return i;
   }
@@ -174,7 +178,7 @@ addListener = function(element, event, handler) {
 };
 
 hitListener = function(element, event, detail) {
-  return element.dispatchEvent(new Event(event, {detail}));
+  return element.dispatchEvent(new CustomEvent(event, {detail}));
 };
 
 appendElement = function(element) {
@@ -198,7 +202,7 @@ hitOnTimeout = function() {
   var fn;
   fn = arguments[0];
   return function() {
-    return clearTimeout(delay) || (delay = setTimeout(fn.bind(this), 40));
+    return clearTimeout(delay) || (delay = setTimeout(fn.bind(this, ...arguments), 40));
   };
 };
 
@@ -398,6 +402,31 @@ findChild = function(ptri, Class, inherit = false) {
   return findChild(getParent(ptri), Class, inherit);
 };
 
+findChilds = function(ptri, Class, construct = true) {
+  var clsi, i, list, ptrj;
+  if (!ptri) {
+    return;
+  }
+  ptrj = Atomics.load(u32);
+  clsi = storage.indexOf(Class);
+  list = new PtriArray;
+  i = 0;
+  while (ptrj -= POINTER_BYTELENGTH) {
+    if (ptri - getParent(ptrj)) {
+      continue;
+    }
+    if (clsi - getClassIndex(ptrj)) {
+      continue;
+    }
+    if (!construct) {
+      list[i++] = ptrj;
+    } else {
+      list[i++] = ptr_Pointer(ptrj);
+    }
+  }
+  return list;
+};
+
 findPointer = function(test) {
   var ptr, ptrj;
   ptrj = Atomics.load(u32);
@@ -449,7 +478,7 @@ define(Pointer, {
 define(Pointer, {
   from: {
     value: function() {
-      var arg0, i, j, len, prop, ptri, ref, value;
+      var arg0, i, k, len, prop, ptri, ref, value;
       setClassIndex(ptri = new this(palloc()));
       switch ((ref = (arg0 = arguments[0])) != null ? ref.constructor : void 0) {
         case Object:
@@ -459,8 +488,8 @@ define(Pointer, {
           }
           break;
         case Array:
-          for (j = 0, len = arg0.length; j < len; j++) {
-            i = arg0[j];
+          for (k = 0, len = arg0.length; k < len; k++) {
+            i = arg0[k];
             for (prop in i) {
               value = i[prop];
               addChildren(ptri, storage[prop].from(value));
@@ -612,7 +641,7 @@ define(RenderingContext.prototype, {
         stri = storeForUint8(node.getContext("webgl2"));
         setPtriUint8(this + RENDERING_CONTEXT_GLOBJECT, stri);
         addListener(window, "resize", this.onresize.bind(this));
-        hitListener(window, "resize", this);
+        hitListener(window, "resize", node);
       }
       return storage[stri];
     }
@@ -630,13 +659,14 @@ define(RenderingContext.prototype, {
 define(RenderingContext.prototype, {
   onresize: {
     value: hitOnTimeout(function() {
-      var height, left, pixelRatio, top, width;
+      var canvas, height, left, pixelRatio, top, width;
+      canvas = arguments[0].detail || this.canvas;
       ({top, left, width, height, pixelRatio} = this.viewport);
-      assign(this.canvas, {
+      assign(canvas, {
         width: pixelRatio * width,
         height: pixelRatio * height
       });
-      assign(this.canvas.style, {
+      assign(canvas.style, {
         position: "fixed",
         top: `${top}px`,
         left: `${left}px`,
@@ -652,7 +682,7 @@ define(RenderingContext.prototype, {
   getViewport: {
     value: function() {
       var inherit, ptrj;
-      if (!(ptrj = getPtriUint8(this + RENDERING_CONTEXT_VIEWPORT))) {
+      if (!(ptrj = getPtriUint32(this + RENDERING_CONTEXT_VIEWPORT))) {
         if (!(ptrj = findChild(this, Viewport, inherit = true))) {
           return addChildren(this, new_Pointer(Viewport));
         }
@@ -666,7 +696,7 @@ define(RenderingContext.prototype, {
 define(RenderingContext.prototype, {
   setViewport: {
     value: function(ptrj) {
-      return setPtriUint8(this + RENDERING_CONTEXT_VIEWPORT, ptrj);
+      return setPtriUint32(this + RENDERING_CONTEXT_VIEWPORT, ptrj);
     }
   }
 });
@@ -832,6 +862,50 @@ define(Viewport.prototype, {
 });
 
 define(Program.prototype, {
+  getIsInUse: {
+    value: function() {
+      return getPtriUint8(this + PROGRAM_ISINUSE);
+    }
+  }
+});
+
+define(Program.prototype, {
+  setIsInUse: {
+    value: function(v) {
+      var construct, k, len, ptri, ptrj, ref;
+      if (!v) {
+        return setPtriUint8(ptri + PROGRAM_ISINUSE, 0);
+      }
+      ptri = +this;
+      ref = findChilds(this.parent, Program, construct = false);
+      for (k = 0, len = ref.length; k < len; k++) {
+        ptrj = ref[k];
+        if (ptrj - ptri) {
+          setPtriUint8(ptrj + PROGRAM_ISINUSE, 0);
+        }
+      }
+      return setPtriUint8(ptri + PROGRAM_ISINUSE, 1);
+    }
+  }
+});
+
+define(Program.prototype, {
+  use: {
+    get: function() {
+      var gl, program, stri;
+      if (!getPtriUint8(this + PROGRAM_ISINUSE)) {
+        if (!(stri = getPtriUint8(this + PROGRAM_USEPROGRAM))) {
+          [gl, program] = [this.parent.glObject, this.glObject];
+          stri = storeForUint8(gl.useProgram.bind(gl, program));
+          setPtriUint8(this + PROGRAM_USEPROGRAM, stri);
+        }
+      }
+      return this.isInUse = storage[stri]() || 1;
+    }
+  }
+});
+
+define(Program.prototype, {
   name: {
     enumerable: true,
     get: function() {
@@ -844,9 +918,45 @@ define(Program.prototype, {
 define(Program.prototype, {
   glObject: {
     get: function() {
-      var stri;
+      var fShader, fSource, gl, info, program, stri, vShader, vSource;
       if (!(stri = getPtriUint8(this + PROGRAM_GLPROGRAM))) {
-        stri = storeForUint8(this.parent.glObject.createProgram());
+        gl = this.parent.glObject;
+        //? create vertex shader ------------> 
+        vSource = this.shaderSource.vertexShader;
+        vShader = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(vShader, vSource);
+        gl.compileShader(vShader);
+        if (!gl.getShaderParameter(vShader, gl.COMPILE_STATUS)) {
+          info = gl.getShaderInfoLog(vShader);
+          gl.deleteShader(vShader);
+          throw `Could not compile vertex shader. \n\n${info}, \nsource:${vSource}`;
+        }
+        
+        //? create fragment shader ----------->
+        fSource = this.shaderSource.fragmentShader;
+        fShader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fShader, fSource);
+        gl.compileShader(fShader);
+        if (!gl.getShaderParameter(fShader, gl.COMPILE_STATUS)) {
+          info = gl.getShaderInfoLog(fShader);
+          gl.deleteShader(vShader);
+          gl.deleteShader(fShader);
+          throw `Could not compile vertex shader. \n\n${info}, \nsource:${vSource}`;
+        }
+        
+        //? create program and link ----------->
+        program = gl.createProgram();
+        gl.attachShader(program, vShader);
+        gl.attachShader(program, fShader);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          info = gl.getProgramInfoLog(program);
+          gl.deleteShader(vShader);
+          gl.deleteShader(fShader);
+          gl.deleteProgram(program);
+          throw `Could not compile WebGL program. \n\n${info}`;
+        }
+        stri = storeForUint8(program);
         setPtriUint8(this + PROGRAM_GLPROGRAM, stri);
       }
       return storage[stri];
@@ -996,7 +1106,7 @@ for (name in ref) {
 }
 
 ref1 = noChilds = [ShaderSource, Viewport];
-for (idex = j = 0, len = ref1.length; j < len; idex = ++j) {
+for (idex = k = 0, len = ref1.length; k < len; idex = ++k) {
   Class = ref1[idex];
   Reflect.defineProperty(Class.prototype, "children", {
     value: new PtriArray
@@ -1009,6 +1119,8 @@ for (idex = j = 0, len = ref1.length; j < len; idex = ++j) {
 warn("sc:", sc = new_Pointer(Scene));
 
 warn("ss1:", ss1 = new_Pointer(ShaderSource).set("default"));
+
+warn("ss1:", ss2 = new_Pointer(ShaderSource).set("my-avesome-vertex-shader"));
 
 warn("rc1:", rc1 = new_Pointer(RenderingContext));
 
@@ -1035,11 +1147,13 @@ warn("sc.add vp1:", sc.add(vp1));
 
 warn("sc.add ss1:", sc.add(ss1));
 
+warn("sc.add ss2:", sc.add(ss2));
+
 warn("sc.add rc1:", sc.add(rc1));
 
 warn("sc.add rc2:", sc.add(rc2));
 
-warn("rc2.add p1:", rc2.add(p1));
+warn("rc1.add p1:", rc1.add(p1));
 
 warn("rc1.findChild Inheritable Viewport:", findChild(rc1, Viewport, true));
 
