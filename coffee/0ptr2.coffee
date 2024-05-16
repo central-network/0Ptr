@@ -1,8 +1,6 @@
-import { event } from "./window.coffee"
-
 #? hello world <3
-
 export class Pointer            extends Number
+export class PtriArray          extends Array
 export class Scene              extends Pointer
 export class DrawCall           extends Pointer
 export class Viewport           extends Pointer
@@ -29,20 +27,16 @@ export class Attribute          extends Text
 export class Uniform            extends Text
 export class CPU                extends Text
 export class GPU                extends Pointer
-export class AllocArray         extends Pointer
-
 
 export default classes = new Object {
     Scene, DrawCall, Viewport, ClearColor, ClearMask, 
     Color, Scale, Rotation, Position, Vertices, 
     Mesh, Id, ShaderSource, VertexShader, FragmentShader, 
     EventHandler, Program, RenderingContext, VertexArray, 
-    Attribute, Uniform, CPU, GPU, AllocArray
+    Attribute, Uniform, CPU, GPU
 }
 
-#* export|class|extends|Pointer|Number|Text|\s+
-
-{ log, warn, error, table, debug, delay } = console
+{log,warn,error,table,debug,delay} = console
 
 sab = new SharedArrayBuffer 1e7
 dvw = new DataView sab
@@ -51,16 +45,22 @@ u32 = new Uint32Array sab
 iLE = new Uint8Array(Uint16Array.of(1).buffer)[0] is 1
 BPE = 4
 
-POINTER_LENGTH      = 16
-POINTER_BYTELENGTH  = BPE * POINTER_LENGTH
+#? <----------------------------------------> ?#
+#? <----------------------------------------> ?#
+#? <----------------------------------------> ?#
 
-PTR_CLASSINDEX      = 0 * BPE
-PTR_PARENT          = 1 * BPE
-PTR_LINKED          = 2 * BPE
+POINTER_LENGTH              = 16
+POINTER_BYTELENGTH          = BPE * POINTER_LENGTH
 
-PTR_BYTEOFFSET      = 3 * BPE
-PTR_BYTELENGTH      = 4 * BPE
+PTR_CLASSINDEX              = 0 * BPE
+PTR_PARENT                  = 1 * BPE
+PTR_LINKED                  = 2 * BPE
 
+PTR_BYTEOFFSET              = 3 * BPE
+PTR_BYTELENGTH              = 4 * BPE
+
+PROGRAM_GLPROGRAM           = 5 * BPE
+PROGRAM_SHADER_SOURCE       = 6 * BPE
 
 RENDERING_CONTEXT_GLOBJECT  = 3 * BPE # PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
 RENDERING_CONTEXT_VIEWPORT  = 4 * BPE # PTR_BYTELENGTH #? HAS NO BYTELENGTH
@@ -74,20 +74,17 @@ VIEWPORT_HEIGHT             = 8 * BPE
 VIEWPORT_ASPECT_RATIO       = 9 * BPE
 VIEWPORT_PIXEL_RATIO        = 10 * BPE
 
-#* laskdşlkalsşkdşalkdşlaskdşlaskd
-
-palloc = Atomics.add.bind Atomics, u32, 0, POINTER_BYTELENGTH
-malloc = Atomics.add.bind Atomics, u32, 1
-
-palloc malloc POINTER_BYTELENGTH * 1e5
+#? <----------------------------------------> ?#
+#? <----------------------------------------> ?#
+#? <----------------------------------------> ?#
 
 assign = Object.assign
 define = Object.defineProperties
 getown = Object.getOwnPropertyDescriptor
 encode = TextEncoder::encode.bind new TextEncoder
 decode = TextDecoder::decode.bind new TextDecoder
-
-export class PtriArray extends Array
+palloc = Atomics.add.bind Atomics, u32, 0, POINTER_BYTELENGTH
+malloc = Atomics.add.bind Atomics, u32, 1
 
 export storage = new (class Storage extends Array
     constructor     : -> super( arguments... ).add null
@@ -96,7 +93,9 @@ export storage = new (class Storage extends Array
     pushOrFindIndex : (o) -> i += @push o if -1 is i = @indexOf o ; i
     add             : (o) -> @[ @length ] = o ; this ) 0xff
 
-#* lşasdklkasşdkaşsldkşasldkşalsdkasşlkdlşsakd
+#* <----------------------------------------> *#
+#* <----------------------------------------> *#
+#* <----------------------------------------> *#
 
 addListener     = ( element, event, handler ) ->
     element.addEventListener event, handler ; element
@@ -236,6 +235,24 @@ subarrayUint32  = ( ptri, begin, end ) ->
     end ||= length + begin ||= begin or 0
     u32.subarray begin + offset, end + offset 
 
+ptrByteCompare  = ( ptri, ptrj ) ->
+    return 0 unless ptri - ptrj #non-same
+
+    byteLengthA = getByteLength ptri
+    byteLengthB = getByteLength ptrj
+
+    return 0 if byteLengthA - i = byteLengthB
+
+    byteOffsetA = getByteOffset ptri
+    byteOffsetB = getByteOffset ptrj
+
+    while i-- then return 0 if (
+        dvw.getUint8( byteOffsetA + i ) -
+        dvw.getUint8( byteOffsetB + i )
+    )
+
+    1
+
 findChild       = ( ptri, Class, inherit = off ) ->
     return unless ptri
 
@@ -251,6 +268,19 @@ findChild       = ( ptri, Class, inherit = off ) ->
 
     findChild getParent( ptri ), Class, inherit
 
+findPointer     = ( test ) ->
+    ptrj = Atomics.load u32
+    
+    while ptrj -= POINTER_BYTELENGTH
+        if test ptr = ptr_Pointer ptrj
+            return ptr 
+
+    return
+
+#* <----------------------------------------> *#
+#* <----------------------------------------> *#
+#* <----------------------------------------> *#
+    
 define Pointer::            , [ '{{Pointer}}' ] :
     get : -> define {},
         headAsUint8     : enumerable : on, get : => new Uint8Array sab, this, POINTER_BYTELENGTH    
@@ -434,10 +464,30 @@ define Viewport::           , getPixelRatio     :
 define Viewport::           , setPixelRatio     :
     value : ( value ) ->
         setPtriFloat32 this + VIEWPORT_PIXEL_RATIO, value
+define Program::            , name              :
+    enumerable : on
+    get : -> decode sliceUint8 this
+    set : Text::set
+define Program::            , glObject          :
+    get : ->
+        if !stri = getPtriUint8 this + PROGRAM_GLPROGRAM
+            stri = storeForUint8 @parent.glObject.createProgram()
+            setPtriUint8 this + PROGRAM_GLPROGRAM, stri
+        storage[ stri ]
+define Program::            , getShaderSource   :
+    value : ->
+        if !ptrj = getPtriUint32 this + PROGRAM_SHADER_SOURCE
+            if !ptrj = findPointer ptrByteCompare.bind null, this
+                return undefined
+            return @setShaderSource ptrj            
+        return new ShaderSource ptrj
+define Program::            , setShaderSource   :
+    value : ->
+        setPtriUint32 this + PROGRAM_SHADER_SOURCE, arguments[0]
 define ShaderSource::       , program           :
     enumerable : on
     get : -> decode sliceUint8 this
-    set : ShaderSource::set
+    set : Text::set
 define ShaderSource::       , vertexShader      :
     enumerable : on, get : -> @documentScripts.vertexShader?.text
 define ShaderSource::       , computeShader     :
@@ -460,9 +510,13 @@ define ShaderSource::       , documentScripts   :
         computeShader  : c
         fragmentShader : f
 
-#? <------->
+palloc malloc POINTER_BYTELENGTH * 1e5
 
-for name , Class of classes
+#* <----------------------------------------> *#
+#* <----------------------------------------> *#
+#* <----------------------------------------> *#
+
+for name, Class of reDefine = classes
 
     prop = name[0].toLowerCase() + name.substring 1
     define storage.add( Class ), [ prop ] : { value : Class }
@@ -491,17 +545,20 @@ for name , Class of classes
 
     continue
 
-Reflect.defineProperty ShaderSource::, "children", value: new PtriArray
-#? <------->
+for Class, idex in noChilds = [ ShaderSource, Viewport ]
+    Reflect.defineProperty Class::, "children", value: new PtriArray
 
+#? <----------------------------------------> ?#
+#? <----------------------------------------> ?#
+#? <----------------------------------------> ?#
 
 warn "sc:", sc = new_Pointer( Scene )
-warn "ss1:", ss1 = ShaderSource.of({ program : "default" })
+warn "ss1:", ss1 = new_Pointer( ShaderSource ).set("default")
 warn "rc1:", rc1 = new_Pointer( RenderingContext )
 warn "vp1:", vp1 = new_Pointer( Viewport )
 
-warn "p0:", p0 = Program.from({ shaderSource : "my-avesome-vertex-shader" })
-warn "p1:", p1 = new_Pointer( Program )
+warn "p0:", p0 = new_Pointer( Program ).set("my-avesome-vertex-shader")
+warn "p1:", p1 = new_Pointer( Program ).set("default")
 
 warn "rc2:", rc2 = new_Pointer( RenderingContext )
 warn "vp2:", vp2 = Viewport.of({ width : 320, height : 240, left: 20, top: 20 })
@@ -513,6 +570,7 @@ warn "sc.add vp1:", sc.add vp1
 warn "sc.add ss1:", sc.add ss1
 warn "sc.add rc1:", sc.add rc1
 warn "sc.add rc2:", sc.add rc2
+warn "rc2.add p1:", rc2.add p1
 
 warn "rc1.findChild Inheritable Viewport:", findChild rc1, Viewport, on
 warn "rc2.findChild Inheritable Viewport:", findChild rc2, Viewport, on

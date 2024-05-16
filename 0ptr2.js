@@ -1,11 +1,9 @@
-var BPE, Class, POINTER_BYTELENGTH, POINTER_LENGTH, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, Storage, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, dvw, encode, error, findChild, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, log, malloc, name, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptr_Pointer, queryDocument, rc1, rc2, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
-
-import {
-  event
-} from "./window.js";
-
 //? hello world <3
+var BPE, Class, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_SHADER_SOURCE, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, Storage, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, dvw, encode, error, findChild, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, idex, j, key, len, log, malloc, name, new_Pointer, new_Uint32Array, new_Uint8Array, noChilds, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
+
 export var Pointer = class Pointer extends Number {};
+
+export var PtriArray = class PtriArray extends Array {};
 
 export var Scene = class Scene extends Pointer {};
 
@@ -59,11 +57,8 @@ export var CPU = class CPU extends Text {};
 
 export var GPU = class GPU extends Pointer {};
 
-export var AllocArray = class AllocArray extends Pointer {};
+export default classes = new Object({Scene, DrawCall, Viewport, ClearColor, ClearMask, Color, Scale, Rotation, Position, Vertices, Mesh, Id, ShaderSource, VertexShader, FragmentShader, EventHandler, Program, RenderingContext, VertexArray, Attribute, Uniform, CPU, GPU});
 
-export default classes = new Object({Scene, DrawCall, Viewport, ClearColor, ClearMask, Color, Scale, Rotation, Position, Vertices, Mesh, Id, ShaderSource, VertexShader, FragmentShader, EventHandler, Program, RenderingContext, VertexArray, Attribute, Uniform, CPU, GPU, AllocArray});
-
-//* export|class|extends|Pointer|Number|Text|\s+
 ({log, warn, error, table, debug, delay} = console);
 
 sab = new SharedArrayBuffer(1e7);
@@ -78,6 +73,9 @@ iLE = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
 
 BPE = 4;
 
+//? <----------------------------------------> ?#
+//? <----------------------------------------> ?#
+//? <----------------------------------------> ?#
 POINTER_LENGTH = 16;
 
 POINTER_BYTELENGTH = BPE * POINTER_LENGTH;
@@ -91,6 +89,10 @@ PTR_LINKED = 2 * BPE;
 PTR_BYTEOFFSET = 3 * BPE;
 
 PTR_BYTELENGTH = 4 * BPE;
+
+PROGRAM_GLPROGRAM = 5 * BPE;
+
+PROGRAM_SHADER_SOURCE = 6 * BPE;
 
 RENDERING_CONTEXT_GLOBJECT = 3 * BPE; // PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
 
@@ -112,13 +114,9 @@ VIEWPORT_ASPECT_RATIO = 9 * BPE;
 
 VIEWPORT_PIXEL_RATIO = 10 * BPE;
 
-//* laskdşlkalsşkdşalkdşlaskdşlaskd
-palloc = Atomics.add.bind(Atomics, u32, 0, POINTER_BYTELENGTH);
-
-malloc = Atomics.add.bind(Atomics, u32, 1);
-
-palloc(malloc(POINTER_BYTELENGTH * 1e5));
-
+//? <----------------------------------------> ?#
+//? <----------------------------------------> ?#
+//? <----------------------------------------> ?#
 assign = Object.assign;
 
 define = Object.defineProperties;
@@ -129,7 +127,9 @@ encode = TextEncoder.prototype.encode.bind(new TextEncoder);
 
 decode = TextDecoder.prototype.decode.bind(new TextDecoder);
 
-export var PtriArray = class PtriArray extends Array {};
+palloc = Atomics.add.bind(Atomics, u32, 0, POINTER_BYTELENGTH);
+
+malloc = Atomics.add.bind(Atomics, u32, 1);
 
 export var storage = new (Storage = class Storage extends Array {
   constructor() {
@@ -165,7 +165,9 @@ export var storage = new (Storage = class Storage extends Array {
 
 })(0xff);
 
-//* lşasdklkasşdkaşsldkşasldkşalsdkasşlkdlşsakd
+//* <----------------------------------------> *#
+//* <----------------------------------------> *#
+//* <----------------------------------------> *#
 addListener = function(element, event, handler) {
   element.addEventListener(event, handler);
   return element;
@@ -354,6 +356,26 @@ subarrayUint32 = function(ptri, begin, end) {
   return u32.subarray(begin + offset, end + offset);
 };
 
+ptrByteCompare = function(ptri, ptrj) {
+  var byteLengthA, byteLengthB, byteOffsetA, byteOffsetB, i;
+  if (!(ptri - ptrj)) { //non-same
+    return 0;
+  }
+  byteLengthA = getByteLength(ptri);
+  byteLengthB = getByteLength(ptrj);
+  if (byteLengthA - (i = byteLengthB)) {
+    return 0;
+  }
+  byteOffsetA = getByteOffset(ptri);
+  byteOffsetB = getByteOffset(ptrj);
+  while (i--) {
+    if (dvw.getUint8(byteOffsetA + i) - dvw.getUint8(byteOffsetB + i)) {
+      return 0;
+    }
+  }
+  return 1;
+};
+
 findChild = function(ptri, Class, inherit = false) {
   var clsi, ptrj;
   if (!ptri) {
@@ -376,6 +398,19 @@ findChild = function(ptri, Class, inherit = false) {
   return findChild(getParent(ptri), Class, inherit);
 };
 
+findPointer = function(test) {
+  var ptr, ptrj;
+  ptrj = Atomics.load(u32);
+  while (ptrj -= POINTER_BYTELENGTH) {
+    if (test(ptr = ptr_Pointer(ptrj))) {
+      return ptr;
+    }
+  }
+};
+
+//* <----------------------------------------> *#
+//* <----------------------------------------> *#
+//* <----------------------------------------> *#
 define(Pointer.prototype, {
   ['{{Pointer}}']: {
     get: function() {
@@ -796,13 +831,59 @@ define(Viewport.prototype, {
   }
 });
 
+define(Program.prototype, {
+  name: {
+    enumerable: true,
+    get: function() {
+      return decode(sliceUint8(this));
+    },
+    set: Text.prototype.set
+  }
+});
+
+define(Program.prototype, {
+  glObject: {
+    get: function() {
+      var stri;
+      if (!(stri = getPtriUint8(this + PROGRAM_GLPROGRAM))) {
+        stri = storeForUint8(this.parent.glObject.createProgram());
+        setPtriUint8(this + PROGRAM_GLPROGRAM, stri);
+      }
+      return storage[stri];
+    }
+  }
+});
+
+define(Program.prototype, {
+  getShaderSource: {
+    value: function() {
+      var ptrj;
+      if (!(ptrj = getPtriUint32(this + PROGRAM_SHADER_SOURCE))) {
+        if (!(ptrj = findPointer(ptrByteCompare.bind(null, this)))) {
+          return void 0;
+        }
+        return this.setShaderSource(ptrj);
+      }
+      return new ShaderSource(ptrj);
+    }
+  }
+});
+
+define(Program.prototype, {
+  setShaderSource: {
+    value: function() {
+      return setPtriUint32(this + PROGRAM_SHADER_SOURCE, arguments[0]);
+    }
+  }
+});
+
 define(ShaderSource.prototype, {
   program: {
     enumerable: true,
     get: function() {
       return decode(sliceUint8(this));
     },
-    set: ShaderSource.prototype.set
+    set: Text.prototype.set
   }
 });
 
@@ -858,9 +939,14 @@ define(ShaderSource.prototype, {
   }
 });
 
-//? <------->
-for (name in classes) {
-  Class = classes[name];
+palloc(malloc(POINTER_BYTELENGTH * 1e5));
+
+ref = reDefine = classes;
+//* <----------------------------------------> *#
+//* <----------------------------------------> *#
+//* <----------------------------------------> *#
+for (name in ref) {
+  Class = ref[name];
   prop = name[0].toLowerCase() + name.substring(1);
   define(storage.add(Class), {
     [prop]: {
@@ -909,26 +995,28 @@ for (name in classes) {
   continue;
 }
 
-Reflect.defineProperty(ShaderSource.prototype, "children", {
-  value: new PtriArray
-});
+ref1 = noChilds = [ShaderSource, Viewport];
+for (idex = j = 0, len = ref1.length; j < len; idex = ++j) {
+  Class = ref1[idex];
+  Reflect.defineProperty(Class.prototype, "children", {
+    value: new PtriArray
+  });
+}
 
-//? <------->
+//? <----------------------------------------> ?#
+//? <----------------------------------------> ?#
+//? <----------------------------------------> ?#
 warn("sc:", sc = new_Pointer(Scene));
 
-warn("ss1:", ss1 = ShaderSource.of({
-  program: "default"
-}));
+warn("ss1:", ss1 = new_Pointer(ShaderSource).set("default"));
 
 warn("rc1:", rc1 = new_Pointer(RenderingContext));
 
 warn("vp1:", vp1 = new_Pointer(Viewport));
 
-warn("p0:", p0 = Program.from({
-  shaderSource: "my-avesome-vertex-shader"
-}));
+warn("p0:", p0 = new_Pointer(Program).set("my-avesome-vertex-shader"));
 
-warn("p1:", p1 = new_Pointer(Program));
+warn("p1:", p1 = new_Pointer(Program).set("default"));
 
 warn("rc2:", rc2 = new_Pointer(RenderingContext));
 
@@ -950,6 +1038,8 @@ warn("sc.add ss1:", sc.add(ss1));
 warn("sc.add rc1:", sc.add(rc1));
 
 warn("sc.add rc2:", sc.add(rc2));
+
+warn("rc2.add p1:", rc2.add(p1));
 
 warn("rc1.findChild Inheritable Viewport:", findChild(rc1, Viewport, true));
 
