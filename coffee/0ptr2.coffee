@@ -1,3 +1,5 @@
+import { event } from "./window.coffee"
+
 #? hello world <3
 
 export class Pointer            extends Number
@@ -14,10 +16,11 @@ export class Vertices           extends Pointer
 export class Mesh               extends Pointer
 export class Text               extends Pointer
 export class Id                 extends Text
-export class VertexShader       extends Text
-export class ComputeShader      extends Text
-export class FragmentShader     extends Text
-export class Program            extends Pointer
+export class ShaderSource       extends Text
+export class VertexShader       extends Pointer
+export class ComputeShader      extends Pointer
+export class FragmentShader     extends Pointer
+export class Program            extends Text
 export class EventHandler       extends Pointer
 export class RenderingContext   extends Pointer
 export class DrawBuffer         extends Pointer
@@ -32,9 +35,9 @@ export class AllocArray         extends Pointer
 export default classes = new Object {
     Scene, DrawCall, Viewport, ClearColor, ClearMask, 
     Color, Scale, Rotation, Position, Vertices, 
-    Mesh, Id, VertexShader, FragmentShader, EventHandler,
-    Program, RenderingContext, VertexArray, Attribute, 
-    Uniform, CPU, GPU, AllocArray
+    Mesh, Id, ShaderSource, VertexShader, FragmentShader, 
+    EventHandler, Program, RenderingContext, VertexArray, 
+    Attribute, Uniform, CPU, GPU, AllocArray
 }
 
 #* export|class|extends|Pointer|Number|Text|\s+
@@ -95,7 +98,23 @@ export storage = new (class Storage extends Array
 
 #* lşasdklkasşdkaşsldkşasldkşalsdkasşlkdlşsakd
 
-setTimeDelay    = ->
+addListener     = ( element, event, handler ) ->
+    element.addEventListener event, handler ; element
+
+hitListener     = ( element, event, detail ) ->
+    element.dispatchEvent new Event event, { detail }
+
+appendElement   = ( element ) ->
+    document.body.appendChild element ; element
+
+createElement   = ( tagName ) ->
+    document.createElement tagName
+
+queryDocument   = ( query, all = off ) ->
+    unless all then document.querySelector query
+    else document.querySelectorAll query
+
+hitOnTimeout    = ->
     fn  = arguments[ 0 ]
     ->  clearTimeout( delay ) or delay =
         setTimeout( fn.bind( this ), 40 )
@@ -233,8 +252,12 @@ findChild       = ( ptri, Class, inherit = off ) ->
     findChild getParent( ptri ), Class, inherit
 
 define Pointer::            , [ '{{Pointer}}' ] :
-    get : -> new Uint32Array sab, this, POINTER_LENGTH    
-
+    get : -> define {},
+        headAsUint8     : enumerable : on, get : => new Uint8Array sab, this, POINTER_BYTELENGTH    
+        headAsUint32    : enumerable : on, get : => new Uint32Array sab, this, POINTER_LENGTH    
+        headAsFloat32   : enumerable : on, get : => new Float32Array sab, this, POINTER_LENGTH    
+define Pointer              , of                :
+    value : ( props = {} ) -> assign new_Pointer(this), props
 define Pointer              , from              :
     value : ->
         setClassIndex ptri = new this palloc()
@@ -258,7 +281,8 @@ define Pointer::            , add               :
 define Pointer::            , append            :
     value : ( ptri ) -> addChildren this, ptri
 define Pointer::            , children          :
-    enumerable: on,
+    enumerable: on
+    configurable: on
     get   : ->
         ptrj = dvw.getUint32 0, iLE
         ptri = +this
@@ -282,9 +306,6 @@ define Pointer::            , emit              :
     value : ( event, handler ) -> this
 define Text::               , TypedArray        :
     value : Uint8Array
-define Text::               , text              :
-    enumerable : on
-    get   : -> decode sliceUint8 this 
 define Text::               , set               :
     value : ( value ) ->  
 
@@ -312,30 +333,30 @@ define Color::              , TypedArray        :
 define RenderingContext::   , glObject          :
     get : ->
         if !stri = getPtriUint8 this + RENDERING_CONTEXT_GLOBJECT
-            node = document.createElement "canvas"
+            node = appendElement createElement "canvas"
             stri = storeForUint8 node.getContext "webgl2"
 
             setPtriUint8 this + RENDERING_CONTEXT_GLOBJECT, stri
 
-            window.document.body.appendChild node
-            window.addEventListener "resize", @onresize.bind this
-            window.dispatchEvent new Event "resize"
+            addListener window, "resize", @onresize.bind this
+            hitListener window, "resize", this
 
         storage[ stri ]
-
+define RenderingContext::   , canvas            :
+    get   : -> @glObject.canvas
 define RenderingContext::   , onresize          :
-    value : setTimeDelay ->
+    value : hitOnTimeout ->
 
         {   top, left,
             width, height,
             pixelRatio
         } = @viewport
 
-        assign @glObject.canvas,
+        assign @canvas,
             width       : pixelRatio * width
             height      : pixelRatio * height
 
-        assign @glObject.canvas.style,
+        assign @canvas.style,
             position   : "fixed"
             top        : "#{top}px"
             left       : "#{left}px"
@@ -343,7 +364,6 @@ define RenderingContext::   , onresize          :
             height     : "#{height}px"
 
         @
-
 define RenderingContext::   , getViewport       :
     value : ->
         if !ptrj = getPtriUint8 this + RENDERING_CONTEXT_VIEWPORT
@@ -351,7 +371,6 @@ define RenderingContext::   , getViewport       :
                 return addChildren this , new_Pointer Viewport
             return @setViewport ptrj
         return new Viewport ptrj
-
 define RenderingContext::   , setViewport       :
     value : ( ptrj ) ->
         setPtriUint8 this + RENDERING_CONTEXT_VIEWPORT, ptrj
@@ -385,17 +404,17 @@ define Viewport::           , setTop            :
         setPtriFloat32 this + VIEWPORT_TOP, value
 define Viewport::           , getWidth          :
     value : ->
-        if !width = getPtriFloat32 this + VIEWPORT_WITDH
-            return self.innerWidth or 320
-        return width
+        if !value = getPtriFloat32 this + VIEWPORT_WITDH
+            value = self.innerWidth or 320
+        value
 define Viewport::           , setWidth          :
     value : ( value ) ->
         setPtriFloat32 this + VIEWPORT_WITDH, value
 define Viewport::           , getHeight         :
     value : ->
-        if !getPtriFloat32 this + VIEWPORT_HEIGHT
-            return self.innerHeight or 240
-        return height
+        if !value = getPtriFloat32 this + VIEWPORT_HEIGHT
+            value = self.innerHeight or 240
+        value
 define Viewport::           , setHeight         :
     value : ( value ) ->
         setPtriFloat32 this + VIEWPORT_HEIGHT, value
@@ -415,10 +434,33 @@ define Viewport::           , getPixelRatio     :
 define Viewport::           , setPixelRatio     :
     value : ( value ) ->
         setPtriFloat32 this + VIEWPORT_PIXEL_RATIO, value
+define ShaderSource::       , program           :
+    enumerable : on
+    get : -> decode sliceUint8 this
+    set : ShaderSource::set
+define ShaderSource::       , vertexShader      :
+    enumerable : on, get : -> @documentScripts.vertexShader?.text
+define ShaderSource::       , computeShader     :
+    enumerable : on, get : -> @documentScripts.computeShader?.text
+define ShaderSource::       , fragmentShader    :
+    enumerable : on, get : -> @documentScripts.fragmentShader?.text
+define ShaderSource::       , documentScripts   :
+    get : ->
+        v = queryDocument "[program=#{@program}][type*='vertex']"
+        c = queryDocument "[program=#{@program}][type*='compute']"
+        f = queryDocument "[program=#{@program}][type*='fragment']"
+
+        if !v and f and $program = f.getAttribute "vertex-shader"
+            v = queryDocument "[program=#{$program}][type*='vertex']"
+
+        if !f and v and $program = v.getAttribute "fragment-shader"
+            f = queryDocument "[program=#{$program}][type*='fragment']"
+
+        vertexShader   : v
+        computeShader  : c
+        fragmentShader : f
 
 #? <------->
-
-    
 
 for name , Class of classes
 
@@ -449,18 +491,30 @@ for name , Class of classes
 
     continue
 
+Reflect.defineProperty ShaderSource::, "children", value: new PtriArray
 #? <------->
 
 
-warn rc = new_Pointer( RenderingContext )
-warn vp = new_Pointer( Viewport )
-warn p0 = Program.from({ vertexShader : "hello world vs" })
-warn p1 = Program.from([ { fragmentShader : "hello world fs" }, { vertexShader : "hello world vs" } ])
-warn "p0.add p1:", p0.add p1
-warn "rc.add vp:", p1.add vp
-warn "p0.append p1:", p0.append p1
-warn "rc.append p0:", rc.append p0
-warn "rc:", rc
-warn "rc.viewport:", rc.viewport
-warn "p0.findChild:", findChild p0, Viewport, on
-warn "rc.glObject:", rc.glObject
+warn "sc:", sc = new_Pointer( Scene )
+warn "ss1:", ss1 = ShaderSource.of({ program : "default" })
+warn "rc1:", rc1 = new_Pointer( RenderingContext )
+warn "vp1:", vp1 = new_Pointer( Viewport )
+
+warn "p0:", p0 = Program.from({ shaderSource : "my-avesome-vertex-shader" })
+warn "p1:", p1 = new_Pointer( Program )
+
+warn "rc2:", rc2 = new_Pointer( RenderingContext )
+warn "vp2:", vp2 = Viewport.of({ width : 320, height : 240, left: 20, top: 20 })
+
+warn "rc1.add p0:", rc1.add p0
+warn "rc2.add bp2:", rc2.add vp2
+
+warn "sc.add vp1:", sc.add vp1
+warn "sc.add ss1:", sc.add ss1
+warn "sc.add rc1:", sc.add rc1
+warn "sc.add rc2:", sc.add rc2
+
+warn "rc1.findChild Inheritable Viewport:", findChild rc1, Viewport, on
+warn "rc2.findChild Inheritable Viewport:", findChild rc2, Viewport, on
+
+warn "sc.findChild Inheritable ShaderSource:", findChild rc2, Viewport, on
