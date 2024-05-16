@@ -1,3 +1,5 @@
+import { parent } from "./window.coffee"
+
 #? hello world <3
 export class Pointer            extends Number
 export class PtriArray          extends Array
@@ -22,8 +24,8 @@ export class Program            extends Text
 export class EventHandler       extends Pointer
 export class RenderingContext   extends Pointer
 export class DrawBuffer         extends Pointer
-export class VertexArray        extends Pointer
-export class Attribute          extends Text
+export class VertexArray        extends Text
+export class VertexAttribute    extends Text
 export class Uniform            extends Text
 export class CPU                extends Text
 export class GPU                extends Pointer
@@ -33,7 +35,7 @@ export default classes = new Object {
     Color, Scale, Rotation, Position, Vertices, 
     Mesh, Id, ShaderSource, VertexShader, FragmentShader, 
     EventHandler, Program, RenderingContext, VertexArray, 
-    Attribute, Uniform, CPU, GPU
+    VertexAttribute, Uniform, CPU, GPU
 }
 
 GL2KEY = Object.keys     WebGL2RenderingContext
@@ -66,10 +68,19 @@ PTR_BYTELENGTH              = 4 * BPE
 PROGRAM_GLPROGRAM           = 5 * BPE
 PROGRAM_USEBINDING          = PROGRAM_GLPROGRAM + 1
 PROGRAM_ISINUSE             = PROGRAM_GLPROGRAM + 2
-PROGRAM_SHADER_SOURCE       = 6 * BPE
+PROGRAM_VAOBINDING          = PROGRAM_GLPROGRAM + 3
+PROGRAM_SHADER_SOURCE       = 7 * BPE
 
 SHADER_SOURCE_BYTES_PERP    = 5 * BPE
-SHADER_SOURCE_PARAMETERS    = 6 * BPE
+
+ATTRIBUTE_LOCATION          = 5 * BPE
+ATTRIBUTE_SIZE              = ATTRIBUTE_LOCATION + 1
+ATTRIBUTE_TYPE              = ATTRIBUTE_LOCATION + 2
+ATTRIBUTE_NORMALIZED        = 6 * BPE
+ATTRIBUTE_STRIDE            = ATTRIBUTE_NORMALIZED + 1
+ATTRIBUTE_OFFSET            = ATTRIBUTE_NORMALIZED + 2
+ATTRIBUTE_BYTES_PERP    = ATTRIBUTE_NORMALIZED + 3
+ATTRIBUTE_KIND    = 7 * BPE
 
 RENDERING_CONTEXT_GLOBJECT  = 5 * BPE
 RENDERING_CONTEXT_VIEWPORT  = 6 * BPE
@@ -210,6 +221,12 @@ getPtriUint32   = ( byteOffset ) ->
 
 setPtriUint32   = ( byteOffset, value ) ->
     dvw.setUint32  byteOffset, value, iLE ; value
+
+getPtriUint16   = ( byteOffset ) ->
+    dvw.getUint16  byteOffset, iLE
+
+setPtriUint16   = ( byteOffset, value ) ->
+    dvw.setUint16  byteOffset, value, iLE ; value
 
 getPtriFloat32  = ( byteOffset ) ->
     dvw.getFloat32 byteOffset, iLE
@@ -546,7 +563,8 @@ define Viewport::           , setPixelRatio     :
         setPtriFloat32 this + VIEWPORT_PIXEL_RATIO, value
 define Program::            , debug             :
     get : -> Object.defineProperties this,
-        use : get : @use
+        use                 : get : @use
+        bindVertexArray     : get : @bindVertexArray
 define Program::            , inUse             :
     enumerable : on,
     get : -> getPtriUint8 this + PROGRAM_ISINUSE
@@ -618,6 +636,16 @@ define Program::            , glObject          :
             stri = storeForUint8 program
             setPtriUint8 this + PROGRAM_GLPROGRAM, stri
         storage[ stri ]
+define Program::            , bindVertexArray   :
+    value : ->
+        if !vaoi = getPtriUint8 this + PROGRAM_VAOBINDING
+            
+            gl2p = @parent.glObject
+            varr = @shaderSource.vertexArray
+            vaoi = storeForUint8 varr.bound gl2p
+
+            setPtriUint8 this + PROGRAM_VAOBINDING, vaoi
+        storage[ vaoi ]()
 define Program::            , getShaderSource   :
     value : ->
         if !ptrj = getPtriUint32 this + PROGRAM_SHADER_SOURCE
@@ -628,16 +656,128 @@ define Program::            , getShaderSource   :
 define Program::            , setShaderSource   :
     value : ->
         setPtriUint32 this + PROGRAM_SHADER_SOURCE, arguments[0]
-define ShaderSource::       , name              :
+define Mesh::               , TypedArray        :
+    value : Float32Array
+define Mesh::               , getPointCount     :
+    value : ->
+define Mesh::               , getDrawingState   :
+    value : ->
+define Mesh::               , getVertices       :
+    value : ->
+define Mesh::               , setVertices       :
+    value : ->
+define Mesh::               , getPosition       :
+    value : ->
+define Mesh::               , getRotation       :
+    value : ->
+define Mesh::               , getScale          :
+    value : ->
+define Mesh::               , getDrawCalls      :
+    value : ->
+define Mesh::               , getIsVisible      :
+    value : ->
+define Mesh::               , getDrawWeight     :
+    value : ->
+define Mesh::               , getInstanceCount  :
+    value : ->
+define Mesh::               , getColor          :
+    value : ->
+define Mesh::               , getNeedsUpdate    :
+    value : ->
+define Mesh::               , modifierMatrix    :
+    enumerable: on,
+    get : ->
+define VertexAttribute::    , name              :
     enumerable : on
     get : -> decode sliceUint8 this
     set : Text::set
+define VertexAttribute::    , location          :
+    enumerable : on
+    get : -> getPtriUint8 this + ATTRIBUTE_LOCATION
+    set : -> setPtriUint8 this + ATTRIBUTE_LOCATION, arguments[0]
+define VertexAttribute::    , size              :
+    enumerable : on
+    get : -> getPtriUint8 this + ATTRIBUTE_SIZE
+    set : -> setPtriUint8 this + ATTRIBUTE_SIZE, arguments[0]
+define VertexAttribute::    , type              :
+    enumerable : on
+    get : -> keyOfWebGL2 getPtriUint16 this + ATTRIBUTE_TYPE
+    set : -> setPtriUint16 this + ATTRIBUTE_TYPE, arguments[0]
+define VertexAttribute::    , normalized        :
+    enumerable : on
+    get : -> Boolean getPtriUint8 this + ATTRIBUTE_NORMALIZED
+    set : -> setPtriUint8 this + ATTRIBUTE_NORMALIZED, arguments[0]
+define VertexAttribute::    , stride            :
+    enumerable : on
+    get : -> getPtriUint8 this + ATTRIBUTE_STRIDE
+    set : -> setPtriUint8 this + ATTRIBUTE_STRIDE, arguments[0]
+define VertexAttribute::    , offset            :
+    enumerable : on
+    get : -> getPtriUint8 this + ATTRIBUTE_OFFSET
+    set : -> setPtriUint8 this + ATTRIBUTE_OFFSET, arguments[0]
+define VertexAttribute::    , BYTES_PER_POINT   :
+    get : -> getPtriUint8 this + ATTRIBUTE_BYTES_PERP
+    set : -> setPtriUint8 this + ATTRIBUTE_BYTES_PERP, arguments[0]
+define VertexAttribute::    , kind              :
+    enumerable : on
+    get : -> keyOfWebGL2 getPtriUint16 this + ATTRIBUTE_KIND
+    set : -> setPtriUint16 this + ATTRIBUTE_KIND, arguments[0]
+define VertexAttribute::    , pointerArgs       :
+    get : -> Uint16Array.of @location, @size, @type, @normalized, @stride, @offset
+define VertexAttribute::    , createBinding     :
+    value : ( gl ) ->
+        unless gl ||= findChild( this, RenderingContext, on ).glObject
+            return "NO_CONTEXT_FOUND_NEITHER_SUPPLIED"
+
+        enableVertexAttribArray : gl.enableVertexAttribArray.bind gl, @location
+        vertexAttribPointer : gl.vertexAttribPointer.bind gl, @pointerArgs...
+        vertexAttribNfv : switch @size
+            when 1 then gl.vertexAttrib1fv.bind gl, @location
+            when 2 then gl.vertexAttrib2fv.bind gl, @location
+            when 3 then gl.vertexAttrib3fv.bind gl, @location
+            when 4 then gl.vertexAttrib4fv.bind gl, @location
+define VertexArray::        , getAttributes     :
+    value : -> findChilds @parent, VertexAttribute
+define VertexArray::        , BYTES_PER_POINT   :
+    get : ->
+        sum = 0
+        sum = sum + attr.BYTES_PER_POINT for attr in @attributes
+        sum
+define VertexArray::        , name              :
+    enumerable : on
+    get : -> decode sliceUint8 this
+    set : Text::set        
+define VertexArray::        , bound             :
+    value : ( gl, extraCalls = [] ) ->
+        unless gl then throw /NO_CONTEXT_SUPPLIED/
+        else @parent.BYTES_PER_POINT
+        
+        vao = gl.createVertexArray()
+        gl.bindVertexArray vao
+
+        for attr in findChilds @parent, VertexAttribute, construct = on
+            gl.enableVertexAttribArray attr.location
+            gl.vertexAttribPointer attr.pointerArgs...
+
+        for call in extraCalls
+            call gl
+
+        return gl.bindVertexArray.bind gl, vao
+define ShaderSource::       , name              :
+    enumerable : on
+    get : -> decode sliceUint8 this
+    set : ( name ) ->
+        setPtriUint32 this + SHADER_SOURCE_BYTES_PERP, 0
+        Text.prototype.set.call this, name ; this
+define ShaderSource::       , vertexArray       :
+    enumerable : on
+    get : -> findChild this, VertexArray
 define ShaderSource::       , vertexShader      :
-    enumerable : on, get : -> @documentScripts.vertexShader?.text
+    get : -> @documentScripts.vertexShader?.text
 define ShaderSource::       , computeShader     :
-    enumerable : on, get : -> @documentScripts.computeShader?.text
+    get : -> @documentScripts.computeShader?.text
 define ShaderSource::       , fragmentShader    :
-    enumerable : on, get : -> @documentScripts.fragmentShader?.text
+    get : -> @documentScripts.fragmentShader?.text
 define ShaderSource::       , documentScripts   :
     get : ->
         v = queryDocument "[name=#{@name}][type*='vertex']"
@@ -653,124 +793,155 @@ define ShaderSource::       , documentScripts   :
         vertexShader   : v
         computeShader  : c
         fragmentShader : f
-define ShaderSource::       , parameters        :
-    enumerable : on
+define ShaderSource::       , BYTES_PER_POINT   :
     get : ->
-        if !stri = getPtriUint32 this + SHADER_SOURCE_PARAMETERS
-            gl = new OffscreenCanvas(1,1).getContext "webgl2"
+        if !bpp = getPtriUint32 this + SHADER_SOURCE_BYTES_PERP
+            bpp = setPtriUint32 this + SHADER_SOURCE_BYTES_PERP, @parameters.ATTRIBUTES_STRIDE
+        bpp
+define ShaderSource::       , findVertexAttrib  :
+    value : ( name ) ->
+        for attr in findChilds this, VertexAttribute
+            return attr if attr.name is name
 
-            #? create vertex shader ------------> 
-            vSource = @vertexShader
-            vShader = gl.createShader gl.VERTEX_SHADER 
-    
-            gl.shaderSource vShader, vSource
-            gl.compileShader vShader
-    
-            unless gl.getShaderParameter vShader, gl.COMPILE_STATUS
-                info = gl.getShaderInfoLog vShader
-                gl.deleteShader vShader
-                throw "Could not compile vertex shader. \n\n#{info}, \nsource:#{vSource}"
+        return
+define ShaderSource::       , findVertexArray   :
+    value : ( name ) ->
+        for varr in findChilds this, VertexArray
+            return varr if varr.name is name
+        return
+define ShaderSource::       , getParameters     :
+    value : ->
+        gl = new OffscreenCanvas(1,1).getContext "webgl2"
 
-            #? create fragment shader ----------->
-            fSource = @fragmentShader
-            fShader = gl.createShader gl.FRAGMENT_SHADER 
-    
-            gl.shaderSource fShader, fSource
-            gl.compileShader fShader
-    
-            unless gl.getShaderParameter fShader, gl.COMPILE_STATUS
-                info = gl.getShaderInfoLog fShader
-                gl.deleteShader vShader
-                gl.deleteShader fShader
-                throw "Could not compile vertex shader. \n\n#{info}, \nsource:#{vSource}"
-    
-            #? create program and link ----------->
-            program = gl.createProgram()
-            
-            gl.attachShader program, vShader
-            gl.attachShader program, fShader
-            gl.linkProgram program
-    
-            unless gl.getProgramParameter program, gl.LINK_STATUS
-                info = gl.getProgramInfoLog program
-                throw "Could not compile WebGL program. \n\n#{info}"
+        #? create vertex shader ------------> 
+        vSource = @vertexShader
+        vShader = gl.createShader gl.VERTEX_SHADER 
 
+        gl.shaderSource vShader, vSource
+        gl.compileShader vShader
 
-            #? parse program parameters ---------->
-            ( parameters = VERTEX_SHADER : {}, FRAGMENT_SHADER : {}, PROGRAM : {} )
-            ( shaders = VERTEX_SHADER: vShader, FRAGMENT_SHADER: fShader )
+        unless gl.getShaderParameter vShader, gl.COMPILE_STATUS
+            info = gl.getShaderInfoLog vShader
+            gl.deleteShader vShader
+            throw "Could not compile vertex shader. \n\n#{info}, \nsource:#{vSource}"
 
-            split = -> arguments[0].split( /\n|\r\n|\s+|\t/g ).filter( Boolean )
+        #? create fragment shader ----------->
+        fSource = @fragmentShader
+        fShader = gl.createShader gl.FRAGMENT_SHADER 
 
-            for p in split(
-                "DELETE_STATUS LINK_STATUS VALIDATE_STATUS ATTACHED_SHADERS 
-                 ACTIVE_ATTRIBUTES ACTIVE_UNIFORMS TRANSFORM_FEEDBACK_BUFFER_MODE 
-                 TRANSFORM_FEEDBACK_VARYINGS ACTIVE_UNIFORM_BLOCKS"
-            ) then parameters.PROGRAM[p] = gl.getProgramParameter program, gl[p] 
+        gl.shaderSource fShader, fSource
+        gl.compileShader fShader
 
-            for pname, value of parameters.PROGRAM
-                parameters.PROGRAM[ pname ] = keyOfWebGL2 value
-            
-            for s, gls of shaders then for p in split(
-                "DELETE_STATUS COMPILE_STATUS SHADER_TYPE"
-            ) then parameters[s][p] = gl.getShaderParameter gls, gl[p] 
-
-            for s, gls of shaders then for pname, value of parameters[ s ]
-                parameters[ s ][ pname ]        = keyOfWebGL2 value
-                parameters[ s ].SHADER_SOURCE   = gl.getShaderSource gls
-                parameters[ s ].INFO_LOG        = gl.getShaderInfoLog gls
-                
-            numAttribs = parameters.PROGRAM.ACTIVE_ATTRIBUTES
-            parameters . VERTEX_ARRAY_NAME = ""
-            parameters . ATTRIBUTES_STRIDE = 0
-            parameters . ATTRIBUTES = while numAttribs--
-                attrib = gl.getActiveAttrib program, numAttribs
-
-                attrib . location   = gl . getAttribLocation program, attrib.name
-                attrib . normalized = gl . getVertexAttrib attrib.location, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
-                attrib . typename   = tn = keyOfWebGL2 attrib.type                
-                attrib . offset     = parameters.ATTRIBUTES_STRIDE
-                attrib . isVector   = /VEC/.test tn.constructor.name
-                attrib . isMatrix   = /MAT/.test tn.constructor.name
-                attrib . isNumber   = /VEC|MAT/.test tn.constructor.name
-
-                attrib . glsize     = do ->
-                    name = tn.constructor.name
-                    switch ( valtyp = name.split("_").pop() ).substring 0, 3
-                        when "VEC" then valtyp[3] * 1
-                        when "MAT" then valtyp[3] * ( valtyp[5] || 1 )
-
-                attrib . BYTES_PER_ATTRIBUTE = attrib . glsize *
-                    switch attrib.gltype = gl[ tn.constructor.name.split("_")[0] ]
-                        when gl.FLOAT           then 4
-                        when gl.UNSIGNED_BYTE   then 1
-                        else throw /DEFINED/
-
-                parameters . VERTEX_ARRAY_NAME += " #{attrib.name} "
-                parameters . VERTEX_ARRAY_NAME  =
-                    parameters . VERTEX_ARRAY_NAME.trim()
-
-                parameters . ATTRIBUTES_STRIDE +=
-                    attrib . BYTES_PER_ATTRIBUTE
-
-                attrib
-
-            for attrib in parameters . ATTRIBUTES
-                attrib . pointerArgs = [
-                    attrib.location, attrib.glsize, attrib.gltype,
-                    attrib.normalized, parameters . ATTRIBUTES_STRIDE,
-                    attrib.offset
-                ]
-
+        unless gl.getShaderParameter fShader, gl.COMPILE_STATUS
+            info = gl.getShaderInfoLog fShader
             gl.deleteShader vShader
             gl.deleteShader fShader
-            gl.deleteProgram program
-            gl=null
+            throw "Could not compile vertex shader. \n\n#{info}, \nsource:#{vSource}"
 
-            stri = storeForUint32 parameters                
-            setPtriUint32 this + SHADER_SOURCE_PARAMETERS, stri
+        #? create program and link ----------->
+        program = gl.createProgram()
+        
+        gl.attachShader program, vShader
+        gl.attachShader program, fShader
+        gl.linkProgram program
 
-        storage[ stri ]
+        unless gl.getProgramParameter program, gl.LINK_STATUS
+            info = gl.getProgramInfoLog program
+            throw "Could not compile WebGL program. \n\n#{info}"
+
+
+
+
+        #* parse program parameters ---------->
+
+        ( parameters = VERTEX_SHADER : {}, FRAGMENT_SHADER : {}, PROGRAM : {} )
+        ( shaders = VERTEX_SHADER: vShader, FRAGMENT_SHADER: fShader )
+
+        split = -> arguments[0].split( /\n|\r\n|\s+|\t/g ).filter( Boolean )
+
+        for p in split(
+            "DELETE_STATUS LINK_STATUS VALIDATE_STATUS ATTACHED_SHADERS 
+                ACTIVE_ATTRIBUTES ACTIVE_UNIFORMS TRANSFORM_FEEDBACK_BUFFER_MODE 
+                TRANSFORM_FEEDBACK_VARYINGS ACTIVE_UNIFORM_BLOCKS"
+        ) then parameters.PROGRAM[p] = gl.getProgramParameter program, gl[p] 
+
+        for pname, value of parameters.PROGRAM
+            parameters.PROGRAM[ pname ] = keyOfWebGL2 value
+        
+        for s, gls of shaders then for p in split(
+            "DELETE_STATUS COMPILE_STATUS SHADER_TYPE"
+        ) then parameters[s][p] = gl.getShaderParameter gls, gl[p] 
+
+        for s, gls of shaders then for pname, value of parameters[ s ]
+            parameters[ s ][ pname ]        = keyOfWebGL2 value
+            parameters[ s ].SHADER_SOURCE   = gl.getShaderSource gls
+            parameters[ s ].INFO_LOG        = gl.getShaderInfoLog gls
+            
+        numAttribs = parameters.PROGRAM.ACTIVE_ATTRIBUTES
+        parameters . VERTEX_ARRAY_NAME = ""
+        parameters . ATTRIBUTES_STRIDE = 0
+        parameters . ATTRIBUTES = while numAttribs--
+            attrib = {}
+            attrib[k] = v for k, v of gl.getActiveAttrib program, numAttribs
+
+            attrib . location   = gl . getAttribLocation program, attrib.name
+            attrib . normalized = gl . getVertexAttrib attrib.location, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED
+            attrib . typename   = tn = keyOfWebGL2 attrib.kind = attrib.type                
+            attrib . offset     = parameters.ATTRIBUTES_STRIDE
+            attrib . isVector   = /VEC/.test tn.constructor.name
+            attrib . isMatrix   = /MAT/.test tn.constructor.name
+            attrib . isNumber   = !/VEC|MAT/.test tn.constructor.name
+
+            attrib . size       = do ->
+                name = tn.constructor.name
+                switch ( valtyp = name.split("_").pop() ).substring 0, 3
+                    when "VEC" then valtyp[3] * 1
+                    when "MAT" then valtyp[3] * ( valtyp[5] || 1 )
+
+            attrib . BYTES_PER_ATTRIBUTE = attrib . size *
+                switch attrib.type = gl[ tn.constructor.name.split("_")[0] ]
+                    when gl.FLOAT           then 4
+                    when gl.UNSIGNED_BYTE   then 1
+                    else throw /DEFINED/
+
+            parameters . VERTEX_ARRAY_NAME += " #{attrib.name} "
+            parameters . VERTEX_ARRAY_NAME  =
+                parameters . VERTEX_ARRAY_NAME.trim()
+
+            parameters . ATTRIBUTES_STRIDE +=
+                attrib . BYTES_PER_ATTRIBUTE
+
+            attrib
+
+        for attrib in parameters . ATTRIBUTES
+            continue if @findVertexAttrib attrib.name
+
+            attribute = new_Pointer VertexAttribute
+            attribute . set attrib.name
+
+            assign attribute, {
+                location : attrib.location, 
+                size : attrib.size, 
+                type : attrib.type,
+                normalized : attrib.normalized, 
+                stride : parameters . ATTRIBUTES_STRIDE,
+                offset : attrib.offset
+                kind : attrib.kind
+                BYTES_PER_POINT : attrib.BYTES_PER_ATTRIBUTE
+            }
+
+            addChildren this, attribute
+
+        if !@findVertexArray parameters . VERTEX_ARRAY_NAME
+            addChildren this, varr = new_Pointer VertexArray
+            varr.set parameters . VERTEX_ARRAY_NAME
+
+        gl.deleteShader vShader
+        gl.deleteShader fShader
+        gl.deleteProgram program
+        gl=null
+
+        parameters
 
 
 palloc malloc POINTER_BYTELENGTH * 1e5
@@ -808,14 +979,15 @@ for name, Class of reDefine = classes
 
     continue
 
-for Class, idex in noChilds = [ ShaderSource, Viewport ]
-    Reflect.defineProperty Class::, "children", value: new PtriArray
+for Class in [ VertexArray, VertexAttribute ]
+    define Class::, children : new PtriArray
 
 #? <----------------------------------------> ?#
 #? <----------------------------------------> ?#
 #? <----------------------------------------> ?#
 
 warn "sc:", sc = new_Pointer( Scene )
+warn "mesh:", msh = new_Pointer( Mesh )
 warn "ss1:", ss1 = new_Pointer( ShaderSource ).set("default")
 warn "ss1:", ss2 = new_Pointer( ShaderSource ).set("my-avesome-vertex-shader")
 warn "rc1:", rc1 = new_Pointer( RenderingContext )
@@ -830,6 +1002,7 @@ warn "vp2:", vp2 = Viewport.of({ width : 320, height : 240, left: 20, top: 20 })
 warn "rc1.add p0:", rc1.add p0
 warn "rc2.add bp2:", rc2.add vp2
 
+warn "sc.add msh:", sc.add msh
 warn "sc.add vp1:", sc.add vp1
 warn "sc.add ss1:", sc.add ss1
 warn "sc.add ss2:", sc.add ss2
@@ -841,3 +1014,4 @@ warn "rc1.findChild Inheritable Viewport:", findChild rc1, Viewport, on
 warn "rc2.findChild Inheritable Viewport:", findChild rc2, Viewport, on
 
 warn "sc.findChild Inheritable ShaderSource:", findChild rc2, Viewport, on
+warn "ss1.parameters:", ss1.parameters
