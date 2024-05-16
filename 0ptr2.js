@@ -467,13 +467,23 @@ findChild = function(ptri, Class, inherit = false) {
 
 findChilds = function(ptri, Class, construct = true) {
   var clsi, i, list, ptrj;
-  if (!ptri) {
-    return;
-  }
   ptrj = Atomics.load(u32);
   clsi = storage.indexOf(Class);
   list = new PtriArray;
   i = 0;
+  if (!ptri) {
+    while (ptrj -= POINTER_BYTELENGTH) {
+      if (clsi - getClassIndex(ptrj)) {
+        continue;
+      }
+      if (!construct) {
+        list[i++] = ptrj;
+      } else {
+        list[i++] = ptr_Pointer(ptrj);
+      }
+    }
+    return list;
+  }
   while (ptrj -= POINTER_BYTELENGTH) {
     if (ptri - getParent(ptrj)) {
       continue;
@@ -952,7 +962,7 @@ define(Program.prototype, {
   debug: {
     get: function() {
       return Object.defineProperties(this, {
-        use: {
+        useProgram: {
           get: this.use
         },
         bindVertexArray: {
@@ -1454,7 +1464,21 @@ define(ShaderSource.prototype, {
 });
 
 define(ShaderSource.prototype, {
+  programs: {
+    enumerable: true,
+    get: function() {
+      var ptri;
+      ptri = +this;
+      return findChilds(null, Program).filter(function(p) {
+        return 0 === ptri - p.shaderSource;
+      });
+    }
+  }
+});
+
+define(ShaderSource.prototype, {
   BYTES_PER_POINT: {
+    enumerable: true,
     get: function() {
       var bpp;
       if (!(bpp = getPtriUint32(this + SHADER_SOURCE_BYTES_PERP))) {

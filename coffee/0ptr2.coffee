@@ -79,8 +79,8 @@ ATTRIBUTE_TYPE              = ATTRIBUTE_LOCATION + 2
 ATTRIBUTE_NORMALIZED        = 6 * BPE
 ATTRIBUTE_STRIDE            = ATTRIBUTE_NORMALIZED + 1
 ATTRIBUTE_OFFSET            = ATTRIBUTE_NORMALIZED + 2
-ATTRIBUTE_BYTES_PERP    = ATTRIBUTE_NORMALIZED + 3
-ATTRIBUTE_KIND    = 7 * BPE
+ATTRIBUTE_BYTES_PERP        = ATTRIBUTE_NORMALIZED + 3
+ATTRIBUTE_KIND              = 7 * BPE
 
 RENDERING_CONTEXT_GLOBJECT  = 5 * BPE
 RENDERING_CONTEXT_VIEWPORT  = 6 * BPE
@@ -307,13 +307,20 @@ findChild       = ( ptri, Class, inherit = off ) ->
     findChild getParent( ptri ), Class, inherit
 
 findChilds      = ( ptri, Class, construct = on ) ->
-    return unless ptri
-
     ptrj = Atomics.load u32
     clsi = storage.indexOf Class
     list = new PtriArray
 
     i = 0
+    if !ptri
+
+        while ptrj -= POINTER_BYTELENGTH
+            continue if clsi - getClassIndex ptrj
+            if !construct then list[ i++ ] = ptrj
+            else list[ i++ ] = ptr_Pointer ptrj
+
+        return list
+
     while ptrj -= POINTER_BYTELENGTH
         continue if ptri - getParent ptrj
         continue if clsi - getClassIndex ptrj
@@ -563,7 +570,7 @@ define Viewport::           , setPixelRatio     :
         setPtriFloat32 this + VIEWPORT_PIXEL_RATIO, value
 define Program::            , debug             :
     get : -> Object.defineProperties this,
-        use                 : get : @use
+        useProgram          : get : @use
         bindVertexArray     : get : @bindVertexArray
 define Program::            , inUse             :
     enumerable : on,
@@ -793,7 +800,14 @@ define ShaderSource::       , documentScripts   :
         vertexShader   : v
         computeShader  : c
         fragmentShader : f
+define ShaderSource::       , programs          :
+    enumerable: on,
+    get : ->
+        ptri = +this
+        findChilds( null, Program ).filter (p) -> 0 is ptri - p.shaderSource
+
 define ShaderSource::       , BYTES_PER_POINT   :
+    enumerable: on,
     get : ->
         if !bpp = getPtriUint32 this + SHADER_SOURCE_BYTES_PERP
             bpp = setPtriUint32 this + SHADER_SOURCE_BYTES_PERP, @parameters.ATTRIBUTES_STRIDE
