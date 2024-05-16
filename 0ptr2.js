@@ -988,7 +988,7 @@ define(Program.prototype, {
 });
 
 define(ShaderSource.prototype, {
-  program: {
+  name: {
     enumerable: true,
     get: function() {
       return decode(sliceUint8(this));
@@ -1030,15 +1030,15 @@ define(ShaderSource.prototype, {
 define(ShaderSource.prototype, {
   documentScripts: {
     get: function() {
-      var $program, c, f, v;
-      v = queryDocument(`[program=${this.program}][type*='vertex']`);
-      c = queryDocument(`[program=${this.program}][type*='compute']`);
-      f = queryDocument(`[program=${this.program}][type*='fragment']`);
-      if (!v && f && ($program = f.getAttribute("vertex-shader"))) {
-        v = queryDocument(`[program=${$program}][type*='vertex']`);
+      var $name, c, f, v;
+      v = queryDocument(`[name=${this.name}][type*='vertex']`);
+      c = queryDocument(`[name=${this.name}][type*='compute']`);
+      f = queryDocument(`[name=${this.name}][type*='fragment']`);
+      if (!v && f && ($name = f.getAttribute("vertex-shader"))) {
+        v = queryDocument(`[name=${$name}][type*='vertex']`);
       }
-      if (!f && v && ($program = v.getAttribute("fragment-shader"))) {
-        f = queryDocument(`[program=${$program}][type*='fragment']`);
+      if (!f && v && ($name = v.getAttribute("fragment-shader"))) {
+        f = queryDocument(`[name=${$name}][type*='fragment']`);
       }
       return {
         vertexShader: v,

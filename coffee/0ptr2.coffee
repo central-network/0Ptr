@@ -567,7 +567,7 @@ define Program::            , getShaderSource   :
 define Program::            , setShaderSource   :
     value : ->
         setPtriUint32 this + PROGRAM_SHADER_SOURCE, arguments[0]
-define ShaderSource::       , program           :
+define ShaderSource::       , name              :
     enumerable : on
     get : -> decode sliceUint8 this
     set : Text::set
@@ -579,15 +579,15 @@ define ShaderSource::       , fragmentShader    :
     enumerable : on, get : -> @documentScripts.fragmentShader?.text
 define ShaderSource::       , documentScripts   :
     get : ->
-        v = queryDocument "[program=#{@program}][type*='vertex']"
-        c = queryDocument "[program=#{@program}][type*='compute']"
-        f = queryDocument "[program=#{@program}][type*='fragment']"
+        v = queryDocument "[name=#{@name}][type*='vertex']"
+        c = queryDocument "[name=#{@name}][type*='compute']"
+        f = queryDocument "[name=#{@name}][type*='fragment']"
 
-        if !v and f and $program = f.getAttribute "vertex-shader"
-            v = queryDocument "[program=#{$program}][type*='vertex']"
+        if !v and f and $name = f.getAttribute "vertex-shader"
+            v = queryDocument "[name=#{$name}][type*='vertex']"
 
-        if !f and v and $program = v.getAttribute "fragment-shader"
-            f = queryDocument "[program=#{$program}][type*='fragment']"
+        if !f and v and $name = v.getAttribute "fragment-shader"
+            f = queryDocument "[name=#{$name}][type*='fragment']"
 
         vertexShader   : v
         computeShader  : c
