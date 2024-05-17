@@ -1134,6 +1134,22 @@ define(DrawCall.prototype, {
 });
 
 define(DrawCall.prototype, {
+  setNeedsUpload: {
+    value: function() {
+      return setPtriUint8(this + DRAWCALL_UPLOADED, arguments[0]);
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  getNeedsUpload: {
+    value: function() {
+      return getPtriUint8(this + DRAWCALL_UPLOADED);
+    }
+  }
+});
+
+define(DrawCall.prototype, {
   upload: {
     value: function() {
       var fn, gl, stri;
@@ -1829,6 +1845,7 @@ define(Mesh.prototype, {
         length = byteLength / 4 - index;
         index += byteOffset / 4;
         f32.subarray(index, index + length).set(value);
+        this.setNeedsUpdate(1);
         return this;
       }
       throw /VERTICES_SET/;
@@ -1893,15 +1910,30 @@ define(Mesh.prototype, {
 define(Mesh.prototype, {
   getNeedsUpdate: {
     value: function() {
-      return getPtriUint8(this + MESH_UPLOADED);
+      return !getPtriUint8(this + MESH_UPLOADED);
     }
   }
 });
 
 define(Mesh.prototype, {
   setNeedsUpdate: {
-    value: function() {
-      return setPtriUint8(this + MESH_UPLOADED, arguments[0]);
+    value: function(need) {
+      var call, l, len, len1, m, mesh, ref, ref1;
+      setPtriUint8(this + MESH_UPLOADED, !need);
+      if (!need) {
+        return 0;
+      }
+      ref = findChilds(this, Mesh);
+      for (l = 0, len = ref.length; l < len; l++) {
+        mesh = ref[l];
+        mesh.setNeedsUpdate(1);
+      }
+      ref1 = findChilds(this, DrawCall);
+      for (m = 0, len1 = ref1.length; m < len1; m++) {
+        call = ref1[m];
+        call.setNeedsUpload(1);
+      }
+      return 1;
     }
   }
 });
@@ -2748,4 +2780,6 @@ warn("msh.append new_Pointer( DrawCall ):", msh.append(new_Pointer(DrawCall)));
 
 warn("msh.append new_Pointer( DrawCall ):", msh.append(new_Pointer(DrawCall)));
 
-warn("msh2", self.mesh = msh2);
+warn("msh2", msh.add(msh2));
+
+warn("msh2", self.mesh = msh);

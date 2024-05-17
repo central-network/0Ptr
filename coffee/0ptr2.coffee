@@ -649,6 +649,10 @@ define DrawCall::           , type              :
         if !type = getPtriUint8 this + DRAWCALL_TYPE
             return @type = keyOfWebGL2 "TRIANGLES"
         keyOfWebGL2 type, min = 0
+define DrawCall::           , setNeedsUpload    :
+    value : -> setPtriUint8 this + DRAWCALL_UPLOADED, arguments[0]
+define DrawCall::           , getNeedsUpload    :
+    value : -> getPtriUint8 this + DRAWCALL_UPLOADED
 define DrawCall::           , upload            :
     value : ->
         if !getPtriUint8 this + DRAWCALL_UPLOADED
@@ -1073,8 +1077,11 @@ define Mesh::               , setVertices       :
             length = byteLength / 4 - index 
             index += byteOffset / 4
 
-            f32.subarray( index, index + length ).set value
-                
+            f32.subarray(
+                index, index + length
+            ).set value
+            
+            @setNeedsUpdate 1
             return this
 
         throw /VERTICES_SET/
@@ -1097,9 +1104,20 @@ define Mesh::               , getInstanceCount  :
 define Mesh::               , getColor          :
     value : ->
 define Mesh::               , getNeedsUpdate    :
-    value : -> getPtriUint8 this + MESH_UPLOADED
+    value : -> ! getPtriUint8 this + MESH_UPLOADED
 define Mesh::               , setNeedsUpdate    :
-    value : -> setPtriUint8 this + MESH_UPLOADED, arguments[0]
+    value : ( need )  ->
+        setPtriUint8 this + MESH_UPLOADED, !need
+
+        return 0 unless need
+
+        for mesh in findChilds this, Mesh
+            mesh . setNeedsUpdate 1
+
+        for call in findChilds this, DrawCall
+            call . setNeedsUpload 1
+
+        return 1
 define Mesh::               , modifierMatrix    :
     enumerable: on,
     get : -> new ModifierMatrix()
@@ -1567,4 +1585,5 @@ warn "msh.set:", msh.set([
 ])
 warn "msh.append new_Pointer( DrawCall ):", msh.append new_Pointer( DrawCall )
 warn "msh.append new_Pointer( DrawCall ):", msh.append new_Pointer( DrawCall )
-warn "msh2", self.mesh = msh2
+warn "msh2", msh.add msh2
+warn "msh2", self.mesh = msh
