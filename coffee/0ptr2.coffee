@@ -16,7 +16,7 @@ export class Vertices           extends Pointer
 export class Mesh               extends Pointer
 export class Text               extends Pointer
 export class Id                 extends Text
-export class ProgramSource       extends Text
+export class ProgramSource      extends Text
 export class VertexShader       extends Pointer
 export class ComputeShader      extends Pointer
 export class FragmentShader     extends Pointer
@@ -35,7 +35,7 @@ export default classes = new Object {
     Color, Scale, Rotation, Position, Vertices, 
     Mesh, Id, ProgramSource, VertexShader, FragmentShader, 
     EventHandler, Program, RenderingContext, VertexArray, 
-    VertexAttribute, Uniform, CPU, GPU
+    VertexAttribute, Uniform, CPU, GPU, PtriArray
 }
 
 GL2KEY = Object.keys     WebGL2RenderingContext
@@ -65,6 +65,16 @@ PTR_LINKED                  = 2 * BPE
 PTR_BYTEOFFSET              = 3 * BPE
 PTR_BYTELENGTH              = 4 * BPE
 
+SCENE_DEFAULT_CONTEXT       = 5 * BPE
+
+DRAWBUFFER_GLOBJECT         = 5 * BPE
+DRAWBUFFER_ISBINDED         = 6 * BPE
+DRAWBUFFER_BINDBINDING      = DRAWBUFFER_ISBINDED + 1
+DRAWBUFFER_TARGET           = DRAWBUFFER_ISBINDED + 2
+
+DRAWCALL_TARGET             = 6 * BPE
+DRAWCALL_USAGE              = DRAWCALL_TARGET + 2
+
 PROGRAM_GLPROGRAM           = 5 * BPE
 PROGRAM_USEBINDING          = PROGRAM_GLPROGRAM + 1
 PROGRAM_ISINUSE             = PROGRAM_GLPROGRAM + 2
@@ -89,6 +99,8 @@ UNIFORM_KIND                = UNIFORM_TYPE + 2
 
 RENDERING_CONTEXT_GLOBJECT  = 5 * BPE
 RENDERING_CONTEXT_VIEWPORT  = 6 * BPE
+RENDERING_CONTEXT_DPROGRAM  = 7 * BPE
+RENDERING_CONTEXT_DBUFFER   = 8 * BPE
 
 VIEWPORT_X                  = 3 * BPE # PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
 VIEWPORT_Y                  = 4 * BPE # PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
@@ -240,10 +252,30 @@ setPtriFloat32  = ( byteOffset, value ) ->
     dvw.setFloat32 byteOffset, value, iLE ; value
 
 storeForUint8   = ( any ) ->
-    storage.fillFirstEmpty any
+    if -1 isnt i = storage.indexOf any
+        return i
+
+    i = 0
+    max = 0xff
+    while i++ < max
+        return i if storage[i] is any
+        continue if storage[i]
+        return i if storage[i] = any 
+
+    throw /STORE_FOR_UINT8/
 
 storeForUint32  = ( any ) ->
-    storage.pushOrFindIndex any
+    if -1 isnt i = storage.indexOf any
+        return i
+
+    i = 0xff
+    max = 0xffffffff
+    while i++ < max
+        return i if storage[i] is any
+        continue if storage[i]
+        return i if storage[i] = any 
+
+    throw /STORE_FOR_UINT32/
 
 new_Uint32Array = ( ptri, byteOffset, length ) ->
     length ||= getByteLength( ptri ) / 4
@@ -341,13 +373,20 @@ findChilds      = ( ptri, Class, construct = on ) ->
 
     return list
 
-findPointer     = ( test ) ->
+findPointer     = ( test, Class ) ->
     ptrj = Atomics.load u32
-    
-    while ptrj -= POINTER_BYTELENGTH
-        return ptr if test ptr = ptr_Pointer ptrj
 
-    return
+    if !Class
+        while ptrj -= POINTER_BYTELENGTH
+            return ptr if test ptr = ptr_Pointer ptrj
+        return undefined
+
+    else
+        clsi = storage.indexOf Class
+        while ptrj -= POINTER_BYTELENGTH
+            continue if clsi - getClassIndex ptrj
+            return ptr if test ptr = ptr_Pointer ptrj
+    return undefined
 
 #* <----------------------------------------> *#
 #* <----------------------------------------> *#
@@ -432,6 +471,92 @@ define Color                , byteLength        :
     value : 4 * 4
 define Color::              , TypedArray        :
     value : Float32Array
+define PtriArray::          , last              :
+    value : -> this[ this.length - 1 ]
+define Scene::              , setDefaultContext :
+    value : ( ptri ) ->
+        setPtriUint32 this + SCENE_DEFAULT_CONTEXT, ptri
+define Scene::              , getDefaultContext :
+    value : ->
+        if !ptri = getPtriUint32 this + SCENE_DEFAULT_CONTEXT
+            if !ptri = findChilds( this, RenderingContext ).last()
+                addChildren this, ptri = new_Pointer RenderingContext 
+            setPtriUint32 this + SCENE_DEFAULT_CONTEXT, ptri
+        new RenderingContext ptri
+define DrawBuffer::         , glObject          :
+    get : ->
+        if !stri = getPtriUint32 this + DRAWBUFFER_GLOBJECT
+            stri = storeForUint32 @parent.glObject.createBuffer()
+            setPtriUint32 this + DRAWBUFFER_GLOBJECT, stri
+        storage[ stri ]
+define DrawBuffer::         , bind              :
+    value : ->
+        if !getPtriUint8 this + DRAWBUFFER_ISBINDED
+            setPtriUint8 this + DRAWBUFFER_ISBINDED, 1
+
+            ptri = +this
+
+            for ptrj in findChilds @parent, DrawBuffer, construct = no
+                setPtriUint8 ptrj + DRAWBUFFER_ISBINDED, 0 if ptri - ptrj
+
+            if !stri = getPtriUint8 ptri + DRAWBUFFER_BINDBINDING
+                gl = @parent.glObject
+                fn = gl.bindBuffer.bind gl, @target, @glObject
+                setPtriUint8 ptri + DRAWBUFFER_BINDBINDING, stri = storeForUint8 fn
+
+            storage[ stri ]()
+        1
+define DrawBuffer::         , debug             :
+    get : -> Object.defineProperties this,
+        bind : get : @bind
+define DrawBuffer::         , isBinded          :
+    enumerable : on
+    get : -> getPtriUint8 this + DRAWBUFFER_ISBINDED
+define DrawBuffer::         , target            :
+    enumerable : on
+    set : ->
+        setPtriUint16 this + DRAWBUFFER_TARGET, arguments[0]
+    get : ->
+        if !target = getPtriUint16 this + DRAWBUFFER_TARGET
+            return @target = keyOfWebGL2 "ARRAY_BUFFER"
+        keyOfWebGL2 target        
+define DrawCall::           , target            :
+    enumerable : on
+    set : ->
+        setPtriUint16 this + DRAWCALL_TARGET, arguments[0]
+    get : ->
+        if !target = getPtriUint16 this + DRAWCALL_TARGET
+            return @target = keyOfWebGL2 "ARRAY_BUFFER"
+        keyOfWebGL2 target
+define DrawCall::           , usage             :
+    enumerable : on
+    set : ->
+        setPtriUint16 this + DRAWCALL_USAGE, arguments[0]
+    get : ->
+        if !usage = getPtriUint16 this + DRAWCALL_USAGE
+            return @usage = keyOfWebGL2 "STATIC_DRAW"
+        keyOfWebGL2 usage
+define RenderingContext::   , setDefaultBuffer  :
+    value : ( ptri ) ->
+        setPtriUint32 this + RENDERING_CONTEXT_DBUFFER, ptri
+define RenderingContext::   , getDefaultBuffer  :
+    value : ->
+        if !ptri = getPtriUint32 this + RENDERING_CONTEXT_DBUFFER
+            if !ptri = findChilds( this, DrawBuffer ).last()
+                addChildren this , ptri = new_Pointer DrawBuffer
+            setPtriUint32 this + RENDERING_CONTEXT_DBUFFER, ptri
+        new DrawBuffer ptri
+define RenderingContext::   , setDefaultProgram :
+    value : ( ptri ) ->
+        setPtriUint32 this + RENDERING_CONTEXT_DPROGRAM, ptri
+define RenderingContext::   , getDefaultProgram :
+    value : ->
+        if !ptri = getPtriUint32 this + RENDERING_CONTEXT_DPROGRAM
+            if !ptri = findChilds( this, Program ).last()
+                addChildren this, ptri = new_Pointer Program
+                ptri.name = "default"
+            setPtriUint32 this + RENDERING_CONTEXT_DPROGRAM, ptri
+        new Program ptri
 define RenderingContext::   , glObject          :
     get : ->
         if !stri = getPtriUint8 this + RENDERING_CONTEXT_GLOBJECT
@@ -667,7 +792,8 @@ define Program::            , bindVertexArray   :
 define Program::            , getSource         :
     value : ->
         if !ptrj = getPtriUint32 this + PROGRAM_SHADER_SOURCE
-            if !ptrj = findPointer ptrByteCompare.bind null, this
+            test = ptrByteCompare.bind null, this 
+            if !ptrj = findPointer test, ProgramSource
                 return undefined
             return @setSource ptrj            
         return new ProgramSource ptrj
@@ -705,15 +831,14 @@ define Mesh::               , getNeedsUpdate    :
 define Mesh::               , modifierMatrix    :
     enumerable: on,
     get : ->
+define Uniform              , getLocation       :
+    value : ( program, name ) ->
+        program.parent.glObject
+            .getUniformLocation program.glObject, name
 define Uniform::            , name              :
     enumerable : on
     get : -> decode sliceUint8 this
     set : Text::set
-define Uniform::            , getLocation       :
-    enumerable : on
-    value : ( program ) ->
-        program.parent.glObject
-            .getUniformLocation program.glObject, @name        
 define Uniform::            , size              :
     enumerable : on
     get : -> getPtriUint8 this + UNIFORM_SIZE
@@ -763,12 +888,13 @@ define VertexAttribute::    , name              :
     enumerable : on
     get : -> decode sliceUint8 this
     set : Text::set
-define VertexAttribute::    , getLocation       :
-    value : ( program ) ->
-        if !program
-            return getPtriUint8 this + ATTRIBUTE_LOCATION
+define VertexAttribute      , getLocation       :
+    value : ( program, name ) ->
         gl = program.parent.glObject
-        gl . getAttribLocation program.glObject, @name
+        gl . getAttribLocation program.glObject, name
+define VertexAttribute::    , getLocation       :
+    value : ( program ) -> 
+        getPtriUint8 this + ATTRIBUTE_LOCATION
 define VertexAttribute::    , setLocation       :
     value : ->
         setPtriUint8 this + ATTRIBUTE_LOCATION, arguments[0]
@@ -870,7 +996,7 @@ define ProgramSource::      , documentScripts   :
         vertexShader   : v
         computeShader  : c
         fragmentShader : f
-define ProgramSource::      , linkedPrograms            :
+define ProgramSource::      , linkedPrograms    :
     enumerable: on,
     get : ->
         ptri = +this
@@ -880,23 +1006,23 @@ define ProgramSource::      , BYTES_PER_POINT   :
         if !bpp = getPtriUint32 this + SHADER_SOURCE_BYTES_PERP
             bpp = setPtriUint32 this + SHADER_SOURCE_BYTES_PERP, @parameters.ATTRIBUTES_STRIDE
         bpp
-define ProgramSource::       , findUniform       :
+define ProgramSource::      , findUniform       :
     value : ( name ) ->
         for attr in findChilds this, Uniform
             return attr if attr.name is name
         return
-define ProgramSource::       , findVertexAttrib  :
+define ProgramSource::      , findVertexAttrib  :
     value : ( name ) ->
         for attr in findChilds this, VertexAttribute
             return attr if attr.name is name
 
         return
-define ProgramSource::       , findVertexArray   :
+define ProgramSource::      , findVertexArray   :
     value : ( name ) ->
         for varr in findChilds this, VertexArray
             return varr if varr.name is name
         return
-define ProgramSource::       , getParameters     :
+define ProgramSource::      , getParameters     :
     value : ->
         gl = new OffscreenCanvas(1,1).getContext "webgl2"
 
@@ -1124,7 +1250,7 @@ for name, Class of reDefine = classes
 
     continue
 
-for Class in [ VertexArray, VertexAttribute, Uniform, Program ]
+for Class in [ VertexArray, VertexAttribute, Uniform, Program, DrawBuffer ]
     define Class::, children : new PtriArray
 
 #? <----------------------------------------> ?#
@@ -1160,3 +1286,5 @@ warn "rc2.findChild Inheritable Viewport:", findChild rc2, Viewport, on
 
 warn "sc.findChild Inheritable ProgramSource:", findChild rc2, Viewport, on
 warn "ss2.parameters:", ss2.parameters
+warn "sc.defctx:", sc.defaultContext.defaultBuffer.bind()
+warn "sc.defctx:", storage
