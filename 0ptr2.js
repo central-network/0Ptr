@@ -1,4 +1,4 @@
-var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, Class, DRAWBUFFER_BINDBINDING, DRAWBUFFER_BYTELENGTH, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_RESIZEBINDING, DRAWBUFFER_TARGET, DRAWBUFFER_USAGE, DRAWCALL_DBUFFER, DRAWCALL_DRAWBINDING, DRAWCALL_DSTBYTEOFFSET, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_STATE, DRAWCALL_TARGET, DRAWCALL_TYPE, DRAWCALL_UPLOADBINDING, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, MESH_UPLOADED, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, addPtriUint32, addUint32, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, desc, dvw, encode, error, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint16, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, keyOfWebGL2, l, len, log, malloc, msh, name, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, ref2, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint16, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
+var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, Class, DRAWBUFFER_BINDBINDING, DRAWBUFFER_BYTELENGTH, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_RESIZEBINDING, DRAWBUFFER_TARGET, DRAWBUFFER_USAGE, DRAWCALL_DBUFFER, DRAWCALL_DRAWBINDING, DRAWCALL_DSTBYTEOFFSET, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_STATE, DRAWCALL_TARGET, DRAWCALL_TYPE, DRAWCALL_UPLOADBINDING, DRAWCALL_UPLOADED, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, MESH_UPLOADED, MESH_VERTICES, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, addPtriUint32, addUint32, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, desc, dvw, encode, error, f32, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint16, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, keyOfWebGL2, l, len, log, malloc, msh, msh2, name, new_Float32Array, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, ref2, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint16, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayFloat32, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
 
 import {
   parent
@@ -8,6 +8,10 @@ import {
 export var Pointer = class Pointer extends Number {};
 
 export var PtriArray = class PtriArray extends Array {};
+
+export var Vertices = class Vertices extends Float32Array {};
+
+export var Unallocated = class Unallocated extends Float32Array {};
 
 export var Scene = class Scene extends Pointer {};
 
@@ -27,9 +31,9 @@ export var Rotation = class Rotation extends Pointer {};
 
 export var Position = class Position extends Pointer {};
 
-export var Vertices = class Vertices extends Pointer {};
-
 export var Mesh = class Mesh extends Pointer {};
+
+export var ModifierMatrix = class ModifierMatrix extends Pointer {};
 
 export var Text = class Text extends Pointer {};
 
@@ -61,7 +65,7 @@ export var CPU = class CPU extends Text {};
 
 export var GPU = class GPU extends Pointer {};
 
-export default classes = new Object({Scene, DrawCall, Viewport, ClearColor, ClearMask, Color, Scale, Rotation, Position, Vertices, Mesh, Id, ProgramSource, VertexShader, FragmentShader, EventHandler, Program, RenderingContext, VertexArray, VertexAttribute, Uniform, CPU, GPU, PtriArray, DrawBuffer});
+export default classes = new Object({Scene, DrawCall, Viewport, ClearColor, ClearMask, Color, Scale, Rotation, Position, ModifierMatrix, Mesh, Id, ProgramSource, VertexShader, FragmentShader, EventHandler, Program, RenderingContext, VertexArray, VertexAttribute, Uniform, CPU, GPU, PtriArray, DrawBuffer});
 
 GL2KEY = Object.keys(WebGL2RenderingContext);
 
@@ -78,6 +82,8 @@ dvw = new DataView(sab);
 ui8 = new Uint8Array(sab);
 
 u32 = new Uint32Array(sab);
+
+f32 = new Float32Array(sab);
 
 iLE = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
 
@@ -103,6 +109,8 @@ PTR_BYTELENGTH = 4 * BPE;
 SCENE_DEFAULT_CONTEXT = 5 * BPE;
 
 MESH_UPLOADED = 5 * BPE;
+
+MESH_VERTICES = 6 * BPE;
 
 DRAWBUFFER_GLOBJECT = 5 * BPE;
 
@@ -131,6 +139,8 @@ DRAWCALL_PROGRAM = 8 * BPE;
 DRAWCALL_TYPE = 9 * BPE;
 
 DRAWCALL_STATE = DRAWCALL_TYPE + 1;
+
+DRAWCALL_UPLOADED = DRAWCALL_TYPE + 2;
 
 DRAWCALL_DSTBYTEOFFSET = 10 * BPE;
 
@@ -215,7 +225,13 @@ decode = TextDecoder.prototype.decode.bind(new TextDecoder);
 
 palloc = Atomics.add.bind(Atomics, u32, 0, POINTER_BYTELENGTH);
 
-malloc = Atomics.add.bind(Atomics, u32, 1);
+malloc = function(byteLength = 0) {
+  var mod;
+  if (mod = Atomics.load(u32, 1) % 8) {
+    Atomics.add(u32, 1, 8 - mod);
+  }
+  return Atomics.add(u32, 1, byteLength);
+};
 
 export var storage = new (Storage = class Storage extends Array {
   constructor() {
@@ -504,6 +520,12 @@ new_Uint8Array = function(ptri, byteOffset, length) {
   return new Uint8Array(sab, byteOffset, length);
 };
 
+new_Float32Array = function(ptri, byteOffset, length) {
+  length || (length = getByteLength(ptri) / 4);
+  byteOffset = getByteOffset(ptri) + byteOffset || 0;
+  return new Float32Array(sab, byteOffset, length);
+};
+
 subarrayUint8 = function(ptri, begin, end) {
   var length, offset;
   offset = getByteOffset(ptri);
@@ -526,6 +548,14 @@ subarrayUint32 = function(ptri, begin, end) {
   length = getByteLength(ptri) / 4;
   end || (end = length + (begin || (begin = begin || 0)));
   return u32.subarray(begin + offset, end + offset);
+};
+
+subarrayFloat32 = function(ptri, begin, end) {
+  var length, offset;
+  offset = getByteOffset(ptri) / 4;
+  length = getByteLength(ptri) / 4;
+  end || (end = length + (begin || (begin = begin || 0)));
+  return f32.subarray(begin + offset, end + offset);
 };
 
 ptrByteCompare = function(ptri, ptrj) {
@@ -618,10 +648,18 @@ findChilds = function(ptri, Class, construct = true) {
   return list;
 };
 
-findPointer = function(test, Class) {
+findPointer = function(test, Class, construct = true) {
   var clsi, ptr, ptrj;
   ptrj = Atomics.load(u32);
   if (!Class) {
+    if (!construct) {
+      while (ptrj -= POINTER_BYTELENGTH) {
+        if (test(ptr = ptrj)) {
+          return ptr;
+        }
+      }
+      return void 0;
+    }
     while (ptrj -= POINTER_BYTELENGTH) {
       if (test(ptr = ptr_Pointer(ptrj))) {
         return ptr;
@@ -630,6 +668,16 @@ findPointer = function(test, Class) {
     return void 0;
   } else {
     clsi = storage.indexOf(Class);
+    if (!construct) {
+      while (ptrj -= POINTER_BYTELENGTH) {
+        if (clsi - getClassIndex(ptrj)) {
+          continue;
+        }
+        if (test(ptr = ptrj)) {
+          return ptr;
+        }
+      }
+    }
     while (ptrj -= POINTER_BYTELENGTH) {
       if (clsi - getClassIndex(ptrj)) {
         continue;
@@ -1089,11 +1137,11 @@ define(DrawCall.prototype, {
   upload: {
     value: function() {
       var fn, gl, stri;
-      if (!getPtriUint8(this + MESH_UPLOADED)) {
-        setPtriUint8(this + MESH_UPLOADED, 1);
+      if (!getPtriUint8(this + DRAWCALL_UPLOADED)) {
+        setPtriUint8(this + DRAWCALL_UPLOADED, 1);
         if (!(stri = getPtriUint32(this + DRAWCALL_UPLOADBINDING))) {
           gl = this.renderingContext.glObject;
-          fn = gl.bufferSubData.bind(gl, this.target, this.dstByteOffset, this.parent.vertices);
+          fn = gl.bufferSubData.bind(gl, this.target, this.dstByteOffset, this.vertexAttribArray);
           stri = storeForUint32(fn);
           setPtriUint32(this + DRAWCALL_UPLOADBINDING, stri);
         }
@@ -1107,10 +1155,19 @@ define(DrawCall.prototype, {
 });
 
 define(DrawCall.prototype, {
-  dstByteLength: {
+  byteLength: {
     enumerable: true,
     get: function() {
       return this.program.BYTES_PER_POINT * this.parent.pointCount;
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  vertexAttribArray: {
+    enumerable: true,
+    get: function() {
+      return new_Float32Array(this.drawBuffer, this.dstByteOffset, this.byteLength / 4);
     }
   }
 });
@@ -1121,7 +1178,7 @@ define(DrawCall.prototype, {
     get: function() {
       var byteOffset;
       if (!(byteOffset = getPtriUint32(this + DRAWCALL_DSTBYTEOFFSET))) {
-        byteOffset = this.drawBuffer.malloc(this.dstByteLength);
+        byteOffset = this.drawBuffer.malloc(this.byteLength);
         setPtriUint32(this + DRAWCALL_DSTBYTEOFFSET, byteOffset);
       }
       return byteOffset;
@@ -1700,6 +1757,20 @@ define(Program.prototype, {
   }
 });
 
+define(Vertices.prototype, {
+  set: {
+    value: function(value = []) {
+      var byte, construct, mesh, test;
+      byte = this.byteOffset;
+      test = function(ptri) {
+        return 0 === byte - getByteOffset(ptri);
+      };
+      mesh = findPointer(test, Mesh, construct = false);
+      return new Mesh(mesh).setVertices(value);
+    }
+  }
+});
+
 define(Mesh.prototype, {
   TypedArray: {
     value: Float32Array
@@ -1723,14 +1794,51 @@ define(Mesh.prototype, {
 define(Mesh.prototype, {
   getVertices: {
     value: function() {
-      return new Float32Array(sab, 36, Math.trunc(this / 3));
+      var byteOffset, length, ptri;
+      if (!(byteOffset = getByteOffset(ptri = this))) {
+        return Object.defineProperties(new Unallocated, {
+          set: {
+            value: function(value = []) {
+              return Mesh.prototype.setVertices.call(ptri, value);
+            }
+          }
+        });
+      }
+      length = getByteLength(this) / 4;
+      return new Vertices(sab, byteOffset, length);
     }
   }
 });
 
 define(Mesh.prototype, {
   setVertices: {
-    value: function() {}
+    value: function(value = [], index = 0) {
+      var byteLength, byteOffset, length;
+      if (value instanceof Mesh) {
+        value = value.vertices;
+      }
+      if (ArrayBuffer.isView(value) || Array.isArray(value)) {
+        if (!(byteOffset = getByteOffset(this))) {
+          byteOffset = malloc(byteLength);
+          byteLength = value.length * 4;
+          setByteOffset(this, byteOffset);
+          setByteLength(this, byteLength);
+        } else {
+          byteLength = getByteLength(this);
+        }
+        length = byteLength / 4 - index;
+        index += byteOffset / 4;
+        f32.subarray(index, index + length).set(value);
+        return this;
+      }
+      throw /VERTICES_SET/;
+    }
+  }
+});
+
+define(Mesh.prototype, {
+  set: {
+    value: Mesh.prototype.setVertices
   }
 });
 
@@ -1801,7 +1909,9 @@ define(Mesh.prototype, {
 define(Mesh.prototype, {
   modifierMatrix: {
     enumerable: true,
-    get: function() {}
+    get: function() {
+      return new ModifierMatrix();
+    }
   }
 });
 
@@ -2581,6 +2691,8 @@ warn("sc:", sc = new_Pointer(Scene));
 
 warn("mesh:", msh = new_Pointer(Mesh));
 
+warn("mesh2:", msh2 = new_Pointer(Mesh));
+
 warn("ss1:", ss1 = new_Pointer(ProgramSource).set("default"));
 
 warn("ss1:", ss2 = new_Pointer(ProgramSource).set("my-avesome-vertex-shader"));
@@ -2630,6 +2742,10 @@ warn("ss2.parameters:", ss2.parameters);
 
 warn("sc.defctx:", sc.defaultContext.defaultBuffer.bind());
 
+warn("msh.set:", msh.set([0, 0, 0, 0, 0.5, 0, 0.7, 0, 0]));
+
 warn("msh.append new_Pointer( DrawCall ):", msh.append(new_Pointer(DrawCall)));
 
 warn("msh.append new_Pointer( DrawCall ):", msh.append(new_Pointer(DrawCall)));
+
+warn("msh2", self.mesh = msh2);

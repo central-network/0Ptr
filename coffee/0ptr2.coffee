@@ -3,6 +3,8 @@ import { parent } from "./window.coffee"
 #? hello world <3
 export class Pointer            extends Number
 export class PtriArray          extends Array
+export class Vertices           extends Float32Array
+export class Unallocated        extends Float32Array
 export class Scene              extends Pointer
 export class DrawCall           extends Pointer
 export class Viewport           extends Pointer
@@ -12,8 +14,8 @@ export class Color              extends Pointer
 export class Scale              extends Pointer
 export class Rotation           extends Pointer
 export class Position           extends Pointer
-export class Vertices           extends Pointer
 export class Mesh               extends Pointer
+export class ModifierMatrix     extends Pointer
 export class Text               extends Pointer
 export class Id                 extends Text
 export class ProgramSource      extends Text
@@ -32,7 +34,7 @@ export class GPU                extends Pointer
 
 export default classes = new Object {
     Scene, DrawCall, Viewport, ClearColor, ClearMask, 
-    Color, Scale, Rotation, Position, Vertices,
+    Color, Scale, Rotation, Position, ModifierMatrix,
     Mesh, Id, ProgramSource, VertexShader, FragmentShader, 
     EventHandler, Program, RenderingContext, VertexArray, 
     VertexAttribute, Uniform, CPU, GPU, PtriArray, DrawBuffer
@@ -48,7 +50,8 @@ sab = new SharedArrayBuffer 1e7
 dvw = new DataView sab
 ui8 = new Uint8Array sab
 u32 = new Uint32Array sab
-iLE = new Uint8Array(Uint16Array.of(1).buffer)[0] is 1
+f32 = new Float32Array sab
+iLE = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
 BPE = 4
 
 #? <----------------------------------------> ?#
@@ -68,6 +71,7 @@ PTR_BYTELENGTH              = 4 * BPE
 SCENE_DEFAULT_CONTEXT       = 5 * BPE
 
 MESH_UPLOADED               = 5 * BPE
+MESH_VERTICES               = 6 * BPE
 
 DRAWBUFFER_GLOBJECT         = 5 * BPE
 DRAWBUFFER_ISBINDED         = 6 * BPE
@@ -84,6 +88,7 @@ DRAWCALL_RCONTEXT           = 7 * BPE
 DRAWCALL_PROGRAM            = 8 * BPE
 DRAWCALL_TYPE               = 9 * BPE
 DRAWCALL_STATE              = DRAWCALL_TYPE + 1
+DRAWCALL_UPLOADED           = DRAWCALL_TYPE + 2
 DRAWCALL_DSTBYTEOFFSET      = 10 * BPE
 DRAWCALL_DRAWBINDING        = 11 * BPE
 DRAWCALL_UPLOADBINDING      = 12 * BPE
@@ -135,7 +140,10 @@ getown = Object.getOwnPropertyDescriptor
 encode = TextEncoder::encode.bind new TextEncoder
 decode = TextDecoder::decode.bind new TextDecoder
 palloc = Atomics.add.bind Atomics, u32, 0, POINTER_BYTELENGTH
-malloc = Atomics.add.bind Atomics, u32, 1
+malloc = ( byteLength = 0 ) ->
+    if  mod = Atomics.load( u32, 1 ) % 8 
+        Atomics.add u32, 1, 8 - mod
+    Atomics.add u32, 1, byteLength
 
 export storage = new (class Storage extends Array
     constructor     : -> super( arguments... ).add null
@@ -319,6 +327,12 @@ new_Uint8Array  = ( ptri, byteOffset, length ) ->
 
     new Uint8Array sab, byteOffset, length
 
+new_Float32Array= ( ptri, byteOffset, length ) ->
+    length ||= getByteLength( ptri ) / 4
+    byteOffset = getByteOffset( ptri ) + byteOffset || 0
+
+    new Float32Array sab, byteOffset, length
+
 subarrayUint8   = ( ptri, begin, end ) ->
     offset = getByteOffset( ptri )
     length = getByteLength( ptri )
@@ -339,6 +353,13 @@ subarrayUint32  = ( ptri, begin, end ) ->
 
     end ||= length + begin ||= begin or 0
     u32.subarray begin + offset, end + offset 
+
+subarrayFloat32 = ( ptri, begin, end ) ->
+    offset = getByteOffset( ptri ) / 4
+    length = getByteLength( ptri ) / 4
+
+    end ||= length + begin ||= begin or 0
+    f32.subarray begin + offset, end + offset 
 
 ptrByteCompare  = ( ptri, ptrj ) ->
     return 0 unless ptri - ptrj #non-same
@@ -403,16 +424,27 @@ findChilds      = ( ptri, Class, construct = on ) ->
 
     return list
 
-findPointer     = ( test, Class ) ->
+findPointer     = ( test, Class, construct = on ) ->
     ptrj = Atomics.load u32
 
     if !Class
+        if !construct
+            while ptrj -= POINTER_BYTELENGTH
+                return ptr if test ptr = ptrj
+            return undefined
+
         while ptrj -= POINTER_BYTELENGTH
             return ptr if test ptr = ptr_Pointer ptrj
         return undefined
 
     else
         clsi = storage.indexOf Class
+
+        if !construct
+            while ptrj -= POINTER_BYTELENGTH
+                continue if clsi - getClassIndex ptrj
+                return ptr if test ptr = ptrj
+            
         while ptrj -= POINTER_BYTELENGTH
             continue if clsi - getClassIndex ptrj
             return ptr if test ptr = ptr_Pointer ptrj
@@ -619,12 +651,12 @@ define DrawCall::           , type              :
         keyOfWebGL2 type, min = 0
 define DrawCall::           , upload            :
     value : ->
-        if !getPtriUint8 this + MESH_UPLOADED
-            setPtriUint8 this + MESH_UPLOADED, 1
+        if !getPtriUint8 this + DRAWCALL_UPLOADED
+            setPtriUint8 this + DRAWCALL_UPLOADED, 1
 
             if !stri = getPtriUint32 this + DRAWCALL_UPLOADBINDING
                 gl   = @renderingContext.glObject
-                fn   = gl.bufferSubData.bind gl, @target, @dstByteOffset, @parent.vertices 
+                fn   = gl.bufferSubData.bind gl, @target, @dstByteOffset, @vertexAttribArray 
                 stri = storeForUint32 fn
                 setPtriUint32 this + DRAWCALL_UPLOADBINDING, stri
 
@@ -632,14 +664,18 @@ define DrawCall::           , upload            :
             storage[ stri ]()
             return 1
         0
-define DrawCall::           , dstByteLength     :
+define DrawCall::           , byteLength        :
     enumerable : on
     get : -> @program.BYTES_PER_POINT * @parent.pointCount
+define DrawCall::           , vertexAttribArray :
+    enumerable : on
+    get : ->
+        new_Float32Array @drawBuffer, @dstByteOffset, @byteLength / 4
 define DrawCall::           , dstByteOffset     :
     enumerable : on
     get : ->
         if !byteOffset = getPtriUint32 this + DRAWCALL_DSTBYTEOFFSET
-            byteOffset = @drawBuffer.malloc @dstByteLength
+            byteOffset = @drawBuffer.malloc @byteLength
             setPtriUint32 this + DRAWCALL_DSTBYTEOFFSET, byteOffset
 
         byteOffset
@@ -997,6 +1033,12 @@ define Program::            , BYTES_PER_POINT   :
 define Program::            , setSource         :
     value : ->
         setPtriUint32 this + PROGRAM_SHADER_SOURCE, arguments[0]
+define Vertices::           , set               :
+    value : ( value = [] ) ->
+        byte = @byteOffset
+        test = ( ptri ) -> 0 is byte - getByteOffset ptri
+        mesh = findPointer test, Mesh, construct = off
+        new Mesh( mesh ).setVertices value
 define Mesh::               , TypedArray        :
     value : Float32Array
 define Mesh::               , getPointCount     :
@@ -1004,9 +1046,40 @@ define Mesh::               , getPointCount     :
 define Mesh::               , getDrawingState   :
     value : ->
 define Mesh::               , getVertices       :
-    value : -> new Float32Array sab, 36, Math.trunc this / 3
+    value : -> 
+        if !byteOffset = getByteOffset ptri = this
+            return Object.defineProperties new Unallocated,
+                set : value : ( value = [] ) ->
+                    Mesh::setVertices.call ptri, value
+        length = getByteLength( this ) / 4 
+        new Vertices sab, byteOffset, length
 define Mesh::               , setVertices       :
-    value : ->
+    value : ( value = [], index = 0 ) ->
+        if  value instanceof Mesh
+            value = value.vertices
+
+        if  ArrayBuffer.isView( value ) or Array.isArray( value )
+
+            if !byteOffset = getByteOffset this
+                byteOffset = malloc byteLength
+                byteLength = value.length * 4
+
+                setByteOffset this, byteOffset
+                setByteLength this, byteLength
+
+            else
+                byteLength = getByteLength this
+
+            length = byteLength / 4 - index 
+            index += byteOffset / 4
+
+            f32.subarray( index, index + length ).set value
+                
+            return this
+
+        throw /VERTICES_SET/
+define Mesh::               , set               :
+    value : Mesh::setVertices  
 define Mesh::               , getPosition       :
     value : ->
 define Mesh::               , getRotation       :
@@ -1029,7 +1102,7 @@ define Mesh::               , setNeedsUpdate    :
     value : -> setPtriUint8 this + MESH_UPLOADED, arguments[0]
 define Mesh::               , modifierMatrix    :
     enumerable: on,
-    get : ->
+    get : -> new ModifierMatrix()
 define Uniform              , getLocation       :
     value : ( program, name ) ->
         program.parent.glObject
@@ -1458,6 +1531,7 @@ for Class in [ VertexArray, VertexAttribute, Uniform, Program, DrawBuffer ]
 
 warn "sc:", sc = new_Pointer( Scene )
 warn "mesh:", msh = new_Pointer( Mesh )
+warn "mesh2:", msh2 = new_Pointer( Mesh )
 warn "ss1:", ss1 = new_Pointer( ProgramSource ).set("default")
 warn "ss1:", ss2 = new_Pointer( ProgramSource ).set("my-avesome-vertex-shader")
 warn "rc1:", rc1 = new_Pointer( RenderingContext )
@@ -1486,5 +1560,11 @@ warn "rc2.findChild Inheritable Viewport:", findChild rc2, Viewport, on
 warn "sc.findChild Inheritable ProgramSource:", findChild rc2, Viewport, on
 warn "ss2.parameters:", ss2.parameters
 warn "sc.defctx:", sc.defaultContext.defaultBuffer.bind()
+warn "msh.set:", msh.set([
+    0,   0,  0,
+    0,  0.5, 0,
+    0.7,  0, 0,
+])
 warn "msh.append new_Pointer( DrawCall ):", msh.append new_Pointer( DrawCall )
 warn "msh.append new_Pointer( DrawCall ):", msh.append new_Pointer( DrawCall )
+warn "msh2", self.mesh = msh2
