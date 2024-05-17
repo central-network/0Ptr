@@ -72,8 +72,10 @@ DRAWBUFFER_ISBINDED         = 6 * BPE
 DRAWBUFFER_BINDBINDING      = DRAWBUFFER_ISBINDED + 1
 DRAWBUFFER_TARGET           = DRAWBUFFER_ISBINDED + 2
 
+DRAWCALL_DBUFFER            = 5 * BPE
 DRAWCALL_TARGET             = 6 * BPE
 DRAWCALL_USAGE              = DRAWCALL_TARGET + 2
+DRAWCALL_RCONTEXT           = 7 * BPE
 
 PROGRAM_GLPROGRAM           = 5 * BPE
 PROGRAM_USEBINDING          = PROGRAM_GLPROGRAM + 1
@@ -101,6 +103,7 @@ RENDERING_CONTEXT_GLOBJECT  = 5 * BPE
 RENDERING_CONTEXT_VIEWPORT  = 6 * BPE
 RENDERING_CONTEXT_DPROGRAM  = 7 * BPE
 RENDERING_CONTEXT_DBUFFER   = 8 * BPE
+RENDERING_CONTEXT_DRAWCALL  = 9 * BPE
 
 VIEWPORT_X                  = 3 * BPE # PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
 VIEWPORT_Y                  = 4 * BPE # PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
@@ -536,27 +539,100 @@ define DrawCall::           , usage             :
         if !usage = getPtriUint16 this + DRAWCALL_USAGE
             return @usage = keyOfWebGL2 "STATIC_DRAW"
         keyOfWebGL2 usage
-define RenderingContext::   , setDefaultBuffer  :
-    value : ( ptri ) ->
-        setPtriUint32 this + RENDERING_CONTEXT_DBUFFER, ptri
-define RenderingContext::   , getDefaultBuffer  :
-    value : ->
+define DrawCall::           , renderingContext  :
+    enumerable : on
+    get : ->
+        if !ptri = getPtriUint32 this + DRAWCALL_RCONTEXT
+            
+            ptrj = +this
+            ctxi = 0
+            clsi = storage.indexOf RenderingContext
+
+            while ptrj
+                if !ptrk = getParent ptrj
+                    if  ptrk = ptr_Pointer( ptrj ).defaultContext
+                        ctxi = ptrk
+                        break
+                    throw /DRAW_CALLS_CTX/
+                
+                ptrj = ptrk
+                continue if clsi - getClassIndex ptrj
+
+                ctxi = ptrj
+                break
+
+            if !ctxi
+                scni = findPointer( (-> 1), Scene )
+                if !ctxi = scni.defaultContext
+                    throw /DRAW_CALLS_CTX/
+
+            if !ptri = setPtriUint32 this + DRAWCALL_RCONTEXT, ctxi
+                throw /DRAW_CALLS_CTX/
+
+        new RenderingContext ptri
+define DrawCall::           , drawBuffer        :
+    enumerable : on
+    get : ->
+        if !ptri = getPtriUint32 this + DRAWCALL_DBUFFER
+
+            if !getPtriUint16 this + DRAWCALL_TARGET
+                { target, usage, drawBuffer } =
+                    @renderingContext.defaultDrawCall
+
+                setPtriUint32 this + DRAWCALL_DBUFFER, drawBuffer
+                setPtriUint16 this + DRAWCALL_TARGET, target
+                setPtriUint16 this + DRAWCALL_USAGE, usage
+
+            else
+                if  bufi = @renderingContext.defaultBuffer
+                    unless bufi.target - this.target
+                        setPtriUint32 this + DRAWCALL_DBUFFER, bufi
+
+                for bufi in findChilds @renderingContext, DrawBuffer
+                    unless bufi.target - this.target
+                        setPtriUint32 this + DRAWCALL_DBUFFER, bufi
+                        break
+               
+            if !ptri = getPtriUint32 this + DRAWCALL_DBUFFER
+                throw /DRAW_CALLS_BUFFER/
+
+        new DrawBuffer ptri
+define RenderingContext::   , defaultBuffer     :
+    enumerable : on
+    set : ->
+        setPtriUint32 this + RENDERING_CONTEXT_DBUFFER, arguments[0]
+    get : ->
         if !ptri = getPtriUint32 this + RENDERING_CONTEXT_DBUFFER
             if !ptri = findChilds( this, DrawBuffer ).last()
                 addChildren this , ptri = new_Pointer DrawBuffer
             setPtriUint32 this + RENDERING_CONTEXT_DBUFFER, ptri
         new DrawBuffer ptri
-define RenderingContext::   , setDefaultProgram :
-    value : ( ptri ) ->
-        setPtriUint32 this + RENDERING_CONTEXT_DPROGRAM, ptri
-define RenderingContext::   , getDefaultProgram :
-    value : ->
+define RenderingContext::   , defaultProgram    :
+    enumerable : on
+    set : ->
+        setPtriUint32 this + RENDERING_CONTEXT_DPROGRAM, arguments[0]
+    get : ->
         if !ptri = getPtriUint32 this + RENDERING_CONTEXT_DPROGRAM
             if !ptri = findChilds( this, Program ).last()
                 addChildren this, ptri = new_Pointer Program
                 ptri.name = "default"
             setPtriUint32 this + RENDERING_CONTEXT_DPROGRAM, ptri
         new Program ptri
+define RenderingContext::   , defaultDrawCall   :
+    enumerable : on
+    set : ->
+        setPtriUint32 this + RENDERING_CONTEXT_DRAWCALL, arguments[0]
+    get : ->
+        if !ptri = getPtriUint32 this + RENDERING_CONTEXT_DRAWCALL
+            if !ptri = findChilds( this, DrawCall ).last()
+                addChildren this, ptri = new_Pointer DrawCall
+
+                setPtriUint32 ptri + DRAWCALL_DBUFFER, @defaultBuffer
+                setPtriUint16 ptri + DRAWCALL_TARGET, @defaultBuffer.target
+                setPtriUint16 ptri + DRAWCALL_USAGE, keyOfWebGL2 "STATIC_DRAW"
+                
+            setPtriUint32 this + RENDERING_CONTEXT_DRAWCALL, ptri
+        new DrawCall ptri
 define RenderingContext::   , glObject          :
     get : ->
         if !stri = getPtriUint8 this + RENDERING_CONTEXT_GLOBJECT
@@ -1287,4 +1363,4 @@ warn "rc2.findChild Inheritable Viewport:", findChild rc2, Viewport, on
 warn "sc.findChild Inheritable ProgramSource:", findChild rc2, Viewport, on
 warn "ss2.parameters:", ss2.parameters
 warn "sc.defctx:", sc.defaultContext.defaultBuffer.bind()
-warn "sc.defctx:", storage
+warn "msh.append new_Pointer( DrawCall ):", msh.append new_Pointer( DrawCall )

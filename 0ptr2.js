@@ -1,4 +1,4 @@
-var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, Class, DRAWBUFFER_BINDBINDING, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_TARGET, DRAWCALL_TARGET, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, desc, dvw, encode, error, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint16, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, keyOfWebGL2, l, len, log, malloc, msh, name, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, ref2, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint16, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
+var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, Class, DRAWBUFFER_BINDBINDING, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_TARGET, DRAWCALL_DBUFFER, DRAWCALL_RCONTEXT, DRAWCALL_TARGET, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, desc, dvw, encode, error, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint16, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, keyOfWebGL2, l, len, log, malloc, msh, name, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, ref2, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint16, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
 
 import {
   parent
@@ -110,9 +110,13 @@ DRAWBUFFER_BINDBINDING = DRAWBUFFER_ISBINDED + 1;
 
 DRAWBUFFER_TARGET = DRAWBUFFER_ISBINDED + 2;
 
+DRAWCALL_DBUFFER = 5 * BPE;
+
 DRAWCALL_TARGET = 6 * BPE;
 
 DRAWCALL_USAGE = DRAWCALL_TARGET + 2;
+
+DRAWCALL_RCONTEXT = 7 * BPE;
 
 PROGRAM_GLPROGRAM = 5 * BPE;
 
@@ -157,6 +161,8 @@ RENDERING_CONTEXT_VIEWPORT = 6 * BPE;
 RENDERING_CONTEXT_DPROGRAM = 7 * BPE;
 
 RENDERING_CONTEXT_DBUFFER = 8 * BPE;
+
+RENDERING_CONTEXT_DRAWCALL = 9 * BPE;
 
 VIEWPORT_X = 3 * BPE; // PTR_BYTEOFFSET #? HAS NO BYTEOFFSET
 
@@ -931,17 +937,89 @@ define(DrawCall.prototype, {
   }
 });
 
-define(RenderingContext.prototype, {
-  setDefaultBuffer: {
-    value: function(ptri) {
-      return setPtriUint32(this + RENDERING_CONTEXT_DBUFFER, ptri);
+define(DrawCall.prototype, {
+  renderingContext: {
+    enumerable: true,
+    get: function() {
+      var clsi, ctxi, ptri, ptrj, ptrk, scni;
+      if (!(ptri = getPtriUint32(this + DRAWCALL_RCONTEXT))) {
+        ptrj = +this;
+        ctxi = 0;
+        clsi = storage.indexOf(RenderingContext);
+        while (ptrj) {
+          if (!(ptrk = getParent(ptrj))) {
+            if (ptrk = ptr_Pointer(ptrj).defaultContext) {
+              ctxi = ptrk;
+              break;
+            }
+            throw /DRAW_CALLS_CTX/;
+          }
+          ptrj = ptrk;
+          if (clsi - getClassIndex(ptrj)) {
+            continue;
+          }
+          ctxi = ptrj;
+          break;
+        }
+        if (!ctxi) {
+          scni = findPointer((function() {
+            return 1;
+          }), Scene);
+          if (!(ctxi = scni.defaultContext)) {
+            throw /DRAW_CALLS_CTX/;
+          }
+        }
+        if (!(ptri = setPtriUint32(this + DRAWCALL_RCONTEXT, ctxi))) {
+          throw /DRAW_CALLS_CTX/;
+        }
+      }
+      return new RenderingContext(ptri);
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  drawBuffer: {
+    enumerable: true,
+    get: function() {
+      var bufi, drawBuffer, l, len, ptri, ref, target, usage;
+      if (!(ptri = getPtriUint32(this + DRAWCALL_DBUFFER))) {
+        if (!getPtriUint16(this + DRAWCALL_TARGET)) {
+          ({target, usage, drawBuffer} = this.renderingContext.defaultDrawCall);
+          setPtriUint32(this + DRAWCALL_DBUFFER, drawBuffer);
+          setPtriUint16(this + DRAWCALL_TARGET, target);
+          setPtriUint16(this + DRAWCALL_USAGE, usage);
+        } else {
+          if (bufi = this.renderingContext.defaultBuffer) {
+            if (!(bufi.target - this.target)) {
+              setPtriUint32(this + DRAWCALL_DBUFFER, bufi);
+            }
+          }
+          ref = findChilds(this.renderingContext, DrawBuffer);
+          for (l = 0, len = ref.length; l < len; l++) {
+            bufi = ref[l];
+            if (!(bufi.target - this.target)) {
+              setPtriUint32(this + DRAWCALL_DBUFFER, bufi);
+              break;
+            }
+          }
+        }
+        if (!(ptri = getPtriUint32(this + DRAWCALL_DBUFFER))) {
+          throw /DRAW_CALLS_BUFFER/;
+        }
+      }
+      return new DrawBuffer(ptri);
     }
   }
 });
 
 define(RenderingContext.prototype, {
-  getDefaultBuffer: {
-    value: function() {
+  defaultBuffer: {
+    enumerable: true,
+    set: function() {
+      return setPtriUint32(this + RENDERING_CONTEXT_DBUFFER, arguments[0]);
+    },
+    get: function() {
       var ptri;
       if (!(ptri = getPtriUint32(this + RENDERING_CONTEXT_DBUFFER))) {
         if (!(ptri = findChilds(this, DrawBuffer).last())) {
@@ -955,16 +1033,12 @@ define(RenderingContext.prototype, {
 });
 
 define(RenderingContext.prototype, {
-  setDefaultProgram: {
-    value: function(ptri) {
-      return setPtriUint32(this + RENDERING_CONTEXT_DPROGRAM, ptri);
-    }
-  }
-});
-
-define(RenderingContext.prototype, {
-  getDefaultProgram: {
-    value: function() {
+  defaultProgram: {
+    enumerable: true,
+    set: function() {
+      return setPtriUint32(this + RENDERING_CONTEXT_DPROGRAM, arguments[0]);
+    },
+    get: function() {
       var ptri;
       if (!(ptri = getPtriUint32(this + RENDERING_CONTEXT_DPROGRAM))) {
         if (!(ptri = findChilds(this, Program).last())) {
@@ -974,6 +1048,28 @@ define(RenderingContext.prototype, {
         setPtriUint32(this + RENDERING_CONTEXT_DPROGRAM, ptri);
       }
       return new Program(ptri);
+    }
+  }
+});
+
+define(RenderingContext.prototype, {
+  defaultDrawCall: {
+    enumerable: true,
+    set: function() {
+      return setPtriUint32(this + RENDERING_CONTEXT_DRAWCALL, arguments[0]);
+    },
+    get: function() {
+      var ptri;
+      if (!(ptri = getPtriUint32(this + RENDERING_CONTEXT_DRAWCALL))) {
+        if (!(ptri = findChilds(this, DrawCall).last())) {
+          addChildren(this, ptri = new_Pointer(DrawCall));
+          setPtriUint32(ptri + DRAWCALL_DBUFFER, this.defaultBuffer);
+          setPtriUint16(ptri + DRAWCALL_TARGET, this.defaultBuffer.target);
+          setPtriUint16(ptri + DRAWCALL_USAGE, keyOfWebGL2("STATIC_DRAW"));
+        }
+        setPtriUint32(this + RENDERING_CONTEXT_DRAWCALL, ptri);
+      }
+      return new DrawCall(ptri);
     }
   }
 });
@@ -2292,4 +2388,4 @@ warn("ss2.parameters:", ss2.parameters);
 
 warn("sc.defctx:", sc.defaultContext.defaultBuffer.bind());
 
-warn("sc.defctx:", storage);
+warn("msh.append new_Pointer( DrawCall ):", msh.append(new_Pointer(DrawCall)));
