@@ -16,7 +16,7 @@ export class Vertices           extends Pointer
 export class Mesh               extends Pointer
 export class Text               extends Pointer
 export class Id                 extends Text
-export class ShaderSource       extends Text
+export class ProgramSource       extends Text
 export class VertexShader       extends Pointer
 export class ComputeShader      extends Pointer
 export class FragmentShader     extends Pointer
@@ -33,7 +33,7 @@ export class GPU                extends Pointer
 export default classes = new Object {
     Scene, DrawCall, Viewport, ClearColor, ClearMask, 
     Color, Scale, Rotation, Position, Vertices, 
-    Mesh, Id, ShaderSource, VertexShader, FragmentShader, 
+    Mesh, Id, ProgramSource, VertexShader, FragmentShader, 
     EventHandler, Program, RenderingContext, VertexArray, 
     VertexAttribute, Uniform, CPU, GPU
 }
@@ -613,7 +613,7 @@ define Program::            , glObject          :
             gl = @parent.glObject
 
             #? create vertex shader ------------> 
-            vSource = @shaderSource.vertexShader
+            vSource = @source.vertexShader
             vShader = gl.createShader gl.VERTEX_SHADER 
     
             gl.shaderSource vShader, vSource
@@ -625,7 +625,7 @@ define Program::            , glObject          :
                 throw "Could not compile vertex shader. \n\n#{info}, \nsource:#{vSource}"
 
             #? create fragment shader ----------->
-            fSource = @shaderSource.fragmentShader
+            fSource = @source.fragmentShader
             fShader = gl.createShader gl.FRAGMENT_SHADER 
     
             gl.shaderSource fShader, fSource
@@ -659,19 +659,19 @@ define Program::            , bindVertexArray   :
         if !vaoi = getPtriUint8 this + PROGRAM_VAOBINDING
             
             gl2p = @parent.glObject
-            varr = @shaderSource.vertexArray
+            varr = @source.vertexArray
             vaoi = storeForUint8 varr.bound gl2p
 
             setPtriUint8 this + PROGRAM_VAOBINDING, vaoi
         storage[ vaoi ]()
-define Program::            , getShaderSource   :
+define Program::            , getSource         :
     value : ->
         if !ptrj = getPtriUint32 this + PROGRAM_SHADER_SOURCE
             if !ptrj = findPointer ptrByteCompare.bind null, this
                 return undefined
-            return @setShaderSource ptrj            
-        return new ShaderSource ptrj
-define Program::            , setShaderSource   :
+            return @setSource ptrj            
+        return new ProgramSource ptrj
+define Program::            , setSource         :
     value : ->
         setPtriUint32 this + PROGRAM_SHADER_SOURCE, arguments[0]
 define Mesh::               , TypedArray        :
@@ -840,22 +840,22 @@ define VertexArray::        , bound             :
             call gl
 
         return gl.bindVertexArray.bind gl, vao
-define ShaderSource::       , name              :
+define ProgramSource::      , name              :
     enumerable : on
     get : -> decode sliceUint8 this
     set : ( name ) ->
         setPtriUint32 this + SHADER_SOURCE_BYTES_PERP, 0
         Text.prototype.set.call this, name ; this
-define ShaderSource::       , vertexArray       :
+define ProgramSource::      , vertexArray       :
     enumerable : on
     get : -> findChild this, VertexArray
-define ShaderSource::       , vertexShader      :
+define ProgramSource::      , vertexShader      :
     get : -> @documentScripts.vertexShader?.text
-define ShaderSource::       , computeShader     :
+define ProgramSource::      , computeShader     :
     get : -> @documentScripts.computeShader?.text
-define ShaderSource::       , fragmentShader    :
+define ProgramSource::      , fragmentShader    :
     get : -> @documentScripts.fragmentShader?.text
-define ShaderSource::       , documentScripts   :
+define ProgramSource::      , documentScripts   :
     get : ->
         v = queryDocument "[name=#{@name}][type*='vertex']"
         c = queryDocument "[name=#{@name}][type*='compute']"
@@ -870,33 +870,33 @@ define ShaderSource::       , documentScripts   :
         vertexShader   : v
         computeShader  : c
         fragmentShader : f
-define ShaderSource::       , programs          :
+define ProgramSource::      , linkedPrograms            :
     enumerable: on,
     get : ->
         ptri = +this
-        findChilds( null, Program ).filter (p) -> 0 is ptri - p.shaderSource
-define ShaderSource::       , BYTES_PER_POINT   :
+        findChilds( null, Program ).filter (p) -> 0 is ptri - p.source
+define ProgramSource::      , BYTES_PER_POINT   :
     get : ->
         if !bpp = getPtriUint32 this + SHADER_SOURCE_BYTES_PERP
             bpp = setPtriUint32 this + SHADER_SOURCE_BYTES_PERP, @parameters.ATTRIBUTES_STRIDE
         bpp
-define ShaderSource::       , findUniform       :
+define ProgramSource::       , findUniform       :
     value : ( name ) ->
         for attr in findChilds this, Uniform
             return attr if attr.name is name
         return
-define ShaderSource::       , findVertexAttrib  :
+define ProgramSource::       , findVertexAttrib  :
     value : ( name ) ->
         for attr in findChilds this, VertexAttribute
             return attr if attr.name is name
 
         return
-define ShaderSource::       , findVertexArray   :
+define ProgramSource::       , findVertexArray   :
     value : ( name ) ->
         for varr in findChilds this, VertexArray
             return varr if varr.name is name
         return
-define ShaderSource::       , getParameters     :
+define ProgramSource::       , getParameters     :
     value : ->
         gl = new OffscreenCanvas(1,1).getContext "webgl2"
 
@@ -1124,7 +1124,7 @@ for name, Class of reDefine = classes
 
     continue
 
-for Class in [ VertexArray, VertexAttribute, Uniform ]
+for Class in [ VertexArray, VertexAttribute, Uniform, Program ]
     define Class::, children : new PtriArray
 
 #? <----------------------------------------> ?#
@@ -1133,8 +1133,8 @@ for Class in [ VertexArray, VertexAttribute, Uniform ]
 
 warn "sc:", sc = new_Pointer( Scene )
 warn "mesh:", msh = new_Pointer( Mesh )
-warn "ss1:", ss1 = new_Pointer( ShaderSource ).set("default")
-warn "ss1:", ss2 = new_Pointer( ShaderSource ).set("my-avesome-vertex-shader")
+warn "ss1:", ss1 = new_Pointer( ProgramSource ).set("default")
+warn "ss1:", ss2 = new_Pointer( ProgramSource ).set("my-avesome-vertex-shader")
 warn "rc1:", rc1 = new_Pointer( RenderingContext )
 warn "vp1:", vp1 = new_Pointer( Viewport )
 
@@ -1158,5 +1158,5 @@ warn "rc1.add p1:", rc1.add p1
 warn "rc1.findChild Inheritable Viewport:", findChild rc1, Viewport, on
 warn "rc2.findChild Inheritable Viewport:", findChild rc2, Viewport, on
 
-warn "sc.findChild Inheritable ShaderSource:", findChild rc2, Viewport, on
+warn "sc.findChild Inheritable ProgramSource:", findChild rc2, Viewport, on
 warn "ss2.parameters:", ss2.parameters

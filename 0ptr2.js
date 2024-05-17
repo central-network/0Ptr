@@ -35,7 +35,7 @@ export var Text = class Text extends Pointer {};
 
 export var Id = class Id extends Text {};
 
-export var ShaderSource = class ShaderSource extends Text {};
+export var ProgramSource = class ProgramSource extends Text {};
 
 export var VertexShader = class VertexShader extends Pointer {};
 
@@ -61,7 +61,7 @@ export var CPU = class CPU extends Text {};
 
 export var GPU = class GPU extends Pointer {};
 
-export default classes = new Object({Scene, DrawCall, Viewport, ClearColor, ClearMask, Color, Scale, Rotation, Position, Vertices, Mesh, Id, ShaderSource, VertexShader, FragmentShader, EventHandler, Program, RenderingContext, VertexArray, VertexAttribute, Uniform, CPU, GPU});
+export default classes = new Object({Scene, DrawCall, Viewport, ClearColor, ClearMask, Color, Scale, Rotation, Position, Vertices, Mesh, Id, ProgramSource, VertexShader, FragmentShader, EventHandler, Program, RenderingContext, VertexArray, VertexAttribute, Uniform, CPU, GPU});
 
 GL2KEY = Object.keys(WebGL2RenderingContext);
 
@@ -1044,7 +1044,7 @@ define(Program.prototype, {
       if (!(stri = getPtriUint8(this + PROGRAM_GLPROGRAM))) {
         gl = this.parent.glObject;
         //? create vertex shader ------------> 
-        vSource = this.shaderSource.vertexShader;
+        vSource = this.source.vertexShader;
         vShader = gl.createShader(gl.VERTEX_SHADER);
         gl.shaderSource(vShader, vSource);
         gl.compileShader(vShader);
@@ -1054,7 +1054,7 @@ define(Program.prototype, {
           throw `Could not compile vertex shader. \n\n${info}, \nsource:${vSource}`;
         }
         //? create fragment shader ----------->
-        fSource = this.shaderSource.fragmentShader;
+        fSource = this.source.fragmentShader;
         fShader = gl.createShader(gl.FRAGMENT_SHADER);
         gl.shaderSource(fShader, fSource);
         gl.compileShader(fShader);
@@ -1091,7 +1091,7 @@ define(Program.prototype, {
       var gl2p, vaoi, varr;
       if (!(vaoi = getPtriUint8(this + PROGRAM_VAOBINDING))) {
         gl2p = this.parent.glObject;
-        varr = this.shaderSource.vertexArray;
+        varr = this.source.vertexArray;
         vaoi = storeForUint8(varr.bound(gl2p));
         setPtriUint8(this + PROGRAM_VAOBINDING, vaoi);
       }
@@ -1101,22 +1101,22 @@ define(Program.prototype, {
 });
 
 define(Program.prototype, {
-  getShaderSource: {
+  getSource: {
     value: function() {
       var ptrj;
       if (!(ptrj = getPtriUint32(this + PROGRAM_SHADER_SOURCE))) {
         if (!(ptrj = findPointer(ptrByteCompare.bind(null, this)))) {
           return void 0;
         }
-        return this.setShaderSource(ptrj);
+        return this.setSource(ptrj);
       }
-      return new ShaderSource(ptrj);
+      return new ProgramSource(ptrj);
     }
   }
 });
 
 define(Program.prototype, {
-  setShaderSource: {
+  setSource: {
     value: function() {
       return setPtriUint32(this + PROGRAM_SHADER_SOURCE, arguments[0]);
     }
@@ -1521,7 +1521,7 @@ define(VertexArray.prototype, {
   }
 });
 
-define(ShaderSource.prototype, {
+define(ProgramSource.prototype, {
   name: {
     enumerable: true,
     get: function() {
@@ -1535,7 +1535,7 @@ define(ShaderSource.prototype, {
   }
 });
 
-define(ShaderSource.prototype, {
+define(ProgramSource.prototype, {
   vertexArray: {
     enumerable: true,
     get: function() {
@@ -1544,7 +1544,7 @@ define(ShaderSource.prototype, {
   }
 });
 
-define(ShaderSource.prototype, {
+define(ProgramSource.prototype, {
   vertexShader: {
     get: function() {
       var ref;
@@ -1553,7 +1553,7 @@ define(ShaderSource.prototype, {
   }
 });
 
-define(ShaderSource.prototype, {
+define(ProgramSource.prototype, {
   computeShader: {
     get: function() {
       var ref;
@@ -1562,7 +1562,7 @@ define(ShaderSource.prototype, {
   }
 });
 
-define(ShaderSource.prototype, {
+define(ProgramSource.prototype, {
   fragmentShader: {
     get: function() {
       var ref;
@@ -1571,7 +1571,7 @@ define(ShaderSource.prototype, {
   }
 });
 
-define(ShaderSource.prototype, {
+define(ProgramSource.prototype, {
   documentScripts: {
     get: function() {
       var $name, c, f, v;
@@ -1593,20 +1593,20 @@ define(ShaderSource.prototype, {
   }
 });
 
-define(ShaderSource.prototype, {
-  programs: {
+define(ProgramSource.prototype, {
+  linkedPrograms: {
     enumerable: true,
     get: function() {
       var ptri;
       ptri = +this;
       return findChilds(null, Program).filter(function(p) {
-        return 0 === ptri - p.shaderSource;
+        return 0 === ptri - p.source;
       });
     }
   }
 });
 
-define(ShaderSource.prototype, {
+define(ProgramSource.prototype, {
   BYTES_PER_POINT: {
     get: function() {
       var bpp;
@@ -1618,7 +1618,7 @@ define(ShaderSource.prototype, {
   }
 });
 
-define(ShaderSource.prototype, {
+define(ProgramSource.prototype, {
   findUniform: {
     value: function(name) {
       var attr, l, len, ref;
@@ -1633,7 +1633,7 @@ define(ShaderSource.prototype, {
   }
 });
 
-define(ShaderSource.prototype, {
+define(ProgramSource.prototype, {
   findVertexAttrib: {
     value: function(name) {
       var attr, l, len, ref;
@@ -1648,7 +1648,7 @@ define(ShaderSource.prototype, {
   }
 });
 
-define(ShaderSource.prototype, {
+define(ProgramSource.prototype, {
   findVertexArray: {
     value: function(name) {
       var l, len, ref, varr;
@@ -1663,7 +1663,7 @@ define(ShaderSource.prototype, {
   }
 });
 
-define(ShaderSource.prototype, {
+define(ProgramSource.prototype, {
   getParameters: {
     value: function() {
       var attrib, attribute, fShader, fSource, gl, gls, info, k, l, len, len1, len2, len3, m, n, numAttribs, numUniforms, p, parameters, pname, program, q, ref, ref1, ref2, ref3, ref4, ref5, s, shaders, split, tn, u, uniform, v, vShader, vSource, value, varr;
@@ -1971,7 +1971,7 @@ for (name in ref) {
   continue;
 }
 
-ref2 = [VertexArray, VertexAttribute, Uniform];
+ref2 = [VertexArray, VertexAttribute, Uniform, Program];
 for (l = 0, len = ref2.length; l < len; l++) {
   Class = ref2[l];
   define(Class.prototype, {
@@ -1986,9 +1986,9 @@ warn("sc:", sc = new_Pointer(Scene));
 
 warn("mesh:", msh = new_Pointer(Mesh));
 
-warn("ss1:", ss1 = new_Pointer(ShaderSource).set("default"));
+warn("ss1:", ss1 = new_Pointer(ProgramSource).set("default"));
 
-warn("ss1:", ss2 = new_Pointer(ShaderSource).set("my-avesome-vertex-shader"));
+warn("ss1:", ss2 = new_Pointer(ProgramSource).set("my-avesome-vertex-shader"));
 
 warn("rc1:", rc1 = new_Pointer(RenderingContext));
 
@@ -2029,6 +2029,6 @@ warn("rc1.findChild Inheritable Viewport:", findChild(rc1, Viewport, true));
 
 warn("rc2.findChild Inheritable Viewport:", findChild(rc2, Viewport, true));
 
-warn("sc.findChild Inheritable ShaderSource:", findChild(rc2, Viewport, true));
+warn("sc.findChild Inheritable ProgramSource:", findChild(rc2, Viewport, true));
 
 warn("ss2.parameters:", ss2.parameters);
