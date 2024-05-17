@@ -1,4 +1,4 @@
-var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, Class, GL2KEY, GL2NUM, GL2VAL, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SHADER_SOURCE_BYTES_PERP, Storage, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, dvw, encode, error, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint16, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, keyOfWebGL2, l, len, log, malloc, msh, name, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint16, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
+var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, Class, GL2KEY, GL2NUM, GL2VAL, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, desc, dvw, encode, error, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint16, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, keyOfWebGL2, l, len, log, malloc, msh, name, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, ref2, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint16, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
 
 import {
   parent
@@ -127,6 +127,14 @@ ATTRIBUTE_OFFSET = ATTRIBUTE_NORMALIZED + 2;
 ATTRIBUTE_BYTES_PERP = ATTRIBUTE_NORMALIZED + 3;
 
 ATTRIBUTE_KIND = 7 * BPE;
+
+UNIFORM_SIZE = 5 * BPE;
+
+UNIFORM_BYTELENGTH = UNIFORM_SIZE + 1;
+
+UNIFORM_TYPE = 6 * BPE;
+
+UNIFORM_KIND = UNIFORM_TYPE + 2;
 
 RENDERING_CONTEXT_GLOBJECT = 5 * BPE;
 
@@ -1206,6 +1214,106 @@ define(Mesh.prototype, {
   }
 });
 
+define(Uniform.prototype, {
+  name: {
+    enumerable: true,
+    get: function() {
+      return decode(sliceUint8(this));
+    },
+    set: Text.prototype.set
+  }
+});
+
+define(Uniform.prototype, {
+  getLocation: {
+    enumerable: true,
+    value: function(program) {
+      return program.parent.glObject.getUniformLocation(program.glObject, this.name);
+    }
+  }
+});
+
+define(Uniform.prototype, {
+  size: {
+    enumerable: true,
+    get: function() {
+      return getPtriUint8(this + UNIFORM_SIZE);
+    },
+    set: function() {
+      return setPtriUint8(this + UNIFORM_SIZE, arguments[0]);
+    }
+  }
+});
+
+define(Uniform.prototype, {
+  byteLength: {
+    enumerable: true,
+    get: function() {
+      return getPtriUint8(this + UNIFORM_BYTELENGTH);
+    },
+    set: function() {
+      return setPtriUint8(this + UNIFORM_BYTELENGTH, arguments[0]);
+    }
+  }
+});
+
+define(Uniform.prototype, {
+  type: {
+    enumerable: true,
+    get: function() {
+      return keyOfWebGL2(getPtriUint16(this + UNIFORM_TYPE));
+    },
+    set: function() {
+      return setPtriUint16(this + UNIFORM_TYPE, arguments[0]);
+    }
+  }
+});
+
+define(Uniform.prototype, {
+  getUploadFunc: {
+    value: function() {
+      var N, kindName, uploadFn;
+      uploadFn = "uniform";
+      kindName = this.kind.constructor.name;
+      N = (kindName.match(/\d+/g) || [1]).join("x");
+      if (/MAT/.test(kindName)) {
+        return `uniformMatrix${N}fv`;
+      }
+      if (/(UNSIGNED_INT_*VEC)/.test(kindName)) {
+        return `uniform${N}uiv`;
+      }
+      if (/(UNSIGNED_INT)/.test(kindName)) {
+        return `uniform${N}ui`;
+      }
+      if (/(INT_*VEC)/.test(kindName)) {
+        return `uniform${N}iv`;
+      }
+      if (/(FLOAT_*VEC)/.test(kindName)) {
+        return `uniform${N}fv`;
+      }
+      if (/(FLOAT)/.test(kindName)) {
+        return `uniform${N}f`;
+      }
+      if (/(INT)/.test(kindName)) {
+        return `uniform${N}i`;
+      }
+      throw /UNIFORM_ERR/;
+    }
+  }
+});
+
+define(Uniform.prototype, {
+  kind: {
+    enumerable: true,
+    get: function() {
+      return keyOfWebGL2(getPtriUint16(this + UNIFORM_KIND));
+    },
+    set: function() {
+      return setPtriUint16(this + UNIFORM_KIND, arguments[0]);
+    }
+  }
+});
+
 define(VertexAttribute.prototype, {
   name: {
     enumerable: true,
@@ -1217,12 +1325,21 @@ define(VertexAttribute.prototype, {
 });
 
 define(VertexAttribute.prototype, {
-  location: {
-    enumerable: true,
-    get: function() {
-      return getPtriUint8(this + ATTRIBUTE_LOCATION);
-    },
-    set: function() {
+  getLocation: {
+    value: function(program) {
+      var gl;
+      if (!program) {
+        return getPtriUint8(this + ATTRIBUTE_LOCATION);
+      }
+      gl = program.parent.glObject;
+      return gl.getAttribLocation(program.glObject, this.name);
+    }
+  }
+});
+
+define(VertexAttribute.prototype, {
+  setLocation: {
+    value: function() {
       return setPtriUint8(this + ATTRIBUTE_LOCATION, arguments[0]);
     }
   }
@@ -1502,6 +1619,21 @@ define(ShaderSource.prototype, {
 });
 
 define(ShaderSource.prototype, {
+  findUniform: {
+    value: function(name) {
+      var attr, l, len, ref;
+      ref = findChilds(this, Uniform);
+      for (l = 0, len = ref.length; l < len; l++) {
+        attr = ref[l];
+        if (attr.name === name) {
+          return attr;
+        }
+      }
+    }
+  }
+});
+
+define(ShaderSource.prototype, {
   findVertexAttrib: {
     value: function(name) {
       var attr, l, len, ref;
@@ -1534,7 +1666,7 @@ define(ShaderSource.prototype, {
 define(ShaderSource.prototype, {
   getParameters: {
     value: function() {
-      var attrib, attribute, fShader, fSource, gl, gls, info, k, l, len, len1, len2, m, n, numAttribs, p, parameters, pname, program, ref, ref1, ref2, ref3, ref4, s, shaders, split, tn, v, vShader, vSource, value, varr;
+      var attrib, attribute, fShader, fSource, gl, gls, info, k, l, len, len1, len2, len3, m, n, numAttribs, numUniforms, p, parameters, pname, program, q, ref, ref1, ref2, ref3, ref4, ref5, s, shaders, split, tn, u, uniform, v, vShader, vSource, value, varr;
       gl = new OffscreenCanvas(1, 1).getContext("webgl2");
       //? create vertex shader ------------> 
       vSource = this.vertexShader;
@@ -1674,6 +1806,97 @@ define(ShaderSource.prototype, {
         });
         addChildren(this, attribute);
       }
+      //? uniforms -------------->
+      numUniforms = parameters.PROGRAM.ACTIVE_UNIFORMS;
+      parameters.UNIFORMS = (function() {
+        var ref5, results;
+        results = [];
+        while (numUniforms--) {
+          uniform = {};
+          ref5 = gl.getActiveUniform(program, numUniforms);
+          for (k in ref5) {
+            v = ref5[k];
+            uniform[k] = v;
+          }
+          uniform.kind = tn = keyOfWebGL2(uniform.type);
+          uniform.location = gl.getUniformLocation(program, uniform.name);
+          uniform.name = uniform.name.split(/\[/)[0];
+          uniform.uploader = (function() {
+            switch (tn.constructor.name) {
+              case "FLOAT_MAT4":
+                return "uniformMatrix4fv";
+              case "FLOAT_MAT3":
+                return "uniformMatrix3fv";
+              case "FLOAT_MAT2":
+                return "uniformMatrix2fv";
+              case "FLOAT_MAT2x3":
+                return "uniformMatrix2x3fv";
+              case "FLOAT_MAT2x4":
+                return "uniformMatrix2x4fv";
+              case "FLOAT_MAT3x2":
+                return "uniformMatrix3x2fv";
+              case "FLOAT_MAT3x4":
+                return "uniformMatrix3x4fv";
+              case "FLOAT_MAT4x2":
+                return "uniformMatrix4x2fv";
+              case "FLOAT_MAT3x3":
+                return "uniformMatrix4x3fv";
+              case "FLOAT":
+                return "uniform1f";
+              case "INT":
+                return "uniform1iv";
+              case "UNSIGNED_INT":
+                return "uniform1uiv";
+              case "UNSIGNED_INT_VEC2":
+                return "uniform2uiv";
+              case "UNSIGNED_INT_VEC3":
+                return "uniform3uiv";
+              case "UNSIGNED_INT_VEC4":
+                return "uniform4uiv";
+            }
+          })();
+          uniform.type = keyOfWebGL2(tn.constructor.name.replace(/(_VEC|_MAT)(\d(\\x\w+))|((_VEC|_MAT)+\d+)/mg, ""));
+          uniform.size = (function() {
+            var name, valtyp;
+            name = tn.constructor.name;
+            switch ((valtyp = name.split("_").pop()).substring(0, 3)) {
+              case "VEC":
+                return valtyp[3] * 1;
+              case "MAT":
+                return valtyp[3] * (valtyp[5] || valtyp[3]);
+              default:
+                return 1;
+            }
+          })();
+          uniform.byteLength = uniform.size * (function() {
+            switch (uniform.type.constructor.name) {
+              case "FLOAT":
+                return 4;
+              case "INT":
+                return 2;
+              default:
+                return 1;
+            }
+          })();
+          results.push(uniform);
+        }
+        return results;
+      })();
+      ref5 = parameters.UNIFORMS;
+      for (q = 0, len3 = ref5.length; q < len3; q++) {
+        u = ref5[q];
+        if (this.findUniform(u.name)) {
+          continue;
+        }
+        uniform = new_Pointer(Uniform);
+        assign(uniform, {
+          size: u.size,
+          type: u.type,
+          kind: u.kind,
+          byteLength: u.byteLength
+        });
+        addChildren(this, uniform.set(u.name));
+      }
       if (!this.findVertexArray(parameters.VERTEX_ARRAY_NAME)) {
         addChildren(this, varr = new_Pointer(VertexArray));
         varr.set(parameters.VERTEX_ARRAY_NAME);
@@ -1701,7 +1924,12 @@ for (name in ref) {
       value: Class
     }
   });
-  for (name in Object.getOwnPropertyDescriptors(Class.prototype)) {
+  ref1 = Object.getOwnPropertyDescriptors(Class.prototype);
+  for (name in ref1) {
+    desc = ref1[name];
+    if (desc.enumerable !== false) {
+      continue;
+    }
     if (!/get|set/.test(key = name.substring(0, 3))) {
       continue;
     }
@@ -1743,9 +1971,9 @@ for (name in ref) {
   continue;
 }
 
-ref1 = [VertexArray, VertexAttribute];
-for (l = 0, len = ref1.length; l < len; l++) {
-  Class = ref1[l];
+ref2 = [VertexArray, VertexAttribute, Uniform];
+for (l = 0, len = ref2.length; l < len; l++) {
+  Class = ref2[l];
   define(Class.prototype, {
     children: new PtriArray
   });
@@ -1803,4 +2031,4 @@ warn("rc2.findChild Inheritable Viewport:", findChild(rc2, Viewport, true));
 
 warn("sc.findChild Inheritable ShaderSource:", findChild(rc2, Viewport, true));
 
-warn("ss1.parameters:", ss1.parameters);
+warn("ss2.parameters:", ss2.parameters);

@@ -82,6 +82,11 @@ ATTRIBUTE_OFFSET            = ATTRIBUTE_NORMALIZED + 2
 ATTRIBUTE_BYTES_PERP        = ATTRIBUTE_NORMALIZED + 3
 ATTRIBUTE_KIND              = 7 * BPE
 
+UNIFORM_SIZE                = 5 * BPE
+UNIFORM_BYTELENGTH          = UNIFORM_SIZE + 1
+UNIFORM_TYPE                = 6 * BPE
+UNIFORM_KIND                = UNIFORM_TYPE + 2
+
 RENDERING_CONTEXT_GLOBJECT  = 5 * BPE
 RENDERING_CONTEXT_VIEWPORT  = 6 * BPE
 
@@ -700,14 +705,73 @@ define Mesh::               , getNeedsUpdate    :
 define Mesh::               , modifierMatrix    :
     enumerable: on,
     get : ->
+define Uniform::            , name              :
+    enumerable : on
+    get : -> decode sliceUint8 this
+    set : Text::set
+define Uniform::            , getLocation       :
+    enumerable : on
+    value : ( program ) ->
+        program.parent.glObject
+            .getUniformLocation program.glObject, @name        
+define Uniform::            , size              :
+    enumerable : on
+    get : -> getPtriUint8 this + UNIFORM_SIZE
+    set : -> setPtriUint8 this + UNIFORM_SIZE, arguments[0]
+define Uniform::            , byteLength        :
+    enumerable : on
+    get : -> getPtriUint8 this + UNIFORM_BYTELENGTH
+    set : -> setPtriUint8 this + UNIFORM_BYTELENGTH, arguments[0]
+define Uniform::            , type              :
+    enumerable : on
+    get : -> keyOfWebGL2 getPtriUint16 this + UNIFORM_TYPE
+    set : -> setPtriUint16 this + UNIFORM_TYPE, arguments[0]
+define Uniform::            , getUploadFunc     :
+    value : ->
+        uploadFn = "uniform"
+        kindName = @kind.constructor.name
+
+        N = (kindName.match(/\d+/g) or [1]).join("x")
+
+        if  /MAT/.test kindName
+            return "uniformMatrix#{N}fv"
+            
+        if  /(UNSIGNED_INT_*VEC)/.test kindName
+            return "uniform#{N}uiv"
+            
+        if  /(UNSIGNED_INT)/.test kindName
+            return "uniform#{N}ui"
+
+        if  /(INT_*VEC)/.test kindName
+            return "uniform#{N}iv"
+            
+        if  /(FLOAT_*VEC)/.test kindName
+            return "uniform#{N}fv"
+            
+        if  /(FLOAT)/.test kindName
+            return "uniform#{N}f"
+
+        if  /(INT)/.test kindName
+            return "uniform#{N}i"
+
+        throw /UNIFORM_ERR/
+define Uniform::            , kind              :
+    enumerable : on
+    get : -> keyOfWebGL2 getPtriUint16 this + UNIFORM_KIND
+    set : -> setPtriUint16 this + UNIFORM_KIND, arguments[0]
 define VertexAttribute::    , name              :
     enumerable : on
     get : -> decode sliceUint8 this
     set : Text::set
-define VertexAttribute::    , location          :
-    enumerable : on
-    get : -> getPtriUint8 this + ATTRIBUTE_LOCATION
-    set : -> setPtriUint8 this + ATTRIBUTE_LOCATION, arguments[0]
+define VertexAttribute::    , getLocation       :
+    value : ( program ) ->
+        if !program
+            return getPtriUint8 this + ATTRIBUTE_LOCATION
+        gl = program.parent.glObject
+        gl . getAttribLocation program.glObject, @name
+define VertexAttribute::    , setLocation       :
+    value : ->
+        setPtriUint8 this + ATTRIBUTE_LOCATION, arguments[0]
 define VertexAttribute::    , size              :
     enumerable : on
     get : -> getPtriUint8 this + ATTRIBUTE_SIZE
@@ -816,6 +880,11 @@ define ShaderSource::       , BYTES_PER_POINT   :
         if !bpp = getPtriUint32 this + SHADER_SOURCE_BYTES_PERP
             bpp = setPtriUint32 this + SHADER_SOURCE_BYTES_PERP, @parameters.ATTRIBUTES_STRIDE
         bpp
+define ShaderSource::       , findUniform       :
+    value : ( name ) ->
+        for attr in findChilds this, Uniform
+            return attr if attr.name is name
+        return
 define ShaderSource::       , findVertexAttrib  :
     value : ( name ) ->
         for attr in findChilds this, VertexAttribute
@@ -868,8 +937,6 @@ define ShaderSource::       , getParameters     :
             throw "Could not compile WebGL program. \n\n#{info}"
 
 
-
-
         #* parse program parameters ---------->
 
         ( parameters = VERTEX_SHADER : {}, FRAGMENT_SHADER : {}, PROGRAM : {} )
@@ -879,8 +946,8 @@ define ShaderSource::       , getParameters     :
 
         for p in split(
             "DELETE_STATUS LINK_STATUS VALIDATE_STATUS ATTACHED_SHADERS 
-                ACTIVE_ATTRIBUTES ACTIVE_UNIFORMS TRANSFORM_FEEDBACK_BUFFER_MODE 
-                TRANSFORM_FEEDBACK_VARYINGS ACTIVE_UNIFORM_BLOCKS"
+             ACTIVE_ATTRIBUTES ACTIVE_UNIFORMS TRANSFORM_FEEDBACK_BUFFER_MODE 
+             TRANSFORM_FEEDBACK_VARYINGS ACTIVE_UNIFORM_BLOCKS"
         ) then parameters.PROGRAM[p] = gl.getProgramParameter program, gl[p] 
 
         for pname, value of parameters.PROGRAM
@@ -950,6 +1017,67 @@ define ShaderSource::       , getParameters     :
 
             addChildren this, attribute
 
+
+        #? uniforms -------------->
+
+        numUniforms = parameters.PROGRAM.ACTIVE_UNIFORMS
+        parameters . UNIFORMS = while numUniforms--
+            uniform             = {}
+            uniform[k]          = v for k, v of gl.getActiveUniform program, numUniforms
+            uniform.kind        = tn = keyOfWebGL2 uniform.type            
+            uniform.location    = gl.getUniformLocation program, uniform.name
+            uniform.name        = uniform.name.split(/\[/)[0]
+            uniform.uploader    = switch tn.constructor.name
+                when "FLOAT_MAT4"           then "uniformMatrix4fv"
+                when "FLOAT_MAT3"           then "uniformMatrix3fv"
+                when "FLOAT_MAT2"           then "uniformMatrix2fv"
+                when "FLOAT_MAT2x3"         then "uniformMatrix2x3fv"
+                when "FLOAT_MAT2x4"         then "uniformMatrix2x4fv"
+                when "FLOAT_MAT3x2"         then "uniformMatrix3x2fv"
+                when "FLOAT_MAT3x4"         then "uniformMatrix3x4fv"
+                when "FLOAT_MAT4x2"         then "uniformMatrix4x2fv"
+                when "FLOAT_MAT3x3"         then "uniformMatrix4x3fv"
+                when "FLOAT"                then "uniform1f"
+                when "INT"                  then "uniform1iv"
+                when "UNSIGNED_INT"         then "uniform1uiv"
+                when "UNSIGNED_INT_VEC2"    then "uniform2uiv"
+                when "UNSIGNED_INT_VEC3"    then "uniform3uiv"
+                when "UNSIGNED_INT_VEC4"    then "uniform4uiv"
+
+            uniform . type       = keyOfWebGL2(
+                tn.constructor.name.replace(
+                    /(_VEC|_MAT)(\d(\\x\w+))|((_VEC|_MAT)+\d+)/mg, ""
+                )
+            )
+            
+            uniform . size       = do ->
+                name = tn.constructor.name
+                switch ( valtyp = name.split("_").pop() ).substring 0, 3
+                    when "VEC" then valtyp[3] * 1
+                    when "MAT" then valtyp[3] * ( valtyp[5] || valtyp[3] )
+                    else 1 
+
+            uniform . byteLength =
+                uniform . size * switch uniform.type.constructor.name
+                    when "FLOAT" then 4
+                    when "INT" then 2
+                    else 1 
+
+            uniform
+
+        for u in parameters . UNIFORMS
+            continue if @findUniform u.name
+
+            uniform = new_Pointer Uniform
+            assign uniform, {
+                size : u.size, 
+                type : u.type,
+                kind : u.kind
+                byteLength : u.byteLength
+            }
+
+            addChildren this, uniform.set u.name
+
         if !@findVertexArray parameters . VERTEX_ARRAY_NAME
             addChildren this, varr = new_Pointer VertexArray
             varr.set parameters . VERTEX_ARRAY_NAME
@@ -972,8 +1100,8 @@ for name, Class of reDefine = classes
     prop = name[0].toLowerCase() + name.substring 1
     define storage.add( Class ), [ prop ] : { value : Class }
     
-    for name of Object.getOwnPropertyDescriptors Class::
-
+    for name, desc of Object.getOwnPropertyDescriptors Class::
+        continue unless desc.enumerable is off
         continue unless /get|set/.test key = name.substring 0, 3
         continue unless className = name.substring 3
         continue unless no is Object.hasOwn( Class::, prop =
@@ -996,7 +1124,7 @@ for name, Class of reDefine = classes
 
     continue
 
-for Class in [ VertexArray, VertexAttribute ]
+for Class in [ VertexArray, VertexAttribute, Uniform ]
     define Class::, children : new PtriArray
 
 #? <----------------------------------------> ?#
@@ -1031,4 +1159,4 @@ warn "rc1.findChild Inheritable Viewport:", findChild rc1, Viewport, on
 warn "rc2.findChild Inheritable Viewport:", findChild rc2, Viewport, on
 
 warn "sc.findChild Inheritable ShaderSource:", findChild rc2, Viewport, on
-warn "ss1.parameters:", ss1.parameters
+warn "ss2.parameters:", ss2.parameters

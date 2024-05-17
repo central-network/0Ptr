@@ -54,15 +54,22 @@
         precision mediump int;
         precision mediump float;
 
+      
         uniform mat4 u_Frustrum;
+        uniform float instance_mat[4]; 
         uniform float u_PointSize;
+        uniform int u_PointSize2;
         
         attribute vec3 a_Position;
         attribute vec2 a_Scale;
 
+        varying vec2 v_Frustrum2;
+
         void main() {
-            gl_Position = u_Frustrum * vec4(a_Position, 1.) * vec4(a_Scale, 1., 1.);
+            gl_Position = u_Frustrum * vec4(u_PointSize2, 1., 1., 1.) * vec4(a_Position, 1.) * vec4(a_Scale, 1., 1.);
             gl_PointSize = u_PointSize;
+            v_Frustrum2 = vec2(instance_mat[3], 1.);
+
         }
     </script>
 
