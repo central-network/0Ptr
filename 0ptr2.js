@@ -1058,6 +1058,7 @@ define(RenderingContext.prototype, {
       if (!(ptri = getPtriUint32(this + RENDERING_CONTEXT_DRAWCALL))) {
         if (!(ptri = findChilds(this, DrawCall).last())) {
           addChildren(this, ptri = new_Pointer(DrawCall));
+          setPtriUint32(ptri + DRAWCALL_PROGRAM, this.defaultProgram);
           setPtriUint32(ptri + DRAWCALL_DBUFFER, this.defaultBuffer);
           setPtriUint16(ptri + DRAWCALL_TARGET, this.defaultBuffer.target);
           setPtriUint16(ptri + DRAWCALL_USAGE, keyOfWebGL2("STATIC_DRAW"));
