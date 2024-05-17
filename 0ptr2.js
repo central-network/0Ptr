@@ -1,4 +1,4 @@
-var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, Class, DRAWBUFFER_BINDBINDING, DRAWBUFFER_ISBINDED, DRAWBUFFER_TARGET, DRAWCALL_DBUFFER, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_TARGET, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, desc, dvw, encode, error, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint16, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, keyOfWebGL2, l, len, log, malloc, msh, name, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, ref2, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint16, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
+var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, Class, DRAWBUFFER_BINDBINDING, DRAWBUFFER_BYTELENGTH, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_RESIZEBINDING, DRAWBUFFER_TARGET, DRAWBUFFER_USAGE, DRAWCALL_DBUFFER, DRAWCALL_DRAWBINDING, DRAWCALL_DSTBYTEOFFSET, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_STATE, DRAWCALL_TARGET, DRAWCALL_TYPE, DRAWCALL_UPLOADBINDING, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, MESH_UPLOADED, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, addPtriUint32, addUint32, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, desc, dvw, encode, error, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint16, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, keyOfWebGL2, l, len, log, malloc, msh, name, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, ref2, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint16, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
 
 import {
   parent
@@ -102,11 +102,21 @@ PTR_BYTELENGTH = 4 * BPE;
 
 SCENE_DEFAULT_CONTEXT = 5 * BPE;
 
+MESH_UPLOADED = 5 * BPE;
+
+DRAWBUFFER_GLOBJECT = 5 * BPE;
+
 DRAWBUFFER_ISBINDED = 6 * BPE;
 
 DRAWBUFFER_BINDBINDING = DRAWBUFFER_ISBINDED + 1;
 
-DRAWBUFFER_TARGET = DRAWBUFFER_ISBINDED + 2;
+DRAWBUFFER_RESIZEBINDING = DRAWBUFFER_ISBINDED + 2;
+
+DRAWBUFFER_TARGET = 7 * BPE;
+
+DRAWBUFFER_BYTELENGTH = 8 * BPE;
+
+DRAWBUFFER_USAGE = 9 * BPE;
 
 DRAWCALL_DBUFFER = 5 * BPE;
 
@@ -117,6 +127,16 @@ DRAWCALL_USAGE = DRAWCALL_TARGET + 2;
 DRAWCALL_RCONTEXT = 7 * BPE;
 
 DRAWCALL_PROGRAM = 8 * BPE;
+
+DRAWCALL_TYPE = 9 * BPE;
+
+DRAWCALL_STATE = DRAWCALL_TYPE + 1;
+
+DRAWCALL_DSTBYTEOFFSET = 10 * BPE;
+
+DRAWCALL_DRAWBINDING = 11 * BPE;
+
+DRAWCALL_UPLOADBINDING = 12 * BPE;
 
 PROGRAM_GLPROGRAM = 5 * BPE;
 
@@ -234,9 +254,9 @@ export var storage = new (Storage = class Storage extends Array {
 //* <----------------------------------------> *#
 //* <----------------------------------------> *#
 //* <----------------------------------------> *#
-keyOfWebGL2 = function(type) {
+keyOfWebGL2 = function(type, min = 0xff, max = 0xffff) {
   var name, name1;
-  if ((type < 256) || (type > 65536)) {
+  if ((type < min) || (type > max)) {
     return type;
   }
   if (/\s+/.test(`${type}`)) {
@@ -360,6 +380,18 @@ setUint8 = function(ptri, byteOffset, value) {
   return value;
 };
 
+addUint32 = function(ptri, byteOffset, value, atomics = true) {
+  var val;
+  byteOffset += getByteOffset(ptri);
+  if (atomics) {
+    return Atomics.add(u32, byteOffset / 4, value);
+  } else {
+    val = dvw.getUint32(byteOffset, iLE);
+    dvw.setUint32(byteOffset, value + val, iLE);
+  }
+  return val;
+};
+
 getUint32 = function(ptri, byteOffset) {
   return dvw.getUint32(byteOffset + getByteOffset(ptri), iLE);
 };
@@ -385,6 +417,10 @@ getPtriUint8 = function(byteOffset) {
 setPtriUint8 = function(byteOffset, value) {
   dvw.setUint8(byteOffset, value);
   return value;
+};
+
+addPtriUint32 = function(byteOffset, value) {
+  return Atomics.add(u32, byteOffset / 4, value);
 };
 
 getPtriUint32 = function(byteOffset) {
@@ -833,12 +869,28 @@ define(Scene.prototype, {
 });
 
 define(DrawBuffer.prototype, {
+  glObject: {
+    get: function() {
+      var buff, gl, stri;
+      if (!(stri = getPtriUint8(this + DRAWBUFFER_GLOBJECT))) {
+        if (gl = this.parent.glObject) {
+          buff = gl.createBuffer();
+        }
+        stri = storeForUint8(buff);
+        setPtriUint8(this + DRAWBUFFER_GLOBJECT, stri);
+      }
+      return storage[stri];
+    }
+  }
+});
+
+define(DrawBuffer.prototype, {
   bind: {
     value: function() {
-      var bind, buff, construct, gl, l, len, ptri, ptrj, ref, stri;
+      var binding, construct, gl, l, len, ptri, ptrj, ref, stri, target;
       if (!getPtriUint8(this + DRAWBUFFER_ISBINDED)) {
         setPtriUint8(this + DRAWBUFFER_ISBINDED, 1);
-        ptri = +this;
+        [ptri, gl, target] = [+this, this.parent.glObject, this.target];
         ref = findChilds(this.parent, DrawBuffer, construct = false);
         for (l = 0, len = ref.length; l < len; l++) {
           ptrj = ref[l];
@@ -847,12 +899,8 @@ define(DrawBuffer.prototype, {
           }
         }
         if (!(stri = getPtriUint8(ptri + DRAWBUFFER_BINDBINDING))) {
-          if (gl = this.parent.glObject) {
-            buff = gl.createBuffer();
-          }
-          bind = gl.bindBuffer.bind(gl, this.target, buff);
-          stri = storeForUint8(bind);
-          setPtriUint8(ptri + DRAWBUFFER_BINDBINDING, stri);
+          binding = gl.bindBuffer.bind(gl, target, this.glObject);
+          stri = setPtriUint8(ptri + DRAWBUFFER_BINDBINDING, storeForUint8(binding));
         }
         storage[stri]();
       }
@@ -867,6 +915,9 @@ define(DrawBuffer.prototype, {
       return Object.defineProperties(this, {
         bind: {
           get: this.bind
+        },
+        resize: {
+          get: this.resize
         }
       });
     }
@@ -883,18 +934,105 @@ define(DrawBuffer.prototype, {
 });
 
 define(DrawBuffer.prototype, {
+  drawCalls: {
+    enumerable: true,
+    get: function() {
+      var dc, l, len, list, ref;
+      list = new PtriArray;
+      ref = findChilds(null, DrawCall);
+      for (l = 0, len = ref.length; l < len; l++) {
+        dc = ref[l];
+        if (dc.drawBuffer - this) {
+          continue;
+        }
+        list.push(dc);
+      }
+      return list;
+    }
+  }
+});
+
+define(DrawBuffer.prototype, {
+  resize: {
+    value: function() {
+      var applyArgs, binding, gl, stri, target, usage;
+      if (!(stri = getPtriUint8(this + DRAWBUFFER_RESIZEBINDING))) {
+        gl = this.parent.glObject;
+        usage = this.usage;
+        target = this.target;
+        applyArgs = new Uint32Array(sab, this + DRAWBUFFER_TARGET, 3);
+        binding = gl.bufferData.apply.bind(gl.bufferData, gl, applyArgs);
+        stri = storeForUint8(binding);
+        setPtriUint8(this + DRAWBUFFER_RESIZEBINDING, stri);
+      }
+      storage[stri]();
+      return 1;
+    }
+  }
+});
+
+define(DrawBuffer.prototype, {
+  malloc: {
+    value: function(byteLength) {
+      var byteOffset;
+      byteOffset = addPtriUint32(this + DRAWBUFFER_BYTELENGTH, byteLength);
+      this.resize(byteOffset + byteLength);
+      return byteOffset;
+    }
+  }
+});
+
+define(DrawBuffer.prototype, {
+  byteLength: {
+    enumerable: true,
+    get: function() {
+      return getPtriUint32(this + DRAWBUFFER_BYTELENGTH);
+    }
+  }
+});
+
+define(DrawBuffer.prototype, {
   target: {
     enumerable: true,
     set: function() {
-      return setPtriUint16(this + DRAWBUFFER_TARGET, arguments[0]);
+      return setPtriUint32(this + DRAWBUFFER_TARGET, arguments[0]);
     },
     get: function() {
       var target;
-      if (!(target = getPtriUint16(this + DRAWBUFFER_TARGET))) {
+      if (!(target = getPtriUint32(this + DRAWBUFFER_TARGET))) {
         target = keyOfWebGL2("ARRAY_BUFFER");
-        setPtriUint16(this + DRAWBUFFER_TARGET, target);
+        setPtriUint32(this + DRAWBUFFER_TARGET, target);
       }
       return keyOfWebGL2(target);
+    }
+  }
+});
+
+define(DrawBuffer.prototype, {
+  usage: {
+    enumerable: true,
+    set: function() {
+      return setPtriUint32(this + DRAWBUFFER_USAGE, arguments[0]);
+    },
+    get: function() {
+      var usage;
+      if (!(usage = getPtriUint32(this + DRAWBUFFER_USAGE))) {
+        usage = keyOfWebGL2("STATIC_DRAW");
+        setPtriUint32(this + DRAWBUFFER_USAGE, usage);
+      }
+      return keyOfWebGL2(usage);
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  debug: {
+    get: function() {
+      return Object.defineProperties(this, {
+        draw: {
+          get: this.draw
+        }
+      });
     }
   }
 });
@@ -927,6 +1065,87 @@ define(DrawCall.prototype, {
         return this.usage = keyOfWebGL2("STATIC_DRAW");
       }
       return keyOfWebGL2(usage);
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  type: {
+    enumerable: true,
+    set: function() {
+      return setPtriUint8(this + DRAWCALL_TYPE, arguments[0]);
+    },
+    get: function() {
+      var min, type;
+      if (!(type = getPtriUint8(this + DRAWCALL_TYPE))) {
+        return this.type = keyOfWebGL2("TRIANGLES");
+      }
+      return keyOfWebGL2(type, min = 0);
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  upload: {
+    value: function() {
+      var fn, gl, stri;
+      if (!getPtriUint8(this + MESH_UPLOADED)) {
+        setPtriUint8(this + MESH_UPLOADED, 1);
+        if (!(stri = getPtriUint32(this + DRAWCALL_UPLOADBINDING))) {
+          gl = this.renderingContext.glObject;
+          fn = gl.bufferSubData.bind(gl, this.target, this.dstByteOffset, this.parent.vertices);
+          stri = storeForUint32(fn);
+          setPtriUint32(this + DRAWCALL_UPLOADBINDING, stri);
+        }
+        this.drawBuffer.bind();
+        storage[stri]();
+        return 1;
+      }
+      return 0;
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  dstByteLength: {
+    enumerable: true,
+    get: function() {
+      return this.program.BYTES_PER_POINT * this.parent.pointCount;
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  dstByteOffset: {
+    enumerable: true,
+    get: function() {
+      var byteOffset;
+      if (!(byteOffset = getPtriUint32(this + DRAWCALL_DSTBYTEOFFSET))) {
+        byteOffset = this.drawBuffer.malloc(this.dstByteLength);
+        setPtriUint32(this + DRAWCALL_DSTBYTEOFFSET, byteOffset);
+      }
+      return byteOffset;
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  draw: {
+    value: function() {
+      var count, fn, gl, start, stri;
+      if (!(stri = getPtriUint32(this + DRAWCALL_DRAWBINDING))) {
+        start = this.dstByteOffset / this.program.BYTES_PER_POINT;
+        count = this.parent.pointCount;
+        gl = this.renderingContext.glObject;
+        stri = storeForUint32(fn = gl.drawArrays.bind(gl, this.type, start, count));
+        setPtriUint32(this + DRAWCALL_DRAWBINDING, stri);
+      }
+      this.program.use();
+      if (!this.upload()) {
+        this.drawBuffer.bind();
+      }
+      storage[stri]();
+      return 1;
     }
   }
 });
@@ -971,15 +1190,19 @@ define(DrawCall.prototype, {
         } else {
           if (bufi = rctx.defaultBuffer) {
             if (!(bufi.target - this.target)) {
-              setPtriUint32(this + DRAWCALL_DBUFFER, bufi);
+              if (!(bufi.usage - this.usage)) {
+                setPtriUint32(this + DRAWCALL_DBUFFER, bufi);
+              }
             }
           }
           ref = findChilds(rctx, DrawBuffer);
           for (l = 0, len = ref.length; l < len; l++) {
             bufi = ref[l];
             if (!(bufi.target - this.target)) {
-              setPtriUint32(this + DRAWCALL_DBUFFER, bufi);
-              break;
+              if (!(bufi.usage - this.usage)) {
+                setPtriUint32(this + DRAWCALL_DBUFFER, bufi);
+                break;
+              }
             }
           }
         }
@@ -1461,6 +1684,15 @@ define(Program.prototype, {
 });
 
 define(Program.prototype, {
+  BYTES_PER_POINT: {
+    enumerable: true,
+    get: function() {
+      return this.source.BYTES_PER_POINT;
+    }
+  }
+});
+
+define(Program.prototype, {
   setSource: {
     value: function() {
       return setPtriUint32(this + PROGRAM_SHADER_SOURCE, arguments[0]);
@@ -1476,7 +1708,9 @@ define(Mesh.prototype, {
 
 define(Mesh.prototype, {
   getPointCount: {
-    value: function() {}
+    value: function() {
+      return this.vertices.length / 3;
+    }
   }
 });
 
@@ -1488,7 +1722,9 @@ define(Mesh.prototype, {
 
 define(Mesh.prototype, {
   getVertices: {
-    value: function() {}
+    value: function() {
+      return new Float32Array(sab, 36, Math.trunc(this / 3));
+    }
   }
 });
 
@@ -1548,7 +1784,17 @@ define(Mesh.prototype, {
 
 define(Mesh.prototype, {
   getNeedsUpdate: {
-    value: function() {}
+    value: function() {
+      return getPtriUint8(this + MESH_UPLOADED);
+    }
+  }
+});
+
+define(Mesh.prototype, {
+  setNeedsUpdate: {
+    value: function() {
+      return setPtriUint8(this + MESH_UPLOADED, arguments[0]);
+    }
   }
 });
 
@@ -2383,5 +2629,7 @@ warn("sc.findChild Inheritable ProgramSource:", findChild(rc2, Viewport, true));
 warn("ss2.parameters:", ss2.parameters);
 
 warn("sc.defctx:", sc.defaultContext.defaultBuffer.bind());
+
+warn("msh.append new_Pointer( DrawCall ):", msh.append(new_Pointer(DrawCall)));
 
 warn("msh.append new_Pointer( DrawCall ):", msh.append(new_Pointer(DrawCall)));

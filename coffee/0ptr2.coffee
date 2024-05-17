@@ -67,15 +67,26 @@ PTR_BYTELENGTH              = 4 * BPE
 
 SCENE_DEFAULT_CONTEXT       = 5 * BPE
 
+MESH_UPLOADED               = 5 * BPE
+
+DRAWBUFFER_GLOBJECT         = 5 * BPE
 DRAWBUFFER_ISBINDED         = 6 * BPE
 DRAWBUFFER_BINDBINDING      = DRAWBUFFER_ISBINDED + 1
-DRAWBUFFER_TARGET           = DRAWBUFFER_ISBINDED + 2
+DRAWBUFFER_RESIZEBINDING    = DRAWBUFFER_ISBINDED + 2
+DRAWBUFFER_TARGET           = 7 * BPE
+DRAWBUFFER_BYTELENGTH       = 8 * BPE
+DRAWBUFFER_USAGE            = 9 * BPE
 
 DRAWCALL_DBUFFER            = 5 * BPE
 DRAWCALL_TARGET             = 6 * BPE
 DRAWCALL_USAGE              = DRAWCALL_TARGET + 2
 DRAWCALL_RCONTEXT           = 7 * BPE
 DRAWCALL_PROGRAM            = 8 * BPE
+DRAWCALL_TYPE               = 9 * BPE
+DRAWCALL_STATE              = DRAWCALL_TYPE + 1
+DRAWCALL_DSTBYTEOFFSET      = 10 * BPE
+DRAWCALL_DRAWBINDING        = 11 * BPE
+DRAWCALL_UPLOADBINDING      = 12 * BPE
 
 PROGRAM_GLPROGRAM           = 5 * BPE
 PROGRAM_USEBINDING          = PROGRAM_GLPROGRAM + 1
@@ -137,8 +148,8 @@ export storage = new (class Storage extends Array
 #* <----------------------------------------> *#
 #* <----------------------------------------> *#
 
-keyOfWebGL2     = ( type ) ->
-    return type if (type < 256) or (type > 65536)
+keyOfWebGL2     = ( type, min = 0xff, max = 0xffff ) ->
+    return type if (type < min) or (type > max)
     return type if /\s+/.test "#{type}"
     return type if "#{type}" isnt "#{type}".toUpperCase()
 
@@ -220,6 +231,17 @@ getUint8        = ( ptri, byteOffset ) ->
 setUint8        = ( ptri, byteOffset, value ) ->
     dvw.setUint8   byteOffset + getByteOffset( ptri ), value ; value
 
+addUint32       = ( ptri, byteOffset, value, atomics = on ) ->
+    byteOffset += getByteOffset ptri
+
+    if  atomics
+        return Atomics.add u32, byteOffset/4, value
+    
+    else
+        val = dvw.getUint32 byteOffset, iLE
+        dvw.setUint32 byteOffset, value + val, iLE
+    val
+
 getUint32       = ( ptri, byteOffset ) ->
     dvw.getUint32  byteOffset + getByteOffset( ptri ), iLE
 
@@ -237,6 +259,9 @@ getPtriUint8    = ( byteOffset ) ->
 
 setPtriUint8    = ( byteOffset, value ) ->
     dvw.setUint8   byteOffset, value ; value
+
+addPtriUint32   = ( byteOffset, value ) ->
+    Atomics.add u32, byteOffset/4, value
 
 getPtriUint32   = ( byteOffset ) ->
     dvw.getUint32  byteOffset, iLE
@@ -488,41 +513,86 @@ define Scene::              , getDefaultContext :
                 addChildren this, ptri = new_Pointer RenderingContext 
             setPtriUint32 this + SCENE_DEFAULT_CONTEXT, ptri
         new RenderingContext ptri
+define DrawBuffer::         , glObject          :
+    get : ->
+        if !stri = getPtriUint8 this + DRAWBUFFER_GLOBJECT 
+            buff = gl.createBuffer() if gl = @parent.glObject
+            stri = storeForUint8 buff
+            setPtriUint8 this + DRAWBUFFER_GLOBJECT, stri
+        storage[ stri ]
 define DrawBuffer::         , bind              :
     value : ->
         if !getPtriUint8 this + DRAWBUFFER_ISBINDED
             setPtriUint8 this + DRAWBUFFER_ISBINDED, 1
 
-            ptri = +this
+            [ ptri, gl, target ] =
+                [ +this, @parent.glObject, @target ]
 
             for ptrj in findChilds @parent, DrawBuffer, construct = no
                 setPtriUint8 ptrj + DRAWBUFFER_ISBINDED, 0 if ptri - ptrj
 
             if !stri = getPtriUint8 ptri + DRAWBUFFER_BINDBINDING
-                buff = gl.createBuffer() if gl = @parent.glObject
-                bind = gl.bindBuffer.bind gl, @target, buff
-                stri = storeForUint8 bind
+                binding = gl.bindBuffer.bind gl, target, @glObject
+                stri = setPtriUint8 ptri + DRAWBUFFER_BINDBINDING, storeForUint8 binding
 
-                setPtriUint8 ptri + DRAWBUFFER_BINDBINDING, stri
             storage[ stri ]()
-
         1
 define DrawBuffer::         , debug             :
     get : -> Object.defineProperties this,
         bind : get : @bind
+        resize : get : @resize
 define DrawBuffer::         , isBinded          :
     enumerable : on
     get : ->
         getPtriUint8 this + DRAWBUFFER_ISBINDED
+define DrawBuffer::         , drawCalls         :
+    enumerable : on
+    get : ->
+        list = new PtriArray
+        for dc in findChilds null, DrawCall
+            continue if dc.drawBuffer - this
+            list.push dc
+        list
+define DrawBuffer::         , resize            :
+    value : ->
+        if !stri = getPtriUint8 this + DRAWBUFFER_RESIZEBINDING
+            gl = @parent.glObject ; usage = @usage ; target = @target
+            applyArgs = new Uint32Array sab, this + DRAWBUFFER_TARGET, 3
+            binding = gl.bufferData.apply.bind gl.bufferData, gl, applyArgs
+            stri = storeForUint8 binding 
+            setPtriUint8 this + DRAWBUFFER_RESIZEBINDING, stri
+        storage[ stri ]()
+        1
+define DrawBuffer::         , malloc            :
+    value : ( byteLength ) ->
+        byteOffset = addPtriUint32 this + DRAWBUFFER_BYTELENGTH, byteLength
+        @resize byteOffset + byteLength
+        return byteOffset
+define DrawBuffer::         , byteLength        :
+    enumerable : on
+    get : ->
+        getPtriUint32 this + DRAWBUFFER_BYTELENGTH
 define DrawBuffer::         , target            :
     enumerable : on
     set : ->
-        setPtriUint16 this + DRAWBUFFER_TARGET, arguments[0]
+        setPtriUint32 this + DRAWBUFFER_TARGET, arguments[0]
     get : ->
-        if !target = getPtriUint16 this + DRAWBUFFER_TARGET
+        if !target = getPtriUint32 this + DRAWBUFFER_TARGET
             target = keyOfWebGL2 "ARRAY_BUFFER"
-            setPtriUint16 this + DRAWBUFFER_TARGET, target
+            setPtriUint32 this + DRAWBUFFER_TARGET, target
         keyOfWebGL2 target        
+define DrawBuffer::         , usage             :
+    enumerable : on
+    set : ->
+        setPtriUint32 this + DRAWBUFFER_USAGE, arguments[0]
+    get : ->
+        if !usage = getPtriUint32 this + DRAWBUFFER_USAGE
+            usage = keyOfWebGL2 "STATIC_DRAW"
+            setPtriUint32 this + DRAWBUFFER_USAGE, usage
+        keyOfWebGL2 usage        
+define DrawCall::           , debug             :
+    get : -> Object.defineProperties this,
+        draw : get : @draw
 define DrawCall::           , target            :
     enumerable : on
     set : ->
@@ -539,6 +609,56 @@ define DrawCall::           , usage             :
         if !usage = getPtriUint16 this + DRAWCALL_USAGE
             return @usage = keyOfWebGL2 "STATIC_DRAW"
         keyOfWebGL2 usage
+define DrawCall::           , type              :
+    enumerable : on
+    set : ->
+        setPtriUint8 this + DRAWCALL_TYPE, arguments[0]
+    get : ->
+        if !type = getPtriUint8 this + DRAWCALL_TYPE
+            return @type = keyOfWebGL2 "TRIANGLES"
+        keyOfWebGL2 type, min = 0
+define DrawCall::           , upload            :
+    value : ->
+        if !getPtriUint8 this + MESH_UPLOADED
+            setPtriUint8 this + MESH_UPLOADED, 1
+
+            if !stri = getPtriUint32 this + DRAWCALL_UPLOADBINDING
+                gl   = @renderingContext.glObject
+                fn   = gl.bufferSubData.bind gl, @target, @dstByteOffset, @parent.vertices 
+                stri = storeForUint32 fn
+                setPtriUint32 this + DRAWCALL_UPLOADBINDING, stri
+
+            @drawBuffer.bind()
+            storage[ stri ]()
+            return 1
+        0
+define DrawCall::           , dstByteLength     :
+    enumerable : on
+    get : -> @program.BYTES_PER_POINT * @parent.pointCount
+define DrawCall::           , dstByteOffset     :
+    enumerable : on
+    get : ->
+        if !byteOffset = getPtriUint32 this + DRAWCALL_DSTBYTEOFFSET
+            byteOffset = @drawBuffer.malloc @dstByteLength
+            setPtriUint32 this + DRAWCALL_DSTBYTEOFFSET, byteOffset
+
+        byteOffset
+define DrawCall::           , draw              :
+    value : ->
+        if !stri  = getPtriUint32 this + DRAWCALL_DRAWBINDING
+            start = @dstByteOffset / @program.BYTES_PER_POINT
+            count = @parent.pointCount ; gl = @renderingContext.glObject
+            stri  = storeForUint32 fn = gl.drawArrays.bind gl, @type, start, count 
+            setPtriUint32 this + DRAWCALL_DRAWBINDING, stri
+
+        @program.use()
+
+        if !@upload()
+            @drawBuffer.bind()
+
+        storage[ stri ]()
+
+        1
 define DrawCall::           , renderingContext  :
     enumerable : on
     get : ->
@@ -573,12 +693,14 @@ define DrawCall::           , drawBuffer        :
             else
                 if  bufi = rctx.defaultBuffer
                     unless bufi.target - this.target
-                        setPtriUint32 this + DRAWCALL_DBUFFER, bufi
+                        unless bufi.usage - this.usage
+                            setPtriUint32 this + DRAWCALL_DBUFFER, bufi
 
                 for bufi in findChilds rctx, DrawBuffer
                     unless bufi.target - this.target
-                        setPtriUint32 this + DRAWCALL_DBUFFER, bufi
-                        break
+                        unless bufi.usage - this.usage
+                            setPtriUint32 this + DRAWCALL_DBUFFER, bufi
+                            break
                
             if !ptri = getPtriUint32 this + DRAWCALL_DBUFFER
                 throw /DRAW_CALLS_BUFFER/
@@ -621,8 +743,6 @@ define RenderingContext::   , defaultDrawCall   :
         if !ptri = getPtriUint32 this + RENDERING_CONTEXT_DRAWCALL
             if !ptri = findChilds( this, DrawCall ).last()
                 addChildren this, ptri = new_Pointer DrawCall
-
-                
 
                 setPtriUint32 ptri + DRAWCALL_PROGRAM, @defaultProgram
                 setPtriUint32 ptri + DRAWCALL_DBUFFER, @defaultBuffer
@@ -871,17 +991,20 @@ define Program::            , getSource         :
                 return undefined
             return @setSource ptrj            
         return new ProgramSource ptrj
+define Program::            , BYTES_PER_POINT   :
+    enumerable: on
+    get : -> @source.BYTES_PER_POINT
 define Program::            , setSource         :
     value : ->
         setPtriUint32 this + PROGRAM_SHADER_SOURCE, arguments[0]
 define Mesh::               , TypedArray        :
     value : Float32Array
 define Mesh::               , getPointCount     :
-    value : ->
+    value : -> @vertices.length / 3
 define Mesh::               , getDrawingState   :
     value : ->
 define Mesh::               , getVertices       :
-    value : ->
+    value : -> new Float32Array sab, 36, Math.trunc this / 3
 define Mesh::               , setVertices       :
     value : ->
 define Mesh::               , getPosition       :
@@ -901,7 +1024,9 @@ define Mesh::               , getInstanceCount  :
 define Mesh::               , getColor          :
     value : ->
 define Mesh::               , getNeedsUpdate    :
-    value : ->
+    value : -> getPtriUint8 this + MESH_UPLOADED
+define Mesh::               , setNeedsUpdate    :
+    value : -> setPtriUint8 this + MESH_UPLOADED, arguments[0]
 define Mesh::               , modifierMatrix    :
     enumerable: on,
     get : ->
@@ -1361,4 +1486,5 @@ warn "rc2.findChild Inheritable Viewport:", findChild rc2, Viewport, on
 warn "sc.findChild Inheritable ProgramSource:", findChild rc2, Viewport, on
 warn "ss2.parameters:", ss2.parameters
 warn "sc.defctx:", sc.defaultContext.defaultBuffer.bind()
+warn "msh.append new_Pointer( DrawCall ):", msh.append new_Pointer( DrawCall )
 warn "msh.append new_Pointer( DrawCall ):", msh.append new_Pointer( DrawCall )
