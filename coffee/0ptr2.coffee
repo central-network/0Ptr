@@ -32,10 +32,10 @@ export class GPU                extends Pointer
 
 export default classes = new Object {
     Scene, DrawCall, Viewport, ClearColor, ClearMask, 
-    Color, Scale, Rotation, Position, Vertices, 
+    Color, Scale, Rotation, Position, Vertices,
     Mesh, Id, ProgramSource, VertexShader, FragmentShader, 
     EventHandler, Program, RenderingContext, VertexArray, 
-    VertexAttribute, Uniform, CPU, GPU, PtriArray
+    VertexAttribute, Uniform, CPU, GPU, PtriArray, DrawBuffer
 }
 
 GL2KEY = Object.keys     WebGL2RenderingContext
@@ -67,7 +67,6 @@ PTR_BYTELENGTH              = 4 * BPE
 
 SCENE_DEFAULT_CONTEXT       = 5 * BPE
 
-DRAWBUFFER_GLOBJECT         = 5 * BPE
 DRAWBUFFER_ISBINDED         = 6 * BPE
 DRAWBUFFER_BINDBINDING      = DRAWBUFFER_ISBINDED + 1
 DRAWBUFFER_TARGET           = DRAWBUFFER_ISBINDED + 2
@@ -76,6 +75,7 @@ DRAWCALL_DBUFFER            = 5 * BPE
 DRAWCALL_TARGET             = 6 * BPE
 DRAWCALL_USAGE              = DRAWCALL_TARGET + 2
 DRAWCALL_RCONTEXT           = 7 * BPE
+DRAWCALL_PROGRAM            = 8 * BPE
 
 PROGRAM_GLPROGRAM           = 5 * BPE
 PROGRAM_USEBINDING          = PROGRAM_GLPROGRAM + 1
@@ -199,6 +199,8 @@ getClassIndex   = ( ptri ) ->
     storage.indexOf( ptri.constructor )
 
 setClassIndex   = ( ptri, clsi ) ->
+    if -1 is clsi ||= getClassIndex ptri
+        throw /CLASS_INDEX_ERR/ 
     dvw.setUint32( ptri + PTR_CLASSINDEX,
         clsi or getClassIndex( ptri ), iLE
     ) ; ptri
@@ -486,12 +488,6 @@ define Scene::              , getDefaultContext :
                 addChildren this, ptri = new_Pointer RenderingContext 
             setPtriUint32 this + SCENE_DEFAULT_CONTEXT, ptri
         new RenderingContext ptri
-define DrawBuffer::         , glObject          :
-    get : ->
-        if !stri = getPtriUint32 this + DRAWBUFFER_GLOBJECT
-            stri = storeForUint32 @parent.glObject.createBuffer()
-            setPtriUint32 this + DRAWBUFFER_GLOBJECT, stri
-        storage[ stri ]
 define DrawBuffer::         , bind              :
     value : ->
         if !getPtriUint8 this + DRAWBUFFER_ISBINDED
@@ -503,25 +499,29 @@ define DrawBuffer::         , bind              :
                 setPtriUint8 ptrj + DRAWBUFFER_ISBINDED, 0 if ptri - ptrj
 
             if !stri = getPtriUint8 ptri + DRAWBUFFER_BINDBINDING
-                gl = @parent.glObject
-                fn = gl.bindBuffer.bind gl, @target, @glObject
-                setPtriUint8 ptri + DRAWBUFFER_BINDBINDING, stri = storeForUint8 fn
+                buff = gl.createBuffer() if gl = @parent.glObject
+                bind = gl.bindBuffer.bind gl, @target, buff
+                stri = storeForUint8 bind
 
+                setPtriUint8 ptri + DRAWBUFFER_BINDBINDING, stri
             storage[ stri ]()
+
         1
 define DrawBuffer::         , debug             :
     get : -> Object.defineProperties this,
         bind : get : @bind
 define DrawBuffer::         , isBinded          :
     enumerable : on
-    get : -> getPtriUint8 this + DRAWBUFFER_ISBINDED
+    get : ->
+        getPtriUint8 this + DRAWBUFFER_ISBINDED
 define DrawBuffer::         , target            :
     enumerable : on
     set : ->
         setPtriUint16 this + DRAWBUFFER_TARGET, arguments[0]
     get : ->
         if !target = getPtriUint16 this + DRAWBUFFER_TARGET
-            return @target = keyOfWebGL2 "ARRAY_BUFFER"
+            target = keyOfWebGL2 "ARRAY_BUFFER"
+            setPtriUint16 this + DRAWBUFFER_TARGET, target
         keyOfWebGL2 target        
 define DrawCall::           , target            :
     enumerable : on
@@ -543,28 +543,13 @@ define DrawCall::           , renderingContext  :
     enumerable : on
     get : ->
         if !ptri = getPtriUint32 this + DRAWCALL_RCONTEXT
-            
             ptrj = +this
             ctxi = 0
-            clsi = storage.indexOf RenderingContext
+            clsi = storage.indexOf Scene
 
-            while ptrj
-                if !ptrk = getParent ptrj
-                    if  ptrk = ptr_Pointer( ptrj ).defaultContext
-                        ctxi = ptrk
-                        break
-                    throw /DRAW_CALLS_CTX/
-                
-                ptrj = ptrk
-                continue if clsi - getClassIndex ptrj
-
-                ctxi = ptrj
-                break
-
-            if !ctxi
-                scni = findPointer( (-> 1), Scene )
-                if !ctxi = scni.defaultContext
-                    throw /DRAW_CALLS_CTX/
+            while ptrj = getParent ptrj
+                unless clsi - getClassIndex ptrj
+                    break if ctxi = ptr_Pointer( ptrj ).defaultContext
 
             if !ptri = setPtriUint32 this + DRAWCALL_RCONTEXT, ctxi
                 throw /DRAW_CALLS_CTX/
@@ -575,20 +560,22 @@ define DrawCall::           , drawBuffer        :
     get : ->
         if !ptri = getPtriUint32 this + DRAWCALL_DBUFFER
 
+            rctx = @renderingContext
+
             if !getPtriUint16 this + DRAWCALL_TARGET
                 { target, usage, drawBuffer } =
-                    @renderingContext.defaultDrawCall
+                    rctx.defaultDrawCall
 
                 setPtriUint32 this + DRAWCALL_DBUFFER, drawBuffer
                 setPtriUint16 this + DRAWCALL_TARGET, target
                 setPtriUint16 this + DRAWCALL_USAGE, usage
 
             else
-                if  bufi = @renderingContext.defaultBuffer
+                if  bufi = rctx.defaultBuffer
                     unless bufi.target - this.target
                         setPtriUint32 this + DRAWCALL_DBUFFER, bufi
 
-                for bufi in findChilds @renderingContext, DrawBuffer
+                for bufi in findChilds rctx, DrawBuffer
                     unless bufi.target - this.target
                         setPtriUint32 this + DRAWCALL_DBUFFER, bufi
                         break
@@ -597,6 +584,14 @@ define DrawCall::           , drawBuffer        :
                 throw /DRAW_CALLS_BUFFER/
 
         new DrawBuffer ptri
+define DrawCall::           , program           :
+    enumerable : on
+    get : ->
+        if !ptri = getPtriUint32 this + DRAWCALL_PROGRAM
+            if !ptri = @renderingContext.defaultProgram
+                throw /DRAW_CALLS_PROGRAM/
+            setPtriUint32 this + DRAWCALL_PROGRAM, ptri
+        new Program ptri
 define RenderingContext::   , defaultBuffer     :
     enumerable : on
     set : ->

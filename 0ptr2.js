@@ -1,4 +1,4 @@
-var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, Class, DRAWBUFFER_BINDBINDING, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_TARGET, DRAWCALL_DBUFFER, DRAWCALL_RCONTEXT, DRAWCALL_TARGET, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, desc, dvw, encode, error, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint16, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, keyOfWebGL2, l, len, log, malloc, msh, name, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, ref2, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint16, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
+var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, Class, DRAWBUFFER_BINDBINDING, DRAWBUFFER_ISBINDED, DRAWBUFFER_TARGET, DRAWCALL_DBUFFER, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_TARGET, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, desc, dvw, encode, error, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint16, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, keyOfWebGL2, l, len, log, malloc, msh, name, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, ref2, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint16, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
 
 import {
   parent
@@ -61,7 +61,7 @@ export var CPU = class CPU extends Text {};
 
 export var GPU = class GPU extends Pointer {};
 
-export default classes = new Object({Scene, DrawCall, Viewport, ClearColor, ClearMask, Color, Scale, Rotation, Position, Vertices, Mesh, Id, ProgramSource, VertexShader, FragmentShader, EventHandler, Program, RenderingContext, VertexArray, VertexAttribute, Uniform, CPU, GPU, PtriArray});
+export default classes = new Object({Scene, DrawCall, Viewport, ClearColor, ClearMask, Color, Scale, Rotation, Position, Vertices, Mesh, Id, ProgramSource, VertexShader, FragmentShader, EventHandler, Program, RenderingContext, VertexArray, VertexAttribute, Uniform, CPU, GPU, PtriArray, DrawBuffer});
 
 GL2KEY = Object.keys(WebGL2RenderingContext);
 
@@ -102,8 +102,6 @@ PTR_BYTELENGTH = 4 * BPE;
 
 SCENE_DEFAULT_CONTEXT = 5 * BPE;
 
-DRAWBUFFER_GLOBJECT = 5 * BPE;
-
 DRAWBUFFER_ISBINDED = 6 * BPE;
 
 DRAWBUFFER_BINDBINDING = DRAWBUFFER_ISBINDED + 1;
@@ -117,6 +115,8 @@ DRAWCALL_TARGET = 6 * BPE;
 DRAWCALL_USAGE = DRAWCALL_TARGET + 2;
 
 DRAWCALL_RCONTEXT = 7 * BPE;
+
+DRAWCALL_PROGRAM = 8 * BPE;
 
 PROGRAM_GLPROGRAM = 5 * BPE;
 
@@ -330,6 +330,9 @@ getClassIndex = function(ptri) {
 };
 
 setClassIndex = function(ptri, clsi) {
+  if (-1 === (clsi || (clsi = getClassIndex(ptri)))) {
+    throw /CLASS_INDEX_ERR/;
+  }
   dvw.setUint32(ptri + PTR_CLASSINDEX, clsi || getClassIndex(ptri), iLE);
   return ptri;
 };
@@ -830,22 +833,9 @@ define(Scene.prototype, {
 });
 
 define(DrawBuffer.prototype, {
-  glObject: {
-    get: function() {
-      var stri;
-      if (!(stri = getPtriUint32(this + DRAWBUFFER_GLOBJECT))) {
-        stri = storeForUint32(this.parent.glObject.createBuffer());
-        setPtriUint32(this + DRAWBUFFER_GLOBJECT, stri);
-      }
-      return storage[stri];
-    }
-  }
-});
-
-define(DrawBuffer.prototype, {
   bind: {
     value: function() {
-      var construct, fn, gl, l, len, ptri, ptrj, ref, stri;
+      var bind, buff, construct, gl, l, len, ptri, ptrj, ref, stri;
       if (!getPtriUint8(this + DRAWBUFFER_ISBINDED)) {
         setPtriUint8(this + DRAWBUFFER_ISBINDED, 1);
         ptri = +this;
@@ -857,9 +847,12 @@ define(DrawBuffer.prototype, {
           }
         }
         if (!(stri = getPtriUint8(ptri + DRAWBUFFER_BINDBINDING))) {
-          gl = this.parent.glObject;
-          fn = gl.bindBuffer.bind(gl, this.target, this.glObject);
-          setPtriUint8(ptri + DRAWBUFFER_BINDBINDING, stri = storeForUint8(fn));
+          if (gl = this.parent.glObject) {
+            buff = gl.createBuffer();
+          }
+          bind = gl.bindBuffer.bind(gl, this.target, buff);
+          stri = storeForUint8(bind);
+          setPtriUint8(ptri + DRAWBUFFER_BINDBINDING, stri);
         }
         storage[stri]();
       }
@@ -898,7 +891,8 @@ define(DrawBuffer.prototype, {
     get: function() {
       var target;
       if (!(target = getPtriUint16(this + DRAWBUFFER_TARGET))) {
-        return this.target = keyOfWebGL2("ARRAY_BUFFER");
+        target = keyOfWebGL2("ARRAY_BUFFER");
+        setPtriUint16(this + DRAWBUFFER_TARGET, target);
       }
       return keyOfWebGL2(target);
     }
@@ -941,32 +935,16 @@ define(DrawCall.prototype, {
   renderingContext: {
     enumerable: true,
     get: function() {
-      var clsi, ctxi, ptri, ptrj, ptrk, scni;
+      var clsi, ctxi, ptri, ptrj;
       if (!(ptri = getPtriUint32(this + DRAWCALL_RCONTEXT))) {
         ptrj = +this;
         ctxi = 0;
-        clsi = storage.indexOf(RenderingContext);
-        while (ptrj) {
-          if (!(ptrk = getParent(ptrj))) {
-            if (ptrk = ptr_Pointer(ptrj).defaultContext) {
-              ctxi = ptrk;
+        clsi = storage.indexOf(Scene);
+        while (ptrj = getParent(ptrj)) {
+          if (!(clsi - getClassIndex(ptrj))) {
+            if (ctxi = ptr_Pointer(ptrj).defaultContext) {
               break;
             }
-            throw /DRAW_CALLS_CTX/;
-          }
-          ptrj = ptrk;
-          if (clsi - getClassIndex(ptrj)) {
-            continue;
-          }
-          ctxi = ptrj;
-          break;
-        }
-        if (!ctxi) {
-          scni = findPointer((function() {
-            return 1;
-          }), Scene);
-          if (!(ctxi = scni.defaultContext)) {
-            throw /DRAW_CALLS_CTX/;
           }
         }
         if (!(ptri = setPtriUint32(this + DRAWCALL_RCONTEXT, ctxi))) {
@@ -982,20 +960,21 @@ define(DrawCall.prototype, {
   drawBuffer: {
     enumerable: true,
     get: function() {
-      var bufi, drawBuffer, l, len, ptri, ref, target, usage;
+      var bufi, drawBuffer, l, len, ptri, rctx, ref, target, usage;
       if (!(ptri = getPtriUint32(this + DRAWCALL_DBUFFER))) {
+        rctx = this.renderingContext;
         if (!getPtriUint16(this + DRAWCALL_TARGET)) {
-          ({target, usage, drawBuffer} = this.renderingContext.defaultDrawCall);
+          ({target, usage, drawBuffer} = rctx.defaultDrawCall);
           setPtriUint32(this + DRAWCALL_DBUFFER, drawBuffer);
           setPtriUint16(this + DRAWCALL_TARGET, target);
           setPtriUint16(this + DRAWCALL_USAGE, usage);
         } else {
-          if (bufi = this.renderingContext.defaultBuffer) {
+          if (bufi = rctx.defaultBuffer) {
             if (!(bufi.target - this.target)) {
               setPtriUint32(this + DRAWCALL_DBUFFER, bufi);
             }
           }
-          ref = findChilds(this.renderingContext, DrawBuffer);
+          ref = findChilds(rctx, DrawBuffer);
           for (l = 0, len = ref.length; l < len; l++) {
             bufi = ref[l];
             if (!(bufi.target - this.target)) {
@@ -1009,6 +988,22 @@ define(DrawCall.prototype, {
         }
       }
       return new DrawBuffer(ptri);
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  program: {
+    enumerable: true,
+    get: function() {
+      var ptri;
+      if (!(ptri = getPtriUint32(this + DRAWCALL_PROGRAM))) {
+        if (!(ptri = this.renderingContext.defaultProgram)) {
+          throw /DRAW_CALLS_PROGRAM/;
+        }
+        setPtriUint32(this + DRAWCALL_PROGRAM, ptri);
+      }
+      return new Program(ptri);
     }
   }
 });
