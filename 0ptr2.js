@@ -1,10 +1,6 @@
-var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, Class, DRAWBUFFER_BINDBINDING, DRAWBUFFER_BYTELENGTH, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_RESIZEBINDING, DRAWBUFFER_TARGET, DRAWBUFFER_USAGE, DRAWCALL_DBUFFER, DRAWCALL_DRAWBINDING, DRAWCALL_DSTBYTEOFFSET, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_STATE, DRAWCALL_TARGET, DRAWCALL_TYPE, DRAWCALL_UPLOADBINDING, DRAWCALL_UPLOADED, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, MESH_UPLOADED, MESH_VERTICES, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, addPtriUint32, addUint32, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, desc, dvw, encode, error, f32, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint16, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, keyOfWebGL2, l, len, log, malloc, msh, msh2, name, new_Float32Array, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, ref2, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint16, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayFloat32, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
-
-import {
-  parent
-} from "./window.js";
-
 //? hello world <3
+var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, Class, DRAWBUFFER_BINDBINDING, DRAWBUFFER_BYTELENGTH, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_RESIZEBINDING, DRAWBUFFER_TARGET, DRAWBUFFER_USAGE, DRAWCALL_DBUFFER, DRAWCALL_DRAWBINDING, DRAWCALL_DSTBYTEOFFSET, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_STATE, DRAWCALL_TARGET, DRAWCALL_TYPE, DRAWCALL_UPLOADBINDING, DRAWCALL_UPLOADED, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, MESH_MMATRIX, MESH_UPLOADED, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, addPtriUint32, addUint32, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, desc, dvw, encode, error, f32, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint16, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, keyOfWebGL2, l, len, log, malloc, msh, msh2, name, new_Float32Array, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, ref2, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint16, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayFloat32, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
+
 export var Pointer = class Pointer extends Number {};
 
 export var PtriArray = class PtriArray extends Array {};
@@ -110,7 +106,7 @@ SCENE_DEFAULT_CONTEXT = 5 * BPE;
 
 MESH_UPLOADED = 5 * BPE;
 
-MESH_VERTICES = 6 * BPE;
+MESH_MMATRIX = 6 * BPE;
 
 DRAWBUFFER_GLOBJECT = 5 * BPE;
 
@@ -1787,6 +1783,54 @@ define(Vertices.prototype, {
   }
 });
 
+define(ModifierMatrix, {
+  byteLength: {
+    value: 16 * 4
+  }
+});
+
+define(ModifierMatrix.prototype, {
+  TypedArray: {
+    value: Float32Array
+  }
+});
+
+define(ModifierMatrix.prototype, {
+  subarray: {
+    get: function() {
+      return new Float32Array(sab, getByteOffset(this), 16);
+    }
+  }
+});
+
+define(ModifierMatrix.prototype, {
+  set: {
+    value: function(value = []) {
+      var byteLength, byteOffset, length;
+      if (ArrayBuffer.isView(value) || Array.isArray(value)) {
+        length = 16;
+        byteLength = 64;
+        if (!(byteOffset = getByteOffset(this))) {
+          byteOffset = malloc(byteLength);
+          setByteOffset(this, byteOffset);
+          setByteLength(this, byteLength);
+        }
+        this.subarray.set(value);
+        return this;
+      }
+      throw /MMATRIX_SET/;
+    }
+  }
+});
+
+define(ModifierMatrix.prototype, {
+  identity: {
+    value: function() {
+      return this.set(Float32Array.of(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1));
+    }
+  }
+});
+
 define(Mesh.prototype, {
   TypedArray: {
     value: Float32Array
@@ -1861,25 +1905,33 @@ define(Mesh.prototype, {
 
 define(Mesh.prototype, {
   getPosition: {
-    value: function() {}
+    value: function() {
+      return findChild(this, Position);
+    }
   }
 });
 
 define(Mesh.prototype, {
   getRotation: {
-    value: function() {}
+    value: function() {
+      return findChild(this, Rotation);
+    }
   }
 });
 
 define(Mesh.prototype, {
   getScale: {
-    value: function() {}
+    value: function() {
+      return findChild(this, Scale);
+    }
   }
 });
 
 define(Mesh.prototype, {
   getDrawCalls: {
-    value: function() {}
+    value: function() {
+      return findChilds(this, DrawCall);
+    }
   }
 });
 
@@ -1903,7 +1955,9 @@ define(Mesh.prototype, {
 
 define(Mesh.prototype, {
   getColor: {
-    value: function() {}
+    value: function() {
+      return findChild(this, Color);
+    }
   }
 });
 
@@ -1939,10 +1993,30 @@ define(Mesh.prototype, {
 });
 
 define(Mesh.prototype, {
-  modifierMatrix: {
-    enumerable: true,
-    get: function() {
-      return new ModifierMatrix();
+  setModifierMatrix: {
+    value: function(value, link = true) {
+      if (link) {
+        return setPtriUint32(this + MESH_MMATRIX, value);
+      }
+      if (this.modifierMatrix.set(value)) {
+        return this;
+      }
+      throw /MODIFIER_MATRIX_SET/;
+    }
+  }
+});
+
+define(Mesh.prototype, {
+  getModifierMatrix: {
+    value: function() {
+      var ptri;
+      if (!(ptri = getPtriUint32(this + MESH_MMATRIX))) {
+        ptri = new_Pointer(ModifierMatrix);
+        ptri.identity();
+        addChildren(this, ptri);
+        setPtriUint32(this + MESH_MMATRIX, ptri);
+      }
+      return new ModifierMatrix(ptri);
     }
   }
 });

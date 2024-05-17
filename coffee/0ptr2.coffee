@@ -1,5 +1,3 @@
-import { parent } from "./window.coffee"
-
 #? hello world <3
 export class Pointer            extends Number
 export class PtriArray          extends Array
@@ -71,7 +69,7 @@ PTR_BYTELENGTH              = 4 * BPE
 SCENE_DEFAULT_CONTEXT       = 5 * BPE
 
 MESH_UPLOADED               = 5 * BPE
-MESH_VERTICES               = 6 * BPE
+MESH_MMATRIX                = 6 * BPE
 
 DRAWBUFFER_GLOBJECT         = 5 * BPE
 DRAWBUFFER_ISBINDED         = 6 * BPE
@@ -145,7 +143,7 @@ malloc = ( byteLength = 0 ) ->
         Atomics.add u32, 1, 8 - mod
     Atomics.add u32, 1, byteLength
 
-export storage = new (class Storage extends Array
+export storage  = new (class Storage extends Array
     constructor     : -> super( arguments... ).add null
     findByName      : -> @find((i) => i and i.name is arguments[0])
     fillFirstEmpty  : (o) -> @[ i = @findIndex((v, j) -> j && !v) ] = o ; i
@@ -1043,6 +1041,35 @@ define Vertices::           , set               :
         test = ( ptri ) -> 0 is byte - getByteOffset ptri
         mesh = findPointer test, Mesh, construct = off
         new Mesh( mesh ).setVertices value
+define ModifierMatrix       , byteLength        :
+    value : 16 * 4
+define ModifierMatrix::     , TypedArray        :
+    value : Float32Array
+define ModifierMatrix::     , subarray          :
+    get : -> new Float32Array sab, getByteOffset(this), 16
+define ModifierMatrix::     , set               :
+    value : ( value = [] ) ->
+        if  ArrayBuffer.isView( value ) or Array.isArray( value )
+
+            length = 16 
+            byteLength = 64
+
+            if !byteOffset = getByteOffset this
+                byteOffset = malloc byteLength
+                setByteOffset this, byteOffset
+                setByteLength this, byteLength
+
+            @subarray.set value
+            return this
+
+        throw /MMATRIX_SET/
+define ModifierMatrix::     , identity          :
+    value : -> @set Float32Array.of(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1,
+    )
 define Mesh::               , TypedArray        :
     value : Float32Array
 define Mesh::               , getPointCount     :
@@ -1059,6 +1086,7 @@ define Mesh::               , getVertices       :
         new Vertices sab, byteOffset, length
 define Mesh::               , setVertices       :
     value : ( value = [], index = 0 ) ->
+
         if  value instanceof Mesh
             value = value.vertices
 
@@ -1088,13 +1116,13 @@ define Mesh::               , setVertices       :
 define Mesh::               , set               :
     value : Mesh::setVertices  
 define Mesh::               , getPosition       :
-    value : ->
+    value : -> findChild this, Position
 define Mesh::               , getRotation       :
-    value : ->
+    value : -> findChild this, Rotation
 define Mesh::               , getScale          :
-    value : ->
+    value : -> findChild this, Scale
 define Mesh::               , getDrawCalls      :
-    value : ->
+    value : -> findChilds this, DrawCall
 define Mesh::               , getIsVisible      :
     value : ->
 define Mesh::               , getDrawWeight     :
@@ -1102,7 +1130,7 @@ define Mesh::               , getDrawWeight     :
 define Mesh::               , getInstanceCount  :
     value : ->
 define Mesh::               , getColor          :
-    value : ->
+    value : -> findChild this, Color
 define Mesh::               , getNeedsUpdate    :
     value : -> ! getPtriUint8 this + MESH_UPLOADED
 define Mesh::               , setNeedsUpdate    :
@@ -1118,9 +1146,25 @@ define Mesh::               , setNeedsUpdate    :
             call . setNeedsUpload 1
 
         return 1
-define Mesh::               , modifierMatrix    :
-    enumerable: on,
-    get : -> new ModifierMatrix()
+define Mesh::               , setModifierMatrix :
+    value : ( value, link = on ) ->        
+        if  link
+            return setPtriUint32 this + MESH_MMATRIX, value
+
+        if  @modifierMatrix.set value
+            return this
+
+        throw /MODIFIER_MATRIX_SET/
+define Mesh::               , getModifierMatrix :
+    value : ->
+        if !ptri = getPtriUint32 this + MESH_MMATRIX
+            ptri = new_Pointer ModifierMatrix
+            ptri . identity()
+
+            addChildren this , ptri
+            setPtriUint32 this + MESH_MMATRIX, ptri
+
+        new ModifierMatrix ptri
 define Uniform              , getLocation       :
     value : ( program, name ) ->
         program.parent.glObject
