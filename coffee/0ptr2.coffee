@@ -78,9 +78,10 @@ PTR_BYTELENGTH              = 4 * BPE
 SCENE_DEFAULT_CONTEXT       = 5 * BPE
 SCENE_MESH_ATTR_VERTEX      = 5 * BPE
 
-MESH_UPLOADED               = 5 * BPE
-MESH_MMATRIX                = 6 * BPE
-MESH_ATTR_VERTEX            = 7 * BPE
+MESH_SCENE_PTRI             = 5 * BPE
+MESH_UPLOADED               = 6 * BPE
+MESH_MMATRIX                = 7 * BPE
+MESH_ATTR_VERTEX            = 8 * BPE
 
 DRAWBUFFER_GLOBJECT         = 5 * BPE
 DRAWBUFFER_ISBINDED         = 6 * BPE
@@ -268,8 +269,10 @@ define          = ->
     Object.defineProperties o, props
 
 selfExtends1    =
-    getown : Object.getOwnPropertyDescriptor
     assign : Object.assign
+    protof : Object.getPrototypeOf
+    getOwn : Object.getOwnPropertyDescriptor
+    hasOwn : (o, v) -> Class if Object.hasOwn (Class = o.constructor)::, v
     encode : TextEncoder::encode.bind new TextEncoder
     decode : TextDecoder::decode.bind new TextDecoder
     palloc : ->
@@ -638,9 +641,14 @@ define Pointer              , from              :
 define Pointer::            , toString          :
     value : -> error "tostring", this
 define Pointer::            , add               :
-    value : ( ptri ) -> setParent ptri, this
+    value : ( ptri ) ->
+        setParent ptri, this
+        ptri.onadopt this
+        this
 define Pointer::            , append            :
-    value : ( ptri ) -> addChildren this, ptri
+    value : ( ptri ) -> @add ptri ; ptri
+define Pointer::            , onadopt           :
+    value : ( parent ) -> this
 define Pointer::            , children          :
     enumerable: on
     configurable: on
@@ -748,11 +756,21 @@ define PtriArray::          , includes          :
         else throw /PTRI_ARRAY_INCLUDES/
 define PtriArray::          , last              :
     value : -> this[ this.length - 1 ]
-define Scene::              , setDefaultContext :
-    value : ( ptri ) ->
-        setPtriUint32 this + SCENE_DEFAULT_CONTEXT, ptri
-define Scene::              , getDefaultContext :
+define Scene::              , visibility        :
+    get : -> this
+define Scene::              , isScene           :
+    value : yes
+define Scene::              , getDrawCalls      :
     value : ->
+        if !findChild this, DrawCall
+            for drawCall in @renderingContext.defaultDrawCalls
+                addChildren this, drawCall.inheritableCopy
+        findChilds this, DrawCall
+define Scene::              , renderingContext  :
+    enumerable: on
+    set : ( ptri ) ->
+        setPtriUint32 this + SCENE_DEFAULT_CONTEXT, ptri
+    get : ->
         if !ptri = getPtriUint32 this + SCENE_DEFAULT_CONTEXT
             if !ptri = findChilds( this, RenderingContext ).last()
                 addChildren this, ptri = new_Pointer RenderingContext 
@@ -837,6 +855,8 @@ define DrawBuffer::         , usage             :
             usage = keyOfWebGL2 "STATIC_DRAW"
             setPtriUint32 this + DRAWBUFFER_USAGE, usage
         keyOfWebGL2 usage        
+define DrawCall::           , isDrawCall        :
+    value : yes
 define DrawCall::           , pointCount        :
     enumerable : on
     get : -> @parent.pointCount
@@ -847,10 +867,6 @@ define DrawCall::           , attribute         :
         length = ptri.size
         byteOffset = index * ptri.BYTES_PER_POINT + ptri.offset
         new_Attribute this, byteOffset, length        
-define DrawCall::           , positionAttribute :
-    enumerable : on
-    set : -> @program.positionAttribute = arguments[0]
-    get : -> @program.positionAttribute
 define DrawCall::           , debug             :
     get : -> Object.defineProperties this,
         draw : get : @draw
@@ -925,14 +941,13 @@ define DrawCall::           , dstByteOffset     :
             setByteLength this , byteLength
             setByteOffset this , malloc byteLength
             setPtriUint32 this + DRAWCALL_DSTBYTEOFFSET, byteOffset
-
         byteOffset
 define DrawCall::           , draw              :
     value : ->
         if !stri  = getPtriUint32 this + DRAWCALL_DRAWBINDING
+            gl    = @renderingContext.glObject
             start = @dstByteOffset / @program.BYTES_PER_POINT
             count = @pointCount
-            gl    = @renderingContext.glObject
             stri  = storeForUint32 fn = gl.drawArrays.bind gl, @type, start, count 
             setPtriUint32 this + DRAWCALL_DRAWBINDING, stri
 
@@ -944,17 +959,34 @@ define DrawCall::           , draw              :
         storage[ stri ]()
 
         1
+define DrawCall::           , inheritableCopy   :
+    get : ->
+        ptrj = new_Pointer DrawCall
+
+        setPtriUint32 ptrj + DRAWCALL_RCONTEXT, @renderingContext
+        setPtriUint32 ptrj + DRAWCALL_DBUFFER , @drawBuffer
+        setPtriUint32 ptrj + DRAWCALL_PROGRAM , @program
+        setPtriUint16 ptrj + DRAWCALL_USAGE, @usage
+        setPtriUint16 ptrj + DRAWCALL_TARGET, @target
+        setPtriUint8  ptrj + DRAWCALL_TYPE, @type
+
+        ptrj
 define DrawCall::           , renderingContext  :
     enumerable : on
     get : ->
         if !ptri = getPtriUint32 this + DRAWCALL_RCONTEXT
             ptrj = +this
             ctxi = 0
-            clsi = storage.indexOf Scene
+            clsi = storage.indexOf RenderingContext
+            last = ptrj
 
-            while ptrj = getParent ptrj
+            while ptrj = getParent last = ptrj
                 unless clsi - getClassIndex ptrj
-                    break if ctxi = ptr_Pointer( ptrj ).defaultContext
+                    ctxi = ptrj
+                    break
+
+            if !ctxi and ptrj = ptr_Pointer last
+                ctxi = ptrj.renderingContext
 
             if !ptri = setPtriUint32 this + DRAWCALL_RCONTEXT, ctxi
                 throw /DRAW_CALLS_CTX/
@@ -968,7 +1000,7 @@ define DrawCall::           , drawBuffer        :
 
             if !getPtriUint16 this + DRAWCALL_TARGET
                 { target, usage, drawBuffer } =
-                    rctx.defaultDrawCall
+                    rctx.defaultDrawCalls[0]
 
                 setPtriUint32 this + DRAWCALL_DBUFFER, drawBuffer
                 setPtriUint16 this + DRAWCALL_TARGET, target
@@ -1019,7 +1051,7 @@ define RenderingContext::   , defaultProgram    :
                 ptri.alias = "default"
             setPtriUint32 this + RENDERING_CONTEXT_DPROGRAM, ptri
         new Program ptri
-define RenderingContext::   , defaultDrawCall   :
+define RenderingContext::   , defaultDrawCalls  :
     enumerable : on
     set : ->
         setPtriUint32 this + RENDERING_CONTEXT_DRAWCALL, arguments[0]
@@ -1034,7 +1066,7 @@ define RenderingContext::   , defaultDrawCall   :
                 setPtriUint16 ptri + DRAWCALL_USAGE, keyOfWebGL2 "STATIC_DRAW"
                 
             setPtriUint32 this + RENDERING_CONTEXT_DRAWCALL, ptri
-        new DrawCall ptri
+        new PtriArray new DrawCall ptri
 define RenderingContext::   , glObject          :
     get : ->
         if !stri = getPtriUint8 this + RENDERING_CONTEXT_GLOBJECT
@@ -1266,19 +1298,10 @@ define Program::            , findVertexAttrib  :
 define Program::            , findVertexArray   :
     value : ( any ) ->
         @source.findGLSLVariable any, VertexArray
-define Program::            , positionAttribute :
-    enumerable : on
-    set : ( any ) ->
-        if !ptri = @findVertexAttrib any
-            throw /UNFINDED_GLSL_VARIABLE/
-        setPtriUint32 this + PROGRAM_POSITION_ATTRIB, ptri
-    get : ->
-        if !ptri = getPtriUint32 this + PROGRAM_POSITION_ATTRIB
-            ptri = parseGLSLSource @source.vertexShader, @variables
-                .filter (a) -> a instanceof VertexAttribute
-                .findDecoded (a) -> a.match(/position/i) and @size is 3 
-            return setPtriUint32 this + PROGRAM_POSITION_ATTRIB, ptri
-        return ptr_Pointer ptri
+define Program::            , findAttribute     :
+    value : ( regex ) ->
+        parseGLSLSource @source.vertexShader, @variables
+            .findDecoded ( a ) -> a.match regex  
 define Program::            , bindVertexArray   :
     value : ->
         if !vaoi = getPtriUint8 this + PROGRAM_VAOBINDING
@@ -1423,10 +1446,29 @@ define Mesh::               , getRotation       :
     value : -> findChild this, Rotation
 define Mesh::               , getScale          :
     value : -> findChild this, Scale
+define Mesh::               , onadopt           :
+    value : ( parent ) ->
+        if !findChild this, DrawCall
+            for ptri in parent.drawCalls
+                addChildren this, ptri.inheritableCopy
+        @setVisibility parent.visibility
+        return this
 define Mesh::               , getDrawCalls      :
-    value : -> findChilds this, DrawCall
-define Mesh::               , getIsVisible      :
     value : ->
+        if !findChild this, DrawCall
+            return new PtriArray() unless @visibility
+
+            for ptri in @parent.drawCalls
+                addChildren this, ptri.inheritableCopy                
+
+        findChilds this, DrawCall
+define Mesh::               , getVisibility     :
+    value : ->
+        if  ptri = getPtriUint32 this + MESH_SCENE_PTRI
+            return new Scene ptri
+define Mesh::               , setVisibility     :
+    value : ( ptri ) ->
+        setPtriUint32 this + MESH_SCENE_PTRI, ptri
 define Mesh::               , getDrawWeight     :
     value : ->
 define Mesh::               , getInstanceCount  :
@@ -1874,8 +1916,8 @@ for cname, Class of reDefine = classes
         continue if defineds[ pkey ]
         continue if !pkey.match(/name/) and descs[ pkey ]
 
-        get = d.value if d = getown Class::, "get#{className}"
-        set = d.value if d = getown Class::, "set#{className}"
+        get = d.value if d = getOwn Class::, "get#{className}"
+        set = d.value if d = getOwn Class::, "set#{className}"
 
         define Class::, [ pkey ] : { get, set, enumerable : on }
 
@@ -1906,19 +1948,27 @@ msh2 = new_Pointer( Mesh )
 
 ss1 = new_Pointer( ProgramSource ).set("my-avesome-vertex-shader")
 ss2 = new_Pointer( ProgramSource ).set("default")
+
 rc1 = new_Pointer( RenderingContext )
+rc2 = new_Pointer( RenderingContext )
+
 vp1 = new_Pointer( Viewport )
 
 p0 = new_Pointer( Program ).set("my-avesome-vertex-shader")
 p1 = new_Pointer( Program ).set("default")
 
 
-rc2 = new_Pointer( RenderingContext )
 vp2 = Viewport.of({ width : 320, height : 240, left: 20, top: 20 })
 
-rc1.add p0
-rc1.add p1
+rc2.add new_Pointer( Program ).set("my-avesome-vertex-shader")
+rc2.add new_Pointer( Program ).set("default")
 rc2.add vp2
+
+rc1.add p1
+
+for dc in rc2.defaultDrawCalls
+    msh.append dc.inheritableCopy
+
 
 sc.add msh
 sc.add ss1
@@ -1927,7 +1977,17 @@ sc.add vp1
 sc.add rc1
 sc.add rc2
 
-
+warn msh2.set([
+    0,   0,  0,
+    0,  0.5, 0,
+    0.7,  0, 0,
+    0,   0,  0,
+    0,  0.5, 0,
+    0.7,  0, 0,
+    0,   0,  0,
+    0,  0.5, 0,
+    0.7,  0, 0,
+])
 
 warn msh.set([
     0,   0,  0,
@@ -1936,10 +1996,9 @@ warn msh.set([
 ])
 
 msh.append post = new_Pointer( Position )
-msh.append new_Pointer( DrawCall )
-msh.append new_Pointer( DrawCall )
 
 log "post:", post.set([1, 0, -1])
+
 msh.add msh2
 self.mesh = msh
 
@@ -1947,14 +2006,12 @@ self.mesh = msh
 source = mesh.vertices
 drawCall = mesh.drawCalls[0]
 program = drawCall.program
-program.positionAttribute = "a_Position"
 target = drawCall.attributes
 
 
 pointCount = drawCall.pointCount
 
 warn drawCall
-warn "drawCall.positionAttribute:", drawCall.positionAttribute
 warn target.attribute(1)
 
 warn src = source.vertex(1)
@@ -1974,6 +2031,15 @@ dst.set [
     z0 + dz
 ]
 
+
+no and src.on "onbeforerender", ruleset1, handler = ( ptri, ptrj, count ) ->
+
+    sommodify = ptrj * 11
+
+    while count--
+        ptrj.set sommodify
+
+    1
 
 log { source }
 log { target }

@@ -1,5 +1,5 @@
 //? hello world <3
-var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, BlackOnYellow, Class, DEBUG, DRAWBUFFER_BINDBINDING, DRAWBUFFER_BYTELENGTH, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_RESIZEBINDING, DRAWBUFFER_TARGET, DRAWBUFFER_USAGE, DRAWCALL_DBUFFER, DRAWCALL_DRAWBINDING, DRAWCALL_DSTBYTEOFFSET, DRAWCALL_POS_ATTRIB, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_STATE, DRAWCALL_TARGET, DRAWCALL_TYPE, DRAWCALL_UPLOADBINDING, DRAWCALL_UPLOADED, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, GreenOnWhite, MESH_ATTR_VERTEX, MESH_MMATRIX, MESH_UPLOADED, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_POSITION_ATTRIB, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SCENE_MESH_ATTR_VERTEX, SHADER_SOURCE_BYTES_PERP, SHADER_SOURCE_PARAMETERS, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, WhiteOnBlack, WhiteOnBlue, WhiteOnCyan, WhiteOnMagenta, WhiteOnRed, blackOnBlue, blackOnCyan, blackOnGreen, blackOnMagenta, blackOnRed, blackOnWhite, blackOnYellow, blue, className, classes, cname, colors, cyan, d, debug, define, defineds, delay, desc, descs, drawCall, dst, dvw, dx, dy, dz, error, f32, get, green, iLE, info, k, key, len, log, m, magenta, msh, msh2, p0, p1, pkey, pname, pointCount, post, program, prop, rc1, rc2, reDefine, red, ref, ref1, ref2, ref3, sab, sc, selfExtends1, selfExtends2, set, source, src, ss1, ss2, table, target, u32, ui8, value, vp1, vp2, warn, x0, y0, yellow, z0;
+var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, BlackOnYellow, Class, DEBUG, DRAWBUFFER_BINDBINDING, DRAWBUFFER_BYTELENGTH, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_RESIZEBINDING, DRAWBUFFER_TARGET, DRAWBUFFER_USAGE, DRAWCALL_DBUFFER, DRAWCALL_DRAWBINDING, DRAWCALL_DSTBYTEOFFSET, DRAWCALL_POS_ATTRIB, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_STATE, DRAWCALL_TARGET, DRAWCALL_TYPE, DRAWCALL_UPLOADBINDING, DRAWCALL_UPLOADED, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, GreenOnWhite, MESH_ATTR_VERTEX, MESH_MMATRIX, MESH_SCENE_PTRI, MESH_UPLOADED, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_POSITION_ATTRIB, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SCENE_MESH_ATTR_VERTEX, SHADER_SOURCE_BYTES_PERP, SHADER_SOURCE_PARAMETERS, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, WhiteOnBlack, WhiteOnBlue, WhiteOnCyan, WhiteOnMagenta, WhiteOnRed, blackOnBlue, blackOnCyan, blackOnGreen, blackOnMagenta, blackOnRed, blackOnWhite, blackOnYellow, blue, className, classes, cname, colors, cyan, d, dc, debug, define, defineds, delay, desc, descs, drawCall, dst, dvw, dx, dy, dz, error, f32, get, green, handler, iLE, info, k, key, len, len1, log, m, magenta, msh, msh2, n, p0, p1, pkey, pname, pointCount, post, program, prop, rc1, rc2, reDefine, red, ref, ref1, ref2, ref3, ref4, sab, sc, selfExtends1, selfExtends2, set, source, src, ss1, ss2, table, target, u32, ui8, value, vp1, vp2, warn, x0, y0, yellow, z0;
 
 DEBUG = false;
 
@@ -118,11 +118,13 @@ SCENE_DEFAULT_CONTEXT = 5 * BPE;
 
 SCENE_MESH_ATTR_VERTEX = 5 * BPE;
 
-MESH_UPLOADED = 5 * BPE;
+MESH_SCENE_PTRI = 5 * BPE;
 
-MESH_MMATRIX = 6 * BPE;
+MESH_UPLOADED = 6 * BPE;
 
-MESH_ATTR_VERTEX = 7 * BPE;
+MESH_MMATRIX = 7 * BPE;
+
+MESH_ATTR_VERTEX = 8 * BPE;
 
 DRAWBUFFER_GLOBJECT = 5 * BPE;
 
@@ -325,8 +327,15 @@ define = function() {
 };
 
 selfExtends1 = {
-  getown: Object.getOwnPropertyDescriptor,
   assign: Object.assign,
+  protof: Object.getPrototypeOf,
+  getOwn: Object.getOwnPropertyDescriptor,
+  hasOwn: function(o, v) {
+    var Class;
+    if (Object.hasOwn((Class = o.constructor).prototype, v)) {
+      return Class;
+    }
+  },
   encode: TextEncoder.prototype.encode.bind(new TextEncoder),
   decode: TextDecoder.prototype.decode.bind(new TextDecoder),
   palloc: function() {
@@ -859,7 +868,9 @@ define(Pointer.prototype, {
 define(Pointer.prototype, {
   add: {
     value: function(ptri) {
-      return setParent(ptri, this);
+      setParent(ptri, this);
+      ptri.onadopt(this);
+      return this;
     }
   }
 });
@@ -867,7 +878,16 @@ define(Pointer.prototype, {
 define(Pointer.prototype, {
   append: {
     value: function(ptri) {
-      return addChildren(this, ptri);
+      this.add(ptri);
+      return ptri;
+    }
+  }
+});
+
+define(Pointer.prototype, {
+  onadopt: {
+    value: function(parent) {
+      return this;
     }
   }
 });
@@ -1095,16 +1115,42 @@ define(PtriArray.prototype, {
 });
 
 define(Scene.prototype, {
-  setDefaultContext: {
-    value: function(ptri) {
-      return setPtriUint32(this + SCENE_DEFAULT_CONTEXT, ptri);
+  visibility: {
+    get: function() {
+      return this;
     }
   }
 });
 
 define(Scene.prototype, {
-  getDefaultContext: {
+  isScene: {
+    value: true
+  }
+});
+
+define(Scene.prototype, {
+  getDrawCalls: {
     value: function() {
+      var drawCall, len, m, ref1;
+      if (!findChild(this, DrawCall)) {
+        ref1 = this.renderingContext.defaultDrawCalls;
+        for (m = 0, len = ref1.length; m < len; m++) {
+          drawCall = ref1[m];
+          addChildren(this, drawCall.inheritableCopy);
+        }
+      }
+      return findChilds(this, DrawCall);
+    }
+  }
+});
+
+define(Scene.prototype, {
+  renderingContext: {
+    enumerable: true,
+    set: function(ptri) {
+      return setPtriUint32(this + SCENE_DEFAULT_CONTEXT, ptri);
+    },
+    get: function() {
       var ptri;
       if (!(ptri = getPtriUint32(this + SCENE_DEFAULT_CONTEXT))) {
         if (!(ptri = findChilds(this, RenderingContext).last())) {
@@ -1278,6 +1324,12 @@ define(DrawBuffer.prototype, {
 });
 
 define(DrawCall.prototype, {
+  isDrawCall: {
+    value: true
+  }
+});
+
+define(DrawCall.prototype, {
   pointCount: {
     enumerable: true,
     get: function() {
@@ -1295,18 +1347,6 @@ define(DrawCall.prototype, {
       length = ptri.size;
       byteOffset = index * ptri.BYTES_PER_POINT + ptri.offset;
       return new_Attribute(this, byteOffset, length);
-    }
-  }
-});
-
-define(DrawCall.prototype, {
-  positionAttribute: {
-    enumerable: true,
-    set: function() {
-      return this.program.positionAttribute = arguments[0];
-    },
-    get: function() {
-      return this.program.positionAttribute;
     }
   }
 });
@@ -1469,9 +1509,9 @@ define(DrawCall.prototype, {
     value: function() {
       var count, fn, gl, start, stri;
       if (!(stri = getPtriUint32(this + DRAWCALL_DRAWBINDING))) {
+        gl = this.renderingContext.glObject;
         start = this.dstByteOffset / this.program.BYTES_PER_POINT;
         count = this.pointCount;
-        gl = this.renderingContext.glObject;
         stri = storeForUint32(fn = gl.drawArrays.bind(gl, this.type, start, count));
         setPtriUint32(this + DRAWCALL_DRAWBINDING, stri);
       }
@@ -1486,20 +1526,39 @@ define(DrawCall.prototype, {
 });
 
 define(DrawCall.prototype, {
+  inheritableCopy: {
+    get: function() {
+      var ptrj;
+      ptrj = new_Pointer(DrawCall);
+      setPtriUint32(ptrj + DRAWCALL_RCONTEXT, this.renderingContext);
+      setPtriUint32(ptrj + DRAWCALL_DBUFFER, this.drawBuffer);
+      setPtriUint32(ptrj + DRAWCALL_PROGRAM, this.program);
+      setPtriUint16(ptrj + DRAWCALL_USAGE, this.usage);
+      setPtriUint16(ptrj + DRAWCALL_TARGET, this.target);
+      setPtriUint8(ptrj + DRAWCALL_TYPE, this.type);
+      return ptrj;
+    }
+  }
+});
+
+define(DrawCall.prototype, {
   renderingContext: {
     enumerable: true,
     get: function() {
-      var clsi, ctxi, ptri, ptrj;
+      var clsi, ctxi, last, ptri, ptrj;
       if (!(ptri = getPtriUint32(this + DRAWCALL_RCONTEXT))) {
         ptrj = +this;
         ctxi = 0;
-        clsi = storage.indexOf(Scene);
-        while (ptrj = getParent(ptrj)) {
+        clsi = storage.indexOf(RenderingContext);
+        last = ptrj;
+        while (ptrj = getParent(last = ptrj)) {
           if (!(clsi - getClassIndex(ptrj))) {
-            if (ctxi = ptr_Pointer(ptrj).defaultContext) {
-              break;
-            }
+            ctxi = ptrj;
+            break;
           }
+        }
+        if (!ctxi && (ptrj = ptr_Pointer(last))) {
+          ctxi = ptrj.renderingContext;
         }
         if (!(ptri = setPtriUint32(this + DRAWCALL_RCONTEXT, ctxi))) {
           throw /DRAW_CALLS_CTX/;
@@ -1518,7 +1577,7 @@ define(DrawCall.prototype, {
       if (!(ptri = getPtriUint32(this + DRAWCALL_DBUFFER))) {
         rctx = this.renderingContext;
         if (!getPtriUint16(this + DRAWCALL_TARGET)) {
-          ({target, usage, drawBuffer} = rctx.defaultDrawCall);
+          ({target, usage, drawBuffer} = rctx.defaultDrawCalls[0]);
           setPtriUint32(this + DRAWCALL_DBUFFER, drawBuffer);
           setPtriUint16(this + DRAWCALL_TARGET, target);
           setPtriUint16(this + DRAWCALL_USAGE, usage);
@@ -1606,7 +1665,7 @@ define(RenderingContext.prototype, {
 });
 
 define(RenderingContext.prototype, {
-  defaultDrawCall: {
+  defaultDrawCalls: {
     enumerable: true,
     set: function() {
       return setPtriUint32(this + RENDERING_CONTEXT_DRAWCALL, arguments[0]);
@@ -1623,7 +1682,7 @@ define(RenderingContext.prototype, {
         }
         setPtriUint32(this + RENDERING_CONTEXT_DRAWCALL, ptri);
       }
-      return new DrawCall(ptri);
+      return new PtriArray(new DrawCall(ptri));
     }
   }
 });
@@ -2016,26 +2075,11 @@ define(Program.prototype, {
 });
 
 define(Program.prototype, {
-  positionAttribute: {
-    enumerable: true,
-    set: function(any) {
-      var ptri;
-      if (!(ptri = this.findVertexAttrib(any))) {
-        throw /UNFINDED_GLSL_VARIABLE/;
-      }
-      return setPtriUint32(this + PROGRAM_POSITION_ATTRIB, ptri);
-    },
-    get: function() {
-      var ptri;
-      if (!(ptri = getPtriUint32(this + PROGRAM_POSITION_ATTRIB))) {
-        ptri = parseGLSLSource(this.source.vertexShader, this.variables).filter(function(a) {
-          return a instanceof VertexAttribute;
-        }).findDecoded(function(a) {
-          return a.match(/position/i) && this.size === 3;
-        });
-        return setPtriUint32(this + PROGRAM_POSITION_ATTRIB, ptri);
-      }
-      return ptr_Pointer(ptri);
+  findAttribute: {
+    value: function(regex) {
+      return parseGLSLSource(this.source.vertexShader, this.variables).findDecoded(function(a) {
+        return a.match(regex);
+      });
     }
   }
 });
@@ -2323,16 +2367,57 @@ define(Mesh.prototype, {
 });
 
 define(Mesh.prototype, {
+  onadopt: {
+    value: function(parent) {
+      var len, m, ptri, ref1;
+      if (!findChild(this, DrawCall)) {
+        ref1 = parent.drawCalls;
+        for (m = 0, len = ref1.length; m < len; m++) {
+          ptri = ref1[m];
+          addChildren(this, ptri.inheritableCopy);
+        }
+      }
+      this.setVisibility(parent.visibility);
+      return this;
+    }
+  }
+});
+
+define(Mesh.prototype, {
   getDrawCalls: {
     value: function() {
+      var len, m, ptri, ref1;
+      if (!findChild(this, DrawCall)) {
+        if (!this.visibility) {
+          return new PtriArray();
+        }
+        ref1 = this.parent.drawCalls;
+        for (m = 0, len = ref1.length; m < len; m++) {
+          ptri = ref1[m];
+          addChildren(this, ptri.inheritableCopy);
+        }
+      }
       return findChilds(this, DrawCall);
     }
   }
 });
 
 define(Mesh.prototype, {
-  getIsVisible: {
-    value: function() {}
+  getVisibility: {
+    value: function() {
+      var ptri;
+      if (ptri = getPtriUint32(this + MESH_SCENE_PTRI)) {
+        return new Scene(ptri);
+      }
+    }
+  }
+});
+
+define(Mesh.prototype, {
+  setVisibility: {
+    value: function(ptri) {
+      return setPtriUint32(this + MESH_SCENE_PTRI, ptri);
+    }
   }
 });
 
@@ -3151,10 +3236,10 @@ for (cname in ref1) {
     if (!pkey.match(/name/) && descs[pkey]) {
       continue;
     }
-    if (d = getown(Class.prototype, `get${className}`)) {
+    if (d = getOwn(Class.prototype, `get${className}`)) {
       get = d.value;
     }
-    if (d = getown(Class.prototype, `set${className}`)) {
+    if (d = getOwn(Class.prototype, `set${className}`)) {
       set = d.value;
     }
     define(Class.prototype, {
@@ -3207,13 +3292,13 @@ ss2 = new_Pointer(ProgramSource).set("default");
 
 rc1 = new_Pointer(RenderingContext);
 
+rc2 = new_Pointer(RenderingContext);
+
 vp1 = new_Pointer(Viewport);
 
 p0 = new_Pointer(Program).set("my-avesome-vertex-shader");
 
 p1 = new_Pointer(Program).set("default");
-
-rc2 = new_Pointer(RenderingContext);
 
 vp2 = Viewport.of({
   width: 320,
@@ -3222,11 +3307,19 @@ vp2 = Viewport.of({
   top: 20
 });
 
-rc1.add(p0);
+rc2.add(new_Pointer(Program).set("my-avesome-vertex-shader"));
+
+rc2.add(new_Pointer(Program).set("default"));
+
+rc2.add(vp2);
 
 rc1.add(p1);
 
-rc2.add(vp2);
+ref4 = rc2.defaultDrawCalls;
+for (n = 0, len1 = ref4.length; n < len1; n++) {
+  dc = ref4[n];
+  msh.append(dc.inheritableCopy);
+}
 
 sc.add(msh);
 
@@ -3240,13 +3333,11 @@ sc.add(rc1);
 
 sc.add(rc2);
 
+warn(msh2.set([0, 0, 0, 0, 0.5, 0, 0.7, 0, 0, 0, 0, 0, 0, 0.5, 0, 0.7, 0, 0, 0, 0, 0, 0, 0.5, 0, 0.7, 0, 0]));
+
 warn(msh.set([0, 0, 0, 0, 0.5, 0, 0.7, 0, 0]));
 
 msh.append(post = new_Pointer(Position));
-
-msh.append(new_Pointer(DrawCall));
-
-msh.append(new_Pointer(DrawCall));
 
 log("post:", post.set([1, 0, -1]));
 
@@ -3260,15 +3351,11 @@ drawCall = mesh.drawCalls[0];
 
 program = drawCall.program;
 
-program.positionAttribute = "a_Position";
-
 target = drawCall.attributes;
 
 pointCount = drawCall.pointCount;
 
 warn(drawCall);
-
-warn("drawCall.positionAttribute:", drawCall.positionAttribute);
 
 warn(target.attribute(1));
 
@@ -3287,6 +3374,15 @@ log("mesh.scale:", mesh.scale);
 warn(dst = drawCall.attribute(1, "a_Position"));
 
 dst.set([x0 + dx, y0 + dy, z0 + dz]);
+
+false && src.on("onbeforerender", ruleset1, handler = function(ptri, ptrj, count) {
+  var sommodify;
+  sommodify = ptrj * 11;
+  while (count--) {
+    ptrj.set(sommodify);
+  }
+  return 1;
+});
 
 log({source});
 
