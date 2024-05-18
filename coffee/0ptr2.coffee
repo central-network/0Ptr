@@ -3,7 +3,10 @@ DEBUG = off
 
 export class Pointer            extends Number
 export class PtriArray          extends Array
+export class Vertex             extends Float32Array
 export class Vertices           extends Float32Array
+export class Attribute          extends Float32Array
+export class Attributes  extends Float32Array
 export class Unallocated        extends Float32Array
 export class Scene              extends Pointer
 export class DrawCall           extends Pointer
@@ -62,7 +65,7 @@ POINTER_LENGTH              = 16
 POINTER_BYTELENGTH          = BPE * POINTER_LENGTH
 
 Atomics.store u32, 0, POINTER_BYTELENGTH
-Atomics.store u32, 1, 200 * POINTER_BYTELENGTH
+Atomics.store u32, 1, 2000 * POINTER_BYTELENGTH
 
 
 PTR_CLASSINDEX              = 0 * BPE
@@ -73,9 +76,11 @@ PTR_BYTEOFFSET              = 3 * BPE
 PTR_BYTELENGTH              = 4 * BPE
 
 SCENE_DEFAULT_CONTEXT       = 5 * BPE
+SCENE_MESH_ATTR_VERTEX      = 5 * BPE
 
 MESH_UPLOADED               = 5 * BPE
 MESH_MMATRIX                = 6 * BPE
+MESH_ATTR_VERTEX            = 7 * BPE
 
 DRAWBUFFER_GLOBJECT         = 5 * BPE
 DRAWBUFFER_ISBINDED         = 6 * BPE
@@ -96,14 +101,17 @@ DRAWCALL_UPLOADED           = DRAWCALL_TYPE + 2
 DRAWCALL_DSTBYTEOFFSET      = 10 * BPE
 DRAWCALL_DRAWBINDING        = 11 * BPE
 DRAWCALL_UPLOADBINDING      = 12 * BPE
+DRAWCALL_POS_ATTRIB         = 13 * BPE
 
 PROGRAM_GLPROGRAM           = 5 * BPE
 PROGRAM_USEBINDING          = PROGRAM_GLPROGRAM + 1
 PROGRAM_ISINUSE             = PROGRAM_GLPROGRAM + 2
 PROGRAM_VAOBINDING          = PROGRAM_GLPROGRAM + 3
 PROGRAM_SHADER_SOURCE       = 7 * BPE
+PROGRAM_POSITION_ATTRIB     = 8 * BPE
 
 SHADER_SOURCE_BYTES_PERP    = 5 * BPE
+SHADER_SOURCE_PARAMETERS    = 6 * BPE
 
 ATTRIBUTE_LOCATION          = 5 * BPE
 ATTRIBUTE_SIZE              = ATTRIBUTE_LOCATION + 1
@@ -328,13 +336,13 @@ selfExtends2    =
         dvw.getUint32 ptri + PTR_BYTEOFFSET, iLE
 
     setByteOffset   : ( ptri, byteOffset ) ->
-        dvw.setUint32 ptri + PTR_BYTEOFFSET, byteOffset, iLE ; ptri
+        dvw.setUint32 ptri + PTR_BYTEOFFSET, byteOffset, iLE ; byteOffset
 
     getByteLength   : ( ptri ) ->
         dvw.getUint32 ptri + PTR_BYTELENGTH, iLE
 
     setByteLength   : ( ptri, byteLength ) ->
-        dvw.setUint32 ptri + PTR_BYTELENGTH, byteLength, iLE ; ptri
+        dvw.setUint32 ptri + PTR_BYTELENGTH, byteLength, iLE ; byteLength
 
     ptr_Pointer     : ( ptri ) ->
         ptri and new storage[ getClassIndex ptri ] ptri
@@ -459,49 +467,34 @@ selfExtends2    =
 
     new_Uint32Array : ( ptri, byteOffset, length ) ->
         length ||= getByteLength( ptri ) / 4
-        byteOffset = getByteOffset( ptri ) + byteOffset || 0
+        byteOffset = getByteOffset( ptri ) + ( byteOffset || 0 )
 
         new Uint32Array sab, byteOffset, length
 
     new_Uint8Array  : ( ptri, byteOffset, length ) ->
         length ||= getByteLength( ptri )
-        byteOffset = getByteOffset( ptri ) + byteOffset || 0
+        byteOffset = getByteOffset( ptri ) + ( byteOffset || 0 )
 
         new Uint8Array sab, byteOffset, length
 
     new_Float32Array: ( ptri, byteOffset, length ) ->
         length ||= getByteLength( ptri ) / 4
-        byteOffset = getByteOffset( ptri ) + byteOffset || 0
+        byteOffset = getByteOffset( ptri ) + ( byteOffset || 0 )
 
         new Float32Array sab, byteOffset, length
-
-    subarrayUint8   : ( ptri, begin, end ) ->
-        offset = getByteOffset( ptri )
-        length = getByteLength( ptri )
-
-        end ||= length + begin ||= begin or 0
-        ui8.subarray begin + offset, end + offset 
-
+        
+    new_Attribute   : ( ptri, byteOffset, length ) ->
+        length ||= getByteLength( ptri ) / 4
+        byteOffset = getByteOffset( ptri ) + ( byteOffset || 0 )
+        new Attribute sab, byteOffset, length
+        
     sliceUint8      : ( ptri, begin, end ) ->
-        offset = getByteOffset( ptri )
-        length = getByteLength( ptri )
 
-        end ||= length + begin ||= begin or 0
-        ui8.slice begin + offset, end + offset 
+        length = if end then end - ( begin or 0 ) 
+        else getByteLength( ptri )
+        begin = getByteOffset( ptri ) + ( begin or 0 )
 
-    subarrayUint32  : ( ptri, begin, end ) ->
-        offset = getByteOffset( ptri ) / 4
-        length = getByteLength( ptri ) / 4
-
-        end ||= length + begin ||= begin or 0
-        u32.subarray begin + offset, end + offset 
-
-    subarrayFloat32 : ( ptri, begin, end ) ->
-        offset = getByteOffset( ptri ) / 4
-        length = getByteLength( ptri ) / 4
-
-        end ||= length + begin ||= begin or 0
-        f32.subarray begin + offset, end + offset 
+        ui8.slice begin, begin + length
 
     ptrByteCompare  : ( ptri, ptrj ) ->
         return 0 unless ptri - ptrj #non-same
@@ -520,6 +513,26 @@ selfExtends2    =
         )
 
         1
+
+    findMatchedLine : ( text, test ) ->
+        test = RegExp::test.bind test 
+        text . split( /\n/g ).find test
+
+    parseGLSLSource : ( glsl, pool ) ->
+
+        none = /\s+|\(|\)|\=|\*|\,|\.|\;|\n|\{|\}|\]|\[/g
+        test = (l) -> !/gl_|vec|mat|int|float/.test l
+        main = glsl.split( /main/, 2 ).pop()
+        list = main
+             . split none
+             . filter Boolean
+             . filter isNaN 
+             . filter test
+
+        return list unless pool
+
+        exec = pool.filterDecoded or pool.filter
+        exec . call pool, (p) -> list.includes p
 
     findChild       : ( ptri, Class, inherit = off ) ->
         return unless ptri
@@ -571,11 +584,11 @@ selfExtends2    =
 
         if !Class
             if !construct
-                while ptrj -= POINTER_BYTELENGTH
+                while 0 < ptrj -= POINTER_BYTELENGTH
                     return ptr if test ptr = ptrj
                 return undefined
 
-            while ptrj -= POINTER_BYTELENGTH
+            while 0 < ptrj -= POINTER_BYTELENGTH
                 return ptr if test ptr = ptr_Pointer ptrj
             return undefined
 
@@ -583,11 +596,11 @@ selfExtends2    =
             clsi = storage.indexOf Class
 
             if !construct
-                while ptrj -= POINTER_BYTELENGTH
+                while 0 < ptrj -= POINTER_BYTELENGTH
                     continue if clsi - getClassIndex ptrj
                     return ptr if test ptr = ptrj
                 
-            while ptrj -= POINTER_BYTELENGTH
+            while 0 < ptrj -= POINTER_BYTELENGTH
                 continue if clsi - getClassIndex ptrj
                 return ptr if test ptr = ptr_Pointer ptrj
         return undefined
@@ -652,6 +665,8 @@ define Pointer::            , once              :
     value : ( event, handler ) -> this
 define Pointer::            , emit              :
     value : ( event, handler ) -> this
+define Text::               , isTextPointer     :
+    value : yes
 define Text::               , TypedArray        :
     value : Uint8Array
 define Text::               , set               :
@@ -673,10 +688,64 @@ define Text::               , set               :
         ui8.set( value, byteOffset )
         
         this
+define Position             , byteLength        :
+    value : 4 * 3
+define Position::           , TypedArray        :
+    value : Float32Array
+define Position::           , subarray          :
+    get   : ->
+        new Float32Array sab, getByteOffset(this), 3
+define Position::           , set               :
+    value : ( value ) ->  
+        if  ArrayBuffer.isView( value ) or Array.isArray( value )
+
+            length      = 3 
+            byteLength  = 12
+
+            if !byteOffset = getByteOffset this
+                byteOffset = malloc byteLength
+                
+                setByteOffset this, byteOffset
+                setByteLength this, byteLength
+
+            @subarray.set value
+
+            return this
+
+        throw /POSITION_SET/
 define Color                , byteLength        :
     value : 4 * 4
 define Color::              , TypedArray        :
     value : Float32Array
+define PtriArray::          , findDecoded       :
+    value : ( fn ) ->
+        for ptri, i in this
+            text = decode sliceUint8 ptri
+            return ptri if fn.call ptri, text, i, this
+        null
+define PtriArray::          , filterDecoded     :
+    value : ( fn ) ->
+        filtered = new this.constructor
+        for ptri, i in this
+            text = decode sliceUint8 ptri
+            if  fn.call ptri, text, i, this 
+                filtered.push ptri
+        filtered
+define PtriArray::          , includes          :
+    value : ( any ) -> switch true
+        when  "string" is typeof any
+            for ptri in @
+                text = decode sliceUint8 ptri
+                return 1 if text is any
+            return 0
+
+        when any instanceof RegExp
+            for ptri in @
+                text = decode sliceUint8 ptri
+                return 1 if any.test text
+            return 0
+
+        else throw /PTRI_ARRAY_INCLUDES/
 define PtriArray::          , last              :
     value : -> this[ this.length - 1 ]
 define Scene::              , setDefaultContext :
@@ -731,6 +800,8 @@ define DrawBuffer::         , drawCalls         :
         list
 define DrawBuffer::         , resize            :
     value : ->
+        @bind() if !getPtriUint8 this + DRAWBUFFER_ISBINDED
+
         if !stri = getPtriUint8 this + DRAWBUFFER_RESIZEBINDING
             gl = @parent.glObject ; usage = @usage ; target = @target
             applyArgs = new Uint32Array sab, this + DRAWBUFFER_TARGET, 3
@@ -766,6 +837,20 @@ define DrawBuffer::         , usage             :
             usage = keyOfWebGL2 "STATIC_DRAW"
             setPtriUint32 this + DRAWBUFFER_USAGE, usage
         keyOfWebGL2 usage        
+define DrawCall::           , pointCount        :
+    enumerable : on
+    get : -> @parent.pointCount
+define DrawCall::           , attribute         :
+    value : ( index, attribute ) ->
+        ptri = @findVertexAttrib attribute
+        index = ptri.offsetIndex
+        length = ptri.size
+        byteOffset = index * ptri.BYTES_PER_POINT + ptri.offset
+        new_Attribute this, byteOffset, length        
+define DrawCall::           , positionAttribute :
+    enumerable : on
+    set : -> @program.positionAttribute = arguments[0]
+    get : -> @program.positionAttribute
 define DrawCall::           , debug             :
     get : -> Object.defineProperties this,
         draw : get : @draw
@@ -804,7 +889,7 @@ define DrawCall::           , upload            :
 
             if !stri = getPtriUint32 this + DRAWCALL_UPLOADBINDING
                 gl   = @renderingContext.glObject
-                fn   = gl.bufferSubData.bind gl, @target, @dstByteOffset, @vertexAttribArray 
+                fn   = gl.bufferSubData.bind gl, @target, @dstByteOffset, @attributes 
                 stri = storeForUint32 fn
                 setPtriUint32 this + DRAWCALL_UPLOADBINDING, stri
 
@@ -812,18 +897,33 @@ define DrawCall::           , upload            :
             storage[ stri ]()
             return 1
         0
-define DrawCall::           , byteLength        :
-    enumerable : on
-    get : -> @program.BYTES_PER_POINT * @parent.pointCount
-define DrawCall::           , vertexAttribArray :
+define DrawCall::           , byteOffset        :
     enumerable : on
     get : ->
-        new_Float32Array @drawBuffer, @dstByteOffset, @byteLength / 4
+        @dstByteOffset #allocate if did not before
+        getByteOffset this
+define DrawCall::           , byteLength        :
+    enumerable : on
+    get : ->
+        @dstByteOffset #allocate if did not before
+        getByteLength this
+define DrawCall::           , findVertexAttrib  :
+    value : ->
+        @program.findVertexAttrib arguments...
+define DrawCall::           , attributes        :
+    enumerable : on
+    get : ->
+        length = @byteLength / Attributes.BYTES_PER_ELEMENT
+        new Attributes sab, @byteOffset, length
 define DrawCall::           , dstByteOffset     :
     enumerable : on
     get : ->
         if !byteOffset = getPtriUint32 this + DRAWCALL_DSTBYTEOFFSET
-            byteOffset = @drawBuffer.malloc @byteLength
+            byteLength = @program.BYTES_PER_POINT * @pointCount
+            byteOffset = @drawBuffer.malloc byteLength
+
+            setByteLength this , byteLength
+            setByteOffset this , malloc byteLength
             setPtriUint32 this + DRAWCALL_DSTBYTEOFFSET, byteOffset
 
         byteOffset
@@ -831,7 +931,8 @@ define DrawCall::           , draw              :
     value : ->
         if !stri  = getPtriUint32 this + DRAWCALL_DRAWBINDING
             start = @dstByteOffset / @program.BYTES_PER_POINT
-            count = @parent.pointCount ; gl = @renderingContext.glObject
+            count = @pointCount
+            gl    = @renderingContext.glObject
             stri  = storeForUint32 fn = gl.drawArrays.bind gl, @type, start, count 
             setPtriUint32 this + DRAWCALL_DRAWBINDING, stri
 
@@ -863,7 +964,6 @@ define DrawCall::           , drawBuffer        :
     enumerable : on
     get : ->
         if !ptri = getPtriUint32 this + DRAWCALL_DBUFFER
-
             rctx = @renderingContext
 
             if !getPtriUint16 this + DRAWCALL_TARGET
@@ -1157,6 +1257,28 @@ define Program::            , glObject          :
             stri = storeForUint8 program
             setPtriUint8 this + PROGRAM_GLPROGRAM, stri
         storage[ stri ]
+define Program::            , findUniform       :
+    value : ( any ) ->
+        @source.findGLSLVariable any, Uniform 
+define Program::            , findVertexAttrib  :
+    value : ( any ) ->
+        @source.findGLSLVariable any, VertexAttribute
+define Program::            , findVertexArray   :
+    value : ( any ) ->
+        @source.findGLSLVariable any, VertexArray
+define Program::            , positionAttribute :
+    enumerable : on
+    set : ( any ) ->
+        if !ptri = @findVertexAttrib any
+            throw /UNFINDED_GLSL_VARIABLE/
+        setPtriUint32 this + PROGRAM_POSITION_ATTRIB, ptri
+    get : ->
+        if !ptri = getPtriUint32 this + PROGRAM_POSITION_ATTRIB
+            ptri = parseGLSLSource @source.vertexShader, @variables
+                .filter (a) -> a instanceof VertexAttribute
+                .findDecoded (a) -> a.match(/position/i) and @size is 3 
+            return setPtriUint32 this + PROGRAM_POSITION_ATTRIB, ptri
+        return ptr_Pointer ptri
 define Program::            , bindVertexArray   :
     value : ->
         if !vaoi = getPtriUint8 this + PROGRAM_VAOBINDING
@@ -1167,6 +1289,9 @@ define Program::            , bindVertexArray   :
 
             setPtriUint8 this + PROGRAM_VAOBINDING, vaoi
         storage[ vaoi ]()
+define Program::            , variables         :
+    enumerable : on
+    get : -> @source.children
 define Program::            , getSource         :
     value : ->
         if !ptrj = getPtriUint32 this + PROGRAM_SHADER_SOURCE
@@ -1175,18 +1300,45 @@ define Program::            , getSource         :
                 return undefined
             return @setSource ptrj            
         return new ProgramSource ptrj
+define Program::            , ATTRIBUTE_LENGTH  :
+    enumerable : on
+    get : -> @BYTES_PER_POINT / 4
 define Program::            , BYTES_PER_POINT   :
     enumerable: on
     get : -> @source.BYTES_PER_POINT
 define Program::            , setSource         :
     value : ->
         setPtriUint32 this + PROGRAM_SHADER_SOURCE, arguments[0]
-define Vertices::           , set               :
-    value : ( value = [] ) ->
+define Attributes::         , attribute         :
+    value : ( index ) ->
+        stride = @drawCall.program.ATTRIBUTE_LENGTH
+        if  @length > index *= stride
+            byteOffset = index * 4 + @byteOffset
+            return new Attribute sab, byteOffset, stride
+        throw /MAX_ATTRIB_EXCEED/
+define Attributes::         , drawCall          :
+    get : ->
+        byteOffset = @byteOffset
+        classIndex = storage.indexOf DrawCall
+
+        test = ( ptri ) -> 0 is byteOffset - getByteOffset ptri
+        ptri = findPointer test, DrawCall, construct = off
+
+        return new DrawCall ptri if ptri
+        throw /NO_DRAWCALL_AT_BYTEOFFSET/
+define Vertices::           , vertex            :
+    value : ( index ) ->
+        if  @length > index *= 3
+            byteOffset = index * 4 + @byteOffset
+            return new Vertex sab, byteOffset, 3
+        throw /MAX_VERTEX_EXCEED/
+define Vertices::           , mesh              :
+    get : ->
         byte = @byteOffset
         test = ( ptri ) -> 0 is byte - getByteOffset ptri
-        mesh = findPointer test, Mesh, construct = off
-        new Mesh( mesh ).setVertices value
+        new Mesh findPointer test, Mesh, construct = off
+define Vertices::           , set               :
+    value : ( value = [] ) -> @mesh.setVertices value
 define ModifierMatrix       , byteLength        :
     value : 16 * 4
 define ModifierMatrix::     , TypedArray        :
@@ -1211,13 +1363,15 @@ define ModifierMatrix::     , set               :
             return this
 
         throw /MMATRIX_SET/
-define ModifierMatrix::     , identity          :
-    value : -> @set Float32Array.of(
+define ModifierMatrix       , identity          :
+    value : Float32Array.of(
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
         0, 0, 0, 1,
     )
+define Mesh::               , vertex            :
+    value : ( index ) -> @vertices.vertex index
 define Mesh::               , TypedArray        :
     value : Float32Array
 define Mesh::               , getPointCount     :
@@ -1308,7 +1462,7 @@ define Mesh::               , getModifierMatrix :
         if !ptri = getPtriUint32 this + MESH_MMATRIX
 
             ptri = new_Pointer ModifierMatrix
-            ptri . identity()
+            ptri . set ModifierMatrix.identity
 
             addChildren this , ptri
             setPtriUint32 this + MESH_MMATRIX, ptri
@@ -1489,24 +1643,24 @@ define ProgramSource::      , BYTES_PER_POINT   :
         if !bpp = getPtriUint32 this + SHADER_SOURCE_BYTES_PERP
             bpp = setPtriUint32 this + SHADER_SOURCE_BYTES_PERP, @parameters.ATTRIBUTES_STRIDE
         bpp
-define ProgramSource::      , findUniform       :
-    value : ( alias ) ->
-        for attr in findChilds this, Uniform
-            return attr if attr.alias is alias
-        return
-define ProgramSource::      , findVertexAttrib  :
-    value : ( alias ) ->
-        for attr in findChilds this, VertexAttribute
-            return attr if attr.alias is alias
+define ProgramSource::      , findGLSLVariable  :
+    value : ( any, Class ) ->
+        @parameters #parse source if did NOT before
 
-        return
-define ProgramSource::      , findVertexArray   :
-    value : ( alias ) ->
-        for varr in findChilds this, VertexArray
-            return varr if varr.alias is alias
+        for ptri in findChilds( this, Class )
+            test = switch true
+                when any.isPointer then (any.alias is ptri.alias) and any
+                when "string" is typeof any then ptri.alias
+                when any instanceof RegExp then any.match(ptri) and any
+                else throw /UNMATCH_ATTRIB_FIND/
+            return ptri if any is test
         return
 define ProgramSource::      , getParameters     :
     value : ->
+        if  stri = getPtriUint32 this + SHADER_SOURCE_PARAMETERS
+            return storage[ stri ]
+
+
         gl = new OffscreenCanvas(1,1).getContext "webgl2"
 
         #? create vertex shader ------------> 
@@ -1609,7 +1763,6 @@ define ProgramSource::      , getParameters     :
             attrib
 
         for attrib in parameters . ATTRIBUTES
-            continue if @findVertexAttrib attrib.alias
 
             attribute = new_Pointer VertexAttribute
             attribute . set attrib.alias
@@ -1676,7 +1829,6 @@ define ProgramSource::      , getParameters     :
             uniform
 
         for u in parameters . UNIFORMS
-            continue if @findUniform u.name
 
             uniform = new_Pointer Uniform
             assign uniform, {
@@ -1688,14 +1840,15 @@ define ProgramSource::      , getParameters     :
 
             addChildren this, uniform.set u.alias
 
-        if !@findVertexArray parameters . VERTEX_ARRAY_NAME
-            addChildren this, varr = new_Pointer VertexArray
-            varr.set parameters . VERTEX_ARRAY_NAME
+        addChildren this, varr = new_Pointer VertexArray
+        varr.set parameters . VERTEX_ARRAY_NAME
 
         gl.deleteShader vShader
         gl.deleteShader fShader
         gl.deleteProgram program
         gl=null
+
+        setPtriUint32 this + SHADER_SOURCE_PARAMETERS, storeForUint32 parameters 
 
         parameters
 
@@ -1740,50 +1893,87 @@ for cname, Class of reDefine = classes
 
     continue
 
-for Class in [ VertexArray, VertexAttribute, Uniform, Program, DrawBuffer ]
+for Class in [ VertexArray, VertexAttribute, Program, Uniform, DrawBuffer ]
     Object.defineProperty Class::, "children", value : new PtriArray
 
 #? <----------------------------------------> ?#
 #? <----------------------------------------> ?#
 #? <----------------------------------------> ?#
 
-warn "sc:", sc = new_Pointer( Scene )
-warn "mesh:", msh = new_Pointer( Mesh )
-warn "mesh2:", msh2 = new_Pointer( Mesh )
-warn "ss1:", ss1 = new_Pointer( ProgramSource ).set("default")
-warn "ss1:", ss2 = new_Pointer( ProgramSource ).set("my-avesome-vertex-shader")
-warn "rc1:", rc1 = new_Pointer( RenderingContext )
-warn "vp1:", vp1 = new_Pointer( Viewport )
+sc = new_Pointer( Scene )
+msh = new_Pointer( Mesh )
+msh2 = new_Pointer( Mesh )
 
-warn "p0:", p0 = new_Pointer( Program ).set("my-avesome-vertex-shader")
-warn "p1:", p1 = new_Pointer( Program ).set("default")
+ss1 = new_Pointer( ProgramSource ).set("my-avesome-vertex-shader")
+ss2 = new_Pointer( ProgramSource ).set("default")
+rc1 = new_Pointer( RenderingContext )
+vp1 = new_Pointer( Viewport )
 
-warn "rc2:", rc2 = new_Pointer( RenderingContext )
-warn "vp2:", vp2 = Viewport.of({ width : 320, height : 240, left: 20, top: 20 })
+p0 = new_Pointer( Program ).set("my-avesome-vertex-shader")
+p1 = new_Pointer( Program ).set("default")
 
-warn "rc1.add p0:", rc1.add p0
-warn "rc2.add bp2:", rc2.add vp2
 
-warn "sc.add msh:", sc.add msh
-warn "sc.add vp1:", sc.add vp1
-warn "sc.add ss1:", sc.add ss1
-warn "sc.add ss2:", sc.add ss2
-warn "sc.add rc1:", sc.add rc1
-warn "sc.add rc2:", sc.add rc2
-warn "rc1.add p1:", rc1.add p1
+rc2 = new_Pointer( RenderingContext )
+vp2 = Viewport.of({ width : 320, height : 240, left: 20, top: 20 })
 
-warn "rc1.findChild Inheritable Viewport:", findChild rc1, Viewport, on
-warn "rc2.findChild Inheritable Viewport:", findChild rc2, Viewport, on
+rc1.add p0
+rc1.add p1
+rc2.add vp2
 
-warn "sc.findChild Inheritable ProgramSource:", findChild rc2, Viewport, on
-warn "ss2.parameters:", ss2.parameters
-warn "sc.defctx:", sc.defaultContext.defaultBuffer.bind()
-warn "msh.set:", msh.set([
+sc.add msh
+sc.add ss1
+sc.add ss2
+sc.add vp1
+sc.add rc1
+sc.add rc2
+
+
+
+warn msh.set([
     0,   0,  0,
     0,  0.5, 0,
     0.7,  0, 0,
 ])
-warn "msh.append new_Pointer( DrawCall ):", msh.append new_Pointer( DrawCall )
-warn "msh.append new_Pointer( DrawCall ):", msh.append new_Pointer( DrawCall )
-warn "msh2", msh.add msh2
-warn "msh2", self.mesh = msh
+
+msh.append post = new_Pointer( Position )
+msh.append new_Pointer( DrawCall )
+msh.append new_Pointer( DrawCall )
+
+log "post:", post.set([1, 0, -1])
+msh.add msh2
+self.mesh = msh
+
+
+source = mesh.vertices
+drawCall = mesh.drawCalls[0]
+program = drawCall.program
+program.positionAttribute = "a_Position"
+target = drawCall.attributes
+
+
+pointCount = drawCall.pointCount
+
+warn drawCall
+warn "drawCall.positionAttribute:", drawCall.positionAttribute
+warn target.attribute(1)
+
+warn src = source.vertex(1)
+
+log "mesh.position:", mesh.position
+log "mesh.rotation:", mesh.rotation
+log "mesh.scale:", mesh.scale
+
+[ x0, y0, z0 ] = source.vertex(1)
+[ dx, dy, dz ] = mesh.position.subarray
+
+warn dst = drawCall.attribute(1, "a_Position")
+
+dst.set [
+    x0 + dx,
+    y0 + dy,
+    z0 + dz
+]
+
+
+log { source }
+log { target }

@@ -1,5 +1,5 @@
 //? hello world <3
-var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, BlackOnYellow, Class, DEBUG, DRAWBUFFER_BINDBINDING, DRAWBUFFER_BYTELENGTH, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_RESIZEBINDING, DRAWBUFFER_TARGET, DRAWBUFFER_USAGE, DRAWCALL_DBUFFER, DRAWCALL_DRAWBINDING, DRAWCALL_DSTBYTEOFFSET, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_STATE, DRAWCALL_TARGET, DRAWCALL_TYPE, DRAWCALL_UPLOADBINDING, DRAWCALL_UPLOADED, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, GreenOnWhite, MESH_MMATRIX, MESH_UPLOADED, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, WhiteOnBlack, WhiteOnBlue, WhiteOnCyan, WhiteOnMagenta, WhiteOnRed, blackOnBlue, blackOnCyan, blackOnGreen, blackOnMagenta, blackOnRed, blackOnWhite, blackOnYellow, blue, className, classes, cname, colors, cyan, d, debug, define, defineds, delay, desc, descs, dvw, error, f32, get, green, iLE, info, k, key, len, log, m, magenta, msh, msh2, p0, p1, pkey, pname, prop, rc1, rc2, reDefine, red, ref, ref1, ref2, ref3, sab, sc, selfExtends1, selfExtends2, set, ss1, ss2, table, u32, ui8, value, vp1, vp2, warn, yellow;
+var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, BlackOnYellow, Class, DEBUG, DRAWBUFFER_BINDBINDING, DRAWBUFFER_BYTELENGTH, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_RESIZEBINDING, DRAWBUFFER_TARGET, DRAWBUFFER_USAGE, DRAWCALL_DBUFFER, DRAWCALL_DRAWBINDING, DRAWCALL_DSTBYTEOFFSET, DRAWCALL_POS_ATTRIB, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_STATE, DRAWCALL_TARGET, DRAWCALL_TYPE, DRAWCALL_UPLOADBINDING, DRAWCALL_UPLOADED, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, GreenOnWhite, MESH_ATTR_VERTEX, MESH_MMATRIX, MESH_UPLOADED, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_POSITION_ATTRIB, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SCENE_MESH_ATTR_VERTEX, SHADER_SOURCE_BYTES_PERP, SHADER_SOURCE_PARAMETERS, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, WhiteOnBlack, WhiteOnBlue, WhiteOnCyan, WhiteOnMagenta, WhiteOnRed, blackOnBlue, blackOnCyan, blackOnGreen, blackOnMagenta, blackOnRed, blackOnWhite, blackOnYellow, blue, className, classes, cname, colors, cyan, d, debug, define, defineds, delay, desc, descs, drawCall, dst, dvw, dx, dy, dz, error, f32, get, green, iLE, info, k, key, len, log, m, magenta, msh, msh2, p0, p1, pkey, pname, pointCount, post, program, prop, rc1, rc2, reDefine, red, ref, ref1, ref2, ref3, sab, sc, selfExtends1, selfExtends2, set, source, src, ss1, ss2, table, target, u32, ui8, value, vp1, vp2, warn, x0, y0, yellow, z0;
 
 DEBUG = false;
 
@@ -7,7 +7,13 @@ export var Pointer = class Pointer extends Number {};
 
 export var PtriArray = class PtriArray extends Array {};
 
+export var Vertex = class Vertex extends Float32Array {};
+
 export var Vertices = class Vertices extends Float32Array {};
+
+export var Attribute = class Attribute extends Float32Array {};
+
+export var Attributes = class Attributes extends Float32Array {};
 
 export var Unallocated = class Unallocated extends Float32Array {};
 
@@ -96,7 +102,7 @@ POINTER_BYTELENGTH = BPE * POINTER_LENGTH;
 
 Atomics.store(u32, 0, POINTER_BYTELENGTH);
 
-Atomics.store(u32, 1, 200 * POINTER_BYTELENGTH);
+Atomics.store(u32, 1, 2000 * POINTER_BYTELENGTH);
 
 PTR_CLASSINDEX = 0 * BPE;
 
@@ -110,9 +116,13 @@ PTR_BYTELENGTH = 4 * BPE;
 
 SCENE_DEFAULT_CONTEXT = 5 * BPE;
 
+SCENE_MESH_ATTR_VERTEX = 5 * BPE;
+
 MESH_UPLOADED = 5 * BPE;
 
 MESH_MMATRIX = 6 * BPE;
+
+MESH_ATTR_VERTEX = 7 * BPE;
 
 DRAWBUFFER_GLOBJECT = 5 * BPE;
 
@@ -150,6 +160,8 @@ DRAWCALL_DRAWBINDING = 11 * BPE;
 
 DRAWCALL_UPLOADBINDING = 12 * BPE;
 
+DRAWCALL_POS_ATTRIB = 13 * BPE;
+
 PROGRAM_GLPROGRAM = 5 * BPE;
 
 PROGRAM_USEBINDING = PROGRAM_GLPROGRAM + 1;
@@ -160,7 +172,11 @@ PROGRAM_VAOBINDING = PROGRAM_GLPROGRAM + 3;
 
 PROGRAM_SHADER_SOURCE = 7 * BPE;
 
+PROGRAM_POSITION_ATTRIB = 8 * BPE;
+
 SHADER_SOURCE_BYTES_PERP = 5 * BPE;
+
+SHADER_SOURCE_PARAMETERS = 6 * BPE;
 
 ATTRIBUTE_LOCATION = 5 * BPE;
 
@@ -428,14 +444,14 @@ selfExtends2 = {
   },
   setByteOffset: function(ptri, byteOffset) {
     dvw.setUint32(ptri + PTR_BYTEOFFSET, byteOffset, iLE);
-    return ptri;
+    return byteOffset;
   },
   getByteLength: function(ptri) {
     return dvw.getUint32(ptri + PTR_BYTELENGTH, iLE);
   },
   setByteLength: function(ptri, byteLength) {
     dvw.setUint32(ptri + PTR_BYTELENGTH, byteLength, iLE);
-    return ptri;
+    return byteLength;
   },
   ptr_Pointer: function(ptri) {
     return ptri && new storage[getClassIndex(ptri)](ptri);
@@ -580,46 +596,29 @@ selfExtends2 = {
   },
   new_Uint32Array: function(ptri, byteOffset, length) {
     length || (length = getByteLength(ptri) / 4);
-    byteOffset = getByteOffset(ptri) + byteOffset || 0;
+    byteOffset = getByteOffset(ptri) + (byteOffset || 0);
     return new Uint32Array(sab, byteOffset, length);
   },
   new_Uint8Array: function(ptri, byteOffset, length) {
     length || (length = getByteLength(ptri));
-    byteOffset = getByteOffset(ptri) + byteOffset || 0;
+    byteOffset = getByteOffset(ptri) + (byteOffset || 0);
     return new Uint8Array(sab, byteOffset, length);
   },
   new_Float32Array: function(ptri, byteOffset, length) {
     length || (length = getByteLength(ptri) / 4);
-    byteOffset = getByteOffset(ptri) + byteOffset || 0;
+    byteOffset = getByteOffset(ptri) + (byteOffset || 0);
     return new Float32Array(sab, byteOffset, length);
   },
-  subarrayUint8: function(ptri, begin, end) {
-    var length, offset;
-    offset = getByteOffset(ptri);
-    length = getByteLength(ptri);
-    end || (end = length + (begin || (begin = begin || 0)));
-    return ui8.subarray(begin + offset, end + offset);
+  new_Attribute: function(ptri, byteOffset, length) {
+    length || (length = getByteLength(ptri) / 4);
+    byteOffset = getByteOffset(ptri) + (byteOffset || 0);
+    return new Attribute(sab, byteOffset, length);
   },
   sliceUint8: function(ptri, begin, end) {
-    var length, offset;
-    offset = getByteOffset(ptri);
-    length = getByteLength(ptri);
-    end || (end = length + (begin || (begin = begin || 0)));
-    return ui8.slice(begin + offset, end + offset);
-  },
-  subarrayUint32: function(ptri, begin, end) {
-    var length, offset;
-    offset = getByteOffset(ptri) / 4;
-    length = getByteLength(ptri) / 4;
-    end || (end = length + (begin || (begin = begin || 0)));
-    return u32.subarray(begin + offset, end + offset);
-  },
-  subarrayFloat32: function(ptri, begin, end) {
-    var length, offset;
-    offset = getByteOffset(ptri) / 4;
-    length = getByteLength(ptri) / 4;
-    end || (end = length + (begin || (begin = begin || 0)));
-    return f32.subarray(begin + offset, end + offset);
+    var length;
+    length = end ? end - (begin || 0) : getByteLength(ptri);
+    begin = getByteOffset(ptri) + (begin || 0);
+    return ui8.slice(begin, begin + length);
   },
   ptrByteCompare: function(ptri, ptrj) {
     var byteLengthA, byteLengthB, byteOffsetA, byteOffsetB, i;
@@ -639,6 +638,26 @@ selfExtends2 = {
       }
     }
     return 1;
+  },
+  findMatchedLine: function(text, test) {
+    test = RegExp.prototype.test.bind(test);
+    return text.split(/\n/g).find(test);
+  },
+  parseGLSLSource: function(glsl, pool) {
+    var exec, list, main, none, test;
+    none = /\s+|\(|\)|\=|\*|\,|\.|\;|\n|\{|\}|\]|\[/g;
+    test = function(l) {
+      return !/gl_|vec|mat|int|float/.test(l);
+    };
+    main = glsl.split(/main/, 2).pop();
+    list = main.split(none).filter(Boolean).filter(isNaN).filter(test);
+    if (!pool) {
+      return list;
+    }
+    exec = pool.filterDecoded || pool.filter;
+    return exec.call(pool, function(p) {
+      return list.includes(p);
+    });
   },
   findChild: function(ptri, Class, inherit = false) {
     var clsi, ptrj;
@@ -713,14 +732,14 @@ selfExtends2 = {
     ptrj = Atomics.load(u32);
     if (!Class) {
       if (!construct) {
-        while (ptrj -= POINTER_BYTELENGTH) {
+        while (0 < (ptrj -= POINTER_BYTELENGTH)) {
           if (test(ptr = ptrj)) {
             return ptr;
           }
         }
         return void 0;
       }
-      while (ptrj -= POINTER_BYTELENGTH) {
+      while (0 < (ptrj -= POINTER_BYTELENGTH)) {
         if (test(ptr = ptr_Pointer(ptrj))) {
           return ptr;
         }
@@ -729,7 +748,7 @@ selfExtends2 = {
     } else {
       clsi = storage.indexOf(Class);
       if (!construct) {
-        while (ptrj -= POINTER_BYTELENGTH) {
+        while (0 < (ptrj -= POINTER_BYTELENGTH)) {
           if (clsi - getClassIndex(ptrj)) {
             continue;
           }
@@ -738,7 +757,7 @@ selfExtends2 = {
           }
         }
       }
-      while (ptrj -= POINTER_BYTELENGTH) {
+      while (0 < (ptrj -= POINTER_BYTELENGTH)) {
         if (clsi - getClassIndex(ptrj)) {
           continue;
         }
@@ -913,6 +932,12 @@ define(Pointer.prototype, {
 });
 
 define(Text.prototype, {
+  isTextPointer: {
+    value: true
+  }
+});
+
+define(Text.prototype, {
   TypedArray: {
     value: Uint8Array
   }
@@ -942,6 +967,46 @@ define(Text.prototype, {
   }
 });
 
+define(Position, {
+  byteLength: {
+    value: 4 * 3
+  }
+});
+
+define(Position.prototype, {
+  TypedArray: {
+    value: Float32Array
+  }
+});
+
+define(Position.prototype, {
+  subarray: {
+    get: function() {
+      return new Float32Array(sab, getByteOffset(this), 3);
+    }
+  }
+});
+
+define(Position.prototype, {
+  set: {
+    value: function(value) {
+      var byteLength, byteOffset, length;
+      if (ArrayBuffer.isView(value) || Array.isArray(value)) {
+        length = 3;
+        byteLength = 12;
+        if (!(byteOffset = getByteOffset(this))) {
+          byteOffset = malloc(byteLength);
+          setByteOffset(this, byteOffset);
+          setByteLength(this, byteLength);
+        }
+        this.subarray.set(value);
+        return this;
+      }
+      throw /POSITION_SET/;
+    }
+  }
+});
+
 define(Color, {
   byteLength: {
     value: 4 * 4
@@ -951,6 +1016,73 @@ define(Color, {
 define(Color.prototype, {
   TypedArray: {
     value: Float32Array
+  }
+});
+
+define(PtriArray.prototype, {
+  findDecoded: {
+    value: function(fn) {
+      var i, len, m, ptri, ref1, text;
+      ref1 = this;
+      for (i = m = 0, len = ref1.length; m < len; i = ++m) {
+        ptri = ref1[i];
+        text = decode(sliceUint8(ptri));
+        if (fn.call(ptri, text, i, this)) {
+          return ptri;
+        }
+      }
+      return null;
+    }
+  }
+});
+
+define(PtriArray.prototype, {
+  filterDecoded: {
+    value: function(fn) {
+      var filtered, i, len, m, ptri, ref1, text;
+      filtered = new this.constructor;
+      ref1 = this;
+      for (i = m = 0, len = ref1.length; m < len; i = ++m) {
+        ptri = ref1[i];
+        text = decode(sliceUint8(ptri));
+        if (fn.call(ptri, text, i, this)) {
+          filtered.push(ptri);
+        }
+      }
+      return filtered;
+    }
+  }
+});
+
+define(PtriArray.prototype, {
+  includes: {
+    value: function(any) {
+      var len, len1, m, n, ptri, ref1, ref2, text;
+      switch (true) {
+        case "string" === typeof any:
+          ref1 = this;
+          for (m = 0, len = ref1.length; m < len; m++) {
+            ptri = ref1[m];
+            text = decode(sliceUint8(ptri));
+            if (text === any) {
+              return 1;
+            }
+          }
+          return 0;
+        case any instanceof RegExp:
+          ref2 = this;
+          for (n = 0, len1 = ref2.length; n < len1; n++) {
+            ptri = ref2[n];
+            text = decode(sliceUint8(ptri));
+            if (any.test(text)) {
+              return 1;
+            }
+          }
+          return 0;
+        default:
+          throw /PTRI_ARRAY_INCLUDES/;
+      }
+    }
   }
 });
 
@@ -1073,6 +1205,9 @@ define(DrawBuffer.prototype, {
   resize: {
     value: function() {
       var applyArgs, binding, gl, stri, target, usage;
+      if (!getPtriUint8(this + DRAWBUFFER_ISBINDED)) {
+        this.bind();
+      }
       if (!(stri = getPtriUint8(this + DRAWBUFFER_RESIZEBINDING))) {
         gl = this.parent.glObject;
         usage = this.usage;
@@ -1138,6 +1273,40 @@ define(DrawBuffer.prototype, {
         setPtriUint32(this + DRAWBUFFER_USAGE, usage);
       }
       return keyOfWebGL2(usage);
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  pointCount: {
+    enumerable: true,
+    get: function() {
+      return this.parent.pointCount;
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  attribute: {
+    value: function(index, attribute) {
+      var byteOffset, length, ptri;
+      ptri = this.findVertexAttrib(attribute);
+      index = ptri.offsetIndex;
+      length = ptri.size;
+      byteOffset = index * ptri.BYTES_PER_POINT + ptri.offset;
+      return new_Attribute(this, byteOffset, length);
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  positionAttribute: {
+    enumerable: true,
+    set: function() {
+      return this.program.positionAttribute = arguments[0];
+    },
+    get: function() {
+      return this.program.positionAttribute;
     }
   }
 });
@@ -1226,7 +1395,7 @@ define(DrawCall.prototype, {
         setPtriUint8(this + DRAWCALL_UPLOADED, 1);
         if (!(stri = getPtriUint32(this + DRAWCALL_UPLOADBINDING))) {
           gl = this.renderingContext.glObject;
-          fn = gl.bufferSubData.bind(gl, this.target, this.dstByteOffset, this.vertexAttribArray);
+          fn = gl.bufferSubData.bind(gl, this.target, this.dstByteOffset, this.attributes);
           stri = storeForUint32(fn);
           setPtriUint32(this + DRAWCALL_UPLOADBINDING, stri);
         }
@@ -1240,19 +1409,40 @@ define(DrawCall.prototype, {
 });
 
 define(DrawCall.prototype, {
-  byteLength: {
+  byteOffset: {
     enumerable: true,
     get: function() {
-      return this.program.BYTES_PER_POINT * this.parent.pointCount;
+      this.dstByteOffset; //allocate if did not before
+      return getByteOffset(this);
     }
   }
 });
 
 define(DrawCall.prototype, {
-  vertexAttribArray: {
+  byteLength: {
     enumerable: true,
     get: function() {
-      return new_Float32Array(this.drawBuffer, this.dstByteOffset, this.byteLength / 4);
+      this.dstByteOffset; //allocate if did not before
+      return getByteLength(this);
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  findVertexAttrib: {
+    value: function() {
+      return this.program.findVertexAttrib(...arguments);
+    }
+  }
+});
+
+define(DrawCall.prototype, {
+  attributes: {
+    enumerable: true,
+    get: function() {
+      var length;
+      length = this.byteLength / Attributes.BYTES_PER_ELEMENT;
+      return new Attributes(sab, this.byteOffset, length);
     }
   }
 });
@@ -1261,9 +1451,12 @@ define(DrawCall.prototype, {
   dstByteOffset: {
     enumerable: true,
     get: function() {
-      var byteOffset;
+      var byteLength, byteOffset;
       if (!(byteOffset = getPtriUint32(this + DRAWCALL_DSTBYTEOFFSET))) {
-        byteOffset = this.drawBuffer.malloc(this.byteLength);
+        byteLength = this.program.BYTES_PER_POINT * this.pointCount;
+        byteOffset = this.drawBuffer.malloc(byteLength);
+        setByteLength(this, byteLength);
+        setByteOffset(this, malloc(byteLength));
         setPtriUint32(this + DRAWCALL_DSTBYTEOFFSET, byteOffset);
       }
       return byteOffset;
@@ -1277,7 +1470,7 @@ define(DrawCall.prototype, {
       var count, fn, gl, start, stri;
       if (!(stri = getPtriUint32(this + DRAWCALL_DRAWBINDING))) {
         start = this.dstByteOffset / this.program.BYTES_PER_POINT;
-        count = this.parent.pointCount;
+        count = this.pointCount;
         gl = this.renderingContext.glObject;
         stri = storeForUint32(fn = gl.drawArrays.bind(gl, this.type, start, count));
         setPtriUint32(this + DRAWCALL_DRAWBINDING, stri);
@@ -1799,6 +1992,55 @@ define(Program.prototype, {
 });
 
 define(Program.prototype, {
+  findUniform: {
+    value: function(any) {
+      return this.source.findGLSLVariable(any, Uniform);
+    }
+  }
+});
+
+define(Program.prototype, {
+  findVertexAttrib: {
+    value: function(any) {
+      return this.source.findGLSLVariable(any, VertexAttribute);
+    }
+  }
+});
+
+define(Program.prototype, {
+  findVertexArray: {
+    value: function(any) {
+      return this.source.findGLSLVariable(any, VertexArray);
+    }
+  }
+});
+
+define(Program.prototype, {
+  positionAttribute: {
+    enumerable: true,
+    set: function(any) {
+      var ptri;
+      if (!(ptri = this.findVertexAttrib(any))) {
+        throw /UNFINDED_GLSL_VARIABLE/;
+      }
+      return setPtriUint32(this + PROGRAM_POSITION_ATTRIB, ptri);
+    },
+    get: function() {
+      var ptri;
+      if (!(ptri = getPtriUint32(this + PROGRAM_POSITION_ATTRIB))) {
+        ptri = parseGLSLSource(this.source.vertexShader, this.variables).filter(function(a) {
+          return a instanceof VertexAttribute;
+        }).findDecoded(function(a) {
+          return a.match(/position/i) && this.size === 3;
+        });
+        return setPtriUint32(this + PROGRAM_POSITION_ATTRIB, ptri);
+      }
+      return ptr_Pointer(ptri);
+    }
+  }
+});
+
+define(Program.prototype, {
   bindVertexArray: {
     value: function() {
       var gl2p, vaoi, varr;
@@ -1809,6 +2051,15 @@ define(Program.prototype, {
         setPtriUint8(this + PROGRAM_VAOBINDING, vaoi);
       }
       return storage[vaoi]();
+    }
+  }
+});
+
+define(Program.prototype, {
+  variables: {
+    enumerable: true,
+    get: function() {
+      return this.source.children;
     }
   }
 });
@@ -1830,6 +2081,15 @@ define(Program.prototype, {
 });
 
 define(Program.prototype, {
+  ATTRIBUTE_LENGTH: {
+    enumerable: true,
+    get: function() {
+      return this.BYTES_PER_POINT / 4;
+    }
+  }
+});
+
+define(Program.prototype, {
   BYTES_PER_POINT: {
     enumerable: true,
     get: function() {
@@ -1846,16 +2106,68 @@ define(Program.prototype, {
   }
 });
 
+define(Attributes.prototype, {
+  attribute: {
+    value: function(index) {
+      var byteOffset, stride;
+      stride = this.drawCall.program.ATTRIBUTE_LENGTH;
+      if (this.length > (index *= stride)) {
+        byteOffset = index * 4 + this.byteOffset;
+        return new Attribute(sab, byteOffset, stride);
+      }
+      throw /MAX_ATTRIB_EXCEED/;
+    }
+  }
+});
+
+define(Attributes.prototype, {
+  drawCall: {
+    get: function() {
+      var byteOffset, classIndex, construct, ptri, test;
+      byteOffset = this.byteOffset;
+      classIndex = storage.indexOf(DrawCall);
+      test = function(ptri) {
+        return 0 === byteOffset - getByteOffset(ptri);
+      };
+      ptri = findPointer(test, DrawCall, construct = false);
+      if (ptri) {
+        return new DrawCall(ptri);
+      }
+      throw /NO_DRAWCALL_AT_BYTEOFFSET/;
+    }
+  }
+});
+
 define(Vertices.prototype, {
-  set: {
-    value: function(value = []) {
-      var byte, construct, mesh, test;
+  vertex: {
+    value: function(index) {
+      var byteOffset;
+      if (this.length > (index *= 3)) {
+        byteOffset = index * 4 + this.byteOffset;
+        return new Vertex(sab, byteOffset, 3);
+      }
+      throw /MAX_VERTEX_EXCEED/;
+    }
+  }
+});
+
+define(Vertices.prototype, {
+  mesh: {
+    get: function() {
+      var byte, construct, test;
       byte = this.byteOffset;
       test = function(ptri) {
         return 0 === byte - getByteOffset(ptri);
       };
-      mesh = findPointer(test, Mesh, construct = false);
-      return new Mesh(mesh).setVertices(value);
+      return new Mesh(findPointer(test, Mesh, construct = false));
+    }
+  }
+});
+
+define(Vertices.prototype, {
+  set: {
+    value: function(value = []) {
+      return this.mesh.setVertices(value);
     }
   }
 });
@@ -1900,10 +2212,16 @@ define(ModifierMatrix.prototype, {
   }
 });
 
-define(ModifierMatrix.prototype, {
+define(ModifierMatrix, {
   identity: {
-    value: function() {
-      return this.set(Float32Array.of(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1));
+    value: Float32Array.of(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+  }
+});
+
+define(Mesh.prototype, {
+  vertex: {
+    value: function(index) {
+      return this.vertices.vertex(index);
     }
   }
 });
@@ -2089,7 +2407,7 @@ define(Mesh.prototype, {
       var ptri;
       if (!(ptri = getPtriUint32(this + MESH_MMATRIX))) {
         ptri = new_Pointer(ModifierMatrix);
-        ptri.identity();
+        ptri.set(ModifierMatrix.identity);
         addChildren(this, ptri);
         setPtriUint32(this + MESH_MMATRIX, ptri);
       }
@@ -2528,44 +2846,27 @@ define(ProgramSource.prototype, {
 });
 
 define(ProgramSource.prototype, {
-  findUniform: {
-    value: function(alias) {
-      var attr, len, m, ref1;
-      ref1 = findChilds(this, Uniform);
+  findGLSLVariable: {
+    value: function(any, Class) {
+      var len, m, ptri, ref1, test;
+      this.parameters; //parse source if did NOT before
+      ref1 = findChilds(this, Class);
       for (m = 0, len = ref1.length; m < len; m++) {
-        attr = ref1[m];
-        if (attr.alias === alias) {
-          return attr;
-        }
-      }
-    }
-  }
-});
-
-define(ProgramSource.prototype, {
-  findVertexAttrib: {
-    value: function(alias) {
-      var attr, len, m, ref1;
-      ref1 = findChilds(this, VertexAttribute);
-      for (m = 0, len = ref1.length; m < len; m++) {
-        attr = ref1[m];
-        if (attr.alias === alias) {
-          return attr;
-        }
-      }
-    }
-  }
-});
-
-define(ProgramSource.prototype, {
-  findVertexArray: {
-    value: function(alias) {
-      var len, m, ref1, varr;
-      ref1 = findChilds(this, VertexArray);
-      for (m = 0, len = ref1.length; m < len; m++) {
-        varr = ref1[m];
-        if (varr.alias === alias) {
-          return varr;
+        ptri = ref1[m];
+        test = (function() {
+          switch (true) {
+            case any.isPointer:
+              return (any.alias === ptri.alias) && any;
+            case "string" === typeof any:
+              return ptri.alias;
+            case any instanceof RegExp:
+              return any.match(ptri) && any;
+            default:
+              throw /UNMATCH_ATTRIB_FIND/;
+          }
+        })();
+        if (any === test) {
+          return ptri;
         }
       }
     }
@@ -2575,7 +2876,10 @@ define(ProgramSource.prototype, {
 define(ProgramSource.prototype, {
   getParameters: {
     value: function() {
-      var attrib, attribute, fShader, fSource, gl, gls, len, len1, len2, len3, m, n, numAttribs, numUniforms, p, parameters, pname, program, q, ref1, ref2, ref3, ref4, ref5, ref6, s, shaders, split, tn, u, uniform, v, vShader, vSource, varr, w;
+      var attrib, attribute, fShader, fSource, gl, gls, len, len1, len2, len3, m, n, numAttribs, numUniforms, p, parameters, pname, program, q, ref1, ref2, ref3, ref4, ref5, ref6, s, shaders, split, stri, tn, u, uniform, v, vShader, vSource, varr, w;
+      if (stri = getPtriUint32(this + SHADER_SOURCE_PARAMETERS)) {
+        return storage[stri];
+      }
       gl = new OffscreenCanvas(1, 1).getContext("webgl2");
       //? create vertex shader ------------> 
       vSource = this.vertexShader;
@@ -2699,9 +3003,6 @@ define(ProgramSource.prototype, {
       ref5 = parameters.ATTRIBUTES;
       for (q = 0, len2 = ref5.length; q < len2; q++) {
         attrib = ref5[q];
-        if (this.findVertexAttrib(attrib.alias)) {
-          continue;
-        }
         attribute = new_Pointer(VertexAttribute);
         attribute.set(attrib.alias);
         assign(attribute, {
@@ -2795,9 +3096,6 @@ define(ProgramSource.prototype, {
       ref6 = parameters.UNIFORMS;
       for (w = 0, len3 = ref6.length; w < len3; w++) {
         u = ref6[w];
-        if (this.findUniform(u.name)) {
-          continue;
-        }
         uniform = new_Pointer(Uniform);
         assign(uniform, {
           size: u.size,
@@ -2807,14 +3105,13 @@ define(ProgramSource.prototype, {
         });
         addChildren(this, uniform.set(u.alias));
       }
-      if (!this.findVertexArray(parameters.VERTEX_ARRAY_NAME)) {
-        addChildren(this, varr = new_Pointer(VertexArray));
-        varr.set(parameters.VERTEX_ARRAY_NAME);
-      }
+      addChildren(this, varr = new_Pointer(VertexArray));
+      varr.set(parameters.VERTEX_ARRAY_NAME);
       gl.deleteShader(vShader);
       gl.deleteShader(fShader);
       gl.deleteProgram(program);
       gl = null;
+      setPtriUint32(this + SHADER_SOURCE_PARAMETERS, storeForUint32(parameters));
       return parameters;
     }
   }
@@ -2887,7 +3184,7 @@ for (cname in ref1) {
   continue;
 }
 
-ref3 = [VertexArray, VertexAttribute, Uniform, Program, DrawBuffer];
+ref3 = [VertexArray, VertexAttribute, Program, Uniform, DrawBuffer];
 for (m = 0, len = ref3.length; m < len; m++) {
   Class = ref3[m];
   Object.defineProperty(Class.prototype, "children", {
@@ -2898,67 +3195,99 @@ for (m = 0, len = ref3.length; m < len; m++) {
 //? <----------------------------------------> ?#
 //? <----------------------------------------> ?#
 //? <----------------------------------------> ?#
-warn("sc:", sc = new_Pointer(Scene));
+sc = new_Pointer(Scene);
 
-warn("mesh:", msh = new_Pointer(Mesh));
+msh = new_Pointer(Mesh);
 
-warn("mesh2:", msh2 = new_Pointer(Mesh));
+msh2 = new_Pointer(Mesh);
 
-warn("ss1:", ss1 = new_Pointer(ProgramSource).set("default"));
+ss1 = new_Pointer(ProgramSource).set("my-avesome-vertex-shader");
 
-warn("ss1:", ss2 = new_Pointer(ProgramSource).set("my-avesome-vertex-shader"));
+ss2 = new_Pointer(ProgramSource).set("default");
 
-warn("rc1:", rc1 = new_Pointer(RenderingContext));
+rc1 = new_Pointer(RenderingContext);
 
-warn("vp1:", vp1 = new_Pointer(Viewport));
+vp1 = new_Pointer(Viewport);
 
-warn("p0:", p0 = new_Pointer(Program).set("my-avesome-vertex-shader"));
+p0 = new_Pointer(Program).set("my-avesome-vertex-shader");
 
-warn("p1:", p1 = new_Pointer(Program).set("default"));
+p1 = new_Pointer(Program).set("default");
 
-warn("rc2:", rc2 = new_Pointer(RenderingContext));
+rc2 = new_Pointer(RenderingContext);
 
-warn("vp2:", vp2 = Viewport.of({
+vp2 = Viewport.of({
   width: 320,
   height: 240,
   left: 20,
   top: 20
-}));
+});
 
-warn("rc1.add p0:", rc1.add(p0));
+rc1.add(p0);
 
-warn("rc2.add bp2:", rc2.add(vp2));
+rc1.add(p1);
 
-warn("sc.add msh:", sc.add(msh));
+rc2.add(vp2);
 
-warn("sc.add vp1:", sc.add(vp1));
+sc.add(msh);
 
-warn("sc.add ss1:", sc.add(ss1));
+sc.add(ss1);
 
-warn("sc.add ss2:", sc.add(ss2));
+sc.add(ss2);
 
-warn("sc.add rc1:", sc.add(rc1));
+sc.add(vp1);
 
-warn("sc.add rc2:", sc.add(rc2));
+sc.add(rc1);
 
-warn("rc1.add p1:", rc1.add(p1));
+sc.add(rc2);
 
-warn("rc1.findChild Inheritable Viewport:", findChild(rc1, Viewport, true));
+warn(msh.set([0, 0, 0, 0, 0.5, 0, 0.7, 0, 0]));
 
-warn("rc2.findChild Inheritable Viewport:", findChild(rc2, Viewport, true));
+msh.append(post = new_Pointer(Position));
 
-warn("sc.findChild Inheritable ProgramSource:", findChild(rc2, Viewport, true));
+msh.append(new_Pointer(DrawCall));
 
-warn("ss2.parameters:", ss2.parameters);
+msh.append(new_Pointer(DrawCall));
 
-warn("sc.defctx:", sc.defaultContext.defaultBuffer.bind());
+log("post:", post.set([1, 0, -1]));
 
-warn("msh.set:", msh.set([0, 0, 0, 0, 0.5, 0, 0.7, 0, 0]));
+msh.add(msh2);
 
-warn("msh.append new_Pointer( DrawCall ):", msh.append(new_Pointer(DrawCall)));
+self.mesh = msh;
 
-warn("msh.append new_Pointer( DrawCall ):", msh.append(new_Pointer(DrawCall)));
+source = mesh.vertices;
 
-warn("msh2", msh.add(msh2));
+drawCall = mesh.drawCalls[0];
 
-warn("msh2", self.mesh = msh);
+program = drawCall.program;
+
+program.positionAttribute = "a_Position";
+
+target = drawCall.attributes;
+
+pointCount = drawCall.pointCount;
+
+warn(drawCall);
+
+warn("drawCall.positionAttribute:", drawCall.positionAttribute);
+
+warn(target.attribute(1));
+
+warn(src = source.vertex(1));
+
+log("mesh.position:", mesh.position);
+
+log("mesh.rotation:", mesh.rotation);
+
+log("mesh.scale:", mesh.scale);
+
+[x0, y0, z0] = source.vertex(1);
+
+[dx, dy, dz] = mesh.position.subarray;
+
+warn(dst = drawCall.attribute(1, "a_Position"));
+
+dst.set([x0 + dx, y0 + dy, z0 + dz]);
+
+log({source});
+
+log({target});
