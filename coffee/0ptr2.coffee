@@ -1,4 +1,6 @@
 #? hello world <3
+DEBUG = off
+
 export class Pointer            extends Number
 export class PtriArray          extends Array
 export class Vertices           extends Float32Array
@@ -42,9 +44,9 @@ GL2KEY = Object.keys     WebGL2RenderingContext
 GL2VAL = Object.values   WebGL2RenderingContext
 GL2NUM = new Object
 
-{log,warn,error,table,debug,delay} = console
+{log,warn,error,table,debug,info,delay} = console
 
-sab = new SharedArrayBuffer 1e7
+sab = new SharedArrayBuffer 1e7 * 8
 dvw = new DataView sab
 ui8 = new Uint8Array sab
 u32 = new Uint32Array sab
@@ -58,6 +60,10 @@ BPE = 4
 
 POINTER_LENGTH              = 16
 POINTER_BYTELENGTH          = BPE * POINTER_LENGTH
+
+Atomics.store u32, 0, POINTER_BYTELENGTH
+Atomics.store u32, 1, 200 * POINTER_BYTELENGTH
+
 
 PTR_CLASSINDEX              = 0 * BPE
 PTR_PARENT                  = 1 * BPE
@@ -131,17 +137,146 @@ VIEWPORT_PIXEL_RATIO        = 10 * BPE
 #? <----------------------------------------> ?#
 #? <----------------------------------------> ?#
 #? <----------------------------------------> ?#
+colors          =
+    _ : '\x1b[0m\x1b[0m\x1b[0m\x1b[0m',
 
-assign = Object.assign
-define = Object.defineProperties
-getown = Object.getOwnPropertyDescriptor
-encode = TextEncoder::encode.bind new TextEncoder
-decode = TextDecoder::decode.bind new TextDecoder
-palloc = Atomics.add.bind Atomics, u32, 0, POINTER_BYTELENGTH
-malloc = ( byteLength = 0 ) ->
-    if  mod = Atomics.load( u32, 1 ) % 8 
-        Atomics.add u32, 1, 8 - mod
-    Atomics.add u32, 1, byteLength
+    pool : [
+        yellow = '\x1b[1m\x1b[33m',
+        red = '\x1b[1m\x1b[31m',
+        green = '\x1b[1m\x1b[32m',
+        blue = '\x1b[1m\x1b[34m',
+        magenta = '\x1b[1m\x1b[35m',
+        cyan = '\x1b[1m\x1b[36m',
+        WhiteOnBlack = '\x1b[40m\x1b[37m',
+        WhiteOnRed = '\x1b[1m\x1b[37m\x1b[21m\x1b[41m',
+        GreenOnWhite = '\x1b[40m\x1b[42m',
+        BlackOnYellow = '\x1b[37m\x1b[43m',
+        WhiteOnBlue = '\x1b[40m\x1b[44m',
+        WhiteOnMagenta = '\x1b[40m\x1b[45m',
+        WhiteOnCyan = '\x1b[40m\x1b[46m',
+        blackOnWhite = '\x1b[37m\x1b[40m',
+        blackOnRed = '\x1b[37m\x1b[41m',
+        blackOnGreen = '\x1b[37m\x1b[42m',
+        blackOnYellow = '\x1b[37m\x1b[43m',
+        blackOnBlue = '\x1b[37m\x1b[44m',
+        blackOnMagenta = '\x1b[37m\x1b[45m',
+        blackOnCyan = '\x1b[37m\x1b[46m',
+        yellow = '\x1b[33m',
+        red = '\x1b[31m',
+        green = '\x1b[32m',
+        blue = '\x1b[34m',
+        magenta = '\x1b[35m',
+        cyan = '\x1b[36m',
+        WhiteOnBlack = '\x1b[40m\x1b[37m',
+        WhiteOnRed = '\x1b[1m\x1b[37m\x1b[21m\x1b[41m',
+        GreenOnWhite = '\x1b[40m\x1b[42m',
+        BlackOnYellow = '\x1b[37m\x1b[43m',
+        WhiteOnBlue = '\x1b[40m\x1b[44m',
+        WhiteOnMagenta = '\x1b[40m\x1b[45m',
+        WhiteOnCyan = '\x1b[40m\x1b[46m',
+        blackOnWhite = '\x1b[37m\x1b[40m',
+        blackOnRed = '\x1b[37m\x1b[41m',
+        blackOnGreen = '\x1b[37m\x1b[42m',
+        blackOnYellow = '\x1b[37m\x1b[43m',
+        blackOnBlue = '\x1b[37m\x1b[44m',
+        blackOnMagenta = '\x1b[37m\x1b[45m',
+        blackOnCyan = '\x1b[37m\x1b[46m',
+    ]
+
+    black : '\x1b[30m',
+    white: '\x1b[37m',
+    redBg: '\x1b[41m',
+    greenBg: '\x1b[42m',
+    yellowBg: '\x1b[43m',
+    blueBg: '\x1b[44m',
+    magentaBg: '\x1b[45m',
+    cyanBg: '\x1b[46m',
+    whiteBg: '\x1b[47m'
+
+define          = ->
+    [ o, props ] = arguments
+
+    unless DEBUG
+        return Object.defineProperties o, props
+
+    for prop, { get: g, set: s, value: v } of props
+
+        t = "#{o.name || o.constructor.name}".padEnd 15, " "
+
+        if !colors[t]
+            if !colors[t] = colors.pool.splice(0,1)[0]
+                throw /COLOR_POOL_EXCEED/
+
+        t = colors[t] + t + colors._
+        t = t + ":: #{prop}".padEnd 20, " "
+        e = { }
+        p = (b) ->
+            trace = b.stack.split("\n")
+            trace = trace.slice 1
+            trace = trace.slice 0, trace.length - 1
+
+            for line , i in trace
+                if  line.trim().startsWith "at"
+                    trace[i] = trace[i].replace("at").trim()
+
+                trace[i] = trace[i].split(/\s+|\t/g).filter (l) ->
+                    no is /http|undefined/.test l
+                .join(" ").trim()
+
+            trace : trace.filter Boolean
+
+        if g then props[ prop ].get = ( ( tag, get ) ->
+            ->
+                Error.captureStackTrace e = {}
+                info "#{tag}" + "( get ) < ", p e
+
+                r = get.call this, arguments...
+                info "#{tag}" + "( get ) > "
+                r
+
+        ).call( o, t, g )
+
+        if s then props[ prop ].set = ( ( tag, set ) ->
+            ->
+                Error.captureStackTrace e = {}
+                info "#{tag}( set ) < ", [ arguments... ], p e
+                r = set.call this,  arguments...
+                info "#{tag}( set ) > ", r
+                r
+
+        ).call( o, t, s )
+
+
+        if v then props[ prop ].value = ( ( tag, val ) ->
+            ->
+                Error.captureStackTrace e = {}
+                info "#{tag}( val ) < ", [ arguments... ], p e
+                r = val.call this, arguments...
+                info "#{tag}( val ) > ", [ r ]
+                r
+
+        ).call( o, t, v )
+        
+    Object.defineProperties o, props
+
+selfExtends1    =
+    getown : Object.getOwnPropertyDescriptor
+    assign : Object.assign
+    encode : TextEncoder::encode.bind new TextEncoder
+    decode : TextDecoder::decode.bind new TextDecoder
+    palloc : ->
+        o = Atomics.add u32, 0, POINTER_BYTELENGTH
+        unless o then throw [ /PALLOC/, u32.slice(0,2) ]
+        o
+
+    malloc : ( byteLength = 0 ) ->
+        if  mod = byteLength % 8
+            byteLength += 8 - mod
+
+        o = Atomics.add u32, 1, byteLength
+        if !o or o % 8 then throw [ /NOD_8/, u32.slice(0, 2) ]
+
+        o
 
 export storage  = new (class Storage extends Array
     constructor     : -> super( arguments... ).add null
@@ -154,299 +289,311 @@ export storage  = new (class Storage extends Array
 #* <----------------------------------------> *#
 #* <----------------------------------------> *#
 
-keyOfWebGL2     = ( type, min = 0xff, max = 0xffff ) ->
-    return type if (type < min) or (type > max)
-    return type if /\s+/.test "#{type}"
-    return type if "#{type}" isnt "#{type}".toUpperCase()
+selfExtends2    =
 
-    switch typeof type
-        when "number" then name = GL2KEY.at GL2VAL.indexOf type
-        when "string" then type = GL2VAL.at GL2KEY.indexOf name = type
-        else return type
+    keyOfWebGL2     : ( type, min = 0xff, max = 0xffff ) ->
+        return type if (type < min) or (type > max)
+        return type if /\s+/.test "#{type}"
+        return type if "#{type}" isnt "#{type}".toUpperCase()
 
-    GL2NUM[ name + type ] ||= eval "new (class #{name} extends Number {})(#{type})"
+        switch typeof type
+            when "number" then name = GL2KEY.at GL2VAL.indexOf type
+            when "string" then type = GL2VAL.at GL2KEY.indexOf name = type
+            else return type
 
-addListener     = ( element, event, handler ) ->
-    element.addEventListener event, handler ; element
+        GL2NUM[ name + type ] ||= eval "new (class #{name} extends Number {})(#{type})"
 
-hitListener     = ( element, event, detail ) ->
-    element.dispatchEvent new CustomEvent event, { detail }
+    addListener     : ( element, event, handler ) ->
+        element.addEventListener event, handler ; element
 
-appendElement   = ( element ) ->
-    document.body.appendChild element ; element
+    hitListener     : ( element, event, detail ) ->
+        element.dispatchEvent new CustomEvent event, { detail }
 
-createElement   = ( tagName ) ->
-    document.createElement tagName
+    appendElement   : ( element ) ->
+        document.body.appendChild element ; element
 
-queryDocument   = ( query, all = off ) ->
-    unless all then document.querySelector query
-    else document.querySelectorAll query
+    createElement   : ( tagName ) ->
+        document.createElement tagName
 
-hitOnTimeout    = ->
-    fn  = arguments[ 0 ]
-    ->  clearTimeout( delay ) or delay =
-        setTimeout( fn.bind( this, arguments... ), 40 )
+    queryDocument   : ( query, all = off ) ->
+        unless all then document.querySelector query
+        else document.querySelectorAll query
 
-getByteOffset   = ( ptri ) ->
-    dvw.getUint32 ptri + PTR_BYTEOFFSET, iLE
+    hitOnTimeout    : ->
+        fn  = arguments[ 0 ]
+        ->  clearTimeout( delay ) or delay =
+            setTimeout( fn.bind( this, arguments... ), 40 )
 
-setByteOffset   = ( ptri, byteOffset ) ->
-    dvw.setUint32 ptri + PTR_BYTEOFFSET, byteOffset, iLE ; ptri
+    getByteOffset   : ( ptri ) ->
+        dvw.getUint32 ptri + PTR_BYTEOFFSET, iLE
 
-getByteLength   = ( ptri ) ->
-    dvw.getUint32 ptri + PTR_BYTELENGTH, iLE
+    setByteOffset   : ( ptri, byteOffset ) ->
+        dvw.setUint32 ptri + PTR_BYTEOFFSET, byteOffset, iLE ; ptri
 
-setByteLength   = ( ptri, byteLength ) ->
-    dvw.setUint32 ptri + PTR_BYTELENGTH, byteLength, iLE ; ptri
+    getByteLength   : ( ptri ) ->
+        dvw.getUint32 ptri + PTR_BYTELENGTH, iLE
 
-ptr_Pointer     = ( ptri ) ->
-    ptri and new storage[ getClassIndex ptri ] ptri
+    setByteLength   : ( ptri, byteLength ) ->
+        dvw.setUint32 ptri + PTR_BYTELENGTH, byteLength, iLE ; ptri
 
-new_Pointer     = ( Class ) ->
-    setClassIndex ptri = new Class palloc()
-    return ptri if !byteLength = Class.byteLength
+    ptr_Pointer     : ( ptri ) ->
+        ptri and new storage[ getClassIndex ptri ] ptri
 
-    setByteOffset ptri, malloc byteLength
-    setByteLength ptri, byteLength
+    new_Pointer     : ( Class ) ->
+        
+        ptri = new Class Atomics.add u32, 0, POINTER_BYTELENGTH
+        clsi = storage.indexOf Class
+        
+        dvw.setUint32 ptri + PTR_CLASSINDEX, clsi, iLE
 
-    return ptri
+        if  byteLength = Class.byteLength
+            byteOffset = malloc byteLength
 
-getClassIndex   = ( ptri ) ->
-    dvw.getUint32( ptri + PTR_CLASSINDEX, iLE ) or
-    storage.indexOf( ptri.constructor )
+            dvw.setUint32 ptri + PTR_BYTELENGTH, byteOffset, iLE ; ptri
+            dvw.setUint32 ptri + PTR_BYTEOFFSET, byteOffset, iLE ; ptri
 
-setClassIndex   = ( ptri, clsi ) ->
-    if -1 is clsi ||= getClassIndex ptri
-        throw /CLASS_INDEX_ERR/ 
-    dvw.setUint32( ptri + PTR_CLASSINDEX,
-        clsi or getClassIndex( ptri ), iLE
-    ) ; ptri
+        return ptri
 
-addChildren     = ( parent, child ) ->
-    dvw.setUint32 child + PTR_PARENT, parent, iLE ; child
+    getClassIndex   : ( ptri ) ->
+        dvw.getUint32( ptri + PTR_CLASSINDEX, iLE ) or
+        storage.indexOf( ptri.constructor )
 
-setParent       = ( child, parent ) ->
-    dvw.setUint32 child + PTR_PARENT, parent, iLE ; parent
+    setClassIndex   : ( ptri, clsi ) ->
+        if -1 is clsi ||= storage.indexOf ptri.constructor
+            throw /CLASS_INDEX_ERR/ 
 
-getParent       = ( ptri ) ->
-    dvw.getUint32 ptri + PTR_PARENT, iLE
+        dvw.setUint32( ptri + PTR_CLASSINDEX,
+            clsi or getClassIndex( ptri ), iLE
+        ) ; ptri
 
-getUint8        = ( ptri, byteOffset ) ->
-    dvw.getUint8   byteOffset + getByteOffset( ptri )
+    addChildren     : ( parent, child ) ->
+        dvw.setUint32 child + PTR_PARENT, parent, iLE ; child
 
-setUint8        = ( ptri, byteOffset, value ) ->
-    dvw.setUint8   byteOffset + getByteOffset( ptri ), value ; value
+    setParent       : ( child, parent ) ->
+        dvw.setUint32 child + PTR_PARENT, parent, iLE ; parent
 
-addUint32       = ( ptri, byteOffset, value, atomics = on ) ->
-    byteOffset += getByteOffset ptri
+    getParent       : ( ptri ) ->
+        dvw.getUint32 ptri + PTR_PARENT, iLE
 
-    if  atomics
-        return Atomics.add u32, byteOffset/4, value
-    
-    else
-        val = dvw.getUint32 byteOffset, iLE
-        dvw.setUint32 byteOffset, value + val, iLE
-    val
+    getUint8        : ( ptri, byteOffset ) ->
+        dvw.getUint8   byteOffset + getByteOffset( ptri )
 
-getUint32       = ( ptri, byteOffset ) ->
-    dvw.getUint32  byteOffset + getByteOffset( ptri ), iLE
+    setUint8        : ( ptri, byteOffset, value ) ->
+        dvw.setUint8   byteOffset + getByteOffset( ptri ), value ; value
 
-setUint32       = ( ptri, byteOffset, value ) ->
-    dvw.setUint32  byteOffset + getByteOffset( ptri ), value, iLE ; value
+    addUint32       : ( ptri, byteOffset, value, atomics = on ) ->
+        byteOffset += getByteOffset ptri
 
-getFloat32      = ( ptri, byteOffset ) ->
-    dvw.getFloat32 byteOffset + getByteOffset( ptri ), iLE
-
-setFloat32      = ( ptri, byteOffset, value ) ->
-    dvw.setFloat32 byteOffset + getByteOffset( ptri ), value, iLE ; value
-
-getPtriUint8    = ( byteOffset ) ->
-    dvw.getUint8   byteOffset
-
-setPtriUint8    = ( byteOffset, value ) ->
-    dvw.setUint8   byteOffset, value ; value
-
-addPtriUint32   = ( byteOffset, value ) ->
-    Atomics.add u32, byteOffset/4, value
-
-getPtriUint32   = ( byteOffset ) ->
-    dvw.getUint32  byteOffset, iLE
-
-setPtriUint32   = ( byteOffset, value ) ->
-    dvw.setUint32  byteOffset, value, iLE ; value
-
-getPtriUint16   = ( byteOffset ) ->
-    dvw.getUint16  byteOffset, iLE
-
-setPtriUint16   = ( byteOffset, value ) ->
-    dvw.setUint16  byteOffset, value, iLE ; value
-
-getPtriFloat32  = ( byteOffset ) ->
-    dvw.getFloat32 byteOffset, iLE
-
-setPtriFloat32  = ( byteOffset, value ) ->
-    dvw.setFloat32 byteOffset, value, iLE ; value
-
-storeForUint8   = ( any ) ->
-    if -1 isnt i = storage.indexOf any
-        return i
-
-    i = 0
-    max = 0xff
-    while i++ < max
-        return i if storage[i] is any
-        continue if storage[i]
-        return i if storage[i] = any 
-
-    throw /STORE_FOR_UINT8/
-
-storeForUint32  = ( any ) ->
-    if -1 isnt i = storage.indexOf any
-        return i
-
-    i = 0xff
-    max = 0xffffffff
-    while i++ < max
-        return i if storage[i] is any
-        continue if storage[i]
-        return i if storage[i] = any 
-
-    throw /STORE_FOR_UINT32/
-
-new_Uint32Array = ( ptri, byteOffset, length ) ->
-    length ||= getByteLength( ptri ) / 4
-    byteOffset = getByteOffset( ptri ) + byteOffset || 0
-
-    new Uint32Array sab, byteOffset, length
-
-new_Uint8Array  = ( ptri, byteOffset, length ) ->
-    length ||= getByteLength( ptri )
-    byteOffset = getByteOffset( ptri ) + byteOffset || 0
-
-    new Uint8Array sab, byteOffset, length
-
-new_Float32Array= ( ptri, byteOffset, length ) ->
-    length ||= getByteLength( ptri ) / 4
-    byteOffset = getByteOffset( ptri ) + byteOffset || 0
-
-    new Float32Array sab, byteOffset, length
-
-subarrayUint8   = ( ptri, begin, end ) ->
-    offset = getByteOffset( ptri )
-    length = getByteLength( ptri )
-
-    end ||= length + begin ||= begin or 0
-    ui8.subarray begin + offset, end + offset 
-
-sliceUint8      = ( ptri, begin, end ) ->
-    offset = getByteOffset( ptri )
-    length = getByteLength( ptri )
-
-    end ||= length + begin ||= begin or 0
-    ui8.slice begin + offset, end + offset 
-
-subarrayUint32  = ( ptri, begin, end ) ->
-    offset = getByteOffset( ptri ) / 4
-    length = getByteLength( ptri ) / 4
-
-    end ||= length + begin ||= begin or 0
-    u32.subarray begin + offset, end + offset 
-
-subarrayFloat32 = ( ptri, begin, end ) ->
-    offset = getByteOffset( ptri ) / 4
-    length = getByteLength( ptri ) / 4
-
-    end ||= length + begin ||= begin or 0
-    f32.subarray begin + offset, end + offset 
-
-ptrByteCompare  = ( ptri, ptrj ) ->
-    return 0 unless ptri - ptrj #non-same
-
-    byteLengthA = getByteLength ptri
-    byteLengthB = getByteLength ptrj
-
-    return 0 if byteLengthA - i = byteLengthB
-
-    byteOffsetA = getByteOffset ptri
-    byteOffsetB = getByteOffset ptrj
-
-    while i-- then return 0 if (
-        dvw.getUint8( byteOffsetA + i ) -
-        dvw.getUint8( byteOffsetB + i )
-    )
-
-    1
-
-findChild       = ( ptri, Class, inherit = off ) ->
-    return unless ptri
-
-    ptrj = Atomics.load u32
-    clsi = storage.indexOf Class
-
-    while ptrj -= POINTER_BYTELENGTH
-        continue if ptri - getParent ptrj
-        continue if clsi - getClassIndex ptrj
-        return ptr_Pointer ptrj
-
-    return unless inherit
-
-    findChild getParent( ptri ), Class, inherit
-
-findChilds      = ( ptri, Class, construct = on ) ->
-    ptrj = Atomics.load u32
-    clsi = storage.indexOf Class
-    list = new PtriArray ; i = 0
-
-    if !ptri
-        if !construct
-            while ptrj -= POINTER_BYTELENGTH
-                continue if clsi - getClassIndex ptrj
-                list[ i++ ] = ptrj
-
+        if  atomics
+            return Atomics.add u32, byteOffset/4, value
+        
         else
-            while ptrj -= POINTER_BYTELENGTH
-                continue if clsi - getClassIndex ptrj
-                list[ i++ ] = ptr_Pointer ptrj
+            val = dvw.getUint32 byteOffset, iLE
+            dvw.setUint32 byteOffset, value + val, iLE
+        val
 
-    else
-        if !construct
-            while ptrj -= POINTER_BYTELENGTH
-                continue if ptri - getParent ptrj
-                continue if clsi - getClassIndex ptrj
-                list[ i++ ] = ptrj
-        else    
-            while ptrj -= POINTER_BYTELENGTH
-                continue if ptri - getParent ptrj
-                continue if clsi - getClassIndex ptrj
-                list[ i++ ] = ptr_Pointer ptrj
+    getUint32       : ( ptri, byteOffset ) ->
+        dvw.getUint32  byteOffset + getByteOffset( ptri ), iLE
 
-    return list
+    setUint32       : ( ptri, byteOffset, value ) ->
+        dvw.setUint32  byteOffset + getByteOffset( ptri ), value, iLE ; value
 
-findPointer     = ( test, Class, construct = on ) ->
-    ptrj = Atomics.load u32
+    getFloat32      : ( ptri, byteOffset ) ->
+        dvw.getFloat32 byteOffset + getByteOffset( ptri ), iLE
 
-    if !Class
-        if !construct
-            while ptrj -= POINTER_BYTELENGTH
-                return ptr if test ptr = ptrj
-            return undefined
+    setFloat32      : ( ptri, byteOffset, value ) ->
+        dvw.setFloat32 byteOffset + getByteOffset( ptri ), value, iLE ; value
 
-        while ptrj -= POINTER_BYTELENGTH
-            return ptr if test ptr = ptr_Pointer ptrj
-        return undefined
+    getPtriUint8    : ( byteOffset ) ->
+        dvw.getUint8   byteOffset
 
-    else
+    setPtriUint8    : ( byteOffset, value ) ->
+        dvw.setUint8   byteOffset, value ; value
+
+    addPtriUint32   : ( byteOffset, value ) ->
+        Atomics.add u32, byteOffset/4, value
+
+    getPtriUint32   : ( byteOffset ) ->
+        dvw.getUint32  byteOffset, iLE
+
+    setPtriUint32   : ( byteOffset, value ) ->
+        dvw.setUint32  byteOffset, value, iLE ; value
+
+    getPtriUint16   : ( byteOffset ) ->
+        dvw.getUint16  byteOffset, iLE
+
+    setPtriUint16   : ( byteOffset, value ) ->
+        dvw.setUint16  byteOffset, value, iLE ; value
+
+    getPtriFloat32  : ( byteOffset ) ->
+        dvw.getFloat32 byteOffset, iLE
+
+    setPtriFloat32  : ( byteOffset, value ) ->
+        dvw.setFloat32 byteOffset, value, iLE ; value
+
+    storeForUint8   : ( any ) ->
+        if -1 isnt i = storage.indexOf any
+            return i
+
+        i = 0
+        max = 0xff
+        while i++ < max
+            return i if storage[i] is any
+            continue if storage[i]
+            return i if storage[i] = any 
+
+        throw /STORE_FOR_UINT8/
+
+    storeForUint32  : ( any ) ->
+        if -1 isnt i = storage.indexOf any
+            return i
+
+        i = 0xff
+        max = 0xffffffff
+        while i++ < max
+            return i if storage[i] is any
+            continue if storage[i]
+            return i if storage[i] = any 
+
+        throw /STORE_FOR_UINT32/
+
+    new_Uint32Array : ( ptri, byteOffset, length ) ->
+        length ||= getByteLength( ptri ) / 4
+        byteOffset = getByteOffset( ptri ) + byteOffset || 0
+
+        new Uint32Array sab, byteOffset, length
+
+    new_Uint8Array  : ( ptri, byteOffset, length ) ->
+        length ||= getByteLength( ptri )
+        byteOffset = getByteOffset( ptri ) + byteOffset || 0
+
+        new Uint8Array sab, byteOffset, length
+
+    new_Float32Array: ( ptri, byteOffset, length ) ->
+        length ||= getByteLength( ptri ) / 4
+        byteOffset = getByteOffset( ptri ) + byteOffset || 0
+
+        new Float32Array sab, byteOffset, length
+
+    subarrayUint8   : ( ptri, begin, end ) ->
+        offset = getByteOffset( ptri )
+        length = getByteLength( ptri )
+
+        end ||= length + begin ||= begin or 0
+        ui8.subarray begin + offset, end + offset 
+
+    sliceUint8      : ( ptri, begin, end ) ->
+        offset = getByteOffset( ptri )
+        length = getByteLength( ptri )
+
+        end ||= length + begin ||= begin or 0
+        ui8.slice begin + offset, end + offset 
+
+    subarrayUint32  : ( ptri, begin, end ) ->
+        offset = getByteOffset( ptri ) / 4
+        length = getByteLength( ptri ) / 4
+
+        end ||= length + begin ||= begin or 0
+        u32.subarray begin + offset, end + offset 
+
+    subarrayFloat32 : ( ptri, begin, end ) ->
+        offset = getByteOffset( ptri ) / 4
+        length = getByteLength( ptri ) / 4
+
+        end ||= length + begin ||= begin or 0
+        f32.subarray begin + offset, end + offset 
+
+    ptrByteCompare  : ( ptri, ptrj ) ->
+        return 0 unless ptri - ptrj #non-same
+
+        byteLengthA = getByteLength ptri
+        byteLengthB = getByteLength ptrj
+
+        return 0 if byteLengthA - i = byteLengthB
+
+        byteOffsetA = getByteOffset ptri
+        byteOffsetB = getByteOffset ptrj
+
+        while i-- then return 0 if (
+            dvw.getUint8( byteOffsetA + i ) -
+            dvw.getUint8( byteOffsetB + i )
+        )
+
+        1
+
+    findChild       : ( ptri, Class, inherit = off ) ->
+        return unless ptri
+
+        ptrj = Atomics.load u32
         clsi = storage.indexOf Class
 
-        if !construct
+        while ptrj -= POINTER_BYTELENGTH
+            continue if ptri - getParent ptrj
+            continue if clsi - getClassIndex ptrj
+            return ptr_Pointer ptrj
+
+        return unless inherit
+
+        findChild getParent( ptri ), Class, inherit
+
+    findChilds      : ( ptri, Class, construct = on ) ->
+        ptrj = Atomics.load u32
+        clsi = storage.indexOf Class
+        list = new PtriArray ; i = 0
+
+        if !ptri
+            if !construct
+                while ptrj -= POINTER_BYTELENGTH
+                    continue if clsi - getClassIndex ptrj
+                    list[ i++ ] = ptrj
+
+            else
+                while ptrj -= POINTER_BYTELENGTH
+                    continue if clsi - getClassIndex ptrj
+                    list[ i++ ] = ptr_Pointer ptrj
+
+        else
+            if !construct
+                while ptrj -= POINTER_BYTELENGTH
+                    continue if ptri - getParent ptrj
+                    continue if clsi - getClassIndex ptrj
+                    list[ i++ ] = ptrj
+            else    
+                while ptrj -= POINTER_BYTELENGTH
+                    continue if ptri - getParent ptrj
+                    continue if clsi - getClassIndex ptrj
+                    list[ i++ ] = ptr_Pointer ptrj
+
+        return list
+
+    findPointer     : ( test, Class, construct = on ) ->
+        ptrj = Atomics.load u32
+
+        if !Class
+            if !construct
+                while ptrj -= POINTER_BYTELENGTH
+                    return ptr if test ptr = ptrj
+                return undefined
+
+            while ptrj -= POINTER_BYTELENGTH
+                return ptr if test ptr = ptr_Pointer ptrj
+            return undefined
+
+        else
+            clsi = storage.indexOf Class
+
+            if !construct
+                while ptrj -= POINTER_BYTELENGTH
+                    continue if clsi - getClassIndex ptrj
+                    return ptr if test ptr = ptrj
+                
             while ptrj -= POINTER_BYTELENGTH
                 continue if clsi - getClassIndex ptrj
-                return ptr if test ptr = ptrj
-            
-        while ptrj -= POINTER_BYTELENGTH
-            continue if clsi - getClassIndex ptrj
-            return ptr if test ptr = ptr_Pointer ptrj
-    return undefined
+                return ptr if test ptr = ptr_Pointer ptrj
+        return undefined
+
+for k, value of { ...selfExtends1, ...selfExtends2 }
+    define self, [ k ] : { value }
 
 #* <----------------------------------------> *#
 #* <----------------------------------------> *#
@@ -523,10 +670,9 @@ define Text::               , set               :
             setByteOffset this, byteOffset
             setByteLength this, byteLength
 
-
         ui8.set( value, byteOffset )
         
-        ;@
+        this
 define Color                , byteLength        :
     value : 4 * 4
 define Color::              , TypedArray        :
@@ -770,7 +916,7 @@ define RenderingContext::   , defaultProgram    :
         if !ptri = getPtriUint32 this + RENDERING_CONTEXT_DPROGRAM
             if !ptri = findChilds( this, Program ).last()
                 addChildren this, ptri = new_Pointer Program
-                ptri.name = "default"
+                ptri.alias = "default"
             setPtriUint32 this + RENDERING_CONTEXT_DPROGRAM, ptri
         new Program ptri
 define RenderingContext::   , defaultDrawCall   :
@@ -960,10 +1106,10 @@ define Program::            , use               :
 
             storage[ stri ]()
         1
-define Program::            , name              :
-    enumerable : on
-    get : -> decode sliceUint8 this
-    set : Text::set
+define Program::            , getAlias          :
+    value : -> decode sliceUint8 this
+define Program::            , setAlias          :
+    value : -> @set arguments[0]
 define Program::            , glObject          :
     get : ->
         if !stri = getPtriUint8 this + PROGRAM_GLPROGRAM
@@ -1051,15 +1197,17 @@ define ModifierMatrix::     , set               :
     value : ( value = [] ) ->
         if  ArrayBuffer.isView( value ) or Array.isArray( value )
 
-            length = 16 
-            byteLength = 64
+            length      = 16 
+            byteLength  = 64
 
             if !byteOffset = getByteOffset this
                 byteOffset = malloc byteLength
+                
                 setByteOffset this, byteOffset
                 setByteLength this, byteLength
 
             @subarray.set value
+
             return this
 
         throw /MMATRIX_SET/
@@ -1093,8 +1241,8 @@ define Mesh::               , setVertices       :
         if  ArrayBuffer.isView( value ) or Array.isArray( value )
 
             if !byteOffset = getByteOffset this
-                byteOffset = malloc byteLength
                 byteLength = value.length * 4
+                byteOffset = malloc byteLength
 
                 setByteOffset this, byteOffset
                 setByteLength this, byteLength
@@ -1158,6 +1306,7 @@ define Mesh::               , setModifierMatrix :
 define Mesh::               , getModifierMatrix :
     value : ->
         if !ptri = getPtriUint32 this + MESH_MMATRIX
+
             ptri = new_Pointer ModifierMatrix
             ptri . identity()
 
@@ -1166,13 +1315,13 @@ define Mesh::               , getModifierMatrix :
 
         new ModifierMatrix ptri
 define Uniform              , getLocation       :
-    value : ( program, name ) ->
+    value : ( program, alias ) ->
         program.parent.glObject
-            .getUniformLocation program.glObject, name
-define Uniform::            , name              :
-    enumerable : on
-    get : -> decode sliceUint8 this
-    set : Text::set
+            .getUniformLocation program.glObject, alias
+define Uniform::            , getAlias          :
+    value : -> decode sliceUint8 this
+define Uniform::            , setAlias          :
+    value : -> @set arguments[0]
 define Uniform::            , size              :
     enumerable : on
     get : -> getPtriUint8 this + UNIFORM_SIZE
@@ -1218,14 +1367,14 @@ define Uniform::            , kind              :
     enumerable : on
     get : -> keyOfWebGL2 getPtriUint16 this + UNIFORM_KIND
     set : -> setPtriUint16 this + UNIFORM_KIND, arguments[0]
-define VertexAttribute::    , name              :
-    enumerable : on
-    get : -> decode sliceUint8 this
-    set : Text::set
+define VertexAttribute::    , getAlias          :
+    value : -> decode sliceUint8 this
+define VertexAttribute::    , setAlias          :
+    value : -> @set arguments[0]
 define VertexAttribute      , getLocation       :
-    value : ( program, name ) ->
+    value : ( program, alias ) ->
         gl = program.parent.glObject
-        gl . getAttribLocation program.glObject, name
+        gl . getAttribLocation program.glObject, alias
 define VertexAttribute::    , getLocation       :
     value : ( program ) -> 
         getPtriUint8 this + ATTRIBUTE_LOCATION
@@ -1280,10 +1429,10 @@ define VertexArray::        , BYTES_PER_POINT   :
         sum = 0
         sum = sum + attr.BYTES_PER_POINT for attr in @attributes
         sum
-define VertexArray::        , name              :
-    enumerable : on
-    get : -> decode sliceUint8 this
-    set : Text::set        
+define VertexArray::        , setAlias          :
+    value : -> @set arguments[0]
+define VertexArray::        , getAlias          :
+    value : -> decode sliceUint8 this
 define VertexArray::        , bound             :
     value : ( gl, extraCalls = [] ) ->
         unless gl then throw /NO_CONTEXT_SUPPLIED/
@@ -1300,12 +1449,12 @@ define VertexArray::        , bound             :
             call gl
 
         return gl.bindVertexArray.bind gl, vao
-define ProgramSource::      , name              :
-    enumerable : on
-    get : -> decode sliceUint8 this
-    set : ( name ) ->
+define ProgramSource::      , setAlias          :
+    value : ( alias ) ->
         setPtriUint32 this + SHADER_SOURCE_BYTES_PERP, 0
-        Text.prototype.set.call this, name ; this
+        @set alias
+define ProgramSource::      , getAlias          :
+    value : -> decode sliceUint8 this
 define ProgramSource::      , vertexArray       :
     enumerable : on
     get : -> findChild this, VertexArray
@@ -1317,9 +1466,9 @@ define ProgramSource::      , fragmentShader    :
     get : -> @documentScripts.fragmentShader?.text
 define ProgramSource::      , documentScripts   :
     get : ->
-        v = queryDocument "[name=#{@name}][type*='vertex']"
-        c = queryDocument "[name=#{@name}][type*='compute']"
-        f = queryDocument "[name=#{@name}][type*='fragment']"
+        v = queryDocument "[name=#{@alias}][type*='vertex']"
+        c = queryDocument "[name=#{@alias}][type*='compute']"
+        f = queryDocument "[name=#{@alias}][type*='fragment']"
 
         if !v and f and $name = f.getAttribute "vertex-shader"
             v = queryDocument "[name=#{$name}][type*='vertex']"
@@ -1341,20 +1490,20 @@ define ProgramSource::      , BYTES_PER_POINT   :
             bpp = setPtriUint32 this + SHADER_SOURCE_BYTES_PERP, @parameters.ATTRIBUTES_STRIDE
         bpp
 define ProgramSource::      , findUniform       :
-    value : ( name ) ->
+    value : ( alias ) ->
         for attr in findChilds this, Uniform
-            return attr if attr.name is name
+            return attr if attr.alias is alias
         return
 define ProgramSource::      , findVertexAttrib  :
-    value : ( name ) ->
+    value : ( alias ) ->
         for attr in findChilds this, VertexAttribute
-            return attr if attr.name is name
+            return attr if attr.alias is alias
 
         return
 define ProgramSource::      , findVertexArray   :
-    value : ( name ) ->
+    value : ( alias ) ->
         for varr in findChilds this, VertexArray
-            return varr if varr.name is name
+            return varr if varr.alias is alias
         return
 define ProgramSource::      , getParameters     :
     value : ->
@@ -1436,6 +1585,7 @@ define ProgramSource::      , getParameters     :
             attrib . isVector   = /VEC/.test tn.constructor.name
             attrib . isMatrix   = /MAT/.test tn.constructor.name
             attrib . isNumber   = !/VEC|MAT/.test tn.constructor.name
+            attrib . alias      = attrib.name
 
             attrib . size       = do ->
                 name = tn.constructor.name
@@ -1449,7 +1599,7 @@ define ProgramSource::      , getParameters     :
                     when gl.UNSIGNED_BYTE   then 1
                     else throw /DEFINED/
 
-            parameters . VERTEX_ARRAY_NAME += " #{attrib.name} "
+            parameters . VERTEX_ARRAY_NAME += " #{attrib.alias} "
             parameters . VERTEX_ARRAY_NAME  =
                 parameters . VERTEX_ARRAY_NAME.trim()
 
@@ -1459,10 +1609,10 @@ define ProgramSource::      , getParameters     :
             attrib
 
         for attrib in parameters . ATTRIBUTES
-            continue if @findVertexAttrib attrib.name
+            continue if @findVertexAttrib attrib.alias
 
             attribute = new_Pointer VertexAttribute
-            attribute . set attrib.name
+            attribute . set attrib.alias
 
             assign attribute, {
                 location : attrib.location, 
@@ -1486,7 +1636,7 @@ define ProgramSource::      , getParameters     :
             uniform[k]          = v for k, v of gl.getActiveUniform program, numUniforms
             uniform.kind        = tn = keyOfWebGL2 uniform.type            
             uniform.location    = gl.getUniformLocation program, uniform.name
-            uniform.name        = uniform.name.split(/\[/)[0]
+            uniform.alias       = uniform.name.split(/\[/)[0]
             uniform.uploader    = switch tn.constructor.name
                 when "FLOAT_MAT4"           then "uniformMatrix4fv"
                 when "FLOAT_MAT3"           then "uniformMatrix3fv"
@@ -1536,7 +1686,7 @@ define ProgramSource::      , getParameters     :
                 byteLength : u.byteLength
             }
 
-            addChildren this, uniform.set u.name
+            addChildren this, uniform.set u.alias
 
         if !@findVertexArray parameters . VERTEX_ARRAY_NAME
             addChildren this, varr = new_Pointer VertexArray
@@ -1549,28 +1699,34 @@ define ProgramSource::      , getParameters     :
 
         parameters
 
-palloc malloc POINTER_BYTELENGTH * 1e5
-
 #* <----------------------------------------> *#
 #* <----------------------------------------> *#
 #* <----------------------------------------> *#
 
-for name, Class of reDefine = classes
+for cname, Class of reDefine = classes
 
-    prop = name[0].toLowerCase() + name.substring 1
+    prop = cname[0].toLowerCase() + cname.substring 1
     define storage.add( Class ), [ prop ] : { value : Class }
     
-    for name, desc of Object.getOwnPropertyDescriptors Class::
+    defineds = {}
+
+    for pname, desc of descs = Object.getOwnPropertyDescriptors Class::
+
         continue unless desc.enumerable is off
-        continue unless /get|set/.test key = name.substring 0, 3
-        continue unless className = name.substring 3
-        continue unless no is Object.hasOwn( Class::, prop =
-            className[0].toLowerCase() + className.substring 1 )
+        continue if !/get|set/.test key = pname.substring 0, 3
+
+        continue unless className = pname.substring 3
+        continue unless pkey = className[0].toLowerCase() + className.substring 1
+
+        continue if defineds[ pkey ]
+        continue if !pkey.match(/name/) and descs[ pkey ]
 
         get = d.value if d = getown Class::, "get#{className}"
         set = d.value if d = getown Class::, "set#{className}"
 
-        define Class::, [ prop ] : { get, set, enumerable : on }
+        define Class::, [ pkey ] : { get, set, enumerable : on }
+
+        defineds[ pkey ] = 1
     
     continue unless Class::TypedArray
 
@@ -1585,7 +1741,7 @@ for name, Class of reDefine = classes
     continue
 
 for Class in [ VertexArray, VertexAttribute, Uniform, Program, DrawBuffer ]
-    define Class::, children : new PtriArray
+    Object.defineProperty Class::, "children", value : new PtriArray
 
 #? <----------------------------------------> ?#
 #? <----------------------------------------> ?#

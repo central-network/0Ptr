@@ -1,5 +1,7 @@
 //? hello world <3
-var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, Class, DRAWBUFFER_BINDBINDING, DRAWBUFFER_BYTELENGTH, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_RESIZEBINDING, DRAWBUFFER_TARGET, DRAWBUFFER_USAGE, DRAWCALL_DBUFFER, DRAWCALL_DRAWBINDING, DRAWCALL_DSTBYTEOFFSET, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_STATE, DRAWCALL_TARGET, DRAWCALL_TYPE, DRAWCALL_UPLOADBINDING, DRAWCALL_UPLOADED, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, MESH_MMATRIX, MESH_UPLOADED, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, addChildren, addListener, addPtriUint32, addUint32, appendElement, assign, className, classes, createElement, d, debug, decode, define, delay, desc, dvw, encode, error, f32, findChild, findChilds, findPointer, get, getByteLength, getByteOffset, getClassIndex, getFloat32, getParent, getPtriFloat32, getPtriUint16, getPtriUint32, getPtriUint8, getUint32, getUint8, getown, hitListener, hitOnTimeout, iLE, key, keyOfWebGL2, l, len, log, malloc, msh, msh2, name, new_Float32Array, new_Pointer, new_Uint32Array, new_Uint8Array, p0, p1, palloc, prop, ptrByteCompare, ptr_Pointer, queryDocument, rc1, rc2, reDefine, ref, ref1, ref2, sab, sc, set, setByteLength, setByteOffset, setClassIndex, setFloat32, setParent, setPtriFloat32, setPtriUint16, setPtriUint32, setPtriUint8, setUint32, setUint8, sliceUint8, ss1, ss2, storeForUint32, storeForUint8, subarrayFloat32, subarrayUint32, subarrayUint8, table, u32, ui8, vp1, vp2, warn;
+var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, BlackOnYellow, Class, DEBUG, DRAWBUFFER_BINDBINDING, DRAWBUFFER_BYTELENGTH, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_RESIZEBINDING, DRAWBUFFER_TARGET, DRAWBUFFER_USAGE, DRAWCALL_DBUFFER, DRAWCALL_DRAWBINDING, DRAWCALL_DSTBYTEOFFSET, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_STATE, DRAWCALL_TARGET, DRAWCALL_TYPE, DRAWCALL_UPLOADBINDING, DRAWCALL_UPLOADED, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, GreenOnWhite, MESH_MMATRIX, MESH_UPLOADED, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SHADER_SOURCE_BYTES_PERP, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, WhiteOnBlack, WhiteOnBlue, WhiteOnCyan, WhiteOnMagenta, WhiteOnRed, blackOnBlue, blackOnCyan, blackOnGreen, blackOnMagenta, blackOnRed, blackOnWhite, blackOnYellow, blue, className, classes, cname, colors, cyan, d, debug, define, defineds, delay, desc, descs, dvw, error, f32, get, green, iLE, info, k, key, len, log, m, magenta, msh, msh2, p0, p1, pkey, pname, prop, rc1, rc2, reDefine, red, ref, ref1, ref2, ref3, sab, sc, selfExtends1, selfExtends2, set, ss1, ss2, table, u32, ui8, value, vp1, vp2, warn, yellow;
+
+DEBUG = false;
 
 export var Pointer = class Pointer extends Number {};
 
@@ -69,9 +71,9 @@ GL2VAL = Object.values(WebGL2RenderingContext);
 
 GL2NUM = new Object;
 
-({log, warn, error, table, debug, delay} = console);
+({log, warn, error, table, debug, info, delay} = console);
 
-sab = new SharedArrayBuffer(1e7);
+sab = new SharedArrayBuffer(1e7 * 8);
 
 dvw = new DataView(sab);
 
@@ -91,6 +93,10 @@ BPE = 4;
 POINTER_LENGTH = 16;
 
 POINTER_BYTELENGTH = BPE * POINTER_LENGTH;
+
+Atomics.store(u32, 0, POINTER_BYTELENGTH);
+
+Atomics.store(u32, 1, 200 * POINTER_BYTELENGTH);
 
 PTR_CLASSINDEX = 0 * BPE;
 
@@ -209,24 +215,123 @@ VIEWPORT_PIXEL_RATIO = 10 * BPE;
 //? <----------------------------------------> ?#
 //? <----------------------------------------> ?#
 //? <----------------------------------------> ?#
-assign = Object.assign;
+colors = {
+  _: '\x1b[0m\x1b[0m\x1b[0m\x1b[0m',
+  pool: [yellow = '\x1b[1m\x1b[33m', red = '\x1b[1m\x1b[31m', green = '\x1b[1m\x1b[32m', blue = '\x1b[1m\x1b[34m', magenta = '\x1b[1m\x1b[35m', cyan = '\x1b[1m\x1b[36m', WhiteOnBlack = '\x1b[40m\x1b[37m', WhiteOnRed = '\x1b[1m\x1b[37m\x1b[21m\x1b[41m', GreenOnWhite = '\x1b[40m\x1b[42m', BlackOnYellow = '\x1b[37m\x1b[43m', WhiteOnBlue = '\x1b[40m\x1b[44m', WhiteOnMagenta = '\x1b[40m\x1b[45m', WhiteOnCyan = '\x1b[40m\x1b[46m', blackOnWhite = '\x1b[37m\x1b[40m', blackOnRed = '\x1b[37m\x1b[41m', blackOnGreen = '\x1b[37m\x1b[42m', blackOnYellow = '\x1b[37m\x1b[43m', blackOnBlue = '\x1b[37m\x1b[44m', blackOnMagenta = '\x1b[37m\x1b[45m', blackOnCyan = '\x1b[37m\x1b[46m', yellow = '\x1b[33m', red = '\x1b[31m', green = '\x1b[32m', blue = '\x1b[34m', magenta = '\x1b[35m', cyan = '\x1b[36m', WhiteOnBlack = '\x1b[40m\x1b[37m', WhiteOnRed = '\x1b[1m\x1b[37m\x1b[21m\x1b[41m', GreenOnWhite = '\x1b[40m\x1b[42m', BlackOnYellow = '\x1b[37m\x1b[43m', WhiteOnBlue = '\x1b[40m\x1b[44m', WhiteOnMagenta = '\x1b[40m\x1b[45m', WhiteOnCyan = '\x1b[40m\x1b[46m', blackOnWhite = '\x1b[37m\x1b[40m', blackOnRed = '\x1b[37m\x1b[41m', blackOnGreen = '\x1b[37m\x1b[42m', blackOnYellow = '\x1b[37m\x1b[43m', blackOnBlue = '\x1b[37m\x1b[44m', blackOnMagenta = '\x1b[37m\x1b[45m', blackOnCyan = '\x1b[37m\x1b[46m'],
+  black: '\x1b[30m',
+  white: '\x1b[37m',
+  redBg: '\x1b[41m',
+  greenBg: '\x1b[42m',
+  yellowBg: '\x1b[43m',
+  blueBg: '\x1b[44m',
+  magentaBg: '\x1b[45m',
+  cyanBg: '\x1b[46m',
+  whiteBg: '\x1b[47m'
+};
 
-define = Object.defineProperties;
-
-getown = Object.getOwnPropertyDescriptor;
-
-encode = TextEncoder.prototype.encode.bind(new TextEncoder);
-
-decode = TextDecoder.prototype.decode.bind(new TextDecoder);
-
-palloc = Atomics.add.bind(Atomics, u32, 0, POINTER_BYTELENGTH);
-
-malloc = function(byteLength = 0) {
-  var mod;
-  if (mod = Atomics.load(u32, 1) % 8) {
-    Atomics.add(u32, 1, 8 - mod);
+define = function() {
+  var e, g, o, p, prop, props, s, t, v;
+  [o, props] = arguments;
+  if (!DEBUG) {
+    return Object.defineProperties(o, props);
   }
-  return Atomics.add(u32, 1, byteLength);
+  for (prop in props) {
+    ({
+      get: g,
+      set: s,
+      value: v
+    } = props[prop]);
+    t = `${o.name || o.constructor.name}`.padEnd(15, " ");
+    if (!colors[t]) {
+      if (!(colors[t] = colors.pool.splice(0, 1)[0])) {
+        throw /COLOR_POOL_EXCEED/;
+      }
+    }
+    t = colors[t] + t + colors._;
+    t = t + `:: ${prop}`.padEnd(20, " ");
+    e = {};
+    p = function(b) {
+      var i, len, line, m, trace;
+      trace = b.stack.split("\n");
+      trace = trace.slice(1);
+      trace = trace.slice(0, trace.length - 1);
+      for (i = m = 0, len = trace.length; m < len; i = ++m) {
+        line = trace[i];
+        if (line.trim().startsWith("at")) {
+          trace[i] = trace[i].replace("at").trim();
+        }
+        trace[i] = trace[i].split(/\s+|\t/g).filter(function(l) {
+          return false === /http|undefined/.test(l);
+        }).join(" ").trim();
+      }
+      return {
+        trace: trace.filter(Boolean)
+      };
+    };
+    if (g) {
+      props[prop].get = (function(tag, get) {
+        return function() {
+          var r;
+          Error.captureStackTrace(e = {});
+          info(`${tag}` + "( get ) < ", p(e));
+          r = get.call(this, ...arguments);
+          info(`${tag}` + "( get ) > ");
+          return r;
+        };
+      }).call(o, t, g);
+    }
+    if (s) {
+      props[prop].set = (function(tag, set) {
+        return function() {
+          var r;
+          Error.captureStackTrace(e = {});
+          info(`${tag}( set ) < `, [...arguments], p(e));
+          r = set.call(this, ...arguments);
+          info(`${tag}( set ) > `, r);
+          return r;
+        };
+      }).call(o, t, s);
+    }
+    if (v) {
+      props[prop].value = (function(tag, val) {
+        return function() {
+          var r;
+          Error.captureStackTrace(e = {});
+          info(`${tag}( val ) < `, [...arguments], p(e));
+          r = val.call(this, ...arguments);
+          info(`${tag}( val ) > `, [r]);
+          return r;
+        };
+      }).call(o, t, v);
+    }
+  }
+  return Object.defineProperties(o, props);
+};
+
+selfExtends1 = {
+  getown: Object.getOwnPropertyDescriptor,
+  assign: Object.assign,
+  encode: TextEncoder.prototype.encode.bind(new TextEncoder),
+  decode: TextDecoder.prototype.decode.bind(new TextDecoder),
+  palloc: function() {
+    var o;
+    o = Atomics.add(u32, 0, POINTER_BYTELENGTH);
+    if (!o) {
+      throw [/PALLOC/, u32.slice(0, 2)];
+    }
+    return o;
+  },
+  malloc: function(byteLength = 0) {
+    var mod, o;
+    if (mod = byteLength % 8) {
+      byteLength += 8 - mod;
+    }
+    o = Atomics.add(u32, 1, byteLength);
+    if (!o || o % 8) {
+      throw [/NOD_8/, u32.slice(0, 2)];
+    }
+    return o;
+  }
 };
 
 export var storage = new (Storage = class Storage extends Array {
@@ -266,425 +371,393 @@ export var storage = new (Storage = class Storage extends Array {
 //* <----------------------------------------> *#
 //* <----------------------------------------> *#
 //* <----------------------------------------> *#
-keyOfWebGL2 = function(type, min = 0xff, max = 0xffff) {
-  var name, name1;
-  if ((type < min) || (type > max)) {
-    return type;
-  }
-  if (/\s+/.test(`${type}`)) {
-    return type;
-  }
-  if (`${type}` !== `${type}`.toUpperCase()) {
-    return type;
-  }
-  switch (typeof type) {
-    case "number":
-      name = GL2KEY.at(GL2VAL.indexOf(type));
-      break;
-    case "string":
-      type = GL2VAL.at(GL2KEY.indexOf(name = type));
-      break;
-    default:
+selfExtends2 = {
+  keyOfWebGL2: function(type, min = 0xff, max = 0xffff) {
+    var name, name1;
+    if ((type < min) || (type > max)) {
       return type;
-  }
-  return GL2NUM[name1 = name + type] || (GL2NUM[name1] = eval(`new (class ${name} extends Number {})(${type})`));
-};
-
-addListener = function(element, event, handler) {
-  element.addEventListener(event, handler);
-  return element;
-};
-
-hitListener = function(element, event, detail) {
-  return element.dispatchEvent(new CustomEvent(event, {detail}));
-};
-
-appendElement = function(element) {
-  document.body.appendChild(element);
-  return element;
-};
-
-createElement = function(tagName) {
-  return document.createElement(tagName);
-};
-
-queryDocument = function(query, all = false) {
-  if (!all) {
-    return document.querySelector(query);
-  } else {
-    return document.querySelectorAll(query);
-  }
-};
-
-hitOnTimeout = function() {
-  var fn;
-  fn = arguments[0];
-  return function() {
-    return clearTimeout(delay) || (delay = setTimeout(fn.bind(this, ...arguments), 40));
-  };
-};
-
-getByteOffset = function(ptri) {
-  return dvw.getUint32(ptri + PTR_BYTEOFFSET, iLE);
-};
-
-setByteOffset = function(ptri, byteOffset) {
-  dvw.setUint32(ptri + PTR_BYTEOFFSET, byteOffset, iLE);
-  return ptri;
-};
-
-getByteLength = function(ptri) {
-  return dvw.getUint32(ptri + PTR_BYTELENGTH, iLE);
-};
-
-setByteLength = function(ptri, byteLength) {
-  dvw.setUint32(ptri + PTR_BYTELENGTH, byteLength, iLE);
-  return ptri;
-};
-
-ptr_Pointer = function(ptri) {
-  return ptri && new storage[getClassIndex(ptri)](ptri);
-};
-
-new_Pointer = function(Class) {
-  var byteLength, ptri;
-  setClassIndex(ptri = new Class(palloc()));
-  if (!(byteLength = Class.byteLength)) {
+    }
+    if (/\s+/.test(`${type}`)) {
+      return type;
+    }
+    if (`${type}` !== `${type}`.toUpperCase()) {
+      return type;
+    }
+    switch (typeof type) {
+      case "number":
+        name = GL2KEY.at(GL2VAL.indexOf(type));
+        break;
+      case "string":
+        type = GL2VAL.at(GL2KEY.indexOf(name = type));
+        break;
+      default:
+        return type;
+    }
+    return GL2NUM[name1 = name + type] || (GL2NUM[name1] = eval(`new (class ${name} extends Number {})(${type})`));
+  },
+  addListener: function(element, event, handler) {
+    element.addEventListener(event, handler);
+    return element;
+  },
+  hitListener: function(element, event, detail) {
+    return element.dispatchEvent(new CustomEvent(event, {detail}));
+  },
+  appendElement: function(element) {
+    document.body.appendChild(element);
+    return element;
+  },
+  createElement: function(tagName) {
+    return document.createElement(tagName);
+  },
+  queryDocument: function(query, all = false) {
+    if (!all) {
+      return document.querySelector(query);
+    } else {
+      return document.querySelectorAll(query);
+    }
+  },
+  hitOnTimeout: function() {
+    var fn;
+    fn = arguments[0];
+    return function() {
+      return clearTimeout(delay) || (delay = setTimeout(fn.bind(this, ...arguments), 40));
+    };
+  },
+  getByteOffset: function(ptri) {
+    return dvw.getUint32(ptri + PTR_BYTEOFFSET, iLE);
+  },
+  setByteOffset: function(ptri, byteOffset) {
+    dvw.setUint32(ptri + PTR_BYTEOFFSET, byteOffset, iLE);
     return ptri;
-  }
-  setByteOffset(ptri, malloc(byteLength));
-  setByteLength(ptri, byteLength);
-  return ptri;
-};
-
-getClassIndex = function(ptri) {
-  return dvw.getUint32(ptri + PTR_CLASSINDEX, iLE) || storage.indexOf(ptri.constructor);
-};
-
-setClassIndex = function(ptri, clsi) {
-  if (-1 === (clsi || (clsi = getClassIndex(ptri)))) {
-    throw /CLASS_INDEX_ERR/;
-  }
-  dvw.setUint32(ptri + PTR_CLASSINDEX, clsi || getClassIndex(ptri), iLE);
-  return ptri;
-};
-
-addChildren = function(parent, child) {
-  dvw.setUint32(child + PTR_PARENT, parent, iLE);
-  return child;
-};
-
-setParent = function(child, parent) {
-  dvw.setUint32(child + PTR_PARENT, parent, iLE);
-  return parent;
-};
-
-getParent = function(ptri) {
-  return dvw.getUint32(ptri + PTR_PARENT, iLE);
-};
-
-getUint8 = function(ptri, byteOffset) {
-  return dvw.getUint8(byteOffset + getByteOffset(ptri));
-};
-
-setUint8 = function(ptri, byteOffset, value) {
-  dvw.setUint8(byteOffset + getByteOffset(ptri), value);
-  return value;
-};
-
-addUint32 = function(ptri, byteOffset, value, atomics = true) {
-  var val;
-  byteOffset += getByteOffset(ptri);
-  if (atomics) {
+  },
+  getByteLength: function(ptri) {
+    return dvw.getUint32(ptri + PTR_BYTELENGTH, iLE);
+  },
+  setByteLength: function(ptri, byteLength) {
+    dvw.setUint32(ptri + PTR_BYTELENGTH, byteLength, iLE);
+    return ptri;
+  },
+  ptr_Pointer: function(ptri) {
+    return ptri && new storage[getClassIndex(ptri)](ptri);
+  },
+  new_Pointer: function(Class) {
+    var byteLength, byteOffset, clsi, ptri;
+    ptri = new Class(Atomics.add(u32, 0, POINTER_BYTELENGTH));
+    clsi = storage.indexOf(Class);
+    dvw.setUint32(ptri + PTR_CLASSINDEX, clsi, iLE);
+    if (byteLength = Class.byteLength) {
+      byteOffset = malloc(byteLength);
+      dvw.setUint32(ptri + PTR_BYTELENGTH, byteOffset, iLE);
+      ptri;
+      dvw.setUint32(ptri + PTR_BYTEOFFSET, byteOffset, iLE);
+      ptri;
+    }
+    return ptri;
+  },
+  getClassIndex: function(ptri) {
+    return dvw.getUint32(ptri + PTR_CLASSINDEX, iLE) || storage.indexOf(ptri.constructor);
+  },
+  setClassIndex: function(ptri, clsi) {
+    if (-1 === (clsi || (clsi = storage.indexOf(ptri.constructor)))) {
+      throw /CLASS_INDEX_ERR/;
+    }
+    dvw.setUint32(ptri + PTR_CLASSINDEX, clsi || getClassIndex(ptri), iLE);
+    return ptri;
+  },
+  addChildren: function(parent, child) {
+    dvw.setUint32(child + PTR_PARENT, parent, iLE);
+    return child;
+  },
+  setParent: function(child, parent) {
+    dvw.setUint32(child + PTR_PARENT, parent, iLE);
+    return parent;
+  },
+  getParent: function(ptri) {
+    return dvw.getUint32(ptri + PTR_PARENT, iLE);
+  },
+  getUint8: function(ptri, byteOffset) {
+    return dvw.getUint8(byteOffset + getByteOffset(ptri));
+  },
+  setUint8: function(ptri, byteOffset, value) {
+    dvw.setUint8(byteOffset + getByteOffset(ptri), value);
+    return value;
+  },
+  addUint32: function(ptri, byteOffset, value, atomics = true) {
+    var val;
+    byteOffset += getByteOffset(ptri);
+    if (atomics) {
+      return Atomics.add(u32, byteOffset / 4, value);
+    } else {
+      val = dvw.getUint32(byteOffset, iLE);
+      dvw.setUint32(byteOffset, value + val, iLE);
+    }
+    return val;
+  },
+  getUint32: function(ptri, byteOffset) {
+    return dvw.getUint32(byteOffset + getByteOffset(ptri), iLE);
+  },
+  setUint32: function(ptri, byteOffset, value) {
+    dvw.setUint32(byteOffset + getByteOffset(ptri), value, iLE);
+    return value;
+  },
+  getFloat32: function(ptri, byteOffset) {
+    return dvw.getFloat32(byteOffset + getByteOffset(ptri), iLE);
+  },
+  setFloat32: function(ptri, byteOffset, value) {
+    dvw.setFloat32(byteOffset + getByteOffset(ptri), value, iLE);
+    return value;
+  },
+  getPtriUint8: function(byteOffset) {
+    return dvw.getUint8(byteOffset);
+  },
+  setPtriUint8: function(byteOffset, value) {
+    dvw.setUint8(byteOffset, value);
+    return value;
+  },
+  addPtriUint32: function(byteOffset, value) {
     return Atomics.add(u32, byteOffset / 4, value);
-  } else {
-    val = dvw.getUint32(byteOffset, iLE);
-    dvw.setUint32(byteOffset, value + val, iLE);
-  }
-  return val;
-};
-
-getUint32 = function(ptri, byteOffset) {
-  return dvw.getUint32(byteOffset + getByteOffset(ptri), iLE);
-};
-
-setUint32 = function(ptri, byteOffset, value) {
-  dvw.setUint32(byteOffset + getByteOffset(ptri), value, iLE);
-  return value;
-};
-
-getFloat32 = function(ptri, byteOffset) {
-  return dvw.getFloat32(byteOffset + getByteOffset(ptri), iLE);
-};
-
-setFloat32 = function(ptri, byteOffset, value) {
-  dvw.setFloat32(byteOffset + getByteOffset(ptri), value, iLE);
-  return value;
-};
-
-getPtriUint8 = function(byteOffset) {
-  return dvw.getUint8(byteOffset);
-};
-
-setPtriUint8 = function(byteOffset, value) {
-  dvw.setUint8(byteOffset, value);
-  return value;
-};
-
-addPtriUint32 = function(byteOffset, value) {
-  return Atomics.add(u32, byteOffset / 4, value);
-};
-
-getPtriUint32 = function(byteOffset) {
-  return dvw.getUint32(byteOffset, iLE);
-};
-
-setPtriUint32 = function(byteOffset, value) {
-  dvw.setUint32(byteOffset, value, iLE);
-  return value;
-};
-
-getPtriUint16 = function(byteOffset) {
-  return dvw.getUint16(byteOffset, iLE);
-};
-
-setPtriUint16 = function(byteOffset, value) {
-  dvw.setUint16(byteOffset, value, iLE);
-  return value;
-};
-
-getPtriFloat32 = function(byteOffset) {
-  return dvw.getFloat32(byteOffset, iLE);
-};
-
-setPtriFloat32 = function(byteOffset, value) {
-  dvw.setFloat32(byteOffset, value, iLE);
-  return value;
-};
-
-storeForUint8 = function(any) {
-  var i, max;
-  if (-1 !== (i = storage.indexOf(any))) {
-    return i;
-  }
-  i = 0;
-  max = 0xff;
-  while (i++ < max) {
-    if (storage[i] === any) {
+  },
+  getPtriUint32: function(byteOffset) {
+    return dvw.getUint32(byteOffset, iLE);
+  },
+  setPtriUint32: function(byteOffset, value) {
+    dvw.setUint32(byteOffset, value, iLE);
+    return value;
+  },
+  getPtriUint16: function(byteOffset) {
+    return dvw.getUint16(byteOffset, iLE);
+  },
+  setPtriUint16: function(byteOffset, value) {
+    dvw.setUint16(byteOffset, value, iLE);
+    return value;
+  },
+  getPtriFloat32: function(byteOffset) {
+    return dvw.getFloat32(byteOffset, iLE);
+  },
+  setPtriFloat32: function(byteOffset, value) {
+    dvw.setFloat32(byteOffset, value, iLE);
+    return value;
+  },
+  storeForUint8: function(any) {
+    var i, max;
+    if (-1 !== (i = storage.indexOf(any))) {
       return i;
     }
-    if (storage[i]) {
-      continue;
+    i = 0;
+    max = 0xff;
+    while (i++ < max) {
+      if (storage[i] === any) {
+        return i;
+      }
+      if (storage[i]) {
+        continue;
+      }
+      if (storage[i] = any) {
+        return i;
+      }
     }
-    if (storage[i] = any) {
+    throw /STORE_FOR_UINT8/;
+  },
+  storeForUint32: function(any) {
+    var i, max;
+    if (-1 !== (i = storage.indexOf(any))) {
       return i;
     }
-  }
-  throw /STORE_FOR_UINT8/;
-};
-
-storeForUint32 = function(any) {
-  var i, max;
-  if (-1 !== (i = storage.indexOf(any))) {
-    return i;
-  }
-  i = 0xff;
-  max = 0xffffffff;
-  while (i++ < max) {
-    if (storage[i] === any) {
-      return i;
+    i = 0xff;
+    max = 0xffffffff;
+    while (i++ < max) {
+      if (storage[i] === any) {
+        return i;
+      }
+      if (storage[i]) {
+        continue;
+      }
+      if (storage[i] = any) {
+        return i;
+      }
     }
-    if (storage[i]) {
-      continue;
-    }
-    if (storage[i] = any) {
-      return i;
-    }
-  }
-  throw /STORE_FOR_UINT32/;
-};
-
-new_Uint32Array = function(ptri, byteOffset, length) {
-  length || (length = getByteLength(ptri) / 4);
-  byteOffset = getByteOffset(ptri) + byteOffset || 0;
-  return new Uint32Array(sab, byteOffset, length);
-};
-
-new_Uint8Array = function(ptri, byteOffset, length) {
-  length || (length = getByteLength(ptri));
-  byteOffset = getByteOffset(ptri) + byteOffset || 0;
-  return new Uint8Array(sab, byteOffset, length);
-};
-
-new_Float32Array = function(ptri, byteOffset, length) {
-  length || (length = getByteLength(ptri) / 4);
-  byteOffset = getByteOffset(ptri) + byteOffset || 0;
-  return new Float32Array(sab, byteOffset, length);
-};
-
-subarrayUint8 = function(ptri, begin, end) {
-  var length, offset;
-  offset = getByteOffset(ptri);
-  length = getByteLength(ptri);
-  end || (end = length + (begin || (begin = begin || 0)));
-  return ui8.subarray(begin + offset, end + offset);
-};
-
-sliceUint8 = function(ptri, begin, end) {
-  var length, offset;
-  offset = getByteOffset(ptri);
-  length = getByteLength(ptri);
-  end || (end = length + (begin || (begin = begin || 0)));
-  return ui8.slice(begin + offset, end + offset);
-};
-
-subarrayUint32 = function(ptri, begin, end) {
-  var length, offset;
-  offset = getByteOffset(ptri) / 4;
-  length = getByteLength(ptri) / 4;
-  end || (end = length + (begin || (begin = begin || 0)));
-  return u32.subarray(begin + offset, end + offset);
-};
-
-subarrayFloat32 = function(ptri, begin, end) {
-  var length, offset;
-  offset = getByteOffset(ptri) / 4;
-  length = getByteLength(ptri) / 4;
-  end || (end = length + (begin || (begin = begin || 0)));
-  return f32.subarray(begin + offset, end + offset);
-};
-
-ptrByteCompare = function(ptri, ptrj) {
-  var byteLengthA, byteLengthB, byteOffsetA, byteOffsetB, i;
-  if (!(ptri - ptrj)) { //non-same
-    return 0;
-  }
-  byteLengthA = getByteLength(ptri);
-  byteLengthB = getByteLength(ptrj);
-  if (byteLengthA - (i = byteLengthB)) {
-    return 0;
-  }
-  byteOffsetA = getByteOffset(ptri);
-  byteOffsetB = getByteOffset(ptrj);
-  while (i--) {
-    if (dvw.getUint8(byteOffsetA + i) - dvw.getUint8(byteOffsetB + i)) {
+    throw /STORE_FOR_UINT32/;
+  },
+  new_Uint32Array: function(ptri, byteOffset, length) {
+    length || (length = getByteLength(ptri) / 4);
+    byteOffset = getByteOffset(ptri) + byteOffset || 0;
+    return new Uint32Array(sab, byteOffset, length);
+  },
+  new_Uint8Array: function(ptri, byteOffset, length) {
+    length || (length = getByteLength(ptri));
+    byteOffset = getByteOffset(ptri) + byteOffset || 0;
+    return new Uint8Array(sab, byteOffset, length);
+  },
+  new_Float32Array: function(ptri, byteOffset, length) {
+    length || (length = getByteLength(ptri) / 4);
+    byteOffset = getByteOffset(ptri) + byteOffset || 0;
+    return new Float32Array(sab, byteOffset, length);
+  },
+  subarrayUint8: function(ptri, begin, end) {
+    var length, offset;
+    offset = getByteOffset(ptri);
+    length = getByteLength(ptri);
+    end || (end = length + (begin || (begin = begin || 0)));
+    return ui8.subarray(begin + offset, end + offset);
+  },
+  sliceUint8: function(ptri, begin, end) {
+    var length, offset;
+    offset = getByteOffset(ptri);
+    length = getByteLength(ptri);
+    end || (end = length + (begin || (begin = begin || 0)));
+    return ui8.slice(begin + offset, end + offset);
+  },
+  subarrayUint32: function(ptri, begin, end) {
+    var length, offset;
+    offset = getByteOffset(ptri) / 4;
+    length = getByteLength(ptri) / 4;
+    end || (end = length + (begin || (begin = begin || 0)));
+    return u32.subarray(begin + offset, end + offset);
+  },
+  subarrayFloat32: function(ptri, begin, end) {
+    var length, offset;
+    offset = getByteOffset(ptri) / 4;
+    length = getByteLength(ptri) / 4;
+    end || (end = length + (begin || (begin = begin || 0)));
+    return f32.subarray(begin + offset, end + offset);
+  },
+  ptrByteCompare: function(ptri, ptrj) {
+    var byteLengthA, byteLengthB, byteOffsetA, byteOffsetB, i;
+    if (!(ptri - ptrj)) { //non-same
       return 0;
     }
-  }
-  return 1;
-};
-
-findChild = function(ptri, Class, inherit = false) {
-  var clsi, ptrj;
-  if (!ptri) {
-    return;
-  }
-  ptrj = Atomics.load(u32);
-  clsi = storage.indexOf(Class);
-  while (ptrj -= POINTER_BYTELENGTH) {
-    if (ptri - getParent(ptrj)) {
-      continue;
+    byteLengthA = getByteLength(ptri);
+    byteLengthB = getByteLength(ptrj);
+    if (byteLengthA - (i = byteLengthB)) {
+      return 0;
     }
-    if (clsi - getClassIndex(ptrj)) {
-      continue;
+    byteOffsetA = getByteOffset(ptri);
+    byteOffsetB = getByteOffset(ptrj);
+    while (i--) {
+      if (dvw.getUint8(byteOffsetA + i) - dvw.getUint8(byteOffsetB + i)) {
+        return 0;
+      }
     }
-    return ptr_Pointer(ptrj);
-  }
-  if (!inherit) {
-    return;
-  }
-  return findChild(getParent(ptri), Class, inherit);
-};
-
-findChilds = function(ptri, Class, construct = true) {
-  var clsi, i, list, ptrj;
-  ptrj = Atomics.load(u32);
-  clsi = storage.indexOf(Class);
-  list = new PtriArray;
-  i = 0;
-  if (!ptri) {
-    if (!construct) {
-      while (ptrj -= POINTER_BYTELENGTH) {
-        if (clsi - getClassIndex(ptrj)) {
-          continue;
+    return 1;
+  },
+  findChild: function(ptri, Class, inherit = false) {
+    var clsi, ptrj;
+    if (!ptri) {
+      return;
+    }
+    ptrj = Atomics.load(u32);
+    clsi = storage.indexOf(Class);
+    while (ptrj -= POINTER_BYTELENGTH) {
+      if (ptri - getParent(ptrj)) {
+        continue;
+      }
+      if (clsi - getClassIndex(ptrj)) {
+        continue;
+      }
+      return ptr_Pointer(ptrj);
+    }
+    if (!inherit) {
+      return;
+    }
+    return findChild(getParent(ptri), Class, inherit);
+  },
+  findChilds: function(ptri, Class, construct = true) {
+    var clsi, i, list, ptrj;
+    ptrj = Atomics.load(u32);
+    clsi = storage.indexOf(Class);
+    list = new PtriArray;
+    i = 0;
+    if (!ptri) {
+      if (!construct) {
+        while (ptrj -= POINTER_BYTELENGTH) {
+          if (clsi - getClassIndex(ptrj)) {
+            continue;
+          }
+          list[i++] = ptrj;
         }
-        list[i++] = ptrj;
+      } else {
+        while (ptrj -= POINTER_BYTELENGTH) {
+          if (clsi - getClassIndex(ptrj)) {
+            continue;
+          }
+          list[i++] = ptr_Pointer(ptrj);
+        }
       }
     } else {
-      while (ptrj -= POINTER_BYTELENGTH) {
-        if (clsi - getClassIndex(ptrj)) {
-          continue;
+      if (!construct) {
+        while (ptrj -= POINTER_BYTELENGTH) {
+          if (ptri - getParent(ptrj)) {
+            continue;
+          }
+          if (clsi - getClassIndex(ptrj)) {
+            continue;
+          }
+          list[i++] = ptrj;
         }
-        list[i++] = ptr_Pointer(ptrj);
+      } else {
+        while (ptrj -= POINTER_BYTELENGTH) {
+          if (ptri - getParent(ptrj)) {
+            continue;
+          }
+          if (clsi - getClassIndex(ptrj)) {
+            continue;
+          }
+          list[i++] = ptr_Pointer(ptrj);
+        }
       }
     }
-  } else {
-    if (!construct) {
-      while (ptrj -= POINTER_BYTELENGTH) {
-        if (ptri - getParent(ptrj)) {
-          continue;
+    return list;
+  },
+  findPointer: function(test, Class, construct = true) {
+    var clsi, ptr, ptrj;
+    ptrj = Atomics.load(u32);
+    if (!Class) {
+      if (!construct) {
+        while (ptrj -= POINTER_BYTELENGTH) {
+          if (test(ptr = ptrj)) {
+            return ptr;
+          }
         }
-        if (clsi - getClassIndex(ptrj)) {
-          continue;
-        }
-        list[i++] = ptrj;
+        return void 0;
       }
-    } else {
       while (ptrj -= POINTER_BYTELENGTH) {
-        if (ptri - getParent(ptrj)) {
-          continue;
-        }
-        if (clsi - getClassIndex(ptrj)) {
-          continue;
-        }
-        list[i++] = ptr_Pointer(ptrj);
-      }
-    }
-  }
-  return list;
-};
-
-findPointer = function(test, Class, construct = true) {
-  var clsi, ptr, ptrj;
-  ptrj = Atomics.load(u32);
-  if (!Class) {
-    if (!construct) {
-      while (ptrj -= POINTER_BYTELENGTH) {
-        if (test(ptr = ptrj)) {
+        if (test(ptr = ptr_Pointer(ptrj))) {
           return ptr;
         }
       }
       return void 0;
-    }
-    while (ptrj -= POINTER_BYTELENGTH) {
-      if (test(ptr = ptr_Pointer(ptrj))) {
-        return ptr;
+    } else {
+      clsi = storage.indexOf(Class);
+      if (!construct) {
+        while (ptrj -= POINTER_BYTELENGTH) {
+          if (clsi - getClassIndex(ptrj)) {
+            continue;
+          }
+          if (test(ptr = ptrj)) {
+            return ptr;
+          }
+        }
       }
-    }
-    return void 0;
-  } else {
-    clsi = storage.indexOf(Class);
-    if (!construct) {
       while (ptrj -= POINTER_BYTELENGTH) {
         if (clsi - getClassIndex(ptrj)) {
           continue;
         }
-        if (test(ptr = ptrj)) {
+        if (test(ptr = ptr_Pointer(ptrj))) {
           return ptr;
         }
       }
     }
-    while (ptrj -= POINTER_BYTELENGTH) {
-      if (clsi - getClassIndex(ptrj)) {
-        continue;
-      }
-      if (test(ptr = ptr_Pointer(ptrj))) {
-        return ptr;
-      }
-    }
+    return void 0;
   }
-  return void 0;
 };
+
+ref = {...selfExtends1, ...selfExtends2};
+for (k in ref) {
+  value = ref[k];
+  define(self, {
+    [k]: {value}
+  });
+}
 
 //* <----------------------------------------> *#
 //* <----------------------------------------> *#
@@ -727,9 +800,9 @@ define(Pointer, {
 define(Pointer, {
   from: {
     value: function() {
-      var arg0, i, l, len, prop, ptri, ref, value;
+      var arg0, i, len, m, prop, ptri, ref1;
       setClassIndex(ptri = new this(palloc()));
-      switch ((ref = (arg0 = arguments[0])) != null ? ref.constructor : void 0) {
+      switch ((ref1 = (arg0 = arguments[0])) != null ? ref1.constructor : void 0) {
         case Object:
           for (prop in arg0) {
             value = arg0[prop];
@@ -737,8 +810,8 @@ define(Pointer, {
           }
           break;
         case Array:
-          for (l = 0, len = arg0.length; l < len; l++) {
-            i = arg0[l];
+          for (m = 0, len = arg0.length; m < len; m++) {
+            i = arg0[m];
             for (prop in i) {
               value = i[prop];
               addChildren(ptri, storage[prop].from(value));
@@ -931,13 +1004,13 @@ define(DrawBuffer.prototype, {
 define(DrawBuffer.prototype, {
   bind: {
     value: function() {
-      var binding, construct, gl, l, len, ptri, ptrj, ref, stri, target;
+      var binding, construct, gl, len, m, ptri, ptrj, ref1, stri, target;
       if (!getPtriUint8(this + DRAWBUFFER_ISBINDED)) {
         setPtriUint8(this + DRAWBUFFER_ISBINDED, 1);
         [ptri, gl, target] = [+this, this.parent.glObject, this.target];
-        ref = findChilds(this.parent, DrawBuffer, construct = false);
-        for (l = 0, len = ref.length; l < len; l++) {
-          ptrj = ref[l];
+        ref1 = findChilds(this.parent, DrawBuffer, construct = false);
+        for (m = 0, len = ref1.length; m < len; m++) {
+          ptrj = ref1[m];
           if (ptri - ptrj) {
             setPtriUint8(ptrj + DRAWBUFFER_ISBINDED, 0);
           }
@@ -981,11 +1054,11 @@ define(DrawBuffer.prototype, {
   drawCalls: {
     enumerable: true,
     get: function() {
-      var dc, l, len, list, ref;
+      var dc, len, list, m, ref1;
       list = new PtriArray;
-      ref = findChilds(null, DrawCall);
-      for (l = 0, len = ref.length; l < len; l++) {
-        dc = ref[l];
+      ref1 = findChilds(null, DrawCall);
+      for (m = 0, len = ref1.length; m < len; m++) {
+        dc = ref1[m];
         if (dc.drawBuffer - this) {
           continue;
         }
@@ -1248,7 +1321,7 @@ define(DrawCall.prototype, {
   drawBuffer: {
     enumerable: true,
     get: function() {
-      var bufi, drawBuffer, l, len, ptri, rctx, ref, target, usage;
+      var bufi, drawBuffer, len, m, ptri, rctx, ref1, target, usage;
       if (!(ptri = getPtriUint32(this + DRAWCALL_DBUFFER))) {
         rctx = this.renderingContext;
         if (!getPtriUint16(this + DRAWCALL_TARGET)) {
@@ -1264,9 +1337,9 @@ define(DrawCall.prototype, {
               }
             }
           }
-          ref = findChilds(rctx, DrawBuffer);
-          for (l = 0, len = ref.length; l < len; l++) {
-            bufi = ref[l];
+          ref1 = findChilds(rctx, DrawBuffer);
+          for (m = 0, len = ref1.length; m < len; m++) {
+            bufi = ref1[m];
             if (!(bufi.target - this.target)) {
               if (!(bufi.usage - this.usage)) {
                 setPtriUint32(this + DRAWCALL_DBUFFER, bufi);
@@ -1330,7 +1403,7 @@ define(RenderingContext.prototype, {
       if (!(ptri = getPtriUint32(this + RENDERING_CONTEXT_DPROGRAM))) {
         if (!(ptri = findChilds(this, Program).last())) {
           addChildren(this, ptri = new_Pointer(Program));
-          ptri.name = "default";
+          ptri.alias = "default";
         }
         setPtriUint32(this + RENDERING_CONTEXT_DPROGRAM, ptri);
       }
@@ -1411,15 +1484,15 @@ define(RenderingContext.prototype, {
 define(RenderingContext.prototype, {
   getParameters: {
     value: function() {
-      var DRAW_BUFFERi, gl, i, l, len, m, parameters, pname, ref, ref1, value;
+      var DRAW_BUFFERi, gl, i, len, m, n, parameters, pname, ref1, ref2;
       gl = this.glObject;
       parameters = {};
-      ref = "RENDERER VENDOR VERSION VIEWPORT FRONT_FACE CURRENT_PROGRAM CULL_FACE CULL_FACE_MODE BLEND BLEND_COLOR READ_BUFFER COPY_READ_BUFFER_BINDING COPY_WRITE_BUFFER_BINDING DRAW_FRAMEBUFFER_BINDING PACK_SKIP_ROWS FRAGMENT_SHADER_DERIVATIVE_HINT SAMPLE_COVERAGE SAMPLER_BINDING TEXTURE_BINDING_2D_ARRAY RED_BITS MAX_3D_TEXTURE_SIZE MAX_ARRAY_TEXTURE_LAYERS MAX_CLIENT_WAIT_TIMEOUT_WEBGL MAX_COLOR_ATTACHMENTS MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS MAX_COMBINED_UNIFORM_BLOCKS MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS MAX_DRAW_BUFFERS MAX_ELEMENT_INDEX MAX_ELEMENTS_INDICES MAX_ELEMENTS_VERTICES MAX_FRAGMENT_INPUT_COMPONENTS MAX_FRAGMENT_UNIFORM_BLOCKS MAX_FRAGMENT_UNIFORM_COMPONENTS MAX_PROGRAM_TEXEL_OFFSET MAX_SAMPLES MAX_SERVER_WAIT_TIMEOUT MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS SAMPLE_ALPHA_TO_COVERAGE MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS MAX_UNIFORM_BLOCK_SIZE MAX_UNIFORM_BUFFER_BINDINGS MAX_TEXTURE_LOD_BIAS MAX_VARYING_COMPONENTS MAX_VERTEX_OUTPUT_COMPONENTS MAX_VERTEX_UNIFORM_BLOCKS MAX_VERTEX_UNIFORM_COMPONENTS MIN_PROGRAM_TEXEL_OFFSET PACK_ROW_LENGTH PIXEL_PACK_BUFFER_BINDING PIXEL_UNPACK_BUFFER_BINDING RASTERIZER_DISCARD READ_FRAMEBUFFER_BINDING TEXTURE_BINDING_3D TRANSFORM_FEEDBACK_ACTIVE TRANSFORM_FEEDBACK_BINDING TRANSFORM_FEEDBACK_BUFFER_BINDING TRANSFORM_FEEDBACK_PAUSED UNIFORM_BUFFER_BINDING UNIFORM_BUFFER_OFFSET_ALIGNMENT UNPACK_IMAGE_HEIGHT UNPACK_ROW_LENGTH UNPACK_SKIP_IMAGES UNPACK_SKIP_PIXELS UNPACK_SKIP_ROWS VERTEX_ARRAY_BINDING ACTIVE_TEXTURE ALIASED_LINE_WIDTH_RANGE ALIASED_POINT_SIZE_RANGE ALPHA_BITS ARRAY_BUFFER_BINDING BLEND_DST_ALPHA BLEND_DST_RGB BLEND_EQUATION BLEND_EQUATION_ALPHA BLEND_EQUATION_RGB BLEND_SRC_ALPHA BLEND_SRC_RGB BLUE_BITS COLOR_CLEAR_VALUE COLOR_WRITEMASK COMPRESSED_TEXTURE_FORMATS DEPTH_BITS DEPTH_CLEAR_VALUE DEPTH_FUNC DEPTH_RANGE DEPTH_TEST DITHER ELEMENT_ARRAY_BUFFER_BINDING FRAMEBUFFER_BINDING GENERATE_MIPMAP_HINT GREEN_BITS IMPLEMENTATION_COLOR_READ_FORMAT IMPLEMENTATION_COLOR_READ_TYPE LINE_WIDTH MAX_COMBINED_TEXTURE_IMAGE_UNITS MAX_CUBE_MAP_TEXTURE_SIZE MAX_FRAGMENT_UNIFORM_VECTORS MAX_RENDERBUFFER_SIZE MAX_TEXTURE_IMAGE_UNITS DEPTH_WRITEMASK PACK_SKIP_PIXELS MAX_TEXTURE_SIZE MAX_VARYING_VECTORS MAX_VERTEX_ATTRIBS MAX_VERTEX_TEXTURE_IMAGE_UNITS SAMPLES SCISSOR_BOX MAX_VIEWPORT_DIMS PACK_ALIGNMENT POLYGON_OFFSET_FACTOR POLYGON_OFFSET_FILL POLYGON_OFFSET_UNITS RENDERBUFFER_BINDING SAMPLE_BUFFERS SAMPLE_COVERAGE_INVERT SAMPLE_COVERAGE_VALUE MAX_VERTEX_UNIFORM_VECTORS SCISSOR_TEST SHADING_LANGUAGE_VERSION STENCIL_BACK_FAIL STENCIL_BACK_FUNC STENCIL_BACK_PASS_DEPTH_FAIL STENCIL_BACK_PASS_DEPTH_PASS STENCIL_BACK_REF STENCIL_BACK_VALUE_MASK STENCIL_BACK_WRITEMASK STENCIL_BITS STENCIL_CLEAR_VALUE STENCIL_FAIL STENCIL_FUNC STENCIL_PASS_DEPTH_FAIL STENCIL_PASS_DEPTH_PASS STENCIL_REF STENCIL_TEST STENCIL_VALUE_MASK STENCIL_WRITEMASK SUBPIXEL_BITS TEXTURE_BINDING_2D TEXTURE_BINDING_CUBE_MAP UNPACK_ALIGNMENT UNPACK_COLORSPACE_CONVERSION_WEBGL UNPACK_FLIP_Y_WEBGL UNPACK_PREMULTIPLY_ALPHA_WEBGL".split(/\n|\r\n|\s+|\t/g).filter(Boolean);
-      for (l = 0, len = ref.length; l < len; l++) {
-        pname = ref[l];
+      ref1 = "RENDERER VENDOR VERSION VIEWPORT FRONT_FACE CURRENT_PROGRAM CULL_FACE CULL_FACE_MODE BLEND BLEND_COLOR READ_BUFFER COPY_READ_BUFFER_BINDING COPY_WRITE_BUFFER_BINDING DRAW_FRAMEBUFFER_BINDING PACK_SKIP_ROWS FRAGMENT_SHADER_DERIVATIVE_HINT SAMPLE_COVERAGE SAMPLER_BINDING TEXTURE_BINDING_2D_ARRAY RED_BITS MAX_3D_TEXTURE_SIZE MAX_ARRAY_TEXTURE_LAYERS MAX_CLIENT_WAIT_TIMEOUT_WEBGL MAX_COLOR_ATTACHMENTS MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS MAX_COMBINED_UNIFORM_BLOCKS MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS MAX_DRAW_BUFFERS MAX_ELEMENT_INDEX MAX_ELEMENTS_INDICES MAX_ELEMENTS_VERTICES MAX_FRAGMENT_INPUT_COMPONENTS MAX_FRAGMENT_UNIFORM_BLOCKS MAX_FRAGMENT_UNIFORM_COMPONENTS MAX_PROGRAM_TEXEL_OFFSET MAX_SAMPLES MAX_SERVER_WAIT_TIMEOUT MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS SAMPLE_ALPHA_TO_COVERAGE MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS MAX_UNIFORM_BLOCK_SIZE MAX_UNIFORM_BUFFER_BINDINGS MAX_TEXTURE_LOD_BIAS MAX_VARYING_COMPONENTS MAX_VERTEX_OUTPUT_COMPONENTS MAX_VERTEX_UNIFORM_BLOCKS MAX_VERTEX_UNIFORM_COMPONENTS MIN_PROGRAM_TEXEL_OFFSET PACK_ROW_LENGTH PIXEL_PACK_BUFFER_BINDING PIXEL_UNPACK_BUFFER_BINDING RASTERIZER_DISCARD READ_FRAMEBUFFER_BINDING TEXTURE_BINDING_3D TRANSFORM_FEEDBACK_ACTIVE TRANSFORM_FEEDBACK_BINDING TRANSFORM_FEEDBACK_BUFFER_BINDING TRANSFORM_FEEDBACK_PAUSED UNIFORM_BUFFER_BINDING UNIFORM_BUFFER_OFFSET_ALIGNMENT UNPACK_IMAGE_HEIGHT UNPACK_ROW_LENGTH UNPACK_SKIP_IMAGES UNPACK_SKIP_PIXELS UNPACK_SKIP_ROWS VERTEX_ARRAY_BINDING ACTIVE_TEXTURE ALIASED_LINE_WIDTH_RANGE ALIASED_POINT_SIZE_RANGE ALPHA_BITS ARRAY_BUFFER_BINDING BLEND_DST_ALPHA BLEND_DST_RGB BLEND_EQUATION BLEND_EQUATION_ALPHA BLEND_EQUATION_RGB BLEND_SRC_ALPHA BLEND_SRC_RGB BLUE_BITS COLOR_CLEAR_VALUE COLOR_WRITEMASK COMPRESSED_TEXTURE_FORMATS DEPTH_BITS DEPTH_CLEAR_VALUE DEPTH_FUNC DEPTH_RANGE DEPTH_TEST DITHER ELEMENT_ARRAY_BUFFER_BINDING FRAMEBUFFER_BINDING GENERATE_MIPMAP_HINT GREEN_BITS IMPLEMENTATION_COLOR_READ_FORMAT IMPLEMENTATION_COLOR_READ_TYPE LINE_WIDTH MAX_COMBINED_TEXTURE_IMAGE_UNITS MAX_CUBE_MAP_TEXTURE_SIZE MAX_FRAGMENT_UNIFORM_VECTORS MAX_RENDERBUFFER_SIZE MAX_TEXTURE_IMAGE_UNITS DEPTH_WRITEMASK PACK_SKIP_PIXELS MAX_TEXTURE_SIZE MAX_VARYING_VECTORS MAX_VERTEX_ATTRIBS MAX_VERTEX_TEXTURE_IMAGE_UNITS SAMPLES SCISSOR_BOX MAX_VIEWPORT_DIMS PACK_ALIGNMENT POLYGON_OFFSET_FACTOR POLYGON_OFFSET_FILL POLYGON_OFFSET_UNITS RENDERBUFFER_BINDING SAMPLE_BUFFERS SAMPLE_COVERAGE_INVERT SAMPLE_COVERAGE_VALUE MAX_VERTEX_UNIFORM_VECTORS SCISSOR_TEST SHADING_LANGUAGE_VERSION STENCIL_BACK_FAIL STENCIL_BACK_FUNC STENCIL_BACK_PASS_DEPTH_FAIL STENCIL_BACK_PASS_DEPTH_PASS STENCIL_BACK_REF STENCIL_BACK_VALUE_MASK STENCIL_BACK_WRITEMASK STENCIL_BITS STENCIL_CLEAR_VALUE STENCIL_FAIL STENCIL_FUNC STENCIL_PASS_DEPTH_FAIL STENCIL_PASS_DEPTH_PASS STENCIL_REF STENCIL_TEST STENCIL_VALUE_MASK STENCIL_WRITEMASK SUBPIXEL_BITS TEXTURE_BINDING_2D TEXTURE_BINDING_CUBE_MAP UNPACK_ALIGNMENT UNPACK_COLORSPACE_CONVERSION_WEBGL UNPACK_FLIP_Y_WEBGL UNPACK_PREMULTIPLY_ALPHA_WEBGL".split(/\n|\r\n|\s+|\t/g).filter(Boolean);
+      for (m = 0, len = ref1.length; m < len; m++) {
+        pname = ref1[m];
         parameters[pname] = gl.getParameter(gl[pname]);
       }
-      for (i = m = 0, ref1 = parameters.MAX_DRAW_BUFFERS; (0 <= ref1 ? m < ref1 : m > ref1); i = 0 <= ref1 ? ++m : --m) {
+      for (i = n = 0, ref2 = parameters.MAX_DRAW_BUFFERS; (0 <= ref2 ? n < ref2 : n > ref2); i = 0 <= ref2 ? ++n : --n) {
         DRAW_BUFFERi = `DRAW_BUFFER${i}`;
         parameters[DRAW_BUFFERi] = gl.getParameter(gl[DRAW_BUFFERi]);
       }
@@ -1538,7 +1611,6 @@ define(Viewport.prototype, {
 define(Viewport.prototype, {
   getWidth: {
     value: function() {
-      var value;
       if (!(value = getPtriFloat32(this + VIEWPORT_WITDH))) {
         value = self.innerWidth || 320;
       }
@@ -1558,7 +1630,6 @@ define(Viewport.prototype, {
 define(Viewport.prototype, {
   getHeight: {
     value: function() {
-      var value;
       if (!(value = getPtriFloat32(this + VIEWPORT_HEIGHT))) {
         value = self.innerHeight || 240;
       }
@@ -1642,13 +1713,13 @@ define(Program.prototype, {
 define(Program.prototype, {
   use: {
     value: function() {
-      var construct, l, len, ptri, ptrj, ref, stri;
+      var construct, len, m, ptri, ptrj, ref1, stri;
       if (!getPtriUint8(this + PROGRAM_ISINUSE)) {
         setPtriUint8(this + PROGRAM_ISINUSE, 1);
         ptri = +this;
-        ref = findChilds(this.parent, Program, construct = false);
-        for (l = 0, len = ref.length; l < len; l++) {
-          ptrj = ref[l];
+        ref1 = findChilds(this.parent, Program, construct = false);
+        for (m = 0, len = ref1.length; m < len; m++) {
+          ptrj = ref1[m];
           if (ptri - ptrj) {
             setPtriUint8(ptrj + PROGRAM_ISINUSE, 0);
           }
@@ -1664,19 +1735,25 @@ define(Program.prototype, {
 });
 
 define(Program.prototype, {
-  name: {
-    enumerable: true,
-    get: function() {
+  getAlias: {
+    value: function() {
       return decode(sliceUint8(this));
-    },
-    set: Text.prototype.set
+    }
+  }
+});
+
+define(Program.prototype, {
+  setAlias: {
+    value: function() {
+      return this.set(arguments[0]);
+    }
   }
 });
 
 define(Program.prototype, {
   glObject: {
     get: function() {
-      var fShader, fSource, gl, info, program, stri, vShader, vSource;
+      var fShader, fSource, gl, program, stri, vShader, vSource;
       if (!(stri = getPtriUint8(this + PROGRAM_GLPROGRAM))) {
         gl = this.parent.glObject;
         //? create vertex shader ------------> 
@@ -1879,8 +1956,8 @@ define(Mesh.prototype, {
       }
       if (ArrayBuffer.isView(value) || Array.isArray(value)) {
         if (!(byteOffset = getByteOffset(this))) {
-          byteOffset = malloc(byteLength);
           byteLength = value.length * 4;
+          byteOffset = malloc(byteLength);
           setByteOffset(this, byteOffset);
           setByteLength(this, byteLength);
         } else {
@@ -1972,19 +2049,19 @@ define(Mesh.prototype, {
 define(Mesh.prototype, {
   setNeedsUpdate: {
     value: function(need) {
-      var call, l, len, len1, m, mesh, ref, ref1;
+      var call, len, len1, m, mesh, n, ref1, ref2;
       setPtriUint8(this + MESH_UPLOADED, !need);
       if (!need) {
         return 0;
       }
-      ref = findChilds(this, Mesh);
-      for (l = 0, len = ref.length; l < len; l++) {
-        mesh = ref[l];
+      ref1 = findChilds(this, Mesh);
+      for (m = 0, len = ref1.length; m < len; m++) {
+        mesh = ref1[m];
         mesh.setNeedsUpdate(1);
       }
-      ref1 = findChilds(this, DrawCall);
-      for (m = 0, len1 = ref1.length; m < len1; m++) {
-        call = ref1[m];
+      ref2 = findChilds(this, DrawCall);
+      for (n = 0, len1 = ref2.length; n < len1; n++) {
+        call = ref2[n];
         call.setNeedsUpload(1);
       }
       return 1;
@@ -2023,19 +2100,25 @@ define(Mesh.prototype, {
 
 define(Uniform, {
   getLocation: {
-    value: function(program, name) {
-      return program.parent.glObject.getUniformLocation(program.glObject, name);
+    value: function(program, alias) {
+      return program.parent.glObject.getUniformLocation(program.glObject, alias);
     }
   }
 });
 
 define(Uniform.prototype, {
-  name: {
-    enumerable: true,
-    get: function() {
+  getAlias: {
+    value: function() {
       return decode(sliceUint8(this));
-    },
-    set: Text.prototype.set
+    }
+  }
+});
+
+define(Uniform.prototype, {
+  setAlias: {
+    value: function() {
+      return this.set(arguments[0]);
+    }
   }
 });
 
@@ -2121,21 +2204,27 @@ define(Uniform.prototype, {
 });
 
 define(VertexAttribute.prototype, {
-  name: {
-    enumerable: true,
-    get: function() {
+  getAlias: {
+    value: function() {
       return decode(sliceUint8(this));
-    },
-    set: Text.prototype.set
+    }
+  }
+});
+
+define(VertexAttribute.prototype, {
+  setAlias: {
+    value: function() {
+      return this.set(arguments[0]);
+    }
   }
 });
 
 define(VertexAttribute, {
   getLocation: {
-    value: function(program, name) {
+    value: function(program, alias) {
       var gl;
       gl = program.parent.glObject;
-      return gl.getAttribLocation(program.glObject, name);
+      return gl.getAttribLocation(program.glObject, alias);
     }
   }
 });
@@ -2284,11 +2373,11 @@ define(VertexArray.prototype, {
 define(VertexArray.prototype, {
   BYTES_PER_POINT: {
     get: function() {
-      var attr, l, len, ref, sum;
+      var attr, len, m, ref1, sum;
       sum = 0;
-      ref = this.attributes;
-      for (l = 0, len = ref.length; l < len; l++) {
-        attr = ref[l];
+      ref1 = this.attributes;
+      for (m = 0, len = ref1.length; m < len; m++) {
+        attr = ref1[m];
         sum = sum + attr.BYTES_PER_POINT;
       }
       return sum;
@@ -2297,19 +2386,25 @@ define(VertexArray.prototype, {
 });
 
 define(VertexArray.prototype, {
-  name: {
-    enumerable: true,
-    get: function() {
+  setAlias: {
+    value: function() {
+      return this.set(arguments[0]);
+    }
+  }
+});
+
+define(VertexArray.prototype, {
+  getAlias: {
+    value: function() {
       return decode(sliceUint8(this));
-    },
-    set: Text.prototype.set
+    }
   }
 });
 
 define(VertexArray.prototype, {
   bound: {
     value: function(gl, extraCalls = []) {
-      var attr, call, construct, l, len, len1, m, ref, vao;
+      var attr, call, construct, len, len1, m, n, ref1, vao;
       if (!gl) {
         throw /NO_CONTEXT_SUPPLIED/;
       } else {
@@ -2317,14 +2412,14 @@ define(VertexArray.prototype, {
       }
       vao = gl.createVertexArray();
       gl.bindVertexArray(vao);
-      ref = findChilds(this.parent, VertexAttribute, construct = true);
-      for (l = 0, len = ref.length; l < len; l++) {
-        attr = ref[l];
+      ref1 = findChilds(this.parent, VertexAttribute, construct = true);
+      for (m = 0, len = ref1.length; m < len; m++) {
+        attr = ref1[m];
         gl.enableVertexAttribArray(attr.location);
         gl.vertexAttribPointer(...attr.pointerArgs);
       }
-      for (m = 0, len1 = extraCalls.length; m < len1; m++) {
-        call = extraCalls[m];
+      for (n = 0, len1 = extraCalls.length; n < len1; n++) {
+        call = extraCalls[n];
         call(gl);
       }
       return gl.bindVertexArray.bind(gl, vao);
@@ -2333,15 +2428,18 @@ define(VertexArray.prototype, {
 });
 
 define(ProgramSource.prototype, {
-  name: {
-    enumerable: true,
-    get: function() {
-      return decode(sliceUint8(this));
-    },
-    set: function(name) {
+  setAlias: {
+    value: function(alias) {
       setPtriUint32(this + SHADER_SOURCE_BYTES_PERP, 0);
-      Text.prototype.set.call(this, name);
-      return this;
+      return this.set(alias);
+    }
+  }
+});
+
+define(ProgramSource.prototype, {
+  getAlias: {
+    value: function() {
+      return decode(sliceUint8(this));
     }
   }
 });
@@ -2358,8 +2456,8 @@ define(ProgramSource.prototype, {
 define(ProgramSource.prototype, {
   vertexShader: {
     get: function() {
-      var ref;
-      return (ref = this.documentScripts.vertexShader) != null ? ref.text : void 0;
+      var ref1;
+      return (ref1 = this.documentScripts.vertexShader) != null ? ref1.text : void 0;
     }
   }
 });
@@ -2367,8 +2465,8 @@ define(ProgramSource.prototype, {
 define(ProgramSource.prototype, {
   computeShader: {
     get: function() {
-      var ref;
-      return (ref = this.documentScripts.computeShader) != null ? ref.text : void 0;
+      var ref1;
+      return (ref1 = this.documentScripts.computeShader) != null ? ref1.text : void 0;
     }
   }
 });
@@ -2376,8 +2474,8 @@ define(ProgramSource.prototype, {
 define(ProgramSource.prototype, {
   fragmentShader: {
     get: function() {
-      var ref;
-      return (ref = this.documentScripts.fragmentShader) != null ? ref.text : void 0;
+      var ref1;
+      return (ref1 = this.documentScripts.fragmentShader) != null ? ref1.text : void 0;
     }
   }
 });
@@ -2386,9 +2484,9 @@ define(ProgramSource.prototype, {
   documentScripts: {
     get: function() {
       var $name, c, f, v;
-      v = queryDocument(`[name=${this.name}][type*='vertex']`);
-      c = queryDocument(`[name=${this.name}][type*='compute']`);
-      f = queryDocument(`[name=${this.name}][type*='fragment']`);
+      v = queryDocument(`[name=${this.alias}][type*='vertex']`);
+      c = queryDocument(`[name=${this.alias}][type*='compute']`);
+      f = queryDocument(`[name=${this.alias}][type*='fragment']`);
       if (!v && f && ($name = f.getAttribute("vertex-shader"))) {
         v = queryDocument(`[name=${$name}][type*='vertex']`);
       }
@@ -2431,12 +2529,12 @@ define(ProgramSource.prototype, {
 
 define(ProgramSource.prototype, {
   findUniform: {
-    value: function(name) {
-      var attr, l, len, ref;
-      ref = findChilds(this, Uniform);
-      for (l = 0, len = ref.length; l < len; l++) {
-        attr = ref[l];
-        if (attr.name === name) {
+    value: function(alias) {
+      var attr, len, m, ref1;
+      ref1 = findChilds(this, Uniform);
+      for (m = 0, len = ref1.length; m < len; m++) {
+        attr = ref1[m];
+        if (attr.alias === alias) {
           return attr;
         }
       }
@@ -2446,12 +2544,12 @@ define(ProgramSource.prototype, {
 
 define(ProgramSource.prototype, {
   findVertexAttrib: {
-    value: function(name) {
-      var attr, l, len, ref;
-      ref = findChilds(this, VertexAttribute);
-      for (l = 0, len = ref.length; l < len; l++) {
-        attr = ref[l];
-        if (attr.name === name) {
+    value: function(alias) {
+      var attr, len, m, ref1;
+      ref1 = findChilds(this, VertexAttribute);
+      for (m = 0, len = ref1.length; m < len; m++) {
+        attr = ref1[m];
+        if (attr.alias === alias) {
           return attr;
         }
       }
@@ -2461,12 +2559,12 @@ define(ProgramSource.prototype, {
 
 define(ProgramSource.prototype, {
   findVertexArray: {
-    value: function(name) {
-      var l, len, ref, varr;
-      ref = findChilds(this, VertexArray);
-      for (l = 0, len = ref.length; l < len; l++) {
-        varr = ref[l];
-        if (varr.name === name) {
+    value: function(alias) {
+      var len, m, ref1, varr;
+      ref1 = findChilds(this, VertexArray);
+      for (m = 0, len = ref1.length; m < len; m++) {
+        varr = ref1[m];
+        if (varr.alias === alias) {
           return varr;
         }
       }
@@ -2477,7 +2575,7 @@ define(ProgramSource.prototype, {
 define(ProgramSource.prototype, {
   getParameters: {
     value: function() {
-      var attrib, attribute, fShader, fSource, gl, gls, info, k, l, len, len1, len2, len3, m, n, numAttribs, numUniforms, p, parameters, pname, program, q, ref, ref1, ref2, ref3, ref4, ref5, s, shaders, split, tn, u, uniform, v, vShader, vSource, value, varr;
+      var attrib, attribute, fShader, fSource, gl, gls, len, len1, len2, len3, m, n, numAttribs, numUniforms, p, parameters, pname, program, q, ref1, ref2, ref3, ref4, ref5, ref6, s, shaders, split, tn, u, uniform, v, vShader, vSource, varr, w;
       gl = new OffscreenCanvas(1, 1).getContext("webgl2");
       //? create vertex shader ------------> 
       vSource = this.vertexShader;
@@ -2522,29 +2620,29 @@ define(ProgramSource.prototype, {
       split = function() {
         return arguments[0].split(/\n|\r\n|\s+|\t/g).filter(Boolean);
       };
-      ref = split("DELETE_STATUS LINK_STATUS VALIDATE_STATUS ATTACHED_SHADERS ACTIVE_ATTRIBUTES ACTIVE_UNIFORMS TRANSFORM_FEEDBACK_BUFFER_MODE TRANSFORM_FEEDBACK_VARYINGS ACTIVE_UNIFORM_BLOCKS");
-      for (l = 0, len = ref.length; l < len; l++) {
-        p = ref[l];
+      ref1 = split("DELETE_STATUS LINK_STATUS VALIDATE_STATUS ATTACHED_SHADERS ACTIVE_ATTRIBUTES ACTIVE_UNIFORMS TRANSFORM_FEEDBACK_BUFFER_MODE TRANSFORM_FEEDBACK_VARYINGS ACTIVE_UNIFORM_BLOCKS");
+      for (m = 0, len = ref1.length; m < len; m++) {
+        p = ref1[m];
         parameters.PROGRAM[p] = gl.getProgramParameter(program, gl[p]);
       }
-      ref1 = parameters.PROGRAM;
-      for (pname in ref1) {
-        value = ref1[pname];
+      ref2 = parameters.PROGRAM;
+      for (pname in ref2) {
+        value = ref2[pname];
         parameters.PROGRAM[pname] = keyOfWebGL2(value);
       }
       for (s in shaders) {
         gls = shaders[s];
-        ref2 = split("DELETE_STATUS COMPILE_STATUS SHADER_TYPE");
-        for (m = 0, len1 = ref2.length; m < len1; m++) {
-          p = ref2[m];
+        ref3 = split("DELETE_STATUS COMPILE_STATUS SHADER_TYPE");
+        for (n = 0, len1 = ref3.length; n < len1; n++) {
+          p = ref3[n];
           parameters[s][p] = gl.getShaderParameter(gls, gl[p]);
         }
       }
       for (s in shaders) {
         gls = shaders[s];
-        ref3 = parameters[s];
-        for (pname in ref3) {
-          value = ref3[pname];
+        ref4 = parameters[s];
+        for (pname in ref4) {
+          value = ref4[pname];
           parameters[s][pname] = keyOfWebGL2(value);
           parameters[s].SHADER_SOURCE = gl.getShaderSource(gls);
           parameters[s].INFO_LOG = gl.getShaderInfoLog(gls);
@@ -2554,13 +2652,13 @@ define(ProgramSource.prototype, {
       parameters.VERTEX_ARRAY_NAME = "";
       parameters.ATTRIBUTES_STRIDE = 0;
       parameters.ATTRIBUTES = (function() {
-        var ref4, results;
+        var ref5, results;
         results = [];
         while (numAttribs--) {
           attrib = {};
-          ref4 = gl.getActiveAttrib(program, numAttribs);
-          for (k in ref4) {
-            v = ref4[k];
+          ref5 = gl.getActiveAttrib(program, numAttribs);
+          for (k in ref5) {
+            v = ref5[k];
             attrib[k] = v;
           }
           attrib.location = gl.getAttribLocation(program, attrib.name);
@@ -2570,6 +2668,7 @@ define(ProgramSource.prototype, {
           attrib.isVector = /VEC/.test(tn.constructor.name);
           attrib.isMatrix = /MAT/.test(tn.constructor.name);
           attrib.isNumber = !/VEC|MAT/.test(tn.constructor.name);
+          attrib.alias = attrib.name;
           attrib.size = (function() {
             var name, valtyp;
             name = tn.constructor.name;
@@ -2590,21 +2689,21 @@ define(ProgramSource.prototype, {
                 throw /DEFINED/;
             }
           })();
-          parameters.VERTEX_ARRAY_NAME += ` ${attrib.name} `;
+          parameters.VERTEX_ARRAY_NAME += ` ${attrib.alias} `;
           parameters.VERTEX_ARRAY_NAME = parameters.VERTEX_ARRAY_NAME.trim();
           parameters.ATTRIBUTES_STRIDE += attrib.BYTES_PER_ATTRIBUTE;
           results.push(attrib);
         }
         return results;
       })();
-      ref4 = parameters.ATTRIBUTES;
-      for (n = 0, len2 = ref4.length; n < len2; n++) {
-        attrib = ref4[n];
-        if (this.findVertexAttrib(attrib.name)) {
+      ref5 = parameters.ATTRIBUTES;
+      for (q = 0, len2 = ref5.length; q < len2; q++) {
+        attrib = ref5[q];
+        if (this.findVertexAttrib(attrib.alias)) {
           continue;
         }
         attribute = new_Pointer(VertexAttribute);
-        attribute.set(attrib.name);
+        attribute.set(attrib.alias);
         assign(attribute, {
           location: attrib.location,
           size: attrib.size,
@@ -2620,18 +2719,18 @@ define(ProgramSource.prototype, {
       //? uniforms -------------->
       numUniforms = parameters.PROGRAM.ACTIVE_UNIFORMS;
       parameters.UNIFORMS = (function() {
-        var ref5, results;
+        var ref6, results;
         results = [];
         while (numUniforms--) {
           uniform = {};
-          ref5 = gl.getActiveUniform(program, numUniforms);
-          for (k in ref5) {
-            v = ref5[k];
+          ref6 = gl.getActiveUniform(program, numUniforms);
+          for (k in ref6) {
+            v = ref6[k];
             uniform[k] = v;
           }
           uniform.kind = tn = keyOfWebGL2(uniform.type);
           uniform.location = gl.getUniformLocation(program, uniform.name);
-          uniform.name = uniform.name.split(/\[/)[0];
+          uniform.alias = uniform.name.split(/\[/)[0];
           uniform.uploader = (function() {
             switch (tn.constructor.name) {
               case "FLOAT_MAT4":
@@ -2693,9 +2792,9 @@ define(ProgramSource.prototype, {
         }
         return results;
       })();
-      ref5 = parameters.UNIFORMS;
-      for (q = 0, len3 = ref5.length; q < len3; q++) {
-        u = ref5[q];
+      ref6 = parameters.UNIFORMS;
+      for (w = 0, len3 = ref6.length; w < len3; w++) {
+        u = ref6[w];
         if (this.findUniform(u.name)) {
           continue;
         }
@@ -2706,7 +2805,7 @@ define(ProgramSource.prototype, {
           kind: u.kind,
           byteLength: u.byteLength
         });
-        addChildren(this, uniform.set(u.name));
+        addChildren(this, uniform.set(u.alias));
       }
       if (!this.findVertexArray(parameters.VERTEX_ARRAY_NAME)) {
         addChildren(this, varr = new_Pointer(VertexArray));
@@ -2721,33 +2820,38 @@ define(ProgramSource.prototype, {
   }
 });
 
-palloc(malloc(POINTER_BYTELENGTH * 1e5));
-
-ref = reDefine = classes;
+ref1 = reDefine = classes;
 //* <----------------------------------------> *#
 //* <----------------------------------------> *#
 //* <----------------------------------------> *#
-for (name in ref) {
-  Class = ref[name];
-  prop = name[0].toLowerCase() + name.substring(1);
+for (cname in ref1) {
+  Class = ref1[cname];
+  prop = cname[0].toLowerCase() + cname.substring(1);
   define(storage.add(Class), {
     [prop]: {
       value: Class
     }
   });
-  ref1 = Object.getOwnPropertyDescriptors(Class.prototype);
-  for (name in ref1) {
-    desc = ref1[name];
+  defineds = {};
+  ref2 = descs = Object.getOwnPropertyDescriptors(Class.prototype);
+  for (pname in ref2) {
+    desc = ref2[pname];
     if (desc.enumerable !== false) {
       continue;
     }
-    if (!/get|set/.test(key = name.substring(0, 3))) {
+    if (!/get|set/.test(key = pname.substring(0, 3))) {
       continue;
     }
-    if (!(className = name.substring(3))) {
+    if (!(className = pname.substring(3))) {
       continue;
     }
-    if (false !== Object.hasOwn(Class.prototype, prop = className[0].toLowerCase() + className.substring(1))) {
+    if (!(pkey = className[0].toLowerCase() + className.substring(1))) {
+      continue;
+    }
+    if (defineds[pkey]) {
+      continue;
+    }
+    if (!pkey.match(/name/) && descs[pkey]) {
       continue;
     }
     if (d = getown(Class.prototype, `get${className}`)) {
@@ -2757,12 +2861,13 @@ for (name in ref) {
       set = d.value;
     }
     define(Class.prototype, {
-      [prop]: {
+      [pkey]: {
         get,
         set,
         enumerable: true
       }
     });
+    defineds[pkey] = 1;
   }
   if (!Class.prototype.TypedArray) {
     continue;
@@ -2782,11 +2887,11 @@ for (name in ref) {
   continue;
 }
 
-ref2 = [VertexArray, VertexAttribute, Uniform, Program, DrawBuffer];
-for (l = 0, len = ref2.length; l < len; l++) {
-  Class = ref2[l];
-  define(Class.prototype, {
-    children: new PtriArray
+ref3 = [VertexArray, VertexAttribute, Uniform, Program, DrawBuffer];
+for (m = 0, len = ref3.length; m < len; m++) {
+  Class = ref3[m];
+  Object.defineProperty(Class.prototype, "children", {
+    value: new PtriArray
   });
 }
 
