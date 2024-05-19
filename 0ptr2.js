@@ -1,5 +1,5 @@
 //? hello world <3
-var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, BlackOnYellow, Class, DEBUG, DRAWBUFFER_BINDBINDING, DRAWBUFFER_BYTELENGTH, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_RESIZEBINDING, DRAWBUFFER_TARGET, DRAWBUFFER_USAGE, DRAWCALL_DBUFFER, DRAWCALL_DRAWBINDING, DRAWCALL_DSTBYTEOFFSET, DRAWCALL_POS_ATTRIB, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_STATE, DRAWCALL_TARGET, DRAWCALL_TYPE, DRAWCALL_UPLOADBINDING, DRAWCALL_UPLOADED, DRAWCALL_USAGE, GL2KEY, GL2NUM, GL2VAL, GreenOnWhite, MESH_ATTR_VERTEX, MESH_MMATRIX, MESH_SCENE_PTRI, MESH_UPLOADED, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_POSITION_ATTRIB, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SCENE_MESH_ATTR_VERTEX, SHADER_SOURCE_BYTES_PERP, SHADER_SOURCE_PARAMETERS, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, WhiteOnBlack, WhiteOnBlue, WhiteOnCyan, WhiteOnMagenta, WhiteOnRed, blackOnBlue, blackOnCyan, blackOnGreen, blackOnMagenta, blackOnRed, blackOnWhite, blackOnYellow, blue, className, classes, cname, colors, cyan, d, dc, debug, define, defineds, delay, desc, descs, drawCall, dst, dvw, dx, dy, dz, error, f32, get, green, handler, iLE, info, k, key, len, len1, log, m, magenta, msh, msh2, n, p0, p1, pkey, pname, pointCount, post, program, prop, rc1, rc2, reDefine, red, ref, ref1, ref2, ref3, ref4, sab, sc, selfExtends1, selfExtends2, set, source, src, ss1, ss2, table, target, u32, ui8, value, vp1, vp2, warn, x0, y0, yellow, z0;
+var ATTRIBUTE_BYTES_PERP, ATTRIBUTE_KIND, ATTRIBUTE_LOCATION, ATTRIBUTE_NORMALIZED, ATTRIBUTE_OFFSET, ATTRIBUTE_SIZE, ATTRIBUTE_STRIDE, ATTRIBUTE_TYPE, BPE, BlackOnYellow, Class, DEBUG, DRAWBUFFER_BINDBINDING, DRAWBUFFER_BYTELENGTH, DRAWBUFFER_GLOBJECT, DRAWBUFFER_ISBINDED, DRAWBUFFER_RESIZEBINDING, DRAWBUFFER_TARGET, DRAWBUFFER_USAGE, DRAWCALL_DBUFFER, DRAWCALL_DRAWBINDING, DRAWCALL_DSTBYTEOFFSET, DRAWCALL_POS_ATTRIB, DRAWCALL_PROGRAM, DRAWCALL_RCONTEXT, DRAWCALL_STATE, DRAWCALL_TARGET, DRAWCALL_TYPE, DRAWCALL_UPLOADBINDING, DRAWCALL_UPLOADED, DRAWCALL_USAGE, EVENT_, GL2KEY, GL2NUM, GL2VAL, GreenOnWhite, MESH_ATTR_VERTEX, MESH_MMATRIX, MESH_SCENE_PTRI, MESH_UPLOADED, POINTER_BYTELENGTH, POINTER_LENGTH, PROGRAM_GLPROGRAM, PROGRAM_ISINUSE, PROGRAM_POSITION_ATTRIB, PROGRAM_SHADER_SOURCE, PROGRAM_USEBINDING, PROGRAM_VAOBINDING, PTR_BYTELENGTH, PTR_BYTEOFFSET, PTR_CLASSINDEX, PTR_LINKED, PTR_PARENT, RENDERING_CONTEXT_DBUFFER, RENDERING_CONTEXT_DPROGRAM, RENDERING_CONTEXT_DRAWCALL, RENDERING_CONTEXT_GLOBJECT, RENDERING_CONTEXT_VIEWPORT, SCENE_DEFAULT_CONTEXT, SCENE_FRAME, SHADER_SOURCE_BYTES_PERP, SHADER_SOURCE_PARAMETERS, Storage, UNIFORM_BYTELENGTH, UNIFORM_KIND, UNIFORM_SIZE, UNIFORM_TYPE, VIEWPORT_ASPECT_RATIO, VIEWPORT_HEIGHT, VIEWPORT_LEFT, VIEWPORT_PIXEL_RATIO, VIEWPORT_TOP, VIEWPORT_WITDH, VIEWPORT_X, VIEWPORT_Y, WhiteOnBlack, WhiteOnBlue, WhiteOnCyan, WhiteOnMagenta, WhiteOnRed, assign, blackOnBlue, blackOnCyan, blackOnGreen, blackOnMagenta, blackOnRed, blackOnWhite, blackOnYellow, blue, className, classes, cname, colors, cyan, d, debug, define, defineds, delay, desc, descs, dvw, error, f32, get, getOwn, green, hasOwn, iLE, info, k, key, len, len1, len2, len3, len4, log, m, magenta, n, p, pkey, pname, prop, protof, q, reDefine, red, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, sab, scope, selfExtends1, selfExtends2, set, table, u32, ui8, value, w, warn, x, yellow;
 
 DEBUG = false;
 
@@ -69,6 +69,12 @@ export var CPU = class CPU extends Text {};
 
 export var GPU = class GPU extends Pointer {};
 
+export var EventLoop = class EventLoop extends Pointer {};
+
+export var EventListener = class EventListener extends Text {};
+
+export var Event = class Event extends Text {};
+
 export default classes = new Object({Scene, DrawCall, Viewport, ClearColor, ClearMask, Color, Scale, Rotation, Position, ModifierMatrix, Mesh, Id, ProgramSource, VertexShader, FragmentShader, EventHandler, Program, RenderingContext, VertexArray, VertexAttribute, Uniform, CPU, GPU, PtriArray, DrawBuffer});
 
 GL2KEY = Object.keys(WebGL2RenderingContext);
@@ -76,6 +82,8 @@ GL2KEY = Object.keys(WebGL2RenderingContext);
 GL2VAL = Object.values(WebGL2RenderingContext);
 
 GL2NUM = new Object;
+
+scope = [];
 
 ({log, warn, error, table, debug, info, delay} = console);
 
@@ -104,6 +112,8 @@ Atomics.store(u32, 0, POINTER_BYTELENGTH);
 
 Atomics.store(u32, 1, 2000 * POINTER_BYTELENGTH);
 
+Atomics.store(u32, 2, 0);
+
 PTR_CLASSINDEX = 0 * BPE;
 
 PTR_PARENT = 1 * BPE;
@@ -116,7 +126,7 @@ PTR_BYTELENGTH = 4 * BPE;
 
 SCENE_DEFAULT_CONTEXT = 5 * BPE;
 
-SCENE_MESH_ATTR_VERTEX = 5 * BPE;
+SCENE_FRAME = 6 * BPE;
 
 MESH_SCENE_PTRI = 5 * BPE;
 
@@ -230,6 +240,11 @@ VIEWPORT_ASPECT_RATIO = 9 * BPE;
 
 VIEWPORT_PIXEL_RATIO = 10 * BPE;
 
+EVENT_ = {
+  move: 1,
+  adopt: 2
+};
+
 //? <----------------------------------------> ?#
 //? <----------------------------------------> ?#
 //? <----------------------------------------> ?#
@@ -327,10 +342,10 @@ define = function() {
 };
 
 selfExtends1 = {
-  assign: Object.assign,
-  protof: Object.getPrototypeOf,
-  getOwn: Object.getOwnPropertyDescriptor,
-  hasOwn: function(o, v) {
+  assign: assign = Object.assign,
+  protof: protof = Object.getPrototypeOf,
+  getOwn: getOwn = Object.getOwnPropertyDescriptor,
+  hasOwn: hasOwn = function(o, v) {
     var Class;
     if (Object.hasOwn((Class = o.constructor).prototype, v)) {
       return Class;
@@ -361,7 +376,7 @@ selfExtends1 = {
 
 export var storage = new (Storage = class Storage extends Array {
   constructor() {
-    super(...arguments).add(null);
+    super(...arguments).append(null);
   }
 
   findByName() {
@@ -386,7 +401,7 @@ export var storage = new (Storage = class Storage extends Array {
     return i;
   }
 
-  add(o) {
+  append(o) {
     this[this.length] = o;
     return this;
   }
@@ -776,6 +791,172 @@ selfExtends2 = {
       }
     }
     return void 0;
+  },
+  // ?
+  // ?
+  // ?
+  // ?
+  getclsi_propvalue: function(clsi, prop) {
+    var d;
+    return (d = getOwn(scope[clsi], prop)) && d.value || 0;
+  },
+  setclsi_propvalue: function(clsi, prop, value) {
+    define(scope[clsi], {
+      [prop]: {value}
+    });
+    return value;
+  },
+  newclsi_prop: function(clsi, prop, byteLength) {
+    define(scope[clsi], {
+      [prop]: {value}
+    });
+    return value;
+  },
+  getclsi_bytelength: function(clsi) {
+    return getclsi_propvalue(clsi, "byteLength");
+  },
+  setclsi_bytelength: function(clsi, value) {
+    return setclsi_propvalue(clsi, "byteLength", value);
+  },
+  getclsi_propoffset: function(clsi, prop) {
+    return getclsi_propvalue(clsi, prop.toUpperCase());
+  },
+  setclsi_propoffset: function(clsi, prop, value) {
+    return setclsi_propvalue(clsi, prop.toUpperCase(), value);
+  },
+  getptri_propvalue: function(ptri, prop, getter) {
+    var clsi, offset;
+    clsi = getptri_clsi(ptri);
+    offset = getclsi_propoffset(clsi, prop);
+    return dvw[getter](ptri + offset, iLE);
+  },
+  setptri_propvalue: function(ptri, prop, value, setter) {
+    var clsi, offset;
+    clsi = getptri_clsi(ptri);
+    offset = getclsi_propoffset(clsi, prop);
+    dvw[setter](ptri + offset, value, iLE);
+    return value;
+  },
+  getptri_propvalue_u32: function(ptri, prop) {
+    return getptri_propvalue(ptri, prop, "getUint32");
+  },
+  setptri_propvalue_u32: function(ptri, prop, value) {
+    return setptri_propvalue(ptri, prop, value, "setUint32");
+  },
+  getptri_propvalue_u16: function(ptri, prop) {
+    return getptri_propvalue(ptri, prop, "getUint16");
+  },
+  setptri_propvalue_u16: function(ptri, prop, value) {
+    return setptri_propvalue(ptri, prop, value, "setUint16");
+  },
+  getptri_propvalue_ui8: function(ptri, prop) {
+    return getptri_propvalue(ptri, prop, "getUint8");
+  },
+  setptri_propvalue_ui8: function(ptri, prop, value) {
+    return setptri_propvalue(ptri, prop, value, "setUint8");
+  },
+  setptri_bytelength: function(ptri, value) {
+    return setptri_propvalue_u32(ptri, "byteLength", value);
+  },
+  setptri_byteoffset: function(ptri, value) {
+    return setptri_propvalue_u32(ptri, "byteoffset", value);
+  },
+  getptri_bytelength: function(ptri) {
+    return getptri_propvalue_u32(ptri, "byteLength");
+  },
+  getptri_byteoffset: function(ptri) {
+    return getptri_propvalue_u32(ptri, "byteoffset");
+  },
+  getptri_clsi: function(ptri) {
+    return dvw.getUint32(ptri + PTR_CLASSINDEX, iLE);
+  },
+  setptri_clsi: function(ptri, clsi) {
+    dvw.setUint32(ptri + PTR_CLASSINDEX, clsi, iLE);
+    return clsi;
+  },
+  newptri: function(clsi) {
+    var byteLength, byteOffset, ptri;
+    ptri = palloc();
+    setptri_clsi(ptri, clsi);
+    if (byteLength = getclsi_bytelength(clsi)) {
+      byteOffset = malloc(byteLength);
+      setptri_bytelength(ptri, byteLength);
+      setptri_byteoffset(ptri, byteOffset);
+    }
+    return ptri;
+  },
+  registerClass: function(alias, extend) {
+    var el;
+    return document.head.appendChild(assign(el = document.createElement("script"), {
+      innerText: `class ${alias.substring(0, 30)} extends ${extend.name || extend} {}`
+    })).remove();
+  },
+  getclsi: function(Class) {
+    var clsi;
+    if (-1.0 === (clsi = scope.indexOf(Class))) {
+      clsi = 0xff - 1;
+      while (scope[clsi]) {
+        clsi = clsi - 1;
+      }
+      if (clsi < 1) {
+        throw /EXCEED_STOREUI8/;
+      }
+      scope[clsi] = Class;
+    }
+    if (0xff <= clsi) {
+      if (scope.splice(clsi, 1)) {
+        throw Class;
+      }
+    }
+    return clsi;
+  },
+  newptri_ofclsi: function(clsi) {
+    return newptri(clsi);
+  },
+  newPointer: function(ptri, clsi) {
+    var Class;
+    Class = scope[clsi || getptri_clsi(ptri)];
+    return new Class(ptri);
+  },
+  newClass: function(Class, ptri) {
+    var clsi;
+    clsi = scope.indexOf(Class);
+    return new Class(ptri || newptri(clsi));
+  },
+  newClsi: function(clsi, ptri) {
+    var Class;
+    Class = scope[clsi];
+    return new Class(ptri || newptri(clsi));
+  },
+  getptri_byteoffsetof_prop: function(ptri, prop) {
+    var clsi;
+    clsi = getptri_clsi(ptri);
+    return getclsi_byteoffsetof_prop(clsi, prop);
+  },
+  setptri_prop: function(ptri, prop) {
+    var value;
+    for (prop in props) {
+      value = props[prop];
+      setptri_prop(ptri, prop, value);
+    }
+    return ptri;
+  },
+  setptri_props: function(ptri, props) {
+    var prop, value;
+    for (prop in props) {
+      value = props[prop];
+      setptri_prop(ptri, prop, value);
+    }
+    return ptri;
+  },
+  newPointer_ofclsi__setptri_props: function(clsi, props) {
+    var prop, ptri, value;
+    ptri = newPointer_ofclsi(clsi);
+    for (prop in props) {
+      value = props[prop];
+      setptri_prop(ptri, prop, value);
+    }
+    return ptri;
   }
 };
 
@@ -790,6 +971,27 @@ for (k in ref) {
 //* <----------------------------------------> *#
 //* <----------------------------------------> *#
 //* <----------------------------------------> *#
+registerClass("Pointer", Number);
+
+registerClass("Display", Pointer);
+
+registerClass("Event", Pointer);
+
+log(new Event(1));
+
+define(Ozgur.prototype, {
+  getSome: {
+    enumerable: true,
+    get: function() {
+      return 1;
+    }
+  }
+});
+
+log(22, new Ozgur(4));
+
+log(22, new Alt(44));
+
 define(Pointer.prototype, {
   ['{{Pointer}}']: {
     get: function() {
@@ -866,28 +1068,17 @@ define(Pointer.prototype, {
 });
 
 define(Pointer.prototype, {
-  add: {
-    value: function(ptri) {
-      setParent(ptri, this);
-      ptri.onadopt(this);
-      return this;
-    }
-  }
-});
-
-define(Pointer.prototype, {
-  append: {
-    value: function(ptri) {
-      this.add(ptri);
-      return ptri;
-    }
-  }
-});
-
-define(Pointer.prototype, {
-  onadopt: {
+  beChildrenOf: {
     value: function(parent) {
-      return this;
+      return addChildren(parent, this);
+    }
+  }
+});
+
+define(Pointer.prototype, {
+  beParentOf: {
+    value: function(ptri) {
+      return setParent(ptri, this);
     }
   }
 });
@@ -924,30 +1115,6 @@ define(Pointer.prototype, {
 define(Pointer.prototype, {
   isPointer: {
     value: true
-  }
-});
-
-define(Pointer.prototype, {
-  on: {
-    value: function(event, handler) {
-      return this;
-    }
-  }
-});
-
-define(Pointer.prototype, {
-  once: {
-    value: function(event, handler) {
-      return this;
-    }
-  }
-});
-
-define(Pointer.prototype, {
-  emit: {
-    value: function(event, handler) {
-      return this;
-    }
   }
 });
 
@@ -3209,7 +3376,7 @@ ref1 = reDefine = classes;
 for (cname in ref1) {
   Class = ref1[cname];
   prop = cname[0].toLowerCase() + cname.substring(1);
-  define(storage.add(Class), {
+  define(storage.append(Class), {
     [prop]: {
       value: Class
     }
@@ -3277,113 +3444,88 @@ for (m = 0, len = ref3.length; m < len; m++) {
   });
 }
 
-//? <----------------------------------------> ?#
-//? <----------------------------------------> ?#
-//? <----------------------------------------> ?#
-sc = new_Pointer(Scene);
-
-msh = new_Pointer(Mesh);
-
-msh2 = new_Pointer(Mesh);
-
-ss1 = new_Pointer(ProgramSource).set("my-avesome-vertex-shader");
-
-ss2 = new_Pointer(ProgramSource).set("default");
-
-rc1 = new_Pointer(RenderingContext);
-
-rc2 = new_Pointer(RenderingContext);
-
-vp1 = new_Pointer(Viewport);
-
-p0 = new_Pointer(Program).set("my-avesome-vertex-shader");
-
-p1 = new_Pointer(Program).set("default");
-
-vp2 = Viewport.of({
-  width: 320,
-  height: 240,
-  left: 20,
-  top: 20
-});
-
-rc2.add(new_Pointer(Program).set("my-avesome-vertex-shader"));
-
-rc2.add(new_Pointer(Program).set("default"));
-
-rc2.add(vp2);
-
-rc1.add(p1);
-
-ref4 = rc2.defaultDrawCalls;
+ref4 = "isFinite isInteger isNaN isSafeInteger parseFloat parseInt".split(/\n|\s+/g);
 for (n = 0, len1 = ref4.length; n < len1; n++) {
-  dc = ref4[n];
-  msh.append(dc.inheritableCopy);
+  p = ref4[n];
+  Reflect.deleteProperty(Number, p);
 }
 
-sc.add(msh);
+ref5 = "toExponential toLocaleString toPrecision toFixed".split(/\n|\s+/g);
+for (q = 0, len2 = ref5.length; q < len2; q++) {
+  p = ref5[q];
+  Reflect.deleteProperty(Number.prototype, p);
+}
 
-sc.add(ss1);
+ref6 = "assign create entries freeze fromEntries getOwnPropertyDescriptor getOwnPropertyNames getOwnPropertySymbols getPrototypeOf groupBy hasOwn is isExtensible isFrozen isSealed keys preventExtensions seal setPrototypeOf values".split(/\n|\s+/g);
+for (w = 0, len3 = ref6.length; w < len3; w++) {
+  p = ref6[w];
+  Reflect.deleteProperty(Object, p);
+}
 
-sc.add(ss2);
+ref7 = "__defineGetter__ __defineSetter__ __lookupGetter__ __lookupSetter__ propertyIsEnumerable toLocaleString hasOwnProperty isPrototypeOf".split(/\n|\s+/g);
+for (x = 0, len4 = ref7.length; x < len4; x++) {
+  p = ref7[x];
+  Reflect.deleteProperty(Object.prototype, p);
+}
 
-sc.add(vp1);
 
-sc.add(rc1);
-
-sc.add(rc2);
-
-warn(msh2.set([0, 0, 0, 0, 0.5, 0, 0.7, 0, 0, 0, 0, 0, 0, 0.5, 0, 0.7, 0, 0, 0, 0, 0, 0, 0.5, 0, 0.7, 0, 0]));
-
-warn(msh.set([0, 0, 0, 0, 0.5, 0, 0.7, 0, 0]));
-
-msh.append(post = new_Pointer(Position));
-
-log("post:", post.set([1, 0, -1]));
-
-msh.add(msh2);
-
-self.mesh = msh;
-
-source = mesh.vertices;
-
-drawCall = mesh.drawCalls[0];
-
-program = drawCall.program;
-
-target = drawCall.attributes;
-
-pointCount = drawCall.pointCount;
-
-warn(drawCall);
-
-warn(target.attribute(1));
-
-warn(src = source.vertex(1));
-
-log("mesh.position:", mesh.position);
-
-log("mesh.rotation:", mesh.rotation);
-
-log("mesh.scale:", mesh.scale);
-
-[x0, y0, z0] = source.vertex(1);
-
-[dx, dy, dz] = mesh.position.subarray;
-
-warn(dst = drawCall.attribute(1, "a_Position"));
-
-dst.set([x0 + dx, y0 + dy, z0 + dz]);
-
-false && src.on("onbeforerender", ruleset1, handler = function(ptri, ptrj, count) {
-  var sommodify;
-  sommodify = ptrj * 11;
-  while (count--) {
-    ptrj.set(sommodify);
+//? <----------------------------------------> ?#
+//? <----------------------------------------> ?#
+//? <----------------------------------------> ?#
+false && (function() {
+  var dc, drawCall, dst, dx, dy, dz, len5, msh, msh2, p0, p1, pointCount, post, program, rc1, rc2, ref8, sc, source, src, ss1, ss2, target, vp1, vp2, x0, y, y0, z0;
+  sc = new_Pointer(Scene);
+  msh = new_Pointer(Mesh);
+  msh2 = new_Pointer(Mesh);
+  ss1 = new_Pointer(ProgramSource).set("my-avesome-vertex-shader");
+  ss2 = new_Pointer(ProgramSource).set("default");
+  rc1 = new_Pointer(RenderingContext);
+  rc2 = new_Pointer(RenderingContext);
+  vp1 = new_Pointer(Viewport);
+  p0 = new_Pointer(Program).set("my-avesome-vertex-shader");
+  p1 = new_Pointer(Program).set("default");
+  vp2 = Viewport.of({
+    width: 320,
+    height: 240,
+    left: 20,
+    top: 20
+  });
+  rc2.beParentOf(new_Pointer(Program).set("my-avesome-vertex-shader"));
+  rc2.beParentOf(new_Pointer(Program).set("default"));
+  rc2.beParentOf(vp2);
+  rc1.beParentOf(p1);
+  ref8 = rc2.defaultDrawCalls;
+  for (y = 0, len5 = ref8.length; y < len5; y++) {
+    dc = ref8[y];
+    msh.beParentOf(dc.inheritableCopy);
   }
-  return 1;
-});
-
-log({source});
-
-log({target});
+  sc.beParentOf(msh);
+  sc.beParentOf(ss1);
+  sc.beParentOf(ss2);
+  sc.beParentOf(vp1);
+  sc.beParentOf(rc1);
+  sc.beParentOf(rc2);
+  warn(msh2.set([0, 0, 0, 0, 0.5, 0, 0.7, 0, 0, 0, 0, 0, 0, 0.5, 0, 0.7, 0, 0, 0, 0, 0, 0, 0.5, 0, 0.7, 0, 0]));
+  warn(msh.set([0, 0, 0, 0, 0.5, 0, 0.7, 0, 0]));
+  msh.beParentOf(post = new_Pointer(Position));
+  log("post:", post.set([1, 0, -1]));
+  msh.beParentOf(msh2);
+  self.mesh = msh;
+  source = mesh.vertices;
+  drawCall = mesh.drawCalls[0];
+  program = drawCall.program;
+  target = drawCall.attributes;
+  pointCount = drawCall.pointCount;
+  warn(drawCall);
+  warn(target.attribute(1));
+  warn(src = source.vertex(1));
+  log("mesh.position:", mesh.position);
+  log("mesh.rotation:", mesh.rotation);
+  log("mesh.scale:", mesh.scale);
+  [x0, y0, z0] = source.vertex(1);
+  [dx, dy, dz] = mesh.position.subarray;
+  warn(dst = drawCall.attribute(1, "a_Position"));
+  dst.set([x0 + dx, y0 + dy, z0 + dz]);
+  log({source});
+  return log({target});
+})();

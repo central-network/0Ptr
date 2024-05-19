@@ -6,7 +6,7 @@ export class PtriArray          extends Array
 export class Vertex             extends Float32Array
 export class Vertices           extends Float32Array
 export class Attribute          extends Float32Array
-export class Attributes  extends Float32Array
+export class Attributes         extends Float32Array
 export class Unallocated        extends Float32Array
 export class Scene              extends Pointer
 export class DrawCall           extends Pointer
@@ -34,6 +34,9 @@ export class VertexAttribute    extends Text
 export class Uniform            extends Text
 export class CPU                extends Text
 export class GPU                extends Pointer
+export class EventLoop          extends Pointer
+export class EventListener      extends Text
+export class Event              extends Text
 
 export default classes = new Object {
     Scene, DrawCall, Viewport, ClearColor, ClearMask, 
@@ -46,6 +49,8 @@ export default classes = new Object {
 GL2KEY = Object.keys     WebGL2RenderingContext
 GL2VAL = Object.values   WebGL2RenderingContext
 GL2NUM = new Object
+
+scope = []
 
 {log,warn,error,table,debug,info,delay} = console
 
@@ -66,7 +71,7 @@ POINTER_BYTELENGTH          = BPE * POINTER_LENGTH
 
 Atomics.store u32, 0, POINTER_BYTELENGTH
 Atomics.store u32, 1, 2000 * POINTER_BYTELENGTH
-
+Atomics.store u32, 2, 0
 
 PTR_CLASSINDEX              = 0 * BPE
 PTR_PARENT                  = 1 * BPE
@@ -76,7 +81,7 @@ PTR_BYTEOFFSET              = 3 * BPE
 PTR_BYTELENGTH              = 4 * BPE
 
 SCENE_DEFAULT_CONTEXT       = 5 * BPE
-SCENE_MESH_ATTR_VERTEX      = 5 * BPE
+SCENE_FRAME                 = 6 * BPE
 
 MESH_SCENE_PTRI             = 5 * BPE
 MESH_UPLOADED               = 6 * BPE
@@ -142,6 +147,10 @@ VIEWPORT_WITDH              = 7 * BPE
 VIEWPORT_HEIGHT             = 8 * BPE 
 VIEWPORT_ASPECT_RATIO       = 9 * BPE
 VIEWPORT_PIXEL_RATIO        = 10 * BPE
+
+EVENT_                      =
+    move                    : 1
+    adopt                   : 2
 
 #? <----------------------------------------> ?#
 #? <----------------------------------------> ?#
@@ -269,10 +278,10 @@ define          = ->
     Object.defineProperties o, props
 
 selfExtends1    =
-    assign : Object.assign
-    protof : Object.getPrototypeOf
-    getOwn : Object.getOwnPropertyDescriptor
-    hasOwn : (o, v) -> Class if Object.hasOwn (Class = o.constructor)::, v
+    assign : assign = Object.assign
+    protof : protof = Object.getPrototypeOf
+    getOwn : getOwn = Object.getOwnPropertyDescriptor
+    hasOwn : hasOwn = (o, v) -> Class if Object.hasOwn (Class = o.constructor)::, v
     encode : TextEncoder::encode.bind new TextEncoder
     decode : TextDecoder::decode.bind new TextDecoder
     palloc : ->
@@ -290,11 +299,11 @@ selfExtends1    =
         o
 
 export storage  = new (class Storage extends Array
-    constructor     : -> super( arguments... ).add null
+    constructor     : -> super( arguments... ).append null
     findByName      : -> @find((i) => i and i.name is arguments[0])
     fillFirstEmpty  : (o) -> @[ i = @findIndex((v, j) -> j && !v) ] = o ; i
     pushOrFindIndex : (o) -> i += @push o if -1 is i = @indexOf o ; i
-    add             : (o) -> @[ @length ] = o ; this ) 0xff
+    append          : (o) -> @[ @length ] = o ; this ) 0xff
 
 #* <----------------------------------------> *#
 #* <----------------------------------------> *#
@@ -608,6 +617,167 @@ selfExtends2    =
                 return ptr if test ptr = ptr_Pointer ptrj
         return undefined
 
+
+
+    # ?
+    # ?
+    # ?
+    # ?
+
+
+    getclsi_propvalue                   : ( clsi, prop ) ->
+        ( d = getOwn scope[ clsi ], prop ) and d.value or 0
+
+    setclsi_propvalue                   : ( clsi, prop, value ) ->
+        define scope[ clsi ], [ prop ] : { value } ; value
+
+    newclsi_prop                        : ( clsi, prop, byteLength ) ->
+        define scope[ clsi ], [ prop ] : { value } ; value
+
+
+    
+    
+    
+
+    getclsi_bytelength                  : ( clsi ) ->
+        getclsi_propvalue clsi, "byteLength"
+
+    setclsi_bytelength                  : ( clsi, value ) ->
+        setclsi_propvalue clsi, "byteLength", value
+
+    getclsi_propoffset                  : ( clsi, prop ) ->
+        getclsi_propvalue clsi, prop.toUpperCase()
+
+    setclsi_propoffset                  : ( clsi, prop, value ) ->
+        setclsi_propvalue clsi, prop.toUpperCase(), value
+
+        
+
+    getptri_propvalue                   : ( ptri, prop, getter ) ->
+        clsi = getptri_clsi ptri
+        offset = getclsi_propoffset clsi, prop
+        dvw[ getter ] ptri + offset, iLE
+
+    setptri_propvalue                   : ( ptri, prop, value, setter ) ->
+        clsi = getptri_clsi ptri
+        offset = getclsi_propoffset clsi, prop
+        dvw[ setter ] ptri + offset, value, iLE ; value
+
+
+
+
+    getptri_propvalue_u32               : ( ptri, prop ) ->
+        getptri_propvalue ptri, prop, "getUint32"
+
+    setptri_propvalue_u32               : ( ptri, prop, value ) ->
+        setptri_propvalue ptri, prop, value, "setUint32"
+
+    getptri_propvalue_u16               : ( ptri, prop ) ->
+        getptri_propvalue ptri, prop, "getUint16"
+
+    setptri_propvalue_u16               : ( ptri, prop, value ) ->
+        setptri_propvalue ptri, prop, value, "setUint16"
+
+    getptri_propvalue_ui8               : ( ptri, prop ) ->
+        getptri_propvalue ptri, prop, "getUint8"
+
+    setptri_propvalue_ui8               : ( ptri, prop, value ) ->
+        setptri_propvalue ptri, prop, value, "setUint8"
+
+
+
+
+    setptri_bytelength                  : ( ptri, value ) ->
+        setptri_propvalue_u32 ptri, "byteLength", value
+
+    setptri_byteoffset                  : ( ptri, value ) ->
+        setptri_propvalue_u32 ptri, "byteoffset", value
+        
+    getptri_bytelength                  : ( ptri ) ->
+        getptri_propvalue_u32 ptri, "byteLength"
+        
+    getptri_byteoffset                  : ( ptri ) ->
+        getptri_propvalue_u32 ptri, "byteoffset"
+        
+
+
+    getptri_clsi                        : ( ptri ) ->
+        dvw.getUint32 ptri + PTR_CLASSINDEX, iLE
+        
+    setptri_clsi                        : ( ptri, clsi ) ->
+        dvw.setUint32 ptri + PTR_CLASSINDEX, clsi, iLE  ; clsi
+
+
+
+
+    newptri                             : ( clsi ) ->
+        ptri = palloc()
+        setptri_clsi ptri, clsi
+
+        if  byteLength = getclsi_bytelength clsi
+            byteOffset = malloc byteLength
+
+            setptri_bytelength ptri, byteLength
+            setptri_byteoffset ptri, byteOffset
+
+        ptri
+
+    registerClass                       : ( alias, extend ) ->
+        document.head.appendChild( assign(
+            el = document.createElement( "script" ), { innerText : 
+                "class #{alias.substring(0,30)} 
+                extends #{extend.name or extend} {}"
+        })).remove()
+
+    getclsi                             : ( Class ) ->
+
+        if  -1.0 is clsi = scope.indexOf Class
+            clsi = 0xff-1
+            clsi = clsi-1 while scope[ clsi ]
+            throw /EXCEED_STOREUI8/ if clsi < 1
+            scope[ clsi ] = Class
+
+        if  0xff <= clsi then if scope.splice clsi, 1
+            throw Class
+
+        clsi
+
+    newptri_ofclsi                      : ( clsi ) ->
+        newptri clsi
+
+    newPointer                          : ( ptri, clsi ) ->
+        Class = scope[ clsi or getptri_clsi ptri ]
+        new Class( ptri )
+
+    newClass                            : ( Class, ptri ) ->
+        clsi = scope.indexOf Class
+        new Class( ptri or newptri clsi )
+
+    newClsi                             : ( clsi, ptri ) ->
+        Class = scope[ clsi ]
+        new Class( ptri or newptri clsi )
+
+    getptri_byteoffsetof_prop           : ( ptri, prop ) ->
+        clsi = getptri_clsi ptri
+        getclsi_byteoffsetof_prop clsi, prop
+
+    setptri_prop                        : ( ptri, prop ) ->
+        for prop, value of props
+            setptri_prop ptri, prop, value
+        ptri
+
+    setptri_props                       : ( ptri, props ) ->
+        for prop, value of props
+            setptri_prop ptri, prop, value
+        ptri
+
+    newPointer_ofclsi__setptri_props    : ( clsi, props ) ->
+        ptri = newPointer_ofclsi clsi
+        for prop, value of props
+            setptri_prop ptri, prop, value
+        ptri
+
+
 for k, value of { ...selfExtends1, ...selfExtends2 }
     define self, [ k ] : { value }
 
@@ -615,6 +785,27 @@ for k, value of { ...selfExtends1, ...selfExtends2 }
 #* <----------------------------------------> *#
 #* <----------------------------------------> *#
     
+registerClass "Pointer", Number
+registerClass "Display", Pointer
+registerClass "Event", Pointer
+
+
+
+log new Event 1
+
+define Ozgur.prototype, getSome :
+    enumerable: on
+    get : -> 1 
+
+
+log 22, new Ozgur(4)
+
+
+
+
+log 22, new Alt(44)
+
+
 define Pointer::            , [ '{{Pointer}}' ] :
     get : -> define {},
         headAsUint8     : enumerable : on, get : => new Uint8Array sab, this, POINTER_BYTELENGTH    
@@ -640,15 +831,12 @@ define Pointer              , from              :
         return ptri
 define Pointer::            , toString          :
     value : -> error "tostring", this
-define Pointer::            , add               :
+define Pointer::            , beChildrenOf      :
+    value : ( parent ) ->
+        addChildren parent, this
+define Pointer::            , beParentOf        :
     value : ( ptri ) ->
         setParent ptri, this
-        ptri.onadopt this
-        this
-define Pointer::            , append            :
-    value : ( ptri ) -> @add ptri ; ptri
-define Pointer::            , onadopt           :
-    value : ( parent ) -> this
 define Pointer::            , children          :
     enumerable: on
     configurable: on
@@ -667,12 +855,6 @@ define Pointer::            , parent            :
     get   : -> ptr_Pointer getParent this
 define Pointer::            , isPointer         :
     value : true
-define Pointer::            , on                :
-    value : ( event, handler ) -> this
-define Pointer::            , once              :
-    value : ( event, handler ) -> this
-define Pointer::            , emit              :
-    value : ( event, handler ) -> this
 define Text::               , isTextPointer     :
     value : yes
 define Text::               , TypedArray        :
@@ -1901,7 +2083,7 @@ define ProgramSource::      , getParameters     :
 for cname, Class of reDefine = classes
 
     prop = cname[0].toLowerCase() + cname.substring 1
-    define storage.add( Class ), [ prop ] : { value : Class }
+    define storage.append( Class ), [ prop ] : { value : Class }
     
     defineds = {}
 
@@ -1938,108 +2120,119 @@ for cname, Class of reDefine = classes
 for Class in [ VertexArray, VertexAttribute, Program, Uniform, DrawBuffer ]
     Object.defineProperty Class::, "children", value : new PtriArray
 
+for p in "
+    isFinite isInteger isNaN isSafeInteger parseFloat parseInt 
+".split(/\n|\s+/g) then Reflect.deleteProperty( Number, p )
+
+for p in "
+    toExponential toLocaleString toPrecision toFixed
+".split(/\n|\s+/g) then Reflect.deleteProperty( Number::, p )
+
+for p in "
+    assign create entries freeze fromEntries getOwnPropertyDescriptor
+    getOwnPropertyNames getOwnPropertySymbols getPrototypeOf
+    groupBy hasOwn is isExtensible isFrozen isSealed keys
+    preventExtensions seal setPrototypeOf values
+".split(/\n|\s+/g) then Reflect.deleteProperty( Object, p )
+
+for p in "
+    __defineGetter__ __defineSetter__ __lookupGetter__ __lookupSetter__
+    propertyIsEnumerable toLocaleString hasOwnProperty isPrototypeOf
+".split(/\n|\s+/g) then Reflect.deleteProperty( Object::, p )    
+
 #? <----------------------------------------> ?#
 #? <----------------------------------------> ?#
 #? <----------------------------------------> ?#
 
-sc = new_Pointer( Scene )
-msh = new_Pointer( Mesh )
-msh2 = new_Pointer( Mesh )
+no and do ->
+    sc = new_Pointer( Scene )
+    msh = new_Pointer( Mesh )
+    msh2 = new_Pointer( Mesh )
 
-ss1 = new_Pointer( ProgramSource ).set("my-avesome-vertex-shader")
-ss2 = new_Pointer( ProgramSource ).set("default")
+    ss1 = new_Pointer( ProgramSource ).set("my-avesome-vertex-shader")
+    ss2 = new_Pointer( ProgramSource ).set("default")
 
-rc1 = new_Pointer( RenderingContext )
-rc2 = new_Pointer( RenderingContext )
+    rc1 = new_Pointer( RenderingContext )
+    rc2 = new_Pointer( RenderingContext )
 
-vp1 = new_Pointer( Viewport )
+    vp1 = new_Pointer( Viewport )
 
-p0 = new_Pointer( Program ).set("my-avesome-vertex-shader")
-p1 = new_Pointer( Program ).set("default")
-
-
-vp2 = Viewport.of({ width : 320, height : 240, left: 20, top: 20 })
-
-rc2.add new_Pointer( Program ).set("my-avesome-vertex-shader")
-rc2.add new_Pointer( Program ).set("default")
-rc2.add vp2
-
-rc1.add p1
-
-for dc in rc2.defaultDrawCalls
-    msh.append dc.inheritableCopy
+    p0 = new_Pointer( Program ).set("my-avesome-vertex-shader")
+    p1 = new_Pointer( Program ).set("default")
 
 
-sc.add msh
-sc.add ss1
-sc.add ss2
-sc.add vp1
-sc.add rc1
-sc.add rc2
+    vp2 = Viewport.of({ width : 320, height : 240, left: 20, top: 20 })
 
-warn msh2.set([
-    0,   0,  0,
-    0,  0.5, 0,
-    0.7,  0, 0,
-    0,   0,  0,
-    0,  0.5, 0,
-    0.7,  0, 0,
-    0,   0,  0,
-    0,  0.5, 0,
-    0.7,  0, 0,
-])
+    rc2.beParentOf new_Pointer( Program ).set("my-avesome-vertex-shader")
+    rc2.beParentOf new_Pointer( Program ).set("default")
+    rc2.beParentOf vp2
 
-warn msh.set([
-    0,   0,  0,
-    0,  0.5, 0,
-    0.7,  0, 0,
-])
+    rc1.beParentOf p1
 
-msh.append post = new_Pointer( Position )
-
-log "post:", post.set([1, 0, -1])
-
-msh.add msh2
-self.mesh = msh
+    for dc in rc2.defaultDrawCalls
+        msh.beParentOf dc.inheritableCopy
 
 
-source = mesh.vertices
-drawCall = mesh.drawCalls[0]
-program = drawCall.program
-target = drawCall.attributes
+    sc.beParentOf msh
+    sc.beParentOf ss1
+    sc.beParentOf ss2
+    sc.beParentOf vp1
+    sc.beParentOf rc1
+    sc.beParentOf rc2
+
+    warn msh2.set([
+        0,   0,  0,
+        0,  0.5, 0,
+        0.7,  0, 0,
+        0,   0,  0,
+        0,  0.5, 0,
+        0.7,  0, 0,
+        0,   0,  0,
+        0,  0.5, 0,
+        0.7,  0, 0,
+    ])
+
+    warn msh.set([
+        0,   0,  0,
+        0,  0.5, 0,
+        0.7,  0, 0,
+    ])
+
+    msh.beParentOf post = new_Pointer( Position )
+
+    log "post:", post.set([1, 0, -1])
+
+    msh.beParentOf msh2
+    self.mesh = msh
 
 
-pointCount = drawCall.pointCount
-
-warn drawCall
-warn target.attribute(1)
-
-warn src = source.vertex(1)
-
-log "mesh.position:", mesh.position
-log "mesh.rotation:", mesh.rotation
-log "mesh.scale:", mesh.scale
-
-[ x0, y0, z0 ] = source.vertex(1)
-[ dx, dy, dz ] = mesh.position.subarray
-
-warn dst = drawCall.attribute(1, "a_Position")
-
-dst.set [
-    x0 + dx,
-    y0 + dy,
-    z0 + dz
-]
+    source = mesh.vertices
+    drawCall = mesh.drawCalls[0]
+    program = drawCall.program
+    target = drawCall.attributes
 
 
-no and src.on "onbeforerender", ruleset1, handler = ( ptri, ptrj, count ) ->
+    pointCount = drawCall.pointCount
 
-    sommodify = ptrj * 11
+    warn drawCall
+    warn target.attribute(1)
 
-    while count--
-        ptrj.set sommodify
+    warn src = source.vertex(1)
 
-    1
+    log "mesh.position:", mesh.position
+    log "mesh.rotation:", mesh.rotation
+    log "mesh.scale:", mesh.scale
 
-log { source }
-log { target }
+    [ x0, y0, z0 ] = source.vertex(1)
+    [ dx, dy, dz ] = mesh.position.subarray
+
+    warn dst = drawCall.attribute(1, "a_Position")
+
+    dst.set [
+        x0 + dx,
+        y0 + dy,
+        z0 + dz
+    ]
+
+    log { source }
+    log { target }
