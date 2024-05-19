@@ -1,5 +1,5 @@
 //* hello world
-var BPE, CLEAN_PROTO, GL2KEY, GL2NUM, GL2VAL, HAS_BYTELENGTH, HAS_BYTEOFFSET, HAS_LENGTH, PTR_BYTELENGTH, PTR_CLASSINDEX, PTR_LENGTH, REDEFINEPTR, Storage, assign, debug, decode, define, dvw, encode, error, f32, getByteLength, getByteOffset, getClassIndex, getFloat32, getLength, getPtriFloat32, getPtriUint32Array, getPtriUint8Array, getUint32, getUint8, global, hasOwn, iLE, info, log, malloc, palloc, sab, setByteLength, setByteOffset, setClassIndex, setFloat32, setLength, setPtriFloat32, setUint32, setUint8, storage, table, u32, ui8, warn;
+var BPE, CLEARPROTOS, GL2KEY, GL2NUM, GL2VAL, HAS_BYTELENGTH, HAS_BYTEOFFSET, HAS_LENGTH, PTR_BYTELENGTH, PTR_CLASSINDEX, PTR_LENGTH, REDEFINEPTR, Storage, assign, debug, decode, define, dvw, encode, error, f32, getByteLength, getByteOffset, getClassIndex, getFloat32, getLength, getPtriFloat32, getPtriUint32Array, getPtriUint8Array, getUint32, getUint8, global, hasOwn, iLE, info, log, malloc, palloc, sab, setByteLength, setByteOffset, setClassIndex, setFloat32, setLength, setPtriFloat32, setUint32, setUint8, storage, table, u32, ui8, warn;
 
 GL2KEY = Object.keys(WebGL2RenderingContext);
 
@@ -119,6 +119,11 @@ define = function(object, props, desc) {
       Object.defineProperty(object, prop, desc);
     }
   } else {
+    if (!desc.get && !desc.set && !desc.value) {
+      desc = {
+        value: desc
+      };
+    }
     Object.defineProperty(object, props, desc);
   }
   return object;
@@ -249,10 +254,7 @@ define({
 });
 
 define(Position, {
-  byteLength: 12
-});
-
-define(Position, {
+  byteLength: 12,
   TypedArray: Float32Array
 });
 
@@ -277,22 +279,112 @@ define(Position.prototype, {
   }
 });
 
+define(Position.prototype, Symbol.iterator, function*() {
+  yield getPtriFloat32(this, 0);
+  yield getPtriFloat32(this, 4);
+  return (yield getPtriFloat32(this, 8));
+});
+
 define({
   Color: Pointer
 });
 
 define(Color, {
-  byteLength: 16
-});
-
-define(Color, {
+  byteLength: 16,
   TypedArray: Float32Array
 });
 
+define(Color.prototype, {
+  getRed: {
+    enumerable: true,
+    value: function() {
+      return getPtriFloat32(this, 0);
+    }
+  },
+  setRed: {
+    enumerable: true,
+    value: function() {
+      return setPtriFloat32(this, 0, Math.min(1, arguments[0]));
+    }
+  },
+  getGreen: {
+    enumerable: true,
+    value: function() {
+      return getPtriFloat32(this, 4);
+    }
+  },
+  setGreen: {
+    enumerable: true,
+    value: function() {
+      return setPtriFloat32(this, 4, Math.min(1, arguments[0]));
+    }
+  },
+  getBlue: {
+    enumerable: true,
+    value: function() {
+      return getPtriFloat32(this, 8);
+    }
+  },
+  setBlue: {
+    enumerable: true,
+    value: function() {
+      return setPtriFloat32(this, 8, Math.min(1, arguments[0]));
+    }
+  },
+  getAlpha: {
+    enumerable: true,
+    value: function() {
+      return getPtriFloat32(this, 12);
+    }
+  },
+  setAlpha: {
+    enumerable: true,
+    value: function() {
+      return setPtriFloat32(this, 12, Math.min(1, arguments[0]));
+    }
+  }
+});
+
+define(Color.prototype, {
+  getHex: function() {},
+  setHex: function() {},
+  getRgb: function() {},
+  setRgb: function() {},
+  getHsl: function() {},
+  setHsl: function() {},
+  getCss: function() {},
+  setCss: function() {},
+  getF32: function() {},
+  setF32: function() {},
+  getU32: function() {},
+  setU32: function() {},
+  getUi8: function() {},
+  setUi8: function() {},
+  getArr: function() {},
+  setArr: function() {}
+});
+
+define(Color.prototype, Symbol.iterator, function*() {
+  yield getPtriFloat32(this, 0);
+  yield getPtriFloat32(this, 4);
+  yield getPtriFloat32(this, 8);
+  return (yield getPtriFloat32(this, 12));
+});
+
 setTimeout(() => {
-  var clr, pos;
+  var c, clr, k, pos, results;
   log(pos = new Position.alloc());
-  return log(clr = new Color.alloc());
+  log(clr = new Color.alloc());
+  pos.y = 2;
+  for (k of pos) {
+    warn({k});
+  }
+  clr.setGreen(17);
+  results = [];
+  for (c of clr) {
+    results.push(warn({c}));
+  }
+  return results;
 }, 100);
 
 (REDEFINEPTR = function() {
@@ -397,27 +489,27 @@ setTimeout(() => {
   return results;
 })();
 
-(CLEAN_PROTO = function() {
-  var j, k, l, len1, len2, len3, len4, m, p, ref, ref1, ref2, ref3, results;
+(CLEARPROTOS = function() {
+  var j, l, len1, len2, len3, len4, m, n, p, ref, ref1, ref2, ref3, results;
   ref = "isFinite isInteger isNaN isSafeInteger parseFloat parseInt".split(/\n|\s+/g);
   for (j = 0, len1 = ref.length; j < len1; j++) {
     p = ref[j];
     Reflect.deleteProperty(Number, p);
   }
   ref1 = "toExponential toLocaleString toPrecision toFixed".split(/\n|\s+/g);
-  for (k = 0, len2 = ref1.length; k < len2; k++) {
-    p = ref1[k];
+  for (l = 0, len2 = ref1.length; l < len2; l++) {
+    p = ref1[l];
     Reflect.deleteProperty(Number.prototype, p);
   }
   ref2 = "assign create entries freeze fromEntries getOwnPropertyDescriptor getOwnPropertyNames getOwnPropertySymbols getPrototypeOf groupBy hasOwn is isExtensible isFrozen isSealed keys preventExtensions seal setPrototypeOf values".split(/\n|\s+/g);
-  for (l = 0, len3 = ref2.length; l < len3; l++) {
-    p = ref2[l];
+  for (m = 0, len3 = ref2.length; m < len3; m++) {
+    p = ref2[m];
     Reflect.deleteProperty(Object, p);
   }
   ref3 = "__defineGetter__ __defineSetter__ __lookupGetter__ __lookupSetter__ propertyIsEnumerable toLocaleString hasOwnProperty isPrototypeOf".split(/\n|\s+/g);
   results = [];
-  for (m = 0, len4 = ref3.length; m < len4; m++) {
-    p = ref3[m];
+  for (n = 0, len4 = ref3.length; n < len4; n++) {
+    p = ref3[n];
     results.push(Reflect.deleteProperty(Object.prototype, p));
   }
   return results;

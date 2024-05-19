@@ -81,6 +81,9 @@ define = ( object, props, desc ) ->
             Object.defineProperty object, prop, desc
 
     else
+        if !desc.get and !desc.set and !desc.value
+            desc = value : desc
+
         Object.defineProperty object, props, desc
 
     return object
@@ -182,9 +185,11 @@ define Pointer::        , isPointer : yes
 
 define Position         : Pointer
 
-define Position         , byteLength : 12
+define Position         , 
+    
+    byteLength          : 12
 
-define Position         , TypedArray : Float32Array
+    TypedArray          : Float32Array
 
 define Position::       , 
     getX : -> getPtriFloat32 this, 0
@@ -196,18 +201,85 @@ define Position::       ,
     getZ : -> getPtriFloat32 this, 8
     setZ : -> setPtriFloat32 this, 8, arguments[0]
 
+define Position::       , Symbol.iterator , ->
+    yield getPtriFloat32 this, 0
+    yield getPtriFloat32 this, 4
+    yield getPtriFloat32 this, 8
+
 define Color            : Pointer
 
-define Color            , byteLength : 16
+define Color            ,
 
-define Color            , TypedArray : Float32Array
+    byteLength          : 16
+
+    TypedArray          : Float32Array
+
+define Color::          , 
+    getRed   : enumerable : on, value : -> getPtriFloat32 this,  0
+    setRed   : enumerable : on, value : -> setPtriFloat32 this,  0, Math.min 1, arguments[0]
+
+    getGreen : enumerable : on, value : -> getPtriFloat32 this,  4
+    setGreen : enumerable : on, value : -> setPtriFloat32 this,  4, Math.min 1, arguments[0]
+
+    getBlue  : enumerable : on, value : -> getPtriFloat32 this,  8
+    setBlue  : enumerable : on, value : -> setPtriFloat32 this,  8, Math.min 1, arguments[0]
+
+    getAlpha : enumerable : on, value : -> getPtriFloat32 this, 12
+    setAlpha : enumerable : on, value : -> setPtriFloat32 this, 12, Math.min 1, arguments[0]
+
+define Color::          , 
+
+    getHex : ->
+    setHex : ->
+
+    getRgb : ->
+    setRgb : ->
+
+    getHsl : ->
+    setHsl : ->
+
+    getCss : ->
+    setCss : ->
+
+    getF32 : ->
+    setF32 : ->
+
+    getU32 : ->
+    setU32 : ->
+
+    getUi8 : ->
+    setUi8 : ->
+
+    getArr : ->
+    setArr : ->
+
+define Color::          , Symbol.iterator , ->
+    yield getPtriFloat32 this, 0
+    yield getPtriFloat32 this, 4
+    yield getPtriFloat32 this, 8
+    yield getPtriFloat32 this, 12
+
+
 
 
 
 setTimeout =>
     log pos = new Position.alloc()
     log clr = new Color.alloc()
+
+    pos.y = 2
+
+    for k from pos
+        warn { k }
+
+    clr.setGreen 17
+
+    for c from clr
+        warn { c }
+
 , 100
+
+
 
 do REDEFINEPTR = -> for Class in storage
 
@@ -253,7 +325,7 @@ do REDEFINEPTR = -> for Class in storage
             ui8ptri         : { get : => getPtriUint8Array this }
     define Class            , { length, BYTES_PER_ELEMENT }
 
-do CLEAN_PROTO = ->
+do CLEARPROTOS = ->
     for p in "
     isFinite isInteger isNaN isSafeInteger parseFloat parseInt 
     ".split(/\n|\s+/g) then Reflect.deleteProperty( Number, p )
