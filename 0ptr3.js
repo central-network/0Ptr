@@ -1,5 +1,5 @@
 //* hello world
-var BPE, CLEAN_PROTO, GL2KEY, GL2NUM, GL2VAL, HAS_BYTELENGTH, HAS_BYTEOFFSET, PTR_BYTELENGTH, PTR_CLASSINDEX, PTR_LENGTH, REDEFINEPTR, Storage, assign, debug, decode, define, dvw, encode, error, f32, getByteLength, getByteOffset, getClassIndex, getUint32, global, hasOwn, iLE, info, log, malloc, palloc, sab, setByteLength, setByteOffset, setClassIndex, setUint32, storage, table, u32, ui8, warn;
+var BPE, CLEAN_PROTO, GL2KEY, GL2NUM, GL2VAL, HAS_BYTELENGTH, HAS_BYTEOFFSET, HAS_LENGTH, PTR_BYTELENGTH, PTR_CLASSINDEX, PTR_LENGTH, REDEFINEPTR, Storage, assign, debug, decode, define, dvw, encode, error, f32, getByteLength, getByteOffset, getClassIndex, getFloat32, getLength, getPtriFloat32, getPtriUint32Array, getPtriUint8Array, getUint32, getUint8, global, hasOwn, iLE, info, log, malloc, palloc, sab, setByteLength, setByteOffset, setClassIndex, setFloat32, setLength, setPtriFloat32, setUint32, setUint8, storage, table, u32, ui8, warn;
 
 GL2KEY = Object.keys(WebGL2RenderingContext);
 
@@ -32,6 +32,8 @@ PTR_CLASSINDEX = 0 * BPE;
 HAS_BYTEOFFSET = 1 * BPE;
 
 HAS_BYTELENGTH = 2 * BPE;
+
+HAS_LENGTH = 3 * BPE;
 
 Atomics.store(u32, 0, PTR_BYTELENGTH);
 
@@ -148,6 +150,13 @@ malloc = function(byteLength = 0) {
 };
 
 global = {
+  f00: getUint8 = function(byteOffset) {
+    return dvw.getUint8(byteOffset);
+  },
+  f01: setUint8 = function(byteOffset, value) {
+    dvw.setUint8(byteOffset, value);
+    return value;
+  },
   f00: getUint32 = function(byteOffset) {
     return dvw.getUint32(byteOffset, iLE);
   },
@@ -155,23 +164,50 @@ global = {
     dvw.setUint32(byteOffset, value, iLE);
     return value;
   },
+  f00: getFloat32 = function(byteOffset) {
+    return dvw.getFloat32(byteOffset, iLE);
+  },
+  f01: setFloat32 = function(byteOffset, value) {
+    dvw.setFloat32(byteOffset, value, iLE);
+    return value;
+  },
+  //? ptri, ... ------>
+  f00: getPtriFloat32 = function(ptri, byteOffset) {
+    return getFloat32(byteOffset + getByteOffset(ptri), iLE);
+  },
+  f01: setPtriFloat32 = function(ptri, byteOffset, value) {
+    setFloat32(byteOffset + getByteOffset(ptri), value, iLE);
+    return value;
+  },
   f02: setClassIndex = function(ptri, classIndex) {
-    return setUint32(ptri + PTR_CLASSINDEX, classIndex);
+    return setUint8(ptri + PTR_CLASSINDEX, classIndex);
+  },
+  f05: getClassIndex = function(ptri) {
+    return getUint8(ptri + PTR_CLASSINDEX);
   },
   f03: setByteOffset = function(ptri, byteOffset) {
     return setUint32(ptri + HAS_BYTEOFFSET, byteOffset);
   },
-  f04: setByteLength = function(ptri, byteLength) {
-    return setUint32(ptri + HAS_BYTELENGTH, byteLength);
-  },
-  f05: getClassIndex = function(ptri) {
-    return getUint32(ptri + PTR_CLASSINDEX);
-  },
   f06: getByteOffset = function(ptri) {
     return getUint32(ptri + HAS_BYTEOFFSET);
   },
+  f04: setByteLength = function(ptri, byteLength) {
+    return setUint32(ptri + HAS_BYTELENGTH, byteLength);
+  },
   f07: getByteLength = function(ptri) {
     return getUint32(ptri + HAS_BYTELENGTH);
+  },
+  f04: setLength = function(ptri, length) {
+    return setUint32(ptri + HAS_LENGTH, length);
+  },
+  f07: getLength = function(ptri) {
+    return getUint32(ptri + HAS_LENGTH);
+  },
+  f07: getPtriUint8Array = function(ptri) {
+    return new Uint8Array(sab, ptri, PTR_BYTELENGTH);
+  },
+  f07: getPtriUint32Array = function(ptri) {
+    return new Uint32Array(sab, ptri, PTR_LENGTH);
   }
 };
 
@@ -182,17 +218,21 @@ define({
 define(Pointer, {
   alloc: {
     get: function() {
-      var $byteLength, clsi, ptri;
+      var blen, clsi, len, ptri;
       ptri = new this(palloc());
       clsi = this.classIndex;
       setClassIndex(ptri, clsi);
-      $byteLength = this.byteLength;
-      return function(byteLength = $byteLength) {
+      blen = this.byteLength;
+      len = this.length;
+      return function(byteLength = blen, length = len) {
         var byteOffset;
         if (byteLength) {
           byteOffset = malloc(byteLength);
           setByteOffset(ptri, byteOffset);
           setByteLength(ptri, byteLength);
+          if (length) {
+            setLength(ptri, length);
+          }
         }
         return ptri;
       };
@@ -216,16 +256,81 @@ define(Position, {
   TypedArray: Float32Array
 });
 
+define(Position.prototype, {
+  getX: function() {
+    return getPtriFloat32(this, 0);
+  },
+  setX: function() {
+    return setPtriFloat32(this, 0, arguments[0]);
+  },
+  getY: function() {
+    return getPtriFloat32(this, 4);
+  },
+  setY: function() {
+    return setPtriFloat32(this, 4, arguments[0]);
+  },
+  getZ: function() {
+    return getPtriFloat32(this, 8);
+  },
+  setZ: function() {
+    return setPtriFloat32(this, 8, arguments[0]);
+  }
+});
+
+define({
+  Color: Pointer
+});
+
+define(Color, {
+  byteLength: 16
+});
+
+define(Color, {
+  TypedArray: Float32Array
+});
+
 setTimeout(() => {
-  var pos;
-  return log(pos = new Position.alloc());
+  var clr, pos;
+  log(pos = new Position.alloc());
+  return log(clr = new Color.alloc());
 }, 100);
 
 (REDEFINEPTR = function() {
-  var BYTES_PER_ELEMENT, Class, TypedArray, byteLength, j, len, length, results, subarrayGetter;
+  var Alias, BYTES_PER_ELEMENT, Class, TypedArray, alias, byteLength, cache, d, desc, descs, get, j, len1, length, prop, results, set, subarray;
   results = [];
-  for (j = 0, len = storage.length; j < len; j++) {
+  for (j = 0, len1 = storage.length; j < len1; j++) {
     Class = storage[j];
+    descs = Object.getOwnPropertyDescriptors(Class.prototype);
+    cache = [];
+//* getProperty -> get property
+//* setProperty -> set property
+    for (prop in descs) {
+      desc = descs[prop];
+      if (!desc.enumerable) {
+        if (!/get|set/.test(prop.substring(0, 3))) {
+          continue;
+        }
+        Alias = prop.substring(3);
+        alias = Alias[0].toLowerCase() + Alias.substring(1);
+        if (descs[alias] || cache.includes(alias)) {
+          continue;
+        }
+        cache.push(alias);
+        if (d = descs[`get${Alias}`]) {
+          get = d.value;
+        }
+        if (d = descs[`set${Alias}`]) {
+          set = d.value;
+        }
+        define(Class.prototype, {
+          [alias]: {
+            get,
+            set,
+            enumerable: true
+          }
+        });
+      }
+    }
     if (!hasOwn(Class, "byteLength")) {
       continue;
     }
@@ -236,62 +341,82 @@ setTimeout(() => {
     BYTES_PER_ELEMENT = TypedArray.BYTES_PER_ELEMENT;
     byteLength = Class.byteLength;
     length = byteLength / BYTES_PER_ELEMENT;
-    subarrayGetter = (function() {
+    subarray = (function() {
       switch (TypedArray) {
         case Float32Array:
           return function() {
-            return new Float32Array(sab, this.byteOffset, this.constructor.length);
+            return new Float32Array(sab, getByteOffset(this), getLength(this));
           };
         case Uint32Array:
           return function() {
-            return new Uint32Array(sab, this.byteOffset, this.constructor.length);
+            return new Uint32Array(sab, getByteOffset(this), getLength(this));
           };
         case Uint8Array:
           return function() {
-            return new Uint8Array(sab, this.byteOffset, this.constructor.length);
+            return new Uint8Array(sab, getByteOffset(this), getLength(this));
           };
       }
     })();
-    define(Class, {length, BYTES_PER_ELEMENT});
-    results.push(define(Class.prototype, {
-      subarray: {
-        get: subarrayGetter
-      },
-      byteOffset: {
+    define(Class.prototype, {
+      debug: {
         get: function() {
-          return getByteOffset(this);
-        }
-      },
-      byteLength: {
-        get: function() {
-          return getByteLength(this);
+          var enumerable;
+          return Object.defineProperties(enumerable = {}, {
+            subarray: {
+              enumerable,
+              value: subarray.call(this)
+            },
+            byteOffset: {
+              enumerable,
+              value: getByteOffset(this)
+            },
+            byteLength: {
+              enumerable,
+              value: getByteLength(this)
+            },
+            length: {
+              enumerable,
+              value: getLength(this)
+            },
+            u32ptri: {
+              get: () => {
+                return getPtriUint32Array(this);
+              }
+            },
+            ui8ptri: {
+              get: () => {
+                return getPtriUint8Array(this);
+              }
+            }
+          });
         }
       }
-    }));
+    });
+    results.push(define(Class, {length, BYTES_PER_ELEMENT}));
   }
   return results;
 })();
 
 (CLEAN_PROTO = function() {
-  var j, k, l, len, len1, len2, len3, m, p, ref, ref1, ref2, ref3, results;
+  var j, k, l, len1, len2, len3, len4, m, p, ref, ref1, ref2, ref3, results;
   ref = "isFinite isInteger isNaN isSafeInteger parseFloat parseInt".split(/\n|\s+/g);
-  for (j = 0, len = ref.length; j < len; j++) {
+  for (j = 0, len1 = ref.length; j < len1; j++) {
     p = ref[j];
     Reflect.deleteProperty(Number, p);
   }
   ref1 = "toExponential toLocaleString toPrecision toFixed".split(/\n|\s+/g);
-  for (k = 0, len1 = ref1.length; k < len1; k++) {
+  for (k = 0, len2 = ref1.length; k < len2; k++) {
     p = ref1[k];
     Reflect.deleteProperty(Number.prototype, p);
   }
   ref2 = "assign create entries freeze fromEntries getOwnPropertyDescriptor getOwnPropertyNames getOwnPropertySymbols getPrototypeOf groupBy hasOwn is isExtensible isFrozen isSealed keys preventExtensions seal setPrototypeOf values".split(/\n|\s+/g);
-  for (l = 0, len2 = ref2.length; l < len2; l++) {
+  for (l = 0, len3 = ref2.length; l < len3; l++) {
     p = ref2[l];
     Reflect.deleteProperty(Object, p);
   }
   ref3 = "__defineGetter__ __defineSetter__ __lookupGetter__ __lookupSetter__ propertyIsEnumerable toLocaleString hasOwnProperty isPrototypeOf".split(/\n|\s+/g);
   results = [];
-  for (m = 0, len3 = ref3.length; m < len3; m++) {
+  for (m = 0, len4 = ref3.length; m < len4; m++) {
     p = ref3[m];
     results.push(Reflect.deleteProperty(Object.prototype, p));
   }
