@@ -1,5 +1,5 @@
 //* hello world
-var BPE, CLEARPROTOS, GL2KEY, GL2NUM, GL2VAL, HAS_BYTELENGTH, HAS_BYTEOFFSET, HAS_LENGTH, PTR_BYTELENGTH, PTR_CLASSINDEX, PTR_LENGTH, REDEFINEPTR, Storage, assign, debug, decode, define, dvw, encode, error, f32, getByteLength, getByteOffset, getClassIndex, getFloat32, getLength, getPtriFloat32, getPtriUint32Array, getPtriUint8Array, getUint32, getUint8, global, hasOwn, iLE, info, log, malloc, palloc, sab, setByteLength, setByteOffset, setClassIndex, setFloat32, setLength, setPtriFloat32, setUint32, setUint8, storage, table, u32, ui8, warn;
+var BPE, CLEARPROTOS, GL2KEY, GL2NUM, GL2VAL, HAS_BYTELENGTH, HAS_BYTEOFFSET, HAS_LENGTH, PTR_BYTELENGTH, PTR_CLASSINDEX, PTR_LENGTH, REDEFINEPTR, Storage, assign, debug, decode, define, dvw, encode, error, f32, getByteLength, getByteOffset, getClassIndex, getFloat32, getFloat32Array, getLength, getPtriFloat32, getUint32, getUint8, global, hasOwn, iLE, info, log, malloc, palloc, ptrFloat32Array, ptrUint32Array, ptrUint8Array, ptriColor4ArrayGetter, ptriColor4CssGetter, ptriColor4HexGetter, ptriColor4HslaGetter, ptriColor4NumberGetter, ptriColor4RgbaGetter, ptriFloat32Array, ptriFloat32ArrayGetter, ptriFloat32ArraySetter, ptriVector3LengthGetter, sab, setByteLength, setByteOffset, setClassIndex, setFloat32, setLength, setPtriFloat32, setUint32, setUint8, storage, table, u32, ui8, warn;
 
 GL2KEY = Object.keys(WebGL2RenderingContext);
 
@@ -176,6 +176,12 @@ global = {
     dvw.setFloat32(byteOffset, value, iLE);
     return value;
   },
+  f07: getFloat32Array = function(byteOffset, length) {
+    if (!byteOffset || !length) {
+      throw /OFFSET_LEN/;
+    }
+    return new Float32Array(sab, byteOffset, length);
+  },
   //? ptri, ... ------>
   f00: getPtriFloat32 = function(ptri, byteOffset) {
     return getFloat32(byteOffset + getByteOffset(ptri), iLE);
@@ -208,14 +214,109 @@ global = {
   f07: getLength = function(ptri) {
     return getUint32(ptri + HAS_LENGTH);
   },
-  f07: getPtriUint8Array = function(ptri) {
+  f07: ptrUint8Array = function(ptri) {
     return new Uint8Array(sab, ptri, PTR_BYTELENGTH);
   },
-  f07: getPtriUint32Array = function(ptri) {
+  f07: ptrUint32Array = function(ptri) {
     return new Uint32Array(sab, ptri, PTR_LENGTH);
+  },
+  f07: ptrFloat32Array = function(ptri) {
+    return new Float32Array(sab, ptri, PTR_LENGTH);
+  },
+  f07: ptriFloat32Array = function(ptri, byteOffset = 0, length) {
+    length || (length = getLength(ptri));
+    byteOffset += getByteOffset(ptri);
+    return new Float32Array(sab, byteOffset, length);
+  },
+  fff: ptriFloat32ArrayGetter = function() {
+    return new Float32Array(sab, getByteOffset(this), getLength(this));
+  },
+  fff: ptriFloat32ArraySetter = function(any) {
+    var i, isArray, isView, v;
+    isArray = Array.isArray(any);
+    isView = ArrayBuffer.isView(any);
+    if (isArray || isView) {
+      i = 0;
+      for (v of any) {
+        setPtriFloat32(this, 4 * i++, v);
+      }
+    } else {
+      throw /TODOLIST_SETTER_FLOAT32/;
+    }
+    return this;
+  },
+  fff: ptriVector3LengthGetter = function() {
+    var x, y, z;
+    [x, y, z] = this.subarray;
+    return Math.sqrt(x * x + y * y + z * z);
+  },
+  fff: ptriColor4HexGetter = function() {
+    var a, alpha, b, blue, g, green, r, red;
+    [red, green, blue, alpha] = this.array;
+    r = red.toString(16).padStart(2, 0);
+    g = green.toString(16).padStart(2, 0);
+    b = blue.toString(16).padStart(2, 0);
+    a = alpha.toString(16).padStart(2, 0);
+    return `0x${r}${g}${b}${a}`;
+  },
+  fff: ptriColor4CssGetter = function() {
+    var blue, green, red;
+    [red, green, blue] = ptriColor4ArrayGetter.call(this);
+    return `rgba( ${red}, ${green}, ${blue} }, ${this.getAlpha()} )`;
+  },
+  fff: ptriColor4ArrayGetter = function() {
+    return [...this.subarray].map(function(v) {
+      return Math.trunc(v * 0xff);
+    });
+  },
+  fff: ptriColor4NumberGetter = function() {
+    return parseInt(ptriColor4HexGetter.call(this), 16);
+  },
+  fff: ptriColor4RgbaGetter = function() {
+    var alpha, blue, green, red;
+    [red, green, blue, alpha] = this.array;
+    return {red, green, blue, alpha};
+  },
+  fff: ptriColor4HslaGetter = function() {
+    var a, b, delta, g, h, l, max, min, r, s;
+    [r, g, b, a] = this.subarray;
+    // ref   : https://stackoverflow.com/a/58426404/21225939
+    // author: @Crashalot
+    // edit  : @Mike Pomax Kamermans, me
+    max = Math.max(r, g, b);
+    min = Math.min(r, g, b);
+    delta = max - min;
+    h = s = l = 0;
+    if (!delta) {
+      h = 0;
+    } else if (max === r) {
+      h = ((g - b) / delta) % 6;
+    } else if (max === g) {
+      h = (b - r) / delta + 2;
+    } else if (max === b) {
+      h = (r - g) / delta + 4;
+    }
+    h = Math.round(h * 60);
+    if (h < 0) {
+      h = 360 + h;
+    }
+    l = (max + min) / 2;
+    s = delta / (1 - Math.abs(2 * l - 1));
+    
+    // Multiply l, a and s by 100
+    s = Math.trunc(s * 100);
+    l = Math.trunc(l * 100);
+    a = Math.trunc(a * 100);
+    return {
+      hue: h,
+      saturation: s,
+      lightness: l,
+      alpha: a
+    };
   }
 };
 
+//? helpers ----->
 define({
   Pointer: Number
 });
@@ -279,10 +380,23 @@ define(Position.prototype, {
   }
 });
 
+define(Position.prototype, {
+  set: {
+    value: ptriFloat32ArraySetter
+  },
+  length: {
+    get: ptriVector3LengthGetter
+  },
+  subarray: {
+    get: ptriFloat32ArrayGetter
+  }
+});
+
 define(Position.prototype, Symbol.iterator, function*() {
   yield getPtriFloat32(this, 0);
   yield getPtriFloat32(this, 4);
-  return (yield getPtriFloat32(this, 8));
+  yield getPtriFloat32(this, 8);
+  return 0;
 });
 
 define({
@@ -296,49 +410,41 @@ define(Color, {
 
 define(Color.prototype, {
   getRed: {
-    enumerable: true,
     value: function() {
       return getPtriFloat32(this, 0);
     }
   },
   setRed: {
-    enumerable: true,
     value: function() {
       return setPtriFloat32(this, 0, Math.min(1, arguments[0]));
     }
   },
   getGreen: {
-    enumerable: true,
     value: function() {
       return getPtriFloat32(this, 4);
     }
   },
   setGreen: {
-    enumerable: true,
     value: function() {
       return setPtriFloat32(this, 4, Math.min(1, arguments[0]));
     }
   },
   getBlue: {
-    enumerable: true,
     value: function() {
       return getPtriFloat32(this, 8);
     }
   },
   setBlue: {
-    enumerable: true,
     value: function() {
       return setPtriFloat32(this, 8, Math.min(1, arguments[0]));
     }
   },
   getAlpha: {
-    enumerable: true,
     value: function() {
       return getPtriFloat32(this, 12);
     }
   },
   setAlpha: {
-    enumerable: true,
     value: function() {
       return setPtriFloat32(this, 12, Math.min(1, arguments[0]));
     }
@@ -346,50 +452,43 @@ define(Color.prototype, {
 });
 
 define(Color.prototype, {
-  getHex: function() {},
-  setHex: function() {},
-  getRgb: function() {},
-  setRgb: function() {},
-  getHsl: function() {},
-  setHsl: function() {},
-  getCss: function() {},
-  setCss: function() {},
-  getF32: function() {},
-  setF32: function() {},
-  getU32: function() {},
-  setU32: function() {},
-  getUi8: function() {},
-  setUi8: function() {},
-  getArr: function() {},
-  setArr: function() {}
+  set: {
+    value: ptriFloat32ArraySetter
+  },
+  hex: {
+    get: ptriColor4HexGetter
+  },
+  hsla: {
+    get: ptriColor4HslaGetter
+  },
+  rgba: {
+    get: ptriColor4RgbaGetter
+  },
+  css: {
+    get: ptriColor4CssGetter
+  },
+  subarray: {
+    get: ptriFloat32ArrayGetter
+  },
+  number: {
+    get: ptriColor4NumberGetter
+  },
+  array: {
+    get: ptriColor4ArrayGetter
+  }
 });
 
 define(Color.prototype, Symbol.iterator, function*() {
   yield getPtriFloat32(this, 0);
   yield getPtriFloat32(this, 4);
   yield getPtriFloat32(this, 8);
-  return (yield getPtriFloat32(this, 12));
+  yield getPtriFloat32(this, 12);
+  return 0;
 });
 
-setTimeout(() => {
-  var c, clr, k, pos, results;
-  log(pos = new Position.alloc());
-  log(clr = new Color.alloc());
-  pos.y = 2;
-  for (k of pos) {
-    warn({k});
-  }
-  clr.setGreen(17);
-  results = [];
-  for (c of clr) {
-    results.push(warn({c}));
-  }
-  return results;
-}, 100);
-
+//? finish ---->
 (REDEFINEPTR = function() {
-  var Alias, BYTES_PER_ELEMENT, Class, TypedArray, alias, byteLength, cache, d, desc, descs, get, j, len1, length, prop, results, set, subarray;
-  results = [];
+  var Alias, BYTES_PER_ELEMENT, Class, TypedArray, alias, byteLength, cache, d, desc, descs, get, j, len1, length, prop, set, subarray;
   for (j = 0, len1 = storage.length; j < len1; j++) {
     Class = storage[j];
     descs = Object.getOwnPropertyDescriptors(Class.prototype);
@@ -402,7 +501,9 @@ setTimeout(() => {
         if (!/get|set/.test(prop.substring(0, 3))) {
           continue;
         }
-        Alias = prop.substring(3);
+        if (!(Alias = prop.substring(3))) {
+          continue;
+        }
         alias = Alias[0].toLowerCase() + Alias.substring(1);
         if (descs[alias] || cache.includes(alias)) {
           continue;
@@ -472,45 +573,69 @@ setTimeout(() => {
             },
             u32ptri: {
               get: () => {
-                return getPtriUint32Array(this);
+                return ptrUint32Array(this);
               }
             },
             ui8ptri: {
               get: () => {
-                return getPtriUint8Array(this);
+                return ptrUint8Array(this);
               }
             }
           });
         }
       }
     });
-    results.push(define(Class, {length, BYTES_PER_ELEMENT}));
+    define(Class, {length, BYTES_PER_ELEMENT});
   }
-  return results;
+  return 0;
 })();
 
 (CLEARPROTOS = function() {
-  var j, l, len1, len2, len3, len4, m, n, p, ref, ref1, ref2, ref3, results;
+  var j, len1, len2, len3, len4, m, n, p, q, ref, ref1, ref2, ref3;
   ref = "isFinite isInteger isNaN isSafeInteger parseFloat parseInt".split(/\n|\s+/g);
   for (j = 0, len1 = ref.length; j < len1; j++) {
     p = ref[j];
     Reflect.deleteProperty(Number, p);
   }
   ref1 = "toExponential toLocaleString toPrecision toFixed".split(/\n|\s+/g);
-  for (l = 0, len2 = ref1.length; l < len2; l++) {
-    p = ref1[l];
+  for (m = 0, len2 = ref1.length; m < len2; m++) {
+    p = ref1[m];
     Reflect.deleteProperty(Number.prototype, p);
   }
   ref2 = "assign create entries freeze fromEntries getOwnPropertyDescriptor getOwnPropertyNames getOwnPropertySymbols getPrototypeOf groupBy hasOwn is isExtensible isFrozen isSealed keys preventExtensions seal setPrototypeOf values".split(/\n|\s+/g);
-  for (m = 0, len3 = ref2.length; m < len3; m++) {
-    p = ref2[m];
+  for (n = 0, len3 = ref2.length; n < len3; n++) {
+    p = ref2[n];
     Reflect.deleteProperty(Object, p);
   }
   ref3 = "__defineGetter__ __defineSetter__ __lookupGetter__ __lookupSetter__ propertyIsEnumerable toLocaleString hasOwnProperty isPrototypeOf".split(/\n|\s+/g);
+  for (q = 0, len4 = ref3.length; q < len4; q++) {
+    p = ref3[q];
+    Reflect.deleteProperty(Object.prototype, p);
+  }
+  return 0;
+})();
+
+//? test ---->
+setTimeout(() => {
+  var clr, j, k, len1, pos, results, v;
+  log(pos = new Position.alloc());
+  log(clr = new Color.alloc());
+  pos.y = 2;
+  for (k of pos) {
+    warn({k});
+  }
+  clr.setRed(.7);
+  clr.setGreen(.1);
+  clr.setAlpha(1);
+  clr.set([.2]);
+  for (k in clr) {
+    v = clr[k];
+    warn({k, v});
+  }
   results = [];
-  for (n = 0, len4 = ref3.length; n < len4; n++) {
-    p = ref3[n];
-    results.push(Reflect.deleteProperty(Object.prototype, p));
+  for (j = 0, len1 = clr.length; j < len1; j++) {
+    k = clr[j];
+    results.push(warn(1, {k}));
   }
   return results;
-})();
+}, 100);

@@ -27,7 +27,6 @@ Atomics.store       u32, 1, 2000 * PTR_BYTELENGTH
 Atomics.store       u32, 2, 0
 
 warn storage        = new ( class Storage extends Array
-
     constructor         : -> super( arguments... )[0] ?= null
     store               : ( any, bytes = 2 ) ->
         if  -1 is i = @indexOf any
@@ -48,7 +47,6 @@ warn storage        = new ( class Storage extends Array
     storeForUint16      : ( any ) -> @store any, 2
     storeForUint32      : ( any ) -> @store any, 4
     storeForUint64      : ( any ) -> @store any, 8
-
 ) Number
 
 hasOwn = (o, v) ->
@@ -104,61 +102,157 @@ malloc = ( byteLength = 0 ) ->
 
 global =
 
-    f00 : getUint8              = ( byteOffset ) ->
+    f00 : getUint8                  = ( byteOffset ) ->
         dvw.getUint8 byteOffset
 
-    f01 : setUint8              = ( byteOffset, value ) ->
+    f01 : setUint8                  = ( byteOffset, value ) ->
         dvw.setUint8 byteOffset, value ; value
 
-    f00 : getUint32             = ( byteOffset ) ->
+    f00 : getUint32                 = ( byteOffset ) ->
         dvw.getUint32 byteOffset, iLE
 
-    f01 : setUint32             = ( byteOffset, value ) ->
+    f01 : setUint32                 = ( byteOffset, value ) ->
         dvw.setUint32 byteOffset, value, iLE ; value
 
-    f00 : getFloat32            = ( byteOffset ) ->
+    f00 : getFloat32                = ( byteOffset ) ->
         dvw.getFloat32 byteOffset, iLE
 
-    f01 : setFloat32            = ( byteOffset, value ) ->
+    f01 : setFloat32                = ( byteOffset, value ) ->
         dvw.setFloat32 byteOffset, value, iLE ; value
+
+    f07 : getFloat32Array           = ( byteOffset, length ) ->
+        throw /OFFSET_LEN/ if !byteOffset or !length
+        new Float32Array sab, byteOffset, length
+
 
     #? ptri, ... ------>
 
-    f00 : getPtriFloat32        = ( ptri, byteOffset ) ->
+    f00 : getPtriFloat32            = ( ptri, byteOffset ) ->
         getFloat32 byteOffset + getByteOffset(ptri), iLE
 
-    f01 : setPtriFloat32        = ( ptri, byteOffset, value ) ->
+    f01 : setPtriFloat32            = ( ptri, byteOffset, value ) ->
         setFloat32 byteOffset + getByteOffset(ptri), value, iLE ; value
 
-    f02 : setClassIndex         = ( ptri, classIndex ) ->
+    f02 : setClassIndex             = ( ptri, classIndex ) ->
         setUint8 ptri + PTR_CLASSINDEX, classIndex
 
-    f05 : getClassIndex         = ( ptri ) ->
+    f05 : getClassIndex             = ( ptri ) ->
         getUint8 ptri + PTR_CLASSINDEX
         
-    f03 : setByteOffset         = ( ptri, byteOffset ) ->
+    f03 : setByteOffset             = ( ptri, byteOffset ) ->
         setUint32 ptri + HAS_BYTEOFFSET, byteOffset
         
-    f06 : getByteOffset         = ( ptri ) ->
+    f06 : getByteOffset             = ( ptri ) ->
         getUint32 ptri + HAS_BYTEOFFSET
 
-    f04 : setByteLength         = ( ptri, byteLength ) ->
+    f04 : setByteLength             = ( ptri, byteLength ) ->
         setUint32 ptri + HAS_BYTELENGTH, byteLength
 
-    f07 : getByteLength         = ( ptri ) ->
+    f07 : getByteLength             = ( ptri ) ->
         getUint32 ptri + HAS_BYTELENGTH
 
-    f04 : setLength             = ( ptri, length ) ->
+    f04 : setLength                 = ( ptri, length ) ->
         setUint32 ptri + HAS_LENGTH, length
 
-    f07 : getLength             = ( ptri ) ->
+    f07 : getLength                 = ( ptri ) ->
         getUint32 ptri + HAS_LENGTH
-
-    f07 : getPtriUint8Array    = ( ptri ) ->
+    
+    f07 : ptrUint8Array             = ( ptri ) ->
         new Uint8Array sab, ptri, PTR_BYTELENGTH 
 
-    f07 : getPtriUint32Array    = ( ptri ) ->
+    f07 : ptrUint32Array            = ( ptri ) ->
         new Uint32Array sab, ptri, PTR_LENGTH 
+
+    f07 : ptrFloat32Array           = ( ptri ) ->
+        new Float32Array sab, ptri, PTR_LENGTH 
+
+    f07 : ptriFloat32Array          = ( ptri, byteOffset = 0, length ) ->
+        length or= getLength( ptri )
+        byteOffset += getByteOffset( ptri )
+        new Float32Array sab, byteOffset, length 
+
+    fff : ptriFloat32ArrayGetter    = ->
+        new Float32Array sab, getByteOffset( this ), getLength( this ) 
+
+    fff : ptriFloat32ArraySetter    = ( any ) ->
+        isArray = Array.isArray any
+        isView  = ArrayBuffer.isView any
+
+        if  isArray or isView 
+            i = 0
+            for v from any
+                setPtriFloat32 this,  4 * i++, v
+        else 
+            throw /TODOLIST_SETTER_FLOAT32/
+
+        this
+
+    fff : ptriVector3LengthGetter   = ->
+        [ x, y, z ] = @subarray
+        Math.sqrt x*x + y*y + z*z
+
+    fff : ptriColor4HexGetter       = ->
+        [ red, green, blue, alpha ] = @array
+
+        r = red     .toString(16).padStart(2,0)
+        g = green   .toString(16).padStart(2,0)
+        b = blue    .toString(16).padStart(2,0)
+        a = alpha   .toString(16).padStart(2,0)
+
+        "0x#{r}#{g}#{b}#{a}"
+
+    fff : ptriColor4CssGetter       = ->
+        [ red, green, blue ] = ptriColor4ArrayGetter.call(@)
+        "rgba( #{red}, #{green}, #{blue} }, #{@getAlpha()} )"
+
+    fff : ptriColor4ArrayGetter     = ->
+        [ ...@subarray ].map (v) -> Math.trunc v * 0xff
+
+    fff : ptriColor4NumberGetter    = ->
+        parseInt ptriColor4HexGetter.call( this ), 16
+
+    fff : ptriColor4RgbaGetter      = ->
+        [ red, green, blue, alpha ] = @array
+        { red, green, blue, alpha }
+
+    fff : ptriColor4HslaGetter      = ->
+        [ r, g, b, a ] = @subarray
+
+        # ref   : https://stackoverflow.com/a/58426404/21225939
+        # author: @Crashalot
+        # edit  : @Mike Pomax Kamermans, me
+        max = Math.max r, g, b
+        min = Math.min r, g, b
+        
+        delta = max - min
+        h = s = l = 0
+
+        unless  delta
+            h = 0
+
+        else if max is r
+            h = ((g - b) / delta) % 6
+        
+        else if max is g
+            h = ((b - r) / delta  + 2)
+        
+        else if max is b
+            h = ((r - g) / delta  + 4)
+
+        h = Math.round h * 60
+        h = 360 + h if h < 0
+        l = ( max + min ) / 2
+        s = delta / (1 - Math.abs( 2 * l - 1 ))
+            
+        # Multiply l, a and s by 100
+        s = Math.trunc s * 100
+        l = Math.trunc l * 100
+        a = Math.trunc a * 100
+
+        { hue: h, saturation: s, lightness: l, alpha: a }
+
+    #? helpers ----->
+
 
 define Pointer          : Number
 
@@ -201,10 +295,19 @@ define Position::       ,
     getZ : -> getPtriFloat32 this, 8
     setZ : -> setPtriFloat32 this, 8, arguments[0]
 
+define Position::       ,
+
+    set         : value : ptriFloat32ArraySetter
+
+    length      : get   : ptriVector3LengthGetter
+
+    subarray    : get   : ptriFloat32ArrayGetter
+
 define Position::       , Symbol.iterator , ->
     yield getPtriFloat32 this, 0
     yield getPtriFloat32 this, 4
     yield getPtriFloat32 this, 8
+    0
 
 define Color            : Pointer
 
@@ -215,115 +318,92 @@ define Color            ,
     TypedArray          : Float32Array
 
 define Color::          , 
-    getRed   : enumerable : on, value : -> getPtriFloat32 this,  0
-    setRed   : enumerable : on, value : -> setPtriFloat32 this,  0, Math.min 1, arguments[0]
+    getRed   : value : -> getPtriFloat32 this,  0
+    setRed   : value : -> setPtriFloat32 this,  0, Math.min 1, arguments[0]
 
-    getGreen : enumerable : on, value : -> getPtriFloat32 this,  4
-    setGreen : enumerable : on, value : -> setPtriFloat32 this,  4, Math.min 1, arguments[0]
+    getGreen : value : -> getPtriFloat32 this,  4
+    setGreen : value : -> setPtriFloat32 this,  4, Math.min 1, arguments[0]
 
-    getBlue  : enumerable : on, value : -> getPtriFloat32 this,  8
-    setBlue  : enumerable : on, value : -> setPtriFloat32 this,  8, Math.min 1, arguments[0]
+    getBlue  : value : -> getPtriFloat32 this,  8
+    setBlue  : value : -> setPtriFloat32 this,  8, Math.min 1, arguments[0]
 
-    getAlpha : enumerable : on, value : -> getPtriFloat32 this, 12
-    setAlpha : enumerable : on, value : -> setPtriFloat32 this, 12, Math.min 1, arguments[0]
+    getAlpha : value : -> getPtriFloat32 this, 12
+    setAlpha : value : -> setPtriFloat32 this, 12, Math.min 1, arguments[0]
 
 define Color::          , 
 
-    getHex : ->
-    setHex : ->
+    set         : value : ptriFloat32ArraySetter
 
-    getRgb : ->
-    setRgb : ->
+    hex         : get   : ptriColor4HexGetter
 
-    getHsl : ->
-    setHsl : ->
+    hsla        : get   : ptriColor4HslaGetter  
 
-    getCss : ->
-    setCss : ->
+    rgba        : get   : ptriColor4RgbaGetter
 
-    getF32 : ->
-    setF32 : ->
+    css         : get   : ptriColor4CssGetter
 
-    getU32 : ->
-    setU32 : ->
+    subarray    : get   : ptriFloat32ArrayGetter
 
-    getUi8 : ->
-    setUi8 : ->
+    number      : get   : ptriColor4NumberGetter
 
-    getArr : ->
-    setArr : ->
+    array       : get   : ptriColor4ArrayGetter
 
 define Color::          , Symbol.iterator , ->
-    yield getPtriFloat32 this, 0
-    yield getPtriFloat32 this, 4
-    yield getPtriFloat32 this, 8
+    yield getPtriFloat32 this,  0
+    yield getPtriFloat32 this,  4
+    yield getPtriFloat32 this,  8
     yield getPtriFloat32 this, 12
+    0
 
 
+#? finish ---->
 
+do REDEFINEPTR = ->
+    for Class in storage
 
+        descs = Object.getOwnPropertyDescriptors Class::
+        cache = []
 
-setTimeout =>
-    log pos = new Position.alloc()
-    log clr = new Color.alloc()
+        #* getProperty -> get property
+        #* setProperty -> set property
+        for prop , desc of descs then unless desc.enumerable
 
-    pos.y = 2
+            continue if !/get|set/.test prop.substring 0, 3
+            continue unless Alias = prop.substring 3
+            
+            alias = Alias[0].toLowerCase() + Alias.substring 1
 
-    for k from pos
-        warn { k }
+            continue if descs[ alias ] or cache.includes alias
+            cache.push alias
 
-    clr.setGreen 17
+            get = d.value if d = descs[ "get#{Alias}" ]
+            set = d.value if d = descs[ "set#{Alias}" ]
 
-    for c from clr
-        warn { c }
+            define Class:: , [ alias ] : { get, set, enumerable : on }
 
-, 100
+        continue if !hasOwn Class , "byteLength"
+        continue if !hasOwn Class , "TypedArray"
+        
+        TypedArray          = Class.TypedArray
+        BYTES_PER_ELEMENT   = TypedArray.BYTES_PER_ELEMENT 
+        byteLength          = Class.byteLength
+        length              = byteLength / BYTES_PER_ELEMENT
+        subarray            = switch TypedArray
+            when Float32Array   then -> new Float32Array sab, getByteOffset(this), getLength(this)
+            when Uint32Array    then -> new Uint32Array sab, getByteOffset(this), getLength(this)
+            when Uint8Array     then -> new Uint8Array sab, getByteOffset(this), getLength(this)
+        
+        define Class::          ,
+            debug               : get : -> Object.defineProperties enumerable = {},
+                subarray        : { enumerable , value : subarray.call this }
+                byteOffset      : { enumerable , value : getByteOffset this }
+                byteLength      : { enumerable , value : getByteLength this } 
+                length          : { enumerable , value : getLength this     }
+                u32ptri         : { get : => ptrUint32Array this }
+                ui8ptri         : { get : => ptrUint8Array this }
+        define Class            , { length, BYTES_PER_ELEMENT }
 
-
-
-do REDEFINEPTR = -> for Class in storage
-
-    descs = Object.getOwnPropertyDescriptors Class::
-    cache = []
-
-    #* getProperty -> get property
-    #* setProperty -> set property
-    for prop , desc of descs then unless desc.enumerable
-
-        continue if !/get|set/.test prop.substring 0, 3
-
-        Alias = prop.substring 3
-        alias = Alias[0].toLowerCase() + Alias.substring 1
-
-        continue if descs[ alias ] or cache.includes alias
-        cache.push alias
-
-        get = d.value if d = descs[ "get#{Alias}" ]
-        set = d.value if d = descs[ "set#{Alias}" ]
-
-        define Class:: , [ alias ] : { get, set, enumerable : on }
-
-    continue if !hasOwn Class , "byteLength"
-    continue if !hasOwn Class , "TypedArray"
-    
-    TypedArray          = Class.TypedArray
-    BYTES_PER_ELEMENT   = TypedArray.BYTES_PER_ELEMENT 
-    byteLength          = Class.byteLength
-    length              = byteLength / BYTES_PER_ELEMENT
-    subarray            = switch TypedArray
-        when Float32Array   then -> new Float32Array sab, getByteOffset(this), getLength(this)
-        when Uint32Array    then -> new Uint32Array sab, getByteOffset(this), getLength(this)
-        when Uint8Array     then -> new Uint8Array sab, getByteOffset(this), getLength(this)
-    
-    define Class::          ,
-        debug               : get : -> Object.defineProperties enumerable = {},
-            subarray        : { enumerable , value : subarray.call this }
-            byteOffset      : { enumerable , value : getByteOffset this }
-            byteLength      : { enumerable , value : getByteLength this } 
-            length          : { enumerable , value : getLength this     }
-            u32ptri         : { get : => getPtriUint32Array this }
-            ui8ptri         : { get : => getPtriUint8Array this }
-    define Class            , { length, BYTES_PER_ELEMENT }
+    0
 
 do CLEARPROTOS = ->
     for p in "
@@ -346,4 +426,32 @@ do CLEARPROTOS = ->
         propertyIsEnumerable toLocaleString hasOwnProperty isPrototypeOf
     ".split(/\n|\s+/g) then Reflect.deleteProperty( Object::, p )    
 
+
+    0
+
+
+#? test ---->
+
+    
+setTimeout =>
+    log pos = new Position.alloc()
+    log clr = new Color.alloc()
+
+    pos.y = 2
+
+    for k from pos
+        warn { k }
+
+    clr.setRed .7
+    clr.setGreen .1
+    clr.setAlpha 1
+    clr.set [ .2 ]
+
+    for k, v of clr
+        warn { k , v }
+
+    for k in clr
+        warn 1, { k }
+
+, 100
 
