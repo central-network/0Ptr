@@ -16,11 +16,16 @@ BPE = 4
 
 PTR_LENGTH          = 16
 PTR_BYTELENGTH      = BPE * PTR_LENGTH
-PTR_CLASSINDEX      = 0 * BPE
 
-HAS_BYTEOFFSET      = 1 * BPE
-HAS_BYTELENGTH      = 2 * BPE
-HAS_LENGTH          = 3 * BPE
+PTR_STATUSi         = 0 * BPE
+PTR_CLASSi          = PTR_STATUSi + 1
+
+PTR_PARENTi         = 1 * BPE
+PTR_LINKEDi         = 2 * BPE
+
+HAS_BYTEOFFSET      = 3 * BPE
+HAS_BYTELENGTH      = 4 * BPE
+HAS_LENGTH          = 5 * BPE
 
 Atomics.store       u32, 0, PTR_BYTELENGTH
 Atomics.store       u32, 1, 2000 * PTR_BYTELENGTH
@@ -85,6 +90,15 @@ define = ( object, props, desc ) ->
         Object.defineProperty object, props, desc
 
     return object
+symbol = ( object, props ) ->
+    break for alias, desc of props 
+    define object, Symbol[alias], value : desc
+getter = ( object, props ) ->
+    break for alias, desc of props 
+    define object, alias, get : desc
+setter = ( object, props ) ->
+    break for alias, desc of props 
+    define object, alias, set : desc
 encode = TextEncoder::encode.bind new TextEncoder
 decode = TextDecoder::decode.bind new TextDecoder
 palloc = ->
@@ -124,7 +138,6 @@ global =
         throw /OFFSET_LEN/ if !byteOffset or !length
         new Float32Array sab, byteOffset, length
 
-
     #? ptri, ... ------>
 
     f00 : getPtriFloat32            = ( ptri, byteOffset ) ->
@@ -133,11 +146,29 @@ global =
     f01 : setPtriFloat32            = ( ptri, byteOffset, value ) ->
         setFloat32 byteOffset + getByteOffset(ptri), value, iLE ; value
 
-    f02 : setClassIndex             = ( ptri, classIndex ) ->
-        setUint8 ptri + PTR_CLASSINDEX, classIndex
+    f02 : setPtriStatus             = ( ptri, status ) ->
+        setUint8 ptri + PTR_STATUSi, status ; status
 
-    f05 : getClassIndex             = ( ptri ) ->
-        getUint8 ptri + PTR_CLASSINDEX
+    f05 : getPtriStatus             = ( ptri ) ->
+        getUint8 ptri + PTR_STATUSi
+
+    f02 : setPtriClass              = ( ptri, classIndex ) ->
+        setUint8 ptri + PTR_CLASSi, classIndex ; classIndex
+
+    f05 : getPtriClass              = ( ptri ) ->
+        getUint8 ptri + PTR_CLASSi
+
+    f02 : setPtriParent             = ( ptri, parent ) ->
+        setUint32 ptri + PTR_PARENTi, parent, iLE ; parent
+
+    f05 : getPtriParent             = ( ptri ) ->
+        getUint32 ptri + PTR_PARENTi
+
+    f02 : setPtriLinked             = ( ptri, linked ) ->
+        setUint32 ptri + PTR_LINKEDi, linked, iLE ; linked
+
+    f05 : getPtriLinked             = ( ptri ) ->
+        getUint32 ptri + PTR_LINKEDi
         
     f03 : setByteOffset             = ( ptri, byteOffset ) ->
         setUint32 ptri + HAS_BYTEOFFSET, byteOffset
@@ -171,28 +202,141 @@ global =
         byteOffset += getByteOffset( ptri )
         new Float32Array sab, byteOffset, length 
 
-    fff : ptriFloat32ArrayGetter    = ->
-        new Float32Array sab, getByteOffset( this ), getLength( this ) 
+    fff : ptriAllocAndSet           = ( ptri, data, view ) ->
+        if !byteOffset = getByteOffset ptri
+            byteLength = data.byteLength
+            byteOffset = malloc byteLength
 
-    fff : ptriFloat32ArraySetter    = ( any ) ->
-        isArray = Array.isArray any
-        isView  = ArrayBuffer.isView any
+            setByteLength ptri, byteLength
+            setByteOffset ptri, byteOffset
+
+        else if data.byteLength > blen = getByteLength ptri
+            throw /GROW_NOT_IMPLEMENTED/
+
+        else ui8.fill 0, byteOffset, blen
+
+        if !getByteLength ptri
+            throw /UNKNOWN_ON_ALLOCSET/
+
+        view.set data, byteOffset; ptri
+
+    fff : updateTextRawString       = ( data, ptri = this ) ->
+
+        if  "string" is typeof data
+            return ptriAllocAndSet ptri, encode( data ), ui8
+
+        isArray = Array.isArray data
+        isView  = data instanceof Uint8Array
+
+        if  isArray or isView 
+            ptriAllocAndSet ptri, data, ui8
+
+        else 
+            throw /TODOLIST_SETTER_FLOAT32/
+
+        this
+
+    fff : updateFloat32DataArray    = ( data ) ->
+        isArray = Array.isArray data
+        isView  = ArrayBuffer.isView data
 
         if  isArray or isView 
             i = 0
-            for v from any
+            for v from data
                 setPtriFloat32 this,  4 * i++, v
         else 
             throw /TODOLIST_SETTER_FLOAT32/
 
         this
 
-    fff : ptriVector3LengthGetter   = ->
-        [ x, y, z ] = @subarray
-        Math.sqrt x*x + y*y + z*z
+    fff : getterPtriFloat32Array    = ( ptri = this ) ->
+        new Float32Array sab, getByteOffset( ptri ), getLength( ptri ) 
+    
+    fff : getterAllocNewPointer     = ( OPtr = this ) ->
+        ptri = new OPtr palloc()
+        clsi = OPtr.classIndex
 
-    fff : ptriColor4HexGetter       = ->
-        [ red, green, blue, alpha ] = @array
+        setPtriClass ptri , clsi
+
+        blen = OPtr.byteLength
+        len = OPtr.length
+
+        ( byteLength = blen, length = len ) ->
+            if  byteLength
+                byteOffset = malloc byteLength
+
+                setByteOffset ptri, byteOffset
+                setByteLength ptri, byteLength
+
+                if  length
+                    setLength ptri, length
+            ptri
+
+    fff : getterPtriVectorLength    = ( ptri = this ) ->
+        sum = 0
+        for v from this
+            sum += Math.pow v, 2
+        Math.sqrt sum
+
+    fff : getPtriVectorValue        = ( ptri, byteOffset ) ->
+        getPtriFloat32 ptri, byteOffset
+
+    fff : getterPtriVectorX         = ( ptri = this, byteOffset = 0 ) ->
+        getPtriVectorValue ptri, byteOffset
+
+    fff : getterPtriVectorY         = ( ptri = this, byteOffset = 4 ) ->
+        getPtriVectorValue ptri, byteOffset
+
+    fff : getterPtriVectorZ         = ( ptri = this, byteOffset = 8 ) ->
+        getPtriVectorValue ptri, byteOffset
+
+    fff : setPtriVectorValue        = ( ptri , value, byteOffset ) ->
+        setPtriFloat32 ptri, byteOffset, value
+
+    fff : setterPtriVectorX         = ( value, byteOffset = 0, ptri = this ) ->
+        setPtriVectorValue ptri, value, byteOffset
+
+    fff : setterPtriVectorY         = ( value, byteOffset = 4, ptri = this ) ->
+        setPtriVectorValue ptri, value, byteOffset
+
+    fff : setterPtriVectorZ         = ( value, byteOffset = 8, ptri = this ) ->
+        setPtriVectorValue ptri, value, byteOffset
+
+    fff : getPtriColorValue         = ( ptri , byteOffset ) ->
+        getPtriFloat32 ptri, byteOffset
+
+    fff : getterPtriColorRed        = ( ptri = this, byteOffset = 0 ) ->
+        getPtriColorValue ptri, byteOffset
+    
+    fff : getterPtriColorGreen      = ( ptri = this, byteOffset = 4 ) ->
+        getPtriColorValue ptri, byteOffset
+    
+    fff : getterPtriColorBlue       = ( ptri = this, byteOffset = 8 ) ->
+        getPtriColorValue ptri, byteOffset
+
+    fff : getterPtriColorAlpha      = ( ptri = this, byteOffset = 12 ) ->
+        getPtriColorValue ptri, byteOffset
+
+    fff : setPtriColorValue         = ( ptri , value, byteOffset ) ->
+        throw /MAX_COLOR_VALUE_EXCEED/ if value > 1
+        throw /MIN_COLOR_VALUE_EXCEED/ if value < 0
+        setPtriFloat32 ptri, byteOffset, value
+
+    fff : setterPtriColorRed        = ( value, byteOffset = 0, ptri = this ) ->
+        setPtriColorValue ptri, value, byteOffset
+    
+    fff : setterPtriColorGreen      = ( value, byteOffset = 4, ptri = this ) ->
+        setPtriColorValue ptri, value, byteOffset
+    
+    fff : setterPtriColorBlue       = ( value, byteOffset = 8, ptri = this ) ->
+        setPtriColorValue ptri, value, byteOffset
+
+    fff : setterPtriColorAlpha      = ( value, byteOffset =12, ptri = this ) ->
+        setPtriColorValue ptri, value, byteOffset
+
+    fff : getterPtriColorAsHEX      = ( ptri = this ) ->
+        array = getterPtriColorAsArray ptri
+        [ red, green, blue, alpha ] = array
 
         r = red     .toString(16).padStart(2,0)
         g = green   .toString(16).padStart(2,0)
@@ -201,22 +345,23 @@ global =
 
         "0x#{r}#{g}#{b}#{a}"
 
-    fff : ptriColor4CssGetter       = ->
-        [ red, green, blue ] = ptriColor4ArrayGetter.call(@)
-        "rgba( #{red}, #{green}, #{blue} }, #{@getAlpha()} )"
+    fff : getterPtriColorAsCSS      = ( ptri = this ) ->
+        [ red, green, blue, alpha ] = getterPtriColorAsArray ptri
+        "rgba( #{red}, #{green}, #{blue} }, #{alpha / 0xff} )"
 
-    fff : ptriColor4ArrayGetter     = ->
-        [ ...@subarray ].map (v) -> Math.trunc v * 0xff
+    fff : getterPtriColorAsArray    = ( ptri = this ) ->
+        subarray = getterPtriFloat32Array ptri
+        [ ...subarray ].map (v) -> Math.trunc v * 0xff
 
-    fff : ptriColor4NumberGetter    = ->
-        parseInt ptriColor4HexGetter.call( this ), 16
+    fff : getterPtriColorAsNumber   = ( ptri = this ) ->
+        parseInt getterPtriColorAsHEX( ptri ), 16
 
-    fff : ptriColor4RgbaGetter      = ->
-        [ red, green, blue, alpha ] = @array
+    fff : getterPtriColorAsRGBA     = ( ptri = this ) ->
+        [ red, green, blue, alpha ] = getterPtriColorAsArray ptri
         { red, green, blue, alpha }
 
-    fff : ptriColor4HslaGetter      = ->
-        [ r, g, b, a ] = @subarray
+    fff : getterPtriColorAsHSLA     = ( ptri = this ) ->
+        [ r, g, b, a ] = getterPtriFloat32Array ptri
 
         # ref   : https://stackoverflow.com/a/58426404/21225939
         # author: @Crashalot
@@ -251,109 +396,72 @@ global =
 
         { hue: h, saturation: s, lightness: l, alpha: a }
 
+    fff : iteratPtriFloat32x4       = ( ptri = this, byteOffset = 0 ) ->
+        yield getPtriFloat32 ptri,  byteOffset
+        yield getPtriFloat32 ptri,  byteOffset +  4
+        yield getPtriFloat32 ptri,  byteOffset +  8
+        yield getPtriFloat32 ptri,  byteOffset + 12
+        0
+
+    fff : iteratPtriFloat32x3       = ( ptri = this, byteOffset = 0 ) ->
+        yield getPtriFloat32 ptri,  byteOffset
+        yield getPtriFloat32 ptri,  byteOffset +  4
+        yield getPtriFloat32 ptri,  byteOffset +  8
+        0
+
+    fff : getterPtriDataAsText      = ( ptri = this ) ->
+        decode new Uint8Array( sab,
+            getByteOffset( ptri ), getByteLength( ptri )
+        ).slice 0
+
     #? helpers ----->
+
+        
 
 
 define Pointer          : Number
-
-define Pointer          , alloc     : get : ->
-    ptri = new this palloc()
-    clsi = this.classIndex
-
-    setClassIndex ptri , clsi
-    blen = @byteLength
-    len = @length
-
-    ( byteLength = blen, length = len ) ->
-        if  byteLength
-            byteOffset = malloc byteLength
-
-            setByteOffset ptri, byteOffset
-            setByteLength ptri, byteLength
-
-            if  length
-                setLength ptri, length
-        ptri
-
-define Pointer::        , isPointer : yes
-
 define Position         : Pointer
-
-define Position         , 
-    
-    byteLength          : 12
-
-    TypedArray          : Float32Array
-
-define Position::       , 
-    getX : -> getPtriFloat32 this, 0
-    setX : -> setPtriFloat32 this, 0, arguments[0]
-
-    getY : -> getPtriFloat32 this, 4
-    setY : -> setPtriFloat32 this, 4, arguments[0]
-    
-    getZ : -> getPtriFloat32 this, 8
-    setZ : -> setPtriFloat32 this, 8, arguments[0]
-
-define Position::       ,
-
-    set         : value : ptriFloat32ArraySetter
-
-    length      : get   : ptriVector3LengthGetter
-
-    subarray    : get   : ptriFloat32ArrayGetter
-
-define Position::       , Symbol.iterator , ->
-    yield getPtriFloat32 this, 0
-    yield getPtriFloat32 this, 4
-    yield getPtriFloat32 this, 8
-    0
-
 define Color            : Pointer
-
-define Color            ,
-
-    byteLength          : 16
-
-    TypedArray          : Float32Array
-
-define Color::          , 
-    getRed   : value : -> getPtriFloat32 this,  0
-    setRed   : value : -> setPtriFloat32 this,  0, Math.min 1, arguments[0]
-
-    getGreen : value : -> getPtriFloat32 this,  4
-    setGreen : value : -> setPtriFloat32 this,  4, Math.min 1, arguments[0]
-
-    getBlue  : value : -> getPtriFloat32 this,  8
-    setBlue  : value : -> setPtriFloat32 this,  8, Math.min 1, arguments[0]
-
-    getAlpha : value : -> getPtriFloat32 this, 12
-    setAlpha : value : -> setPtriFloat32 this, 12, Math.min 1, arguments[0]
-
-define Color::          , 
-
-    set         : value : ptriFloat32ArraySetter
-
-    hex         : get   : ptriColor4HexGetter
-
-    hsla        : get   : ptriColor4HslaGetter  
-
-    rgba        : get   : ptriColor4RgbaGetter
-
-    css         : get   : ptriColor4CssGetter
-
-    subarray    : get   : ptriFloat32ArrayGetter
-
-    number      : get   : ptriColor4NumberGetter
-
-    array       : get   : ptriColor4ArrayGetter
-
-define Color::          , Symbol.iterator , ->
-    yield getPtriFloat32 this,  0
-    yield getPtriFloat32 this,  4
-    yield getPtriFloat32 this,  8
-    yield getPtriFloat32 this, 12
-    0
+define Text             : Pointer
+define Procedure        : Text
+define Protocol         : Pointer
+define Queue            : Pointer
+getter Pointer          , alloc                 : getterAllocNewPointer
+define Color            , byteLength            : 4 * 4
+define Position         , byteLength            : 3 * 4
+define Text             , TypedArray            : Uint8Array
+define Color            , TypedArray            : Float32Array
+define Position         , TypedArray            : Float32Array
+define Pointer::        , isPointer             : on
+define Position::       , getX                  : getterPtriVectorX
+define Position::       , getY                  : getterPtriVectorY
+define Position::       , getZ                  : getterPtriVectorZ
+define Position::       , setX                  : setterPtriVectorX
+define Position::       , setY                  : setterPtriVectorY
+define Position::       , setZ                  : setterPtriVectorZ
+getter Position::       , subarray              : getterPtriFloat32Array
+getter Position::       , vectorLength          : getterPtriVectorLength
+define Position::       , set                   : updateFloat32DataArray
+symbol Position::       , iterator              : iteratPtriFloat32x3
+define Color::          , getRed                : getterPtriColorRed
+define Color::          , setRed                : setterPtriColorRed
+define Color::          , getGreen              : getterPtriColorGreen
+define Color::          , setGreen              : setterPtriColorGreen
+define Color::          , getBlue               : getterPtriColorBlue
+define Color::          , setBlue               : setterPtriColorBlue
+define Color::          , getAlpha              : getterPtriColorAlpha
+define Color::          , setAlpha              : setterPtriColorAlpha
+define Color::          , set                   : updateFloat32DataArray
+getter Color::          , hex                   : getterPtriColorAsHEX
+getter Color::          , hsla                  : getterPtriColorAsHSLA  
+getter Color::          , rgba                  : getterPtriColorAsRGBA
+getter Color::          , css                   : getterPtriColorAsCSS
+getter Color::          , number                : getterPtriColorAsNumber
+getter Color::          , array                 : getterPtriColorAsArray
+getter Color::          , subarray              : getterPtriFloat32Array
+symbol Color::          , iterator              : iteratPtriFloat32x4
+define Text::           , set                   : updateTextRawString
+getter Procedure::      , alias                 : getterPtriDataAsText
 
 
 #? finish ---->
@@ -436,6 +544,8 @@ do CLEARPROTOS = ->
 setTimeout =>
     log pos = new Position.alloc()
     log clr = new Color.alloc()
+    log proc = new Procedure.alloc().set "özgür"
+    log getterPtriDataAsText proc, 0, 1
 
     pos.y = 2
 
@@ -445,7 +555,7 @@ setTimeout =>
     clr.setRed .7
     clr.setGreen .1
     clr.setAlpha 1
-    clr.set [ .2 ]
+    clr.set [ .2, 2.1, 1 ]
 
     for k, v of clr
         warn { k , v }
