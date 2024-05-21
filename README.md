@@ -20,6 +20,6 @@ Sen, minik kedicik. Evet sen! Sen Haklı olurdun!!!**
 Bir düşün bakalım pisicik.. 
 Bugün farket; çünkü "çok yakında" bütün öküzler, çakallar ve "insanlar"... Hepimiz gerçeğimize sabitleneceğiz ve _O gün geldiğinde; "haa, hee evet evet ben ısrar ettim" diyeceğiz! **lütfen inandığın tanrını sıkıştırma, ona arka çık. sev, onun için üzül ama incitme; ilk O'nu gözden çıkarıyorlar. Olacak şey mi bu?**_
 
-Yaptığının "**doğru**" olduğunu şu sözlerle sına: "_bugün son gün, bunlar son saatler olsaydı_" yine de aynı tercihi seçer miydin? Daha güzeli de var; istersen onu da kullanabilrsin: "_sonsuz bir hayatın içinde olsaydın_" yine de aynı tercihi yapar mıydın? Hepimiz biliyoruz ki, bir şeyin "_aklımızdan çıkması_" veya kendimize "_haklı? sebeplerimizi_" hatırlatmak zorunda olmamız farklı şeylerdir. Yük olan şey "**hak**" olabilir mi? 
+Yaptığının "**doğru**" olduğunu şu sözlerle sına: "_bugün son gün, bunlar son saatler olsaydı_" yine de aynı tercihi seçer miydin? Daha güzeli de var; istersen onu da kullanabilrsin: "_sonsuz bir hayatın içinde olsaydın_" yine de aynı tercihi yapar mıydın? Hepimiz biliyoruz ki, bir şeyin "_aklımızdan çıkması_" veya kendimize "_haklı? sebeplerimizi_" hatırlatmak zorunda kalmamız farklı şeylerdir. 
 
-Hatalarımızı düzeltmekten başka seçeneğimiz yok. Öte yandan düşünsene "**ne kadar güzel**" ki; bu seçeneğimiz **VAR**.
+Yük olan şey "**hak**" olabilir mi? Hatalarımızı düzeltmekten başka seçeneğimiz yok. Öte yandan düşünsene "**ne kadar güzel**" ki; bu seçeneğimiz **VAR**.
