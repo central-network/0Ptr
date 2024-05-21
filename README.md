@@ -18,6 +18,4 @@ Bir kuş veya kedi olabilirdin. Gerçekten de etrafına baktığında ve insanla
 Sen, minik kedicik. Evet sen! Sen Haklı olurdun!!!**
 
 Bir düşün bakalım pisicik.. 
-Bugün farket; çünkü "çok yakında" bütün öküzler, çakallar vs.. hepimiz gerçeğimize sabitleneceğiz.
-
-_O gün geldiğinde; kuşçuklar ve kedicikler "haa, hee evet evet ben ısrar ettim" diyecekler; diyeceğiz! **lütfen inandığın tanrını sıkıştırma, ona arka çık. sev, onun için üzül ama incitme; ilk O'nu gözden çıkarıyorlar. Olacak şey mi bu?**_
+Bugün farket; çünkü "çok yakında" bütün öküzler, çakallar vs.. hepimiz gerçeğimize sabitleneceğiz ve _O gün geldiğinde; "haa, hee evet evet ben ısrar ettim" denilecek! **lütfen inandığın tanrını sıkıştırma, ona arka çık. sev, onun için üzül ama incitme; ilk O'nu gözden çıkarıyorlar. Olacak şey mi bu?**_
