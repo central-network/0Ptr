@@ -22,4 +22,4 @@ Bugün farket; çünkü "çok yakında" bütün öküzler, çakallar ve "insanla
 
 Yaptığının "**doğru**" olduğunu şu sözlerle sına: "_bugün son gün, bunlar son saatler olsaydı_" yine de aynı tercihi seçer miydin? Daha güzeli de var; istersen onu da kullanabilrsin: "_sonsuz bir hayatın içinde olsaydın_" yine de aynı tercihi yapar mıydın? Hepimiz biliyoruz ki, bir şeyin "_aklımızdan çıkması_" veya kendimize "_haklı? sebeplerimizi_" hatırlatmak zorunda kalmamız farklı şeylerdir. 
 
-Yük olan şey "**hak**" olabilir mi? Hatalarımızı düzeltmekten başka seçeneğimiz yok. Öte yandan düşünsene "**ne kadar güzel**" ki; bu seçeneğimiz **VAR**.
+Yük olan şey "**hak**" olabilir mi? Hatalarımızı düzeltmekten başka seçeneğimiz yok. Öte yandan düşünsene "**ne kadar güzel**" ki; bu seçeneğimiz **VAR**. Not: Ölürsem, Erzurum bilgisayardan Şeref Bey'in ve üniversiteden sınıf arkadaşım Nasrullah'ın kalbini kırmışlığım var. Yetişemezsem; buradan aflarını talep ediyorum, bir paket tatlı alıp özür dilemeye gelmek için adımlarım şu ana kadar boşa düştü. Nasip :) 
