@@ -16,9 +16,8 @@ Keşke! derdin..
 
 Çok üzülürdün; onlar gibi şeyler yapamıyorsun diye kalbin kırılırdı.
 
-Ve ne biliyor musun?
-Sen, minik kedicik veya kuş.. Evet sen! 
-**Haklı olurdun!**
+**Ve ne biliyor musun?
+Sen, minik kedicik. Evet sen! Sen Haklı olurdun!!!**
 
 Bir düşün bakalım pisicik.. 
 Bugün farket; çünkü "çok yakında" bütün öküzler, çakallar vs.. hepimiz gerçeğimize sabitleneceğiz.
