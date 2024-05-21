@@ -8,9 +8,9 @@ Evet, bu dünyada sahip olabileceğin tek farklı şey "umut". İstediğin kadar
 
 Sonra sana düşman kesilip; nefret etseydiler. Ne hissederdin? Sırf parlak diye ateşe dokunmak isteyen bir sürü manyak var. Hadi izin ver bakalım.. Sen, kuşkularından kurtarmak istiyorsun ki sonsuzluğu paylaşabilesin; ama onlar sana düşman kesiliyorlar..
 
-
-**_Bilmen gereken bir şey var:_
 **
+**
+**Bilmen gereken bir şey var:**
 Bir kuş veya kedi olabilirdin. Gerçekten de etrafına baktığında ve insanların yapabildiklerini gördüğünde, çok heveslenirdin. Keşke! derdin.. Çok üzülürdün; onlar gibi şeyler yapamıyorsun diye kalbin kırılırdı.
 
 **Ve ne biliyor musun?
