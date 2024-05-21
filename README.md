@@ -17,8 +17,6 @@ Keşke! derdin..
 Çok üzülürdün; onlar gibi şeyler yapamıyorsun diye kalbin kırılırdı.
 
 Ve ne biliyor musun?
-...
-
 Sen, minik kedicik veya kuş.. Evet sen! 
 Haklı olurdun!
 ...
@@ -26,4 +24,5 @@ Haklı olurdun!
 
 Bir düşün bakalım pisicik.. Bugün farket çünkü "çok yakında" bütün öküzler, çakallar vs.. hepimiz gerçeğimize sabitleneceğiz.
 
-_O gün geldiğinde; kuşçuklar ve kedicikler "haa, hee evet evet ben ısrar ettim" diyecekler. lütfen inandığın tanrını sıkıştırma, ona arka çık. sev, üzül ama incitme :)_
+_O gün geldiğinde; kuşçuklar ve kedicikler "haa, hee evet evet ben ısrar ettim" diyecekler; diyeceğiz :)
+lütfen inandığın tanrını sıkıştırma, ona arka çık. sev, üzül ama incitme <3_
