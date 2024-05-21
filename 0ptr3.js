@@ -560,12 +560,20 @@ global = {
     setPtriParent(child, ptri);
     return ptri;
   },
-  fff: filterPtri = function(clssi, ptri = this, previ = 0, count = 0) {
-    var CHILDREN_NOFILTER, EVERYCLASS_CONSTRUCTED, EVERYCLASS_PTRIs, EVERYTHING, FILTERED_CHILDREN_CONSTRUCTED, FILTERED_CHILDREN_PTRIs, PClass, alloci, childi, childs, clsi, length;
-    childi = previ;
-    alloci = u32.at(0);
+  fff: filterPtri = function(clssi, ptri = this, previ = 0, count = 0, atomic = 0/0) {
+    var CHILDREN_NOFILTER, EVERYCLASS_CONSTRUCTED, EVERYCLASS_PTRIs, EVERYTHING, FILTERED_CHILDREN_CONSTRUCTED, FILTERED_CHILDREN_PTRIs, PClass, childi, childs, clsi, counti, length;
+    childi = (function() {
+      if (!atomic) {
+        return previ;
+      } else if (isNaN(atomic)) {
+        throw /ATOMIC_MUSTBEui32/;
+      } else {
+        return Atomics.add(u32, atomic, POINTER_BYTELENGTH);
+      }
+    })();
     length = 0;
     childs = new PtriArray;
+    counti = Atomics.load(u32);
     EVERYTHING = (!ptri && !clssi) || false;
     EVERYCLASS_PTRIs = (!ptri && clssi && !isNaN(clssi)) || false;
     EVERYCLASS_CONSTRUCTED = (!ptri && clssi && clssi instanceof Function) || false;
@@ -585,7 +593,7 @@ global = {
     }
     switch (!null) {
       case EVERYTHING:
-        while (childi < alloci) {
+        while (childi < counti) {
           childi = childi + PTR_BYTELENGTH;
           PClass = storage[getPtriClassi(childi)];
           childs[length++] = new PClass(childi);
@@ -595,7 +603,7 @@ global = {
         }
         break;
       case EVERYCLASS_PTRIs:
-        while (childi < alloci) {
+        while (childi < counti) {
           childi = childi + PTR_BYTELENGTH;
           if (clsi - getPtriClassi(childi)) {
             continue;
@@ -607,7 +615,7 @@ global = {
         }
         break;
       case EVERYCLASS_CONSTRUCTED:
-        while (childi < alloci) {
+        while (childi < counti) {
           childi = childi + PTR_BYTELENGTH;
           if (clsi - getPtriClassi(childi)) {
             continue;
@@ -620,7 +628,7 @@ global = {
         }
         break;
       case CHILDREN_NOFILTER:
-        while (childi < alloci) {
+        while (childi < counti) {
           childi = childi + PTR_BYTELENGTH;
           if (ptri - getPtriParent(childi)) {
             continue;
@@ -633,7 +641,7 @@ global = {
         }
         break;
       case FILTERED_CHILDREN_PTRIs:
-        while (childi < alloci) {
+        while (childi < counti) {
           childi = childi + PTR_BYTELENGTH;
           if (clsi - getPtriClassi(childi)) {
             continue;
@@ -648,7 +656,7 @@ global = {
         }
         break;
       case FILTERED_CHILDREN_CONSTRUCTED:
-        while (childi < alloci) {
+        while (childi < counti) {
           childi = childi + PTR_BYTELENGTH;
           if (clsi - getPtriClassi(childi)) {
             continue;

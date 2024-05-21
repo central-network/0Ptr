@@ -453,13 +453,16 @@ global =
     fff : addPtriChildren           = ( child, ptri = this ) ->
         setPtriParent child, ptri ; ptri
 
-    fff : filterPtri                = ( clssi, ptri = this, previ = 0, count = 0 ) ->
+    fff : filterPtri                = ( clssi, ptri = this, previ = 0, count = 0, atomic = NaN ) ->
 
-        childi = previ
-        alloci = u32.at 0
-        
+        childi =
+            unless atomic then previ
+            else if isNaN atomic then throw /ATOMIC_MUSTBEui32/
+            else Atomics.add( u32, atomic, POINTER_BYTELENGTH )
+
         length = 0
         childs = new PtriArray
+        counti = Atomics.load u32
 
         EVERYTHING                      = (!ptri and !clssi ) or false
         EVERYCLASS_PTRIs                = (!ptri and  clssi and !isNaN clssi ) or false
@@ -476,21 +479,21 @@ global =
 
         switch !null
 
-            when EVERYTHING                     then while childi < alloci
+            when EVERYTHING                     then while childi < counti
 
                 childi = childi + PTR_BYTELENGTH
                 PClass = storage[ getPtriClassi childi ]
                 childs[ length++ ] = new PClass childi
                 break unless --count 
 
-            when EVERYCLASS_PTRIs               then while childi < alloci
+            when EVERYCLASS_PTRIs               then while childi < counti
 
                 childi = childi + PTR_BYTELENGTH
                 continue if clsi - getPtriClassi childi
                 childs[ length++ ] = childi
                 break unless --count
 
-            when EVERYCLASS_CONSTRUCTED         then while childi < alloci
+            when EVERYCLASS_CONSTRUCTED         then while childi < counti
                 
                 childi = childi + PTR_BYTELENGTH
                 continue if clsi - getPtriClassi childi
@@ -498,7 +501,7 @@ global =
                 childs[ length++ ] = new PClass childi
                 break unless --count
 
-            when CHILDREN_NOFILTER              then while childi < alloci
+            when CHILDREN_NOFILTER              then while childi < counti
                 
                 childi = childi + PTR_BYTELENGTH
                 continue if ptri - getPtriParent childi
@@ -506,7 +509,7 @@ global =
                 childs[ length++ ] = new PClass childi
                 break unless --count
 
-            when FILTERED_CHILDREN_PTRIs        then while childi < alloci
+            when FILTERED_CHILDREN_PTRIs        then while childi < counti
 
                 childi = childi + PTR_BYTELENGTH
                 continue if clsi - getPtriClassi childi
@@ -514,7 +517,7 @@ global =
                 childs[ length++ ] = childi
                 break unless --count
 
-            when FILTERED_CHILDREN_CONSTRUCTED  then while childi < alloci
+            when FILTERED_CHILDREN_CONSTRUCTED  then while childi < counti
                 
                 childi = childi + PTR_BYTELENGTH
                 continue if clsi - getPtriClassi childi
