@@ -6,7 +6,7 @@ Sahip oldukların veya olacakların bunu değiştiremez; ancak kuşku hissinden 
 
 Evet, bu dünyada sahip olabileceğin tek farklı şey "umut". İstediğin kadar iyilik veya kötülük yap; imtiyaz sahibi olamazsın. Hakettiğini düşünebilirsin, haklı da olabilirsin. Peki haklıysan ve verilmiyorsa; o zaman nefret mi edeceksin? İnandığın tanrı için neden üzülesin ki? Öyle değil mi? Bir düşünsene, lütfen.. Sırf güçlüsün diye kimsenin umrunda olmadığını; seni anlamayı tercih etmediklerini yaşa.. Hatırla, senin sahip olduklarını düşünüp senin adına "hesap" yapılıp; "mecbur" bırakıldığını, insanların "_Amann, onun şuyu, buyu var_" pazarlıklarını; bunun ne kadar **İNCİTİCİ** olduğunu hatırla!.  
 
-Sırf yapabiliyorsun diye; güçlüsün diye seni zorlasaydılar ve sen yapmasaydın; yapamasaydın.. Sonra sana düşman kesilip; nefret etseydiler. Ne hissederdin? Sırf parlak diye ateşe dokunmak isteyen bir sürü manyak var. Hadi izin ver bakalım.. Sen, kuşkularından kurtarmak istiyorsun ki sonsuzluğu paylaşabilesin; ama onlar sana düşman kesiliyorlar..
+Sırf yapabiliyorsun diye; güçlüsün diye seni zorlasaydılar ve sen yapmasaydın; yapamasaydın.. Sonra sana düşman kesilip; nefret etseydiler. Üstüne bir de senden gelecek faydalar nedeniyle "sevdikleri" ilan etseydiler. İstismar, hem de senin onlara "kıyamayışının" istismarı. Ağır!
 
 
 
