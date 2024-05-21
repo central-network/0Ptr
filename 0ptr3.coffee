@@ -156,10 +156,10 @@ global =
     f05 : getPtriStatus             = ( ptri ) ->
         getUint8 ptri + PTR_STATUSi
 
-    f02 : setPtriClass              = ( ptri, classIndex ) ->
+    f02 : setPtriClassi             = ( ptri, classIndex ) ->
         setUint8 ptri + PTR_CLASSi, classIndex ; classIndex
 
-    f05 : getPtriClass              = ( ptri ) ->
+    f05 : getPtriClassi             = ( ptri ) ->
         getUint8 ptri + PTR_CLASSi
 
     f02 : setPtriParent             = ( ptri, parent ) ->
@@ -260,7 +260,7 @@ global =
         ptri = new OPtr palloc()
         clsi = OPtr.classIndex
 
-        setPtriClass ptri , clsi
+        setPtriClassi ptri , clsi
 
         blen = OPtr.byteLength
         len = OPtr.length
@@ -434,7 +434,7 @@ global =
         
     fff : getterPtriParent          = ( ptri = this ) ->
         parent = getPtriParent ptri
-        classi = getPtriClass parent
+        classi = getPtriClassi parent
         new storage[ classi ] parent
     
     fff : setterPtriParent          = ( parent, ptri = this ) ->
@@ -453,10 +453,7 @@ global =
     fff : addPtriChildren           = ( child, ptri = this ) ->
         setPtriParent child, ptri ; ptri
 
-    fff : createBoundFunction       = ( func, args... ) ->
-        -> func.call this, args...
-
-    fff : filterPtri                = ( clss, ptri = this, previ = 0, count = 0 ) ->
+    fff : filterPtri                = ( clssi, ptri = this, previ = 0, count = 0 ) ->
 
         childi = previ
         alloci = u32.at 0
@@ -464,42 +461,40 @@ global =
         length = 0
         childs = new PtriArray
 
-        EVERYTHING                      = (!ptri and !clss ) or false
-        EVERYCLASS_PTRIs                = (!ptri and  clss and !isNaN clss ) or false
-        EVERYCLASS_CONSTRUCTED          = (!ptri and  clss and clss instanceof Function ) or false
-        CHILDREN_NOFILTER               = ( ptri and !clss ) or false
-        FILTERED_CHILDREN_PTRIs         = ( ptri and  clss and !isNaN clss ) or false
-        FILTERED_CHILDREN_CONSTRUCTED   = ( ptri and  clss and clss instanceof Function ) or false
+        EVERYTHING                      = (!ptri and !clssi ) or false
+        EVERYCLASS_PTRIs                = (!ptri and  clssi and !isNaN clssi ) or false
+        EVERYCLASS_CONSTRUCTED          = (!ptri and  clssi and  clssi instanceof Function ) or false
+        CHILDREN_NOFILTER               = ( ptri and !clssi ) or false
+        FILTERED_CHILDREN_PTRIs         = ( ptri and  clssi and !isNaN clssi ) or false
+        FILTERED_CHILDREN_CONSTRUCTED   = ( ptri and  clssi and  clssi instanceof Function ) or false
 
-        if  clss 
+        unless !clssi then clsi =
+            if  clssi instanceof Function
+                storage.indexOf clssi
+            else if no is isNaN clssi then clssi
+            else throw /UNDEFINED_ERROR_FILTER/
 
-            if  clss instanceof Function
-                clsi = storage.indexOf clss
-
-            else if !isNaN clss
-                clsi = clss
-
-        switch true
+        switch !null
 
             when EVERYTHING                     then while childi < alloci
 
                 childi = childi + PTR_BYTELENGTH
-                PClass = storage[ getPtriClass childi ]
+                PClass = storage[ getPtriClassi childi ]
                 childs[ length++ ] = new PClass childi
                 break unless --count 
 
             when EVERYCLASS_PTRIs               then while childi < alloci
 
                 childi = childi + PTR_BYTELENGTH
-                continue if clsi - getPtriClass childi
+                continue if clsi - getPtriClassi childi
                 childs[ length++ ] = childi
                 break unless --count
 
             when EVERYCLASS_CONSTRUCTED         then while childi < alloci
                 
                 childi = childi + PTR_BYTELENGTH
-                continue if clsi - getPtriClass childi
-                PClass = storage[ getPtriClass childi ]
+                continue if clsi - getPtriClassi childi
+                PClass = storage[  getPtriClassi childi ]
                 childs[ length++ ] = new PClass childi
                 break unless --count
 
@@ -507,14 +502,14 @@ global =
                 
                 childi = childi + PTR_BYTELENGTH
                 continue if ptri - getPtriParent childi
-                PClass = storage[ getPtriClass childi ]
+                PClass = storage[  getPtriClassi childi ]
                 childs[ length++ ] = new PClass childi
                 break unless --count
 
             when FILTERED_CHILDREN_PTRIs        then while childi < alloci
 
                 childi = childi + PTR_BYTELENGTH
-                continue if clsi - getPtriClass childi
+                continue if clsi - getPtriClassi childi
                 continue if ptri - getPtriParent childi
                 childs[ length++ ] = childi
                 break unless --count
@@ -522,9 +517,9 @@ global =
             when FILTERED_CHILDREN_CONSTRUCTED  then while childi < alloci
                 
                 childi = childi + PTR_BYTELENGTH
-                continue if clsi - getPtriClass childi
+                continue if clsi - getPtriClassi childi
                 continue if ptri - getPtriParent childi
-                PClass = storage[ getPtriClass childi ]
+                PClass = storage[  getPtriClassi childi ]
                 childs[ length++ ] = new PClass childi
                 break unless --count
 
@@ -584,7 +579,7 @@ define Text::           , set                   : updateTextRawString
 define Procedure::      , getAlias              : getterPtriAlias
 define Procedure::      , setAlias              : setterPtriAlias 
 define Procedure::      , addProtocol           : addPtriChildren 
-getter Procedure::      , protocols             : createBoundFunction filterPtri, Protocol
+define Procedure::      , getProtocols          : -> filterPtri Protocol, this
 define Protocol::       , getLinked             : getterPtriLinked
 define Protocol::       , setLinked             : setterPtriLinked
 define Protocol::       , getProcedure          : getterPtriParent
@@ -677,19 +672,20 @@ do  tick = ->
 setTimeout =>
     pos = new Position.alloc()
     clr = new Color.alloc()
-    log procedure = new Procedure.alloc().set "on?"
-    log protocol = new Protocol.alloc()  
-    log protocol2 = new Protocol.alloc()  
+    procedure = new Procedure.alloc().set "on?"
+    protocol = new Protocol.alloc()  
+    protocol2 = new Protocol.alloc()  
     
     procedure.addProtocol protocol
-    warn filterPtri( no, no, no, 2 )
+
+    log { procedure }
 
     protocol.linked = Position
     protocol.match = ( ptri ) ->
-        2 is getPtriClass ptri
+        2 is getPtriClassi ptri
 
-    error "protocol.match(pos):", protocol.match( pos )
-    error "protocol.match(clr):", protocol.match( clr )
+    #error "protocol.match(pos):", protocol.match( pos )
+    #error "protocol.match(clr):", protocol.match( clr )
 
 
 , 100
