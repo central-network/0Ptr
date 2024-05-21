@@ -26,4 +26,4 @@ Haklı olurdun!
 
 Bir düşün bakalım pisicik.. Bugün farket çünkü "çok yakında" bütün öküzler, çakallar vs.. hepimiz gerçeğimize sabitleneceğiz.
 
-_O gün geldiğinde; kuşçuklar ve kedicikler "haa, hee evet evet ben ısrar ettim" diyecekler. lütfen inandığın tanrını sıkıştırma, ona arka çık. sev :)_
+_O gün geldiğinde; kuşçuklar ve kedicikler "haa, hee evet evet ben ısrar ettim" diyecekler. lütfen inandığın tanrını sıkıştırma, ona arka çık. sev, üzül ama incitme :)_
