@@ -4,9 +4,9 @@
 
 Sahip oldukların veya olacakların bunu değiştiremez; ancak kuşku hissinden kurtulman bunu sana verebilir. Varlığını artırmadan önce ilk bunu yapmalısın. Önce küçük de olsa sahip olduklarını kaybetmeyi göze alıp sonuçlarını dikkatlice değerlendirmelisin. Hiçbirşeyin ve hiçkimsen kalmadığında "öfke" yerine "üzüntü" yaşayabilirsen, bir umut sahibi olabilirsin. 
 
-Evet, bu dünyada sahip olabileceğin tek farklı şey "umut". İstediğin kadar iyilik veya kötülük yap; imtiyaz sahibi olamazsın. Hakettiğini düşünebilirsin, haklı da olabilirsin. Peki haklıysan ve verilmiyorsa; o zaman nefret mi edeceksin? İnandığın tanrı için neden üzüleceksin ki? Öyle değil mi? Bir düşünsene, lütfen.. Sırf yapabiliyorsun diye; güçlüsün diye seni zorlasaydılar ve sen yapmasaydın; yapamasaydın.. 
+Evet, bu dünyada sahip olabileceğin tek farklı şey "umut". İstediğin kadar iyilik veya kötülük yap; imtiyaz sahibi olamazsın. Hakettiğini düşünebilirsin, haklı da olabilirsin. Peki haklıysan ve verilmiyorsa; o zaman nefret mi edeceksin? İnandığın tanrı için neden üzülesin ki? Öyle değil mi? Bir düşünsene, lütfen.. Sırf güçlüsün diye kimsenin umrunda olmadığını; seni anlamayı tercih etmediklerini yaşa.. Hatırla, senin sahip olduklarını düşünüp senin adına "hesap" yapıp mecbur bırakıldığını hatırla.. İnsanların "Amann, onun şuyu, buyu var" pazarlıklarını yapıp seni mecbur bıraktıkları olmadı mı hiç?  
 
-Sonra sana düşman kesilip; nefret etseydiler. Ne hissederdin? Sırf parlak diye ateşe dokunmak isteyen bir sürü manyak var. Hadi izin ver bakalım.. Sen, kuşkularından kurtarmak istiyorsun ki sonsuzluğu paylaşabilesin; ama onlar sana düşman kesiliyorlar..
+Sırf yapabiliyorsun diye; güçlüsün diye seni zorlasaydılar ve sen yapmasaydın; yapamasaydın.. Sonra sana düşman kesilip; nefret etseydiler. Ne hissederdin? Sırf parlak diye ateşe dokunmak isteyen bir sürü manyak var. Hadi izin ver bakalım.. Sen, kuşkularından kurtarmak istiyorsun ki sonsuzluğu paylaşabilesin; ama onlar sana düşman kesiliyorlar..
 
 
 
