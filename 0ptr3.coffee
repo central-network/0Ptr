@@ -2,6 +2,7 @@
 Object.defineProperty self, "OPtr",
     value : ( class OPtr extends Number )
 
+
 GL2KEY = Object.keys     WebGL2RenderingContext
 GL2VAL = Object.values   WebGL2RenderingContext
 GL2NUM = new Object
@@ -45,6 +46,17 @@ ptr = [
     HAS_BYTEOFFSET      = 3 * BPE
     HAS_BYTELENGTH      = 4 * BPE
     HAS_LENGTH          = 5 * BPE
+    
+    CLSPTR_ALLOCOFFSET  = 6 * BPE
+    CLSPTR_ALLOCLENGTH  = PTR_BYTELENGTH - CLSPTR_ALLOCOFFSET
+    
+    ALLOCPTR_BYTEOFFSET = 6 * BPE
+    ALLOCPTR_BYTELENGTH = ALLOCPTR_BYTEOFFSET + 1
+    ALLOCPTR_ISREQUIRED = ALLOCPTR_BYTEOFFSET + 2
+    ALLOCPTR_INHERITTYP = ALLOCPTR_BYTEOFFSET + 3
+    ALLOCPTR_STATHANDLE = 7 * BPE
+
+
     PROCEDURE_FILTERER  = 6 * BPE 
 ]
 
@@ -94,36 +106,38 @@ define = ( object, props, desc ) ->
 
     if !desc and !props
 
-        break for Alias, Super of object
+        break for Alias, { name: Super } of object
 
-        [ Class, Parent ] = switch Extend = Super.name
-            when "OPtr" then [ "ClassPointer", "Pointer" ]
-            when "Pointer" then [ "#{Alias}Class", "ClassPointer" ]
-            else [ "#{Alias}Class", "#{Extend}Class" ]
+        text = ( -> Object.defineProperty( self,
+            "Alias", value : ( class Alias extends Super ))).toString()
 
-        text = ( ->
-            Object.defineProperties( self, Alias : value : ( class Alias extends Extend ) ); 
-            Object.defineProperties( self, Class : value : ( class Class extends Parent ) ); 0
-        ).toString()
-            
         text = text
-            .substring(
-                text.indexOf( "Object" ), text.lastIndexOf( "return" ))   
-            .replace( /Alias/ug, Alias ). replace( /Extend/ug, Extend )
-            .replace( /Class/ug, Class ). replace( /Parent/ug, Parent )
+            .substring( text.indexOf("Object"), text.lastIndexOf("}"))   
+            .replace( /Alias/ug, Alias ). replace( /Super/ug, Super )
 
         document.head.append(
             assign( $ = document.createElement( "script" ), { text }))
-
         
-        storage.storeForUint8 self[ Class ]
-        clsptri = allocNewPointer( self[ Class ], PTRTYPE_CLASS )()  
+        Clss = self[ Alias ]
 
-        define self[ Alias ], { clsptri }
+        storage . storeForUint8 Clss
+        clsptri = allocNewPointer( OPtr, PTRTYPE_CLASS )()
+
+        define Clss, clsptri: +clsptri
+        setPtriLinked clsptri, Clss.storagei      
+        setPtriResvUint8 clsptri, CLSPTR_ALLOCOFFSET      
+        updateTextRawString Alias, clsptri
         
-        setPtriParent clsptri, looPtri self[ Parent ], no, 1
-        setPtriResvUint8 clsptri, storage.storeForUint8 self[ Alias ]
-        updateTextRawString Class , clsptri          
+        if  hasOwn self[ Super ], "clsptri"
+            setPtriParent clsptri, self[ Super ].clsptri
+
+        if  ClassPointer?
+            storagei = ClassPointer.storagei
+
+            looPtri( OPtr ).forEach ( ptri ) ->                
+                return if PTRTYPE_CLASS is getPtriType ptri
+                return if storagei is getPtriClassi ptri
+                return setPtriClassi ptri, storagei
 
         $.remove()
 
@@ -212,67 +226,76 @@ global =
     f02 : setPtriStatus             = ( ptri, status ) ->
         setUint8 ptri + PTR_STATUSi, status ; status
 
-    f05 : ptriStateNeedsIgnore      = ( ptri ) ->
+    f05 : ptriStateNeedsIgnore      = ( ptri = this ) ->
         getUint8( ptri + PTR_STATUSi ) <= STATE_IGNORE
 
-    f05 : getPtriStatus             = ( ptri ) ->
+    f05 : getPtriStatus             = ( ptri = this ) ->
         getUint8 ptri + PTR_STATUSi
 
     f02 : setPtriClassi             = ( ptri, stri ) ->
         setUint8 ptri + PTR_CLASSi, stri ; stri
 
-    f05 : getPtriClassi             = ( ptri ) ->
+    f05 : getPtriClassi             = ( ptri = this ) ->
         getUint8 ptri + PTR_CLASSi
 
     f02 : setPtriType               = ( ptri, type ) ->
         setUint8 ptri + PTR_TYPEi, type ; type
 
-    f05 : getPtriType               = ( ptri ) ->
+    f05 : getPtriType               = ( ptri = this ) ->
         getUint8 ptri + PTR_TYPEi
 
     f02 : setPtriResvUint8          = ( ptri, byte ) ->
         setUint8 ptri + PTR_RESVu8, byte ; byte
 
-    f05 : getPtriResvUint8          = ( ptri ) ->
+    f05 : getPtriResvUint8          = ( ptri = this ) ->
         getUint8 ptri + PTR_RESVu8
 
     f02 : setPtriParent             = ( ptri, parent ) ->
         setUint32 ptri + PTR_PARENTi, parent, iLE ; parent
 
-    f05 : getPtriParent             = ( ptri ) ->
+    f05 : getPtriParent             = ( ptri = this ) ->
         getUint32 ptri + PTR_PARENTi
+
+    f02 : getLinked                 = ( ptri = this ) ->
+        ptri = getPtriLinked ptri
+        clsi = getPtriClassi ptri
+
+        new storage[ clsi ] ptri
+
+    f02 : setLinked                 = ( linked, ptri = this ) ->
+        setUint32 ptri + PTR_LINKEDi, linked, iLE ; linked
 
     f02 : setPtriLinked             = ( ptri, linked ) ->
         setUint32 ptri + PTR_LINKEDi, linked, iLE ; linked
 
-    f05 : getPtriLinked             = ( ptri ) ->
+    f05 : getPtriLinked             = ( ptri = this ) ->
         getUint32 ptri + PTR_LINKEDi
         
     f03 : setByteOffset             = ( ptri, byteOffset ) ->
         setUint32 ptri + HAS_BYTEOFFSET, byteOffset
         
-    f06 : getByteOffset             = ( ptri ) ->
+    f06 : getByteOffset             = ( ptri = this ) ->
         getUint32 ptri + HAS_BYTEOFFSET
 
     f04 : setByteLength             = ( ptri, byteLength ) ->
         setUint32 ptri + HAS_BYTELENGTH, byteLength
 
-    f07 : getByteLength             = ( ptri ) ->
+    f07 : getByteLength             = ( ptri = this ) ->
         getUint32 ptri + HAS_BYTELENGTH
 
     f04 : setLength                 = ( ptri, length ) ->
         setUint32 ptri + HAS_LENGTH, length
 
-    f07 : getLength                 = ( ptri ) ->
+    f07 : getLength                 = ( ptri = this ) ->
         getUint32 ptri + HAS_LENGTH
     
-    f07 : ptrUint8Array             = ( ptri ) ->
+    f07 : ptrUint8Array             = ( ptri = this ) ->
         new Uint8Array sab, ptri, PTR_BYTELENGTH 
 
-    f07 : ptrUint32Array            = ( ptri ) ->
+    f07 : ptrUint32Array            = ( ptri = this ) ->
         new Uint32Array sab, ptri, PTR_LENGTH 
 
-    f07 : ptrFloat32Array           = ( ptri ) ->
+    f07 : ptrFloat32Array           = ( ptri = this ) ->
         new Float32Array sab, ptri, PTR_LENGTH 
 
     f07 : ptriFloat32Array          = ( ptri, byteOffset = 0, length ) ->
@@ -281,6 +304,7 @@ global =
         new Float32Array sab, byteOffset, length 
 
     ___ : ptriAllocAndSet           = ( ptri, data, view ) ->
+
         if !byteOffset = getByteOffset ptri
             byteLength = data.byteLength
             byteOffset = malloc byteLength
@@ -331,16 +355,17 @@ global =
     fff : getterPtriFloat32Array    = ( ptri = this ) ->
         new Float32Array sab, getByteOffset( ptri ), getLength( ptri ) 
     
-    ___ : allocNewPointer           = ( OPtr = this, type, state ) ->
-        ptri = new OPtr palloc()
-        clsi = storage.store OPtr
+    ___ : allocNewPointer           = ( Clss = this, type, state ) ->
+        ptri = new Clss palloc()
+
+        clsi = storage.store Clss
 
         setPtriClassi ptri , clsi
         setPtriStatus ptri , state or STATE_PALLOC
         setPtriType   ptri , type or PTRTYPE_HEADER
 
-        blen = OPtr.byteLength
-        len = OPtr.length
+        blen = Clss.byteLength
+        len = Clss.length
 
         ( byteLength = blen, length = len ) ->
             if  byteLength
@@ -349,7 +374,6 @@ global =
                 setByteOffset ptri, byteOffset
                 setByteLength ptri, byteLength
                 setPtriStatus ptri, STATE_MALLOC
-                setPtriType   ptri, PTRTYPE_DATAPTR
 
                 if  length
                     setLength ptri, length
@@ -497,6 +521,10 @@ global =
             getByteOffset( ptri ), getByteLength( ptri )
         ).slice 0
 
+    fff : getterPtriAliasCamelCase  = ( ptri = this ) ->
+        alias = getterPtriAlias ptri
+        alias[0].toLowerCase() + alias.substring 1
+
     fff : getterPtriAlias           = ( ptri = this ) ->
         getterPtriDataAsText ptri
 
@@ -532,7 +560,7 @@ global =
     fff : addPtriChildren           = ( child, ptri = this ) ->
         setPtriParent child, ptri ; ptri
 
-    fff : looPtri                   = ( clssi, ptri = this, count = 0, previ = 0, atomic = NaN ) ->
+    fff : looPtri = self.loop       = ( clssi, ptri = this, count = 0, previ = 0, atomic = NaN ) ->
 
         single = count is 1
         childi =
@@ -622,54 +650,126 @@ global =
         1
 
     fff : getterPtrCAlias           = ( ptri = this ) ->
-        getterPtriDataAsText ptri
+        getterPtrCClass( ptri ).name
 
-    fff : getterPtrCKeyName         = ( ptri = this ) ->
-        alias = getterPtrCAlias ptri
-        alias[0].toLowerCase() + alias.substring 1
-
-    fff : getterPtrCClass           = ( ptri = this ) ->
-        storage[ getPtriClassi ptri ]
+    fff : getterPtrCPrototype       = ( ptri = this ) ->
+        storage[ getPtriLinked ptri ]
 
     fff : getterPtrCParent          = ( ptri = this ) ->
         if !ptrj = getPtriParent ptri
             return new OPtr 0
         new storage[ getPtriClassi ptrj ] ptrj
 
-    fff : findPtriClassPointer      = ( ptri = this ) ->
-        clsi = getPtriClassi ptri ; looPtri().find ( clsptri ) ->
-            0 is clsi - getPtriResvUint8 clsptri
+    fff : findPtriPrototype      = ( ptri = this ) ->
+        getPtriLinked ptri
 
     #? helpers ----->
 
 storage.storeForUint8 OPtr
 info storage
 
-define Pointer          : OPtr
-define OffsetPointer    : Pointer
-
+define Pointer          : Number
+define ClassPointer     : Pointer
 define Position         : Pointer
+define Rotation         : Pointer
+define Scale            : Pointer
 define Color            : Pointer
 define Text             : Pointer
 define Mesh             : Pointer
 define Vertices         : Pointer
 define Procedure        : Text
 define Protocol         : Pointer
+define Allocation       : Text
 define Queue            : Pointer
-getter OPtr             , alloc                 : allocNewPointer
+getter Pointer          , alloc                 : allocNewPointer
 define Pointer          , isClass               : on
 define Mesh             , byteLength            : 8 * 4
 define Color            , byteLength            : 4 * 4
 define Position         , byteLength            : 3 * 4
+define Rotation         , byteLength            : 3 * 4
+define Scale            , byteLength            : 3 * 4
 define Text             , TypedArray            : Uint8Array
 define Color            , TypedArray            : Float32Array
 define Position         , TypedArray            : Float32Array
+define Rotation         , TypedArray            : Float32Array
+define Scale            , TypedArray            : Float32Array
 define Mesh             , TypedArray            : Float32Array
 define Pointer::        , isPointer             : on
-define ClassPointer::   , getAlias              : getterPtrCAlias
-define ClassPointer::   , getKeyName            : getterPtrCKeyName
-define ClassPointer::   , getPrototype          : getterPtrCClass
-define ClassPointer::   , getParent             : getterPtrCParent
+define ClassPointer     , of                    : ( any ) ->
+    clsi = any.storagei or getPtriClassi( any )
+    new ClassPointer looPtri( ClassPointer ).find ( clsptri ) ->
+        clsi is getPtriLinked clsptri
+    
+define ClassPointer::   , getAlias              : getterPtriAlias
+getter ClassPointer::   , keyName               : getterPtriAliasCamelCase
+define ClassPointer::   , getClass              : getterPtrCPrototype
+getter ClassPointer::   , extender              : getterPtrCParent
+define ClassPointer::   , getAllocLength        : -> getPtriResvUint8 this
+define ClassPointer::   , setAllocLength        : -> setPtriResvUint8 this, arguments[0]
+define ClassPointer::   , getAllocations        : -> looPtri( Allocation, this )
+
+define ClassPointer::   , alloc                 : ( Class, options = {} ) ->
+
+    clsPointer = ClassPointer.of Class
+    byteLength = options.byteLength or Class.byteLength
+    byteOffset = @getAllocLength()
+
+    setPtriResvUint8 this, byteLength + byteOffset
+    setPtriParent alci = new Allocation.alloc(), this
+
+    alci.setLinked this.storagei
+    alci.setByteLength byteLength
+    alci.setByteOffset byteOffset
+    alci.setKeyName(
+        options.keyName or
+        clsPointer.keyName
+    )
+
+    options.isRequired ?= 1
+    options.inheritType ?= 1
+
+    alci.setIsRequired options.isRequired
+    alci.setInheritType options.inheritType
+
+    define @class::, keyName = alci.keyName,
+        enumerable: on
+
+        get : (( Property, byteOffset, keyName, isRequired ) -> ->
+
+            if !ptri = getUint32 this + byteOffset
+                return unless isRequired
+
+                this[ keyName ] =
+                    ptri = new Property.alloc()
+
+                setPtriParent ptri, this
+                return ptri
+            return new Property ptri
+
+        ) Class, byteOffset, keyName, alci.isRequired
+
+        set : (( byteOffset ) -> ->
+            setUint32 this + byteOffset, arguments[0]
+        ) byteOffset
+
+    alci
+
+define Allocation::     , getLinked             : getLinked
+define Allocation::     , setLinked             : setLinked
+define Allocation::     , getKeyName            : getterPtriAlias
+define Allocation::     , setKeyName            : setterPtriAlias
+define Allocation::     , getByteLength         : -> getUint8 this + ALLOCPTR_BYTELENGTH
+define Allocation::     , setByteLength         : -> setUint8 this + ALLOCPTR_BYTELENGTH, arguments[0]
+define Allocation::     , getByteOffset         : -> getUint8 this + ALLOCPTR_BYTEOFFSET
+define Allocation::     , setByteOffset         : -> setUint8 this + ALLOCPTR_BYTEOFFSET, arguments[0]
+define Allocation::     , getIsRequired         : -> getUint8 this + ALLOCPTR_ISREQUIRED
+define Allocation::     , setIsRequired         : -> setUint8 this + ALLOCPTR_ISREQUIRED, arguments[0]
+define Allocation::     , getInheritType        : -> getUint8 this + ALLOCPTR_INHERITTYP
+define Allocation::     , setInheritType        : -> setUint8 this + ALLOCPTR_INHERITTYP, arguments[0]
+define Allocation::     , getStateHandler       : -> storage[ getUint32 this + ALLOCPTR_STATHANDLE ]
+define Allocation::     , setStateHandler       : -> setUint32 this + ALLOCPTR_STATHANDLE, storage.store arguments[0]
+
+
 define Position::       , getX                  : getterPtriVectorX
 define Position::       , getY                  : getterPtriVectorY
 define Position::       , getZ                  : getterPtriVectorZ
@@ -709,11 +809,7 @@ define Protocol::       , setLinkedClass        : setterPtriLinked
 define Protocol::       , setProcedure          : setterPtriParent
 getter Protocol::       , procedure             : getterPtriParent
 define Protocol::       , getMatchs             : -> looPtri( @linkedClass ).filter @filterer
-resv   Mesh::           , position              : 4  
-resv   Mesh::           , rotation              : 4  
-resv   Mesh::           , scale                 : 4  
-define Mesh::           , getPosition           : getterMeshPosition
-define Mesh::           , setPosition           : setterMeshPosition
+
 
 
 storage.store Color
@@ -722,16 +818,16 @@ storage.store Color
 
 do REDEFINEPTR = ->
 
+    kProto = "{{ClassPointer}}"
 
-    for Class in storage
+    class Class extends ClassPointer
 
+    for Clss in storage
 
-        if  Pointer.isPrototypeOf( Class ) and ClassPointer isnt Class
-            if  !ClassPointer.isPrototypeOf( Class )
-                if !hasOwn Class::, kProto = "{{Prototype}}"
-                    define Class::, [ kProto ], get : findPtriClassPointer
+        if ![ ClassPointer, Pointer, OPtr, Number, Allocation ].includes Clss
+            getter Clss::, [ "{{Class}}" ] : -> new ClassPointer @constructor.clsptri
 
-        descs = getOwn Class::
+        descs = getOwn Clss::
         cache = []
 
         #* getProperty -> get property
@@ -749,24 +845,24 @@ do REDEFINEPTR = ->
             get = d.value if d = descs[ "get#{Alias}" ]
             set = d.value if d = descs[ "set#{Alias}" ]
 
-            define Class:: , [ alias ] : { get, set, enumerable : on }
+            define Clss:: , [ alias ] : { get, set, enumerable : on }
 
-        continue if !hasOwn Class , "byteLength"
-        continue if !hasOwn Class , "TypedArray"
+        continue if !hasOwn Clss , "byteLength"
+        continue if !hasOwn Clss , "TypedArray"
         
-        TypedArray          = Class.TypedArray
+        TypedArray          = Clss.TypedArray
         BYTES_PER_ELEMENT   = TypedArray.BYTES_PER_ELEMENT 
-        byteLength          = Class.byteLength
+        byteLength          = Clss.byteLength
         length              = byteLength / BYTES_PER_ELEMENT
         subarray            = switch TypedArray
             when Float32Array   then -> new Float32Array sab, getByteOffset(this), getLength(this)
             when Uint32Array    then -> new Uint32Array sab, getByteOffset(this), getLength(this)
             when Uint8Array     then -> new Uint8Array sab, getByteOffset(this), getLength(this)
         
-        define Class            ,
+        define Clss,
             { length, BYTES_PER_ELEMENT }
 
-        define Class::          , debug : get : -> Object.defineProperties enumerable = {},
+        define Clss::, [ "{{Pointer}}" ] : get : -> Object.defineProperties enumerable = {},
             subarray        : { enumerable , value : subarray.call this }
             byteOffset      : { enumerable , value : getByteOffset this }
             byteLength      : { enumerable , value : getByteLength this } 
@@ -819,12 +915,17 @@ queueMicrotask =>
 
     mesh = new Mesh.alloc()
 
-    
     procedure.addProtocol protocol
     procedure.addProtocol protocol2
 
     log { procedure, pos, clr, protocol, protocol2 }
     warn mesh
+
+    warn meshClassPtri = ClassPointer.of mesh
+    warn meshClassPtri.alloc Position
+    warn meshClassPtri.alloc Rotation
+    warn meshClassPtri.alloc Scale
+    warn meshClassPtri.alloc Color
 
     protocol.linkedClass = Position
     protocol.filterer = ( ptri ) ->
