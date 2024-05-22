@@ -122,7 +122,6 @@ define = function(object, props, desc) {
       clsptri: +clsptri
     });
     setPtriLinked(clsptri, Clss.storagei);
-    setPtriResvUint8(clsptri, CLSPTR_ALLOCOFFSET);
     updateTextRawString(Alias, clsptri);
     if (hasOwn(self[Super], "clsptri")) {
       setPtriParent(clsptri, self[Super].clsptri);
@@ -920,6 +919,18 @@ getter(ClassPointer.prototype, {
   extender: getterPtrCParent
 });
 
+getter(ClassPointer.prototype, {
+  getAvailableBytes: function() {
+    return PTR_BYTELENGTH - this.getAllocLength();
+  }
+});
+
+define(ClassPointer.prototype, {
+  getAllocOffset: function() {
+    return CLSPTR_ALLOCOFFSET + getPtriResvUint8(this);
+  }
+});
+
 define(ClassPointer.prototype, {
   getAllocLength: function() {
     return getPtriResvUint8(this);
@@ -940,64 +951,119 @@ define(ClassPointer.prototype, {
 
 define(ClassPointer.prototype, {
   alloc: function(Class, options = {}) {
-    var alci, byteLength, byteOffset, clsPointer, keyName;
-    clsPointer = ClassPointer.of(Class);
-    byteLength = options.byteLength || Class.byteLength;
-    byteOffset = this.getAllocLength();
-    setPtriResvUint8(this, byteLength + byteOffset);
-    setPtriParent(alci = new Allocation.alloc(), this);
-    alci.setLinked(this.storagei);
-    alci.setByteLength(byteLength);
-    alci.setByteOffset(byteOffset);
-    alci.setKeyName(options.keyName || clsPointer.keyName);
-    if (options.isRequired == null) {
-      options.isRequired = 1;
-    }
-    if (options.inheritType == null) {
-      options.inheritType = 1;
-    }
-    alci.setIsRequired(options.isRequired);
-    alci.setInheritType(options.inheritType);
-    define(this.class.prototype, keyName = alci.keyName, {
-      enumerable: true,
-      get: (function(Property, byteOffset, keyName, isRequired) {
-        return function() {
-          var ptri;
-          if (!(ptri = getUint32(this + byteOffset))) {
-            if (!isRequired) {
-              return;
+    var allocAlias, byteLength, byteOffset, clsptrLink, definition, ptri;
+    clsptrLink = new ClassPointer(Class.clsptri);
+    this.allocLength += byteLength = options.byteLength || 4;
+    allocAlias = options.keyName || clsptrLink.keyName;
+    byteOffset = this.getAllocOffset();
+    setPtriParent(ptri = new Allocation.alloc(), this);
+    //todo byte align needed
+    //todo this alloc runs on pointer
+    //todo more space could need maybe :)
+    ptri.setAlias(allocAlias);
+    ptri.setLinked(clsptrLink);
+    ptri.setByteOffset(byteOffset);
+    ptri.setByteLength(byteLength);
+    ptri.setIsRequired(options.isRequired != null ? options.isRequired : options.isRequired = 1);
+    ptri.setInheritType(options.inheritType != null ? options.inheritType : options.inheritType = 1);
+    return definition = (function(alloci, options) {
+      var KeyClass, KeyName, config, get, getKeyName, inheritType, isRequired, keyName, keyNameGet, keyNameSet, ref, ref1, ref2, ref3, ref4, ref5, ref6, set, setKeyName;
+      keyName = alloci.getAlias();
+      KeyName = `${keyName.substring(0, 1e0).toUpperCase()} ${keyName.substring(1, 5e1)}`.replace(/\s+|\n|\r|\t+/g, "");
+      config = (ref = options.config) != null ? ref : {};
+      if (config.writeable == null) {
+        config.writeable = !options.unWriteable;
+      }
+      if (config.enumerable == null) {
+        config.enumerable = !options.unEnumerable;
+      }
+      if (config.configurable == null) {
+        config.configurable = !options.unConfigurable;
+      }
+      KeyClass = alloci.linked.class;
+      byteOffset = alloci.byteOffset;
+      isRequired = alloci.isRequired;
+      inheritType = alloci.inheritType;
+      get = (ref1 = options.getter) != null ? ref1 : (function() {
+        if (!isRequired) {
+          return function() {
+            if (ptri = getUint32(byteOffset + this)) {
+              return new KeyClass(ptri);
             }
-            this[keyName] = ptri = new Property.alloc();
-            setPtriParent(ptri, this);
-            return ptri;
-          }
-          return new Property(ptri);
-        };
-      })(Class, byteOffset, keyName, alci.isRequired),
-      set: (function(byteOffset) {
-        return function() {
-          return setUint32(this + byteOffset, arguments[0]);
-        };
-      })(byteOffset)
-    });
-    return alci;
+          };
+        }
+        switch (inheritType) {
+          case 1:
+            return function() {
+              if (ptri = getUint32(this + byteOffset)) {
+                return new KeyClass(ptri);
+              }
+              if (ptri = new KeyClass.alloc()) {
+                setPtriParent(ptri, this);
+                setUint32(byteOffset + this, ptri);
+                return ptri;
+              }
+              throw /REQUIRED_BUT_NOT_REACHED/;
+            };
+          default:
+            throw /UNDEFINEABLE_GETTER/;
+        }
+      })();
+      set = (ref2 = options.setter) != null ? ref2 : function(val) {
+        return setUint32(this + byteOffset, val);
+      };
+      keyNameGet = (ref3 = options.keyNameGet) != null ? ref3 : get;
+      keyNameSet = (ref4 = options.keyNameSet) != null ? ref4 : set;
+      getKeyName = (ref5 = options.getKeyName) != null ? ref5 : get;
+      setKeyName = (ref6 = options.setKeyName) != null ? ref6 : set;
+      if (options.unReadable) {
+        keyNameGet = getKeyName = void 0;
+      }
+      if (options.unWriteable) {
+        keyNameSet = setKeyName = void 0;
+      }
+      if (getKeyName) {
+        define(this.class.prototype, `get${KeyName}`, {
+          ...config,
+          value: getKeyName
+        });
+      }
+      if (setKeyName) {
+        define(this.class.prototype, `set${KeyName}`, {
+          ...config,
+          value: setKeyName
+        });
+      }
+      if (!options.onlyFunctions) {
+        define(this.class.prototype, keyName, {
+          ...config,
+          get: keyNameGet,
+          set: keyNameSet
+        });
+      }
+      return alloci;
+    }).call(this, ptri, options);
   }
 });
 
 define(Allocation.prototype, {
-  getLinked: getLinked
+  getLinked: function() {
+    return getLinked(this);
+  }
 });
 
 define(Allocation.prototype, {
-  setLinked: setLinked
+  setLinked: function() {
+    return setPtriLinked(this, arguments[0]);
+  }
 });
 
 define(Allocation.prototype, {
-  getKeyName: getterPtriAlias
+  getAlias: getterPtriAlias
 });
 
 define(Allocation.prototype, {
-  setKeyName: setterPtriAlias
+  setAlias: setterPtriAlias
 });
 
 define(Allocation.prototype, {
@@ -1397,7 +1463,9 @@ queueMicrotask(() => {
   log({procedure, pos, clr, protocol, protocol2});
   warn(mesh);
   warn(meshClassPtri = ClassPointer.of(mesh));
-  warn(meshClassPtri.alloc(Position));
+  warn(meshClassPtri.alloc(Position, {
+    isRequired: 0
+  }));
   warn(meshClassPtri.alloc(Rotation));
   warn(meshClassPtri.alloc(Scale));
   warn(meshClassPtri.alloc(Color));

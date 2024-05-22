@@ -125,7 +125,6 @@ define = ( object, props, desc ) ->
 
         define Clss, clsptri: +clsptri
         setPtriLinked clsptri, Clss.storagei      
-        setPtriResvUint8 clsptri, CLSPTR_ALLOCOFFSET      
         updateTextRawString Alias, clsptri
         
         if  hasOwn self[ Super ], "clsptri"
@@ -704,60 +703,106 @@ define ClassPointer::   , getAlias              : getterPtriAlias
 getter ClassPointer::   , keyName               : getterPtriAliasCamelCase
 define ClassPointer::   , getClass              : getterPtrCPrototype
 getter ClassPointer::   , extender              : getterPtrCParent
-define ClassPointer::   , getAllocLength        : -> getPtriResvUint8 this
-define ClassPointer::   , setAllocLength        : -> setPtriResvUint8 this, arguments[0]
+getter ClassPointer::   , getAvailableBytes     : -> PTR_BYTELENGTH - @getAllocLength()
+define ClassPointer::   , getAllocOffset        : -> CLSPTR_ALLOCOFFSET + getPtriResvUint8 this
+define ClassPointer::   , getAllocLength        : -> getPtriResvUint8( this )
+define ClassPointer::   , setAllocLength        : -> setPtriResvUint8( this, arguments[0] )
 define ClassPointer::   , getAllocations        : -> looPtri( Allocation, this )
 
 define ClassPointer::   , alloc                 : ( Class, options = {} ) ->
 
-    clsPointer = ClassPointer.of Class
-    byteLength = options.byteLength or Class.byteLength
-    byteOffset = @getAllocLength()
+    clsptrLink = new ClassPointer Class.clsptri
+    @allocLength += byteLength = options.byteLength or 4
 
-    setPtriResvUint8 this, byteLength + byteOffset
-    setPtriParent alci = new Allocation.alloc(), this
+    allocAlias = options.keyName or clsptrLink.keyName
+    byteOffset = @getAllocOffset()
+    
+    setPtriParent ptri = new Allocation.alloc(), this
 
-    alci.setLinked this.storagei
-    alci.setByteLength byteLength
-    alci.setByteOffset byteOffset
-    alci.setKeyName(
-        options.keyName or
-        clsPointer.keyName
-    )
+    #todo byte align needed
+    #todo this alloc runs on pointer
+    #todo more space could need maybe :)
 
-    options.isRequired ?= 1
-    options.inheritType ?= 1
+    ptri.setAlias       allocAlias
+    ptri.setLinked      clsptrLink
+    ptri.setByteOffset  byteOffset
+    ptri.setByteLength  byteLength
+    ptri.setIsRequired  options.isRequired  ?= 1
+    ptri.setInheritType options.inheritType ?= 1
 
-    alci.setIsRequired options.isRequired
-    alci.setInheritType options.inheritType
+    definition = ( alloci, options ) ->
 
-    define @class::, keyName = alci.keyName,
-        enumerable: on
+        keyName = alloci.getAlias()
+        KeyName = "
+            #{keyName.substring( 0 , 1e0 ).toUpperCase()}
+            #{keyName.substring( 1 , 5e1 )}
+        ".replace /\s+|\n|\r|\t+/g, ""
 
-        get : (( Property, byteOffset, keyName, isRequired ) -> ->
+        config = options.config ? {}
+        config . writeable  ?= !options.unWriteable
+        config . enumerable  ?= !options.unEnumerable
+        config . configurable ?= !options.unConfigurable
 
-            if !ptri = getUint32 this + byteOffset
-                return unless isRequired
+        KeyClass    = alloci . linked . class
+        byteOffset  = alloci . byteOffset
+        isRequired  = alloci . isRequired
+        inheritType = alloci . inheritType
 
-                this[ keyName ] =
-                    ptri = new Property.alloc()
+        get = options.getter ? ( ->
 
-                setPtriParent ptri, this
-                return ptri
-            return new Property ptri
+            if !isRequired then return ->
 
-        ) Class, byteOffset, keyName, alci.isRequired
+                if  ptri = getUint32 byteOffset + this
+                    return new KeyClass ptri
 
-        set : (( byteOffset ) -> ->
-            setUint32 this + byteOffset, arguments[0]
-        ) byteOffset
+            return switch inheritType
 
-    alci
+                when 1 then ->
 
-define Allocation::     , getLinked             : getLinked
-define Allocation::     , setLinked             : setLinked
-define Allocation::     , getKeyName            : getterPtriAlias
-define Allocation::     , setKeyName            : setterPtriAlias
+                    if  ptri = getUint32 this + byteOffset
+                        return new KeyClass ptri
+                    
+                    if  ptri = new KeyClass.alloc()
+                        setPtriParent ptri , this
+                        setUint32 byteOffset + this, ptri
+                        return ptri
+
+                    throw /REQUIRED_BUT_NOT_REACHED/
+                
+                else throw /UNDEFINEABLE_GETTER/
+        )()
+
+        set = options.setter ? (val) ->
+            setUint32 this + byteOffset, val
+
+        keyNameGet = options.keyNameGet ? get
+        keyNameSet = options.keyNameSet ? set
+        getKeyName = options.getKeyName ? get
+        setKeyName = options.setKeyName ? set
+        
+        if  options.unReadable
+            keyNameGet = getKeyName = undefined
+
+        if  options.unWriteable
+            keyNameSet = setKeyName = undefined
+
+        if  getKeyName
+            define @class::, "get#{KeyName}", { ...config , value : getKeyName }
+
+        if  setKeyName
+            define @class::, "set#{KeyName}", { ...config , value : setKeyName }
+        
+        if !options.onlyFunctions
+            define @class::, keyName, { ...config, get : keyNameGet, set : keyNameSet }
+
+        return alloci
+
+    .call this, ptri, options
+
+define Allocation::     , getLinked             : -> getLinked this
+define Allocation::     , setLinked             : -> setPtriLinked this, arguments[0]
+define Allocation::     , getAlias              : getterPtriAlias
+define Allocation::     , setAlias              : setterPtriAlias
 define Allocation::     , getByteLength         : -> getUint8 this + ALLOCPTR_BYTELENGTH
 define Allocation::     , setByteLength         : -> setUint8 this + ALLOCPTR_BYTELENGTH, arguments[0]
 define Allocation::     , getByteOffset         : -> getUint8 this + ALLOCPTR_BYTEOFFSET
@@ -922,7 +967,7 @@ queueMicrotask =>
     warn mesh
 
     warn meshClassPtri = ClassPointer.of mesh
-    warn meshClassPtri.alloc Position
+    warn meshClassPtri.alloc Position, { isRequired: 0 }
     warn meshClassPtri.alloc Rotation
     warn meshClassPtri.alloc Scale
     warn meshClassPtri.alloc Color
