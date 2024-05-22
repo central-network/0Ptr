@@ -1,4 +1,6 @@
 #* hello world
+Object.defineProperty self, "OPtr",
+    value : ( class OPtr extends Number )
 
 GL2KEY = Object.keys     WebGL2RenderingContext
 GL2VAL = Object.values   WebGL2RenderingContext
@@ -13,71 +15,117 @@ u32 = new Uint32Array sab
 f32 = new Float32Array sab
 iLE = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
 BPE = 4
+ptr = [
+    STATE_DELETE        = 0
+    STATE_IGNORE        = 1
+    STATE_PALLOC        = 2
+    STATE_MALLOC        = 3
+    STATE_QUEUED        = 5
+    STATE_UPDATING      = 6
+    STATE_UPDATED       = 7
+    STATE_UPLOAD        = 8
+    STATE_UPLOADING     = 9
+    STATE_UPLOADED      = 10
 
-PTR_LENGTH          = 16
-PTR_BYTELENGTH      = BPE * PTR_LENGTH
+    PTRTYPE_CLASS       = 1
+    PTRTYPE_HEADER      = 2
+    PTRTYPE_DATAPTR     = 3
+    PTRTYPE_OFFSET      = 4
+    
+    PTR_LENGTH          = 16
+    PTR_BYTELENGTH      = BPE * PTR_LENGTH
+    
+    PTR_STATUSi         = 0 * BPE
+    PTR_CLASSi          = PTR_STATUSi + 1
+    PTR_TYPEi           = PTR_STATUSi + 2
+    PTR_RESVu8          = PTR_STATUSi + 3
 
-PTR_STATUSi         = 0 * BPE
-PTR_CLASSi          = PTR_STATUSi + 1
+    PTR_PARENTi         = 1 * BPE
+    PTR_LINKEDi         = 2 * BPE
+    HAS_BYTEOFFSET      = 3 * BPE
+    HAS_BYTELENGTH      = 4 * BPE
+    HAS_LENGTH          = 5 * BPE
+    PROCEDURE_FILTERER  = 6 * BPE 
+]
 
-PTR_PARENTi         = 1 * BPE
-PTR_LINKEDi         = 2 * BPE
+class Collection extends Array
 
-HAS_BYTEOFFSET      = 3 * BPE
-HAS_BYTELENGTH      = 4 * BPE
-HAS_LENGTH          = 5 * BPE
+class Storage extends Array
+        constructor         : -> super( arguments... )[0] ?= null
+        store               : ( any, bytes = 2 ) ->
+            if  hasOwn any, "storagei"
+                return any.  storagei
 
-PROCEDURE_TEST_FUNCTION                 = 6 * BPE 
+            if  -1 is i = @indexOf any
+                
+                i = Math.pow 0xff, bytes-1
+                i = 1 + i while this[ i ]
 
-Atomics.store       u32, 0, PTR_BYTELENGTH
-Atomics.store       u32, 1, 2000 * PTR_BYTELENGTH
-Atomics.store       u32, 2, 0
+                if  i > Math.pow( 0xff, bytes )
+                    throw /EXCEED_STORAGE/
 
-storage        = new ( class Storage extends Array
-    constructor         : -> super( arguments... )[0] ?= null
-    store               : ( any, bytes = 2 ) ->
-        if  -1 is i = @indexOf any
-            
-            i = Math.pow 0xff, bytes-1
-            i = 1 + i while @[ i ]
+                else this[ i ] =
+                    define any, "storagei", i
 
-            if  i > Math.pow( 0xff, bytes )
+            if  Math.pow( 0xff, bytes ) <= i
                 throw /EXCEED_STORAGE/
-            else this[ i ] = any
 
-        if  Math.pow( 0xff, bytes ) <= i
-            @splice i, 1
-            throw /EXCEED_STORAGE/
+            return i
 
-        i
-    storeForUint8       : ( any ) -> @store any, 1
-    storeForUint16      : ( any ) -> @store any, 2
-    storeForUint32      : ( any ) -> @store any, 4
-    storeForUint64      : ( any ) -> @store any, 8
-) Number
+        storeForUint8       : ( any ) -> @store any, 1
+        storeForUint16      : ( any ) -> @store any, 2
+        storeForUint32      : ( any ) -> @store any, 4
+        storeForUint64      : ( any ) -> @store any, 8
 
-class PtriArray extends Array
-
-hasOwn = (o, v) ->
-    Object.hasOwn( (c = o.constructor)::, v) and c or
-    Object.hasOwn( (o), v) and o
 assign = Object.assign
+hasOwn = Object.hasOwn
+getOwn = Object.getOwnPropertyDescriptors
+protof = Object.getPrototypeOf
+encode = TextEncoder::encode.bind new TextEncoder
+decode = TextDecoder::decode.bind new TextDecoder
+
+Atomics.store u32, 0, PTR_BYTELENGTH
+Atomics.store u32, 1, 2000 * PTR_BYTELENGTH
+Atomics.store u32, 2, 0
+
+storage = new Storage Number
+
 define = ( object, props, desc ) ->
 
     if !desc and !props
 
-        break for Class, Super of object
+        break for Alias, Super of object
 
-        document.head.append( assign(
-            el = document.createElement( "script" ), { innerText :
-                "self['#{Class}'] = class #{Class} extends #{Super.name} {}"
-            })
-        )
+        [ Class, Parent ] = switch Extend = Super.name
+            when "OPtr" then [ "ClassPointer", "Pointer" ]
+            when "Pointer" then [ "#{Alias}Class", "ClassPointer" ]
+            else [ "#{Alias}Class", "#{Extend}Class" ]
 
-        Object.defineProperty self[ Class ], "classIndex", value :
-            storage.storeForUint8 self[ Class ]
+        text = ( ->
+            Object.defineProperties( self, Alias : value : ( class Alias extends Extend ) ); 
+            Object.defineProperties( self, Class : value : ( class Class extends Parent ) ); 0
+        ).toString()
+            
+        text = text
+            .substring(
+                text.indexOf( "Object" ), text.lastIndexOf( "return" ))   
+            .replace( /Alias/ug, Alias ). replace( /Extend/ug, Extend )
+            .replace( /Class/ug, Class ). replace( /Parent/ug, Parent )
 
-        el.remove()
+        document.head.append(
+            assign( $ = document.createElement( "script" ), { text }))
+
+        
+        storage.storeForUint8 self[ Class ]
+        clsptri = allocNewPointer( self[ Class ], PTRTYPE_CLASS )()  
+
+        define self[ Alias ], { clsptri }
+        
+        setPtriParent clsptri, looPtri self[ Parent ], no, 1
+        setPtriResvUint8 clsptri, storage.storeForUint8 self[ Alias ]
+        updateTextRawString Class , clsptri          
+
+        $.remove()
 
     else if !desc
         for prop, desc of props
@@ -94,17 +142,15 @@ define = ( object, props, desc ) ->
         Object.defineProperty object, props, desc
 
     return object
+getter = ( object, props, enumerable = off ) ->
+    break for alias, get of props 
+    define object, alias, { enumerable, get }
+setter = ( object, props ) ->
+    break for alias, set of props 
+    define object, alias, { set }
 symbol = ( object, props ) ->
     break for alias, desc of props 
     define object, Symbol[alias], value : desc
-getter = ( object, props ) ->
-    break for alias, desc of props 
-    define object, alias, get : desc
-setter = ( object, props ) ->
-    break for alias, desc of props 
-    define object, alias, set : desc
-encode = TextEncoder::encode.bind new TextEncoder
-decode = TextDecoder::decode.bind new TextDecoder
 palloc = ->
     o = Atomics.add u32, 0, PTR_BYTELENGTH
     unless o then throw [ /PALLOC/, u32.slice(0,2) ]
@@ -117,6 +163,19 @@ malloc = ( byteLength = 0 ) ->
     if !o or o % 8 then throw [ /NOD_8/, u32.slice(0, 2) ]
 
     o
+resv   = ( object, alias, size ) ->
+    quota = PTR_BYTELENGTH 
+    start = PTR_LINKEDi + 4
+
+    if  object.constructor.byteLength
+        start = HAS_LENGTH + 4
+
+    
+
+    warn { object, start, quota }
+
+ 
+
 
 global =
 
@@ -153,14 +212,29 @@ global =
     f02 : setPtriStatus             = ( ptri, status ) ->
         setUint8 ptri + PTR_STATUSi, status ; status
 
+    f05 : ptriStateNeedsIgnore      = ( ptri ) ->
+        getUint8( ptri + PTR_STATUSi ) <= STATE_IGNORE
+
     f05 : getPtriStatus             = ( ptri ) ->
         getUint8 ptri + PTR_STATUSi
 
-    f02 : setPtriClassi             = ( ptri, classIndex ) ->
-        setUint8 ptri + PTR_CLASSi, classIndex ; classIndex
+    f02 : setPtriClassi             = ( ptri, stri ) ->
+        setUint8 ptri + PTR_CLASSi, stri ; stri
 
     f05 : getPtriClassi             = ( ptri ) ->
         getUint8 ptri + PTR_CLASSi
+
+    f02 : setPtriType               = ( ptri, type ) ->
+        setUint8 ptri + PTR_TYPEi, type ; type
+
+    f05 : getPtriType               = ( ptri ) ->
+        getUint8 ptri + PTR_TYPEi
+
+    f02 : setPtriResvUint8          = ( ptri, byte ) ->
+        setUint8 ptri + PTR_RESVu8, byte ; byte
+
+    f05 : getPtriResvUint8          = ( ptri ) ->
+        getUint8 ptri + PTR_RESVu8
 
     f02 : setPtriParent             = ( ptri, parent ) ->
         setUint32 ptri + PTR_PARENTi, parent, iLE ; parent
@@ -206,13 +280,14 @@ global =
         byteOffset += getByteOffset( ptri )
         new Float32Array sab, byteOffset, length 
 
-    fff : ptriAllocAndSet           = ( ptri, data, view ) ->
+    ___ : ptriAllocAndSet           = ( ptri, data, view ) ->
         if !byteOffset = getByteOffset ptri
             byteLength = data.byteLength
             byteOffset = malloc byteLength
 
             setByteLength ptri, byteLength
             setByteOffset ptri, byteOffset
+            setPtriType   ptri, PTRTYPE_DATAPTR
 
         else if data.byteLength > blen = getByteLength ptri
             throw /GROW_NOT_IMPLEMENTED/
@@ -256,11 +331,13 @@ global =
     fff : getterPtriFloat32Array    = ( ptri = this ) ->
         new Float32Array sab, getByteOffset( ptri ), getLength( ptri ) 
     
-    fff : getterAllocNewPointer     = ( OPtr = this ) ->
+    ___ : allocNewPointer           = ( OPtr = this, type, state ) ->
         ptri = new OPtr palloc()
-        clsi = OPtr.classIndex
+        clsi = storage.store OPtr
 
         setPtriClassi ptri , clsi
+        setPtriStatus ptri , state or STATE_PALLOC
+        setPtriType   ptri , type or PTRTYPE_HEADER
 
         blen = OPtr.byteLength
         len = OPtr.length
@@ -271,6 +348,8 @@ global =
 
                 setByteOffset ptri, byteOffset
                 setByteLength ptri, byteLength
+                setPtriStatus ptri, STATE_MALLOC
+                setPtriType   ptri, PTRTYPE_DATAPTR
 
                 if  length
                     setLength ptri, length
@@ -441,116 +520,156 @@ global =
         setPtriParent ptri, parent ; parent
 
     fff : getterProtocolTest        = ( ptri = this ) ->
-        if !stri = getUint32 this + PROCEDURE_TEST_FUNCTION
+        if !stri = getUint32 this + PROCEDURE_FILTERER
             return -> 1    
         return storage[ stri ]
 
     fff : setterProtocolTest        = ( func, ptri = this ) ->
-        if -1 is stri = storage.storeForUint32 func
-            throw /ERROR_ON_PROCEDURE_TEST_FUNCTION/    
-        return setUint32 this + PROCEDURE_TEST_FUNCTION, stri
+        if -1 is stri = storage.store func
+            throw /ERROR_ON_PROCEDURE_FILTERER/    
+        return setUint32 this + PROCEDURE_FILTERER, stri
 
     fff : addPtriChildren           = ( child, ptri = this ) ->
         setPtriParent child, ptri ; ptri
 
-    fff : filterPtri                = ( clssi, ptri = this, previ = 0, count = 0, atomic = NaN ) ->
+    fff : looPtri                   = ( clssi, ptri = this, count = 0, previ = 0, atomic = NaN ) ->
 
+        single = count is 1
         childi =
             unless atomic then previ
             else if isNaN atomic then throw /ATOMIC_MUSTBEui32/
             else Atomics.add( u32, atomic, POINTER_BYTELENGTH )
 
-        length = 0
-        childs = new PtriArray
-        counti = Atomics.load u32
-
-        EVERYTHING                      = (!ptri and !clssi ) or false
-        EVERYCLASS_PTRIs                = (!ptri and  clssi and !isNaN clssi ) or false
-        EVERYCLASS_CONSTRUCTED          = (!ptri and  clssi and  clssi instanceof Function ) or false
-        CHILDREN_NOFILTER               = ( ptri and !clssi ) or false
-        FILTERED_CHILDREN_PTRIs         = ( ptri and  clssi and !isNaN clssi ) or false
-        FILTERED_CHILDREN_CONSTRUCTED   = ( ptri and  clssi and  clssi instanceof Function ) or false
+        EVERYTHING                      = Boolean( !ptri and !clssi )
+        EVERYCLASS_PTRIs                = Boolean( !ptri and  clssi and !isNaN clssi )
+        EVERYCLASS_CONSTRUCTED          = Boolean( !ptri and  clssi and  clssi instanceof Function )
+        CHILDREN_NOFILTER               = Boolean(  ptri and !clssi )
+        FILTERED_CHILDREN_PTRIs         = Boolean(  ptri and  clssi and !isNaN clssi )
+        FILTERED_CHILDREN_CONSTRUCTED   = Boolean(  ptri and  clssi and  clssi instanceof Function )
 
         unless !clssi then clsi =
             if  clssi instanceof Function
-                storage.indexOf clssi
+                storage.indexOf PClass = clssi
             else if no is isNaN clssi then clssi
             else throw /UNDEFINED_ERROR_FILTER/
 
-        switch !null
+        length = 0
+        childs = new Collection
+        counti = Atomics.load u32
+
+        switch true
 
             when EVERYTHING                     then while childi < counti
 
                 childi = childi + PTR_BYTELENGTH
-                PClass = storage[ getPtriClassi childi ]
-                childs[ length++ ] = new PClass childi
+                continue if ptriStateNeedsIgnore childi
+                PClass = storage[  getPtriClassi childi ]
+                childs[ length++ ] = new PClass( childi )
                 break unless --count 
 
             when EVERYCLASS_PTRIs               then while childi < counti
 
                 childi = childi + PTR_BYTELENGTH
                 continue if clsi - getPtriClassi childi
-                childs[ length++ ] = childi
+                continue if ptriStateNeedsIgnore childi
+                childs[       length++       ] = childi
                 break unless --count
 
             when EVERYCLASS_CONSTRUCTED         then while childi < counti
                 
                 childi = childi + PTR_BYTELENGTH
                 continue if clsi - getPtriClassi childi
-                PClass = storage[  getPtriClassi childi ]
-                childs[ length++ ] = new PClass childi
+                continue if ptriStateNeedsIgnore childi
+                childs[ length++ ] = new PClass( childi )
                 break unless --count
 
             when CHILDREN_NOFILTER              then while childi < counti
                 
                 childi = childi + PTR_BYTELENGTH
+                continue if ptriStateNeedsIgnore childi
                 continue if ptri - getPtriParent childi
                 PClass = storage[  getPtriClassi childi ]
-                childs[ length++ ] = new PClass childi
+                childs[ length++ ] = new PClass( childi )
                 break unless --count
 
             when FILTERED_CHILDREN_PTRIs        then while childi < counti
 
                 childi = childi + PTR_BYTELENGTH
                 continue if clsi - getPtriClassi childi
+                continue if ptriStateNeedsIgnore childi
                 continue if ptri - getPtriParent childi
-                childs[ length++ ] = childi
+                childs[       length++       ] = childi
                 break unless --count
 
             when FILTERED_CHILDREN_CONSTRUCTED  then while childi < counti
                 
                 childi = childi + PTR_BYTELENGTH
                 continue if clsi - getPtriClassi childi
+                continue if ptriStateNeedsIgnore childi
                 continue if ptri - getPtriParent childi
-                PClass = storage[  getPtriClassi childi ]
-                childs[ length++ ] = new PClass childi
+                childs[ length++ ] = new PClass( childi )
                 break unless --count
 
             else throw /UNDEFINED_FILDER/
 
-        return childs
+        return if single then childs[0] else childs
 
+    fff : getterMeshPosition        = ( ptri = this ) ->
+
+        looPtri Position, this, 1
+
+    fff : setterMeshPosition        = ( position, ptri = this ) ->
+        1
+
+    fff : getterPtrCAlias           = ( ptri = this ) ->
+        getterPtriDataAsText ptri
+
+    fff : getterPtrCKeyName         = ( ptri = this ) ->
+        alias = getterPtrCAlias ptri
+        alias[0].toLowerCase() + alias.substring 1
+
+    fff : getterPtrCClass           = ( ptri = this ) ->
+        storage[ getPtriClassi ptri ]
+
+    fff : getterPtrCParent          = ( ptri = this ) ->
+        if !ptrj = getPtriParent ptri
+            return new OPtr 0
+        new storage[ getPtriClassi ptrj ] ptrj
+
+    fff : findPtriClassPointer      = ( ptri = this ) ->
+        clsi = getPtriClassi ptri ; looPtri().find ( clsptri ) ->
+            0 is clsi - getPtriResvUint8 clsptri
 
     #? helpers ----->
 
-        
+storage.storeForUint8 OPtr
+info storage
 
+define Pointer          : OPtr
+define OffsetPointer    : Pointer
 
-define Pointer          : Number
 define Position         : Pointer
 define Color            : Pointer
 define Text             : Pointer
+define Mesh             : Pointer
+define Vertices         : Pointer
 define Procedure        : Text
 define Protocol         : Pointer
 define Queue            : Pointer
+getter OPtr             , alloc                 : allocNewPointer
 define Pointer          , isClass               : on
-getter Pointer          , alloc                 : getterAllocNewPointer
+define Mesh             , byteLength            : 8 * 4
 define Color            , byteLength            : 4 * 4
 define Position         , byteLength            : 3 * 4
 define Text             , TypedArray            : Uint8Array
 define Color            , TypedArray            : Float32Array
 define Position         , TypedArray            : Float32Array
+define Mesh             , TypedArray            : Float32Array
 define Pointer::        , isPointer             : on
+define ClassPointer::   , getAlias              : getterPtrCAlias
+define ClassPointer::   , getKeyName            : getterPtrCKeyName
+define ClassPointer::   , getPrototype          : getterPtrCClass
+define ClassPointer::   , getParent             : getterPtrCParent
 define Position::       , getX                  : getterPtriVectorX
 define Position::       , getY                  : getterPtriVectorY
 define Position::       , getZ                  : getterPtriVectorZ
@@ -582,22 +701,37 @@ define Text::           , set                   : updateTextRawString
 define Procedure::      , getAlias              : getterPtriAlias
 define Procedure::      , setAlias              : setterPtriAlias 
 define Procedure::      , addProtocol           : addPtriChildren 
-define Procedure::      , getProtocols          : -> filterPtri Protocol, this
-define Protocol::       , getLinked             : getterPtriLinked
-define Protocol::       , setLinked             : setterPtriLinked
-define Protocol::       , getProcedure          : getterPtriParent
+define Procedure::      , getProtocols          : -> looPtri( Protocol, this )
+define Protocol::       , getFilterer           : getterProtocolTest
+define Protocol::       , setFilterer           : setterProtocolTest
+define Protocol::       , getLinkedClass        : getterPtriLinked
+define Protocol::       , setLinkedClass        : setterPtriLinked
 define Protocol::       , setProcedure          : setterPtriParent
-define Protocol::       , getTest               : getterProtocolTest
-define Protocol::       , setTest               : setterProtocolTest
+getter Protocol::       , procedure             : getterPtriParent
+define Protocol::       , getMatchs             : -> looPtri( @linkedClass ).filter @filterer
+resv   Mesh::           , position              : 4  
+resv   Mesh::           , rotation              : 4  
+resv   Mesh::           , scale                 : 4  
+define Mesh::           , getPosition           : getterMeshPosition
+define Mesh::           , setPosition           : setterMeshPosition
 
 
+storage.store Color
 
 #? finish ---->
 
 do REDEFINEPTR = ->
+
+
     for Class in storage
 
-        descs = Object.getOwnPropertyDescriptors Class::
+
+        if  Pointer.isPrototypeOf( Class ) and ClassPointer isnt Class
+            if  !ClassPointer.isPrototypeOf( Class )
+                if !hasOwn Class::, kProto = "{{Prototype}}"
+                    define Class::, [ kProto ], get : findPtriClassPointer
+
+        descs = getOwn Class::
         cache = []
 
         #* getProperty -> get property
@@ -629,15 +763,20 @@ do REDEFINEPTR = ->
             when Uint32Array    then -> new Uint32Array sab, getByteOffset(this), getLength(this)
             when Uint8Array     then -> new Uint8Array sab, getByteOffset(this), getLength(this)
         
-        define Class::          ,
-            debug               : get : -> Object.defineProperties enumerable = {},
-                subarray        : { enumerable , value : subarray.call this }
-                byteOffset      : { enumerable , value : getByteOffset this }
-                byteLength      : { enumerable , value : getByteLength this } 
-                length          : { enumerable , value : getLength this     }
-                u32ptri         : { get : => ptrUint32Array this }
-                ui8ptri         : { get : => ptrUint8Array this }
-        define Class            , { length, BYTES_PER_ELEMENT }
+        define Class            ,
+            { length, BYTES_PER_ELEMENT }
+
+        define Class::          , debug : get : -> Object.defineProperties enumerable = {},
+            subarray        : { enumerable , value : subarray.call this }
+            byteOffset      : { enumerable , value : getByteOffset this }
+            byteLength      : { enumerable , value : getByteLength this } 
+            length          : { enumerable , value : getLength this     }
+            u32ptri         : { get : => ptrUint32Array this }
+            ui8ptri         : { get : => ptrUint8Array this }
+            state           : { get : => getPtriStatus this }
+            hitStatePalloc  : { get : => setPtriStatus this, STATE_PALLOC }
+            hitStateMalloc  : { get : => setPtriStatus this, STATE_MALLOC }
+            hitStateIgnore  : { get : => setPtriStatus this, STATE_IGNORE }
 
     0
 
@@ -668,28 +807,35 @@ do CLEARPROTOS = ->
 
 #? test ---->
 
-do  tick = ->
-
-    requestAnimationFrame tick
+#do  tick = ->
+#    requestAnimationFrame tick
     
-setTimeout =>
+queueMicrotask =>
     pos = new Position.alloc()
     clr = new Color.alloc()
     procedure = new Procedure.alloc().set "on?"
     protocol = new Protocol.alloc()  
     protocol2 = new Protocol.alloc()  
+
+    mesh = new Mesh.alloc()
+
     
     procedure.addProtocol protocol
+    procedure.addProtocol protocol2
 
-    log { procedure }
+    log { procedure, pos, clr, protocol, protocol2 }
+    warn mesh
 
-    protocol.linked = Position
-    protocol.match = ( ptri ) ->
+    protocol.linkedClass = Position
+    protocol.filterer = ( ptri ) ->
         2 is getPtriClassi ptri
+
+    protocol2.linkedClass = Color
+    protocol2.filterer = ( ptri ) ->
+        3 is getPtriClassi ptri
 
     #error "protocol.match(pos):", protocol.match( pos )
     #error "protocol.match(clr):", protocol.match( clr )
 
 
-, 100
 

@@ -1,5 +1,9 @@
 //* hello world
-var BPE, CLEARPROTOS, GL2KEY, GL2NUM, GL2VAL, HAS_BYTELENGTH, HAS_BYTEOFFSET, HAS_LENGTH, PROCEDURE_TEST_FUNCTION, PTR_BYTELENGTH, PTR_CLASSi, PTR_LENGTH, PTR_LINKEDi, PTR_PARENTi, PTR_STATUSi, PtriArray, REDEFINEPTR, Storage, addPtriChildren, assign, debug, decode, define, dvw, encode, error, f32, filterPtri, getByteLength, getByteOffset, getFloat32, getFloat32Array, getLength, getPtriClassi, getPtriColorValue, getPtriFloat32, getPtriLinked, getPtriParent, getPtriStatus, getPtriVectorValue, getUint32, getUint8, getter, getterAllocNewPointer, getterProtocolTest, getterPtriAlias, getterPtriColorAlpha, getterPtriColorAsArray, getterPtriColorAsCSS, getterPtriColorAsHEX, getterPtriColorAsHSLA, getterPtriColorAsNumber, getterPtriColorAsRGBA, getterPtriColorBlue, getterPtriColorGreen, getterPtriColorRed, getterPtriDataAsText, getterPtriFloat32Array, getterPtriLinked, getterPtriParent, getterPtriVectorLength, getterPtriVectorX, getterPtriVectorY, getterPtriVectorZ, global, hasOwn, iLE, info, iteratPtriFloat32x3, iteratPtriFloat32x4, log, malloc, palloc, ptrFloat32Array, ptrUint32Array, ptrUint8Array, ptriAllocAndSet, ptriFloat32Array, sab, setByteLength, setByteOffset, setFloat32, setLength, setPtriClassi, setPtriColorValue, setPtriFloat32, setPtriLinked, setPtriParent, setPtriStatus, setPtriVectorValue, setUint32, setUint8, setter, setterProtocolTest, setterPtriAlias, setterPtriColorAlpha, setterPtriColorBlue, setterPtriColorGreen, setterPtriColorRed, setterPtriLinked, setterPtriParent, setterPtriVectorX, setterPtriVectorY, setterPtriVectorZ, storage, symbol, table, tick, u32, ui8, updateFloat32DataArray, updateTextRawString, warn;
+var BPE, CLEARPROTOS, Collection, GL2KEY, GL2NUM, GL2VAL, HAS_BYTELENGTH, HAS_BYTEOFFSET, HAS_LENGTH, OPtr, PROCEDURE_FILTERER, PTRTYPE_CLASS, PTRTYPE_DATAPTR, PTRTYPE_HEADER, PTRTYPE_OFFSET, PTR_BYTELENGTH, PTR_CLASSi, PTR_LENGTH, PTR_LINKEDi, PTR_PARENTi, PTR_RESVu8, PTR_STATUSi, PTR_TYPEi, REDEFINEPTR, STATE_DELETE, STATE_IGNORE, STATE_MALLOC, STATE_PALLOC, STATE_QUEUED, STATE_UPDATED, STATE_UPDATING, STATE_UPLOAD, STATE_UPLOADED, STATE_UPLOADING, Storage, addPtriChildren, allocNewPointer, assign, debug, decode, define, dvw, encode, error, f32, findPtriClassPointer, getByteLength, getByteOffset, getFloat32, getFloat32Array, getLength, getOwn, getPtriClassi, getPtriColorValue, getPtriFloat32, getPtriLinked, getPtriParent, getPtriResvUint8, getPtriStatus, getPtriType, getPtriVectorValue, getUint32, getUint8, getter, getterMeshPosition, getterProtocolTest, getterPtrCAlias, getterPtrCClass, getterPtrCKeyName, getterPtrCParent, getterPtriAlias, getterPtriColorAlpha, getterPtriColorAsArray, getterPtriColorAsCSS, getterPtriColorAsHEX, getterPtriColorAsHSLA, getterPtriColorAsNumber, getterPtriColorAsRGBA, getterPtriColorBlue, getterPtriColorGreen, getterPtriColorRed, getterPtriDataAsText, getterPtriFloat32Array, getterPtriLinked, getterPtriParent, getterPtriVectorLength, getterPtriVectorX, getterPtriVectorY, getterPtriVectorZ, global, hasOwn, iLE, info, iteratPtriFloat32x3, iteratPtriFloat32x4, log, looPtri, malloc, palloc, protof, ptr, ptrFloat32Array, ptrUint32Array, ptrUint8Array, ptriAllocAndSet, ptriFloat32Array, ptriStateNeedsIgnore, resv, sab, setByteLength, setByteOffset, setFloat32, setLength, setPtriClassi, setPtriColorValue, setPtriFloat32, setPtriLinked, setPtriParent, setPtriResvUint8, setPtriStatus, setPtriType, setPtriVectorValue, setUint32, setUint8, setter, setterMeshPosition, setterProtocolTest, setterPtriAlias, setterPtriColorAlpha, setterPtriColorBlue, setterPtriColorGreen, setterPtriColorRed, setterPtriLinked, setterPtriParent, setterPtriVectorX, setterPtriVectorY, setterPtriVectorZ, storage, symbol, table, u32, ui8, updateFloat32DataArray, updateTextRawString, warn;
+
+Object.defineProperty(self, "OPtr", {
+  value: (OPtr = class OPtr extends Number {})
+});
 
 GL2KEY = Object.keys(WebGL2RenderingContext);
 
@@ -23,33 +27,11 @@ iLE = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
 
 BPE = 4;
 
-PTR_LENGTH = 16;
+ptr = [STATE_DELETE = 0, STATE_IGNORE = 1, STATE_PALLOC = 2, STATE_MALLOC = 3, STATE_QUEUED = 5, STATE_UPDATING = 6, STATE_UPDATED = 7, STATE_UPLOAD = 8, STATE_UPLOADING = 9, STATE_UPLOADED = 10, PTRTYPE_CLASS = 1, PTRTYPE_HEADER = 2, PTRTYPE_DATAPTR = 3, PTRTYPE_OFFSET = 4, PTR_LENGTH = 16, PTR_BYTELENGTH = BPE * PTR_LENGTH, PTR_STATUSi = 0 * BPE, PTR_CLASSi = PTR_STATUSi + 1, PTR_TYPEi = PTR_STATUSi + 2, PTR_RESVu8 = PTR_STATUSi + 3, PTR_PARENTi = 1 * BPE, PTR_LINKEDi = 2 * BPE, HAS_BYTEOFFSET = 3 * BPE, HAS_BYTELENGTH = 4 * BPE, HAS_LENGTH = 5 * BPE, PROCEDURE_FILTERER = 6 * BPE];
 
-PTR_BYTELENGTH = BPE * PTR_LENGTH;
+Collection = class Collection extends Array {};
 
-PTR_STATUSi = 0 * BPE;
-
-PTR_CLASSi = PTR_STATUSi + 1;
-
-PTR_PARENTi = 1 * BPE;
-
-PTR_LINKEDi = 2 * BPE;
-
-HAS_BYTEOFFSET = 3 * BPE;
-
-HAS_BYTELENGTH = 4 * BPE;
-
-HAS_LENGTH = 5 * BPE;
-
-PROCEDURE_TEST_FUNCTION = 6 * BPE;
-
-Atomics.store(u32, 0, PTR_BYTELENGTH);
-
-Atomics.store(u32, 1, 2000 * PTR_BYTELENGTH);
-
-Atomics.store(u32, 2, 0);
-
-storage = new (Storage = class Storage extends Array {
+Storage = class Storage extends Array {
   constructor() {
     var base;
     if ((base = super(...arguments))[0] == null) {
@@ -59,6 +41,9 @@ storage = new (Storage = class Storage extends Array {
 
   store(any, bytes = 2) {
     var i;
+    if (hasOwn(any, "storagei")) {
+      return any.storagei;
+    }
     if (-1 === (i = this.indexOf(any))) {
       i = Math.pow(0xff, bytes - 1);
       while (this[i]) {
@@ -67,11 +52,10 @@ storage = new (Storage = class Storage extends Array {
       if (i > Math.pow(0xff, bytes)) {
         throw /EXCEED_STORAGE/;
       } else {
-        this[i] = any;
+        this[i] = define(any, "storagei", i);
       }
     }
     if (Math.pow(0xff, bytes) <= i) {
-      this.splice(i, 1);
       throw /EXCEED_STORAGE/;
     }
     return i;
@@ -93,31 +77,67 @@ storage = new (Storage = class Storage extends Array {
     return this.store(any, 8);
   }
 
-})(Number);
-
-PtriArray = class PtriArray extends Array {};
-
-hasOwn = function(o, v) {
-  var c;
-  return Object.hasOwn((c = o.constructor).prototype, v) && c || Object.hasOwn(o, v) && o;
 };
 
 assign = Object.assign;
 
+hasOwn = Object.hasOwn;
+
+getOwn = Object.getOwnPropertyDescriptors;
+
+protof = Object.getPrototypeOf;
+
+encode = TextEncoder.prototype.encode.bind(new TextEncoder);
+
+decode = TextDecoder.prototype.decode.bind(new TextDecoder);
+
+Atomics.store(u32, 0, PTR_BYTELENGTH);
+
+Atomics.store(u32, 1, 2000 * PTR_BYTELENGTH);
+
+Atomics.store(u32, 2, 0);
+
+storage = new Storage(Number);
+
 define = function(object, props, desc) {
-  var Class, Super, el, prop;
+  var $, Alias, Class, Extend, Parent, Super, clsptri, prop, text;
   if (!desc && !props) {
-    for (Class in object) {
-      Super = object[Class];
+    for (Alias in object) {
+      Super = object[Alias];
       break;
     }
-    document.head.append(assign(el = document.createElement("script"), {
-      innerText: `self['${Class}'] = class ${Class} extends ${Super.name} {}`
-    }));
-    Object.defineProperty(self[Class], "classIndex", {
-      value: storage.storeForUint8(self[Class])
-    });
-    el.remove();
+    [Class, Parent] = (function() {
+      switch (Extend = Super.name) {
+        case "OPtr":
+          return ["ClassPointer", "Pointer"];
+        case "Pointer":
+          return [`${Alias}Class`, "ClassPointer"];
+        default:
+          return [`${Alias}Class`, `${Extend}Class`];
+      }
+    })();
+    text = (function() {
+      Object.defineProperties(self, {
+        Alias: {
+          value: (Alias = class Alias extends Extend {})
+        }
+      });
+      Object.defineProperties(self, {
+        Class: {
+          value: (Class = class Class extends Parent {})
+        }
+      });
+      return 0;
+    }).toString();
+    text = text.substring(text.indexOf("Object"), text.lastIndexOf("return")).replace(/Alias/ug, Alias).replace(/Extend/ug, Extend).replace(/Class/ug, Class).replace(/Parent/ug, Parent);
+    document.head.append(assign($ = document.createElement("script"), {text}));
+    storage.storeForUint8(self[Class]);
+    clsptri = allocNewPointer(self[Class], PTRTYPE_CLASS)();
+    define(self[Alias], {clsptri});
+    setPtriParent(clsptri, looPtri(self[Parent], false, 1));
+    setPtriResvUint8(clsptri, storage.storeForUint8(self[Alias]));
+    updateTextRawString(Class, clsptri);
+    $.remove();
   } else if (!desc) {
     for (prop in props) {
       desc = props[prop];
@@ -139,6 +159,24 @@ define = function(object, props, desc) {
   return object;
 };
 
+getter = function(object, props, enumerable = false) {
+  var alias, get;
+  for (alias in props) {
+    get = props[alias];
+    break;
+  }
+  return define(object, alias, {enumerable, get});
+};
+
+setter = function(object, props) {
+  var alias, set;
+  for (alias in props) {
+    set = props[alias];
+    break;
+  }
+  return define(object, alias, {set});
+};
+
 symbol = function(object, props) {
   var alias, desc;
   for (alias in props) {
@@ -149,32 +187,6 @@ symbol = function(object, props) {
     value: desc
   });
 };
-
-getter = function(object, props) {
-  var alias, desc;
-  for (alias in props) {
-    desc = props[alias];
-    break;
-  }
-  return define(object, alias, {
-    get: desc
-  });
-};
-
-setter = function(object, props) {
-  var alias, desc;
-  for (alias in props) {
-    desc = props[alias];
-    break;
-  }
-  return define(object, alias, {
-    set: desc
-  });
-};
-
-encode = TextEncoder.prototype.encode.bind(new TextEncoder);
-
-decode = TextDecoder.prototype.decode.bind(new TextDecoder);
 
 palloc = function() {
   var o;
@@ -195,6 +207,16 @@ malloc = function(byteLength = 0) {
     throw [/NOD_8/, u32.slice(0, 2)];
   }
   return o;
+};
+
+resv = function(object, alias, size) {
+  var quota, start;
+  quota = PTR_BYTELENGTH;
+  start = PTR_LINKEDi + 4;
+  if (object.constructor.byteLength) {
+    start = HAS_LENGTH + 4;
+  }
+  return warn({object, start, quota});
 };
 
 global = {
@@ -237,15 +259,32 @@ global = {
     setUint8(ptri + PTR_STATUSi, status);
     return status;
   },
+  f05: ptriStateNeedsIgnore = function(ptri) {
+    return getUint8(ptri + PTR_STATUSi) <= STATE_IGNORE;
+  },
   f05: getPtriStatus = function(ptri) {
     return getUint8(ptri + PTR_STATUSi);
   },
-  f02: setPtriClassi = function(ptri, classIndex) {
-    setUint8(ptri + PTR_CLASSi, classIndex);
-    return classIndex;
+  f02: setPtriClassi = function(ptri, stri) {
+    setUint8(ptri + PTR_CLASSi, stri);
+    return stri;
   },
   f05: getPtriClassi = function(ptri) {
     return getUint8(ptri + PTR_CLASSi);
+  },
+  f02: setPtriType = function(ptri, type) {
+    setUint8(ptri + PTR_TYPEi, type);
+    return type;
+  },
+  f05: getPtriType = function(ptri) {
+    return getUint8(ptri + PTR_TYPEi);
+  },
+  f02: setPtriResvUint8 = function(ptri, byte) {
+    setUint8(ptri + PTR_RESVu8, byte);
+    return byte;
+  },
+  f05: getPtriResvUint8 = function(ptri) {
+    return getUint8(ptri + PTR_RESVu8);
   },
   f02: setPtriParent = function(ptri, parent) {
     setUint32(ptri + PTR_PARENTi, parent, iLE);
@@ -293,13 +332,14 @@ global = {
     byteOffset += getByteOffset(ptri);
     return new Float32Array(sab, byteOffset, length);
   },
-  fff: ptriAllocAndSet = function(ptri, data, view) {
+  ___: ptriAllocAndSet = function(ptri, data, view) {
     var blen, byteLength, byteOffset;
     if (!(byteOffset = getByteOffset(ptri))) {
       byteLength = data.byteLength;
       byteOffset = malloc(byteLength);
       setByteLength(ptri, byteLength);
       setByteOffset(ptri, byteOffset);
+      setPtriType(ptri, PTRTYPE_DATAPTR);
     } else if (data.byteLength > (blen = getByteLength(ptri))) {
       throw /GROW_NOT_IMPLEMENTED/;
     } else {
@@ -342,11 +382,13 @@ global = {
   fff: getterPtriFloat32Array = function(ptri = this) {
     return new Float32Array(sab, getByteOffset(ptri), getLength(ptri));
   },
-  fff: getterAllocNewPointer = function(OPtr = this) {
+  ___: allocNewPointer = function(OPtr = this, type, state) {
     var blen, clsi, len, ptri;
     ptri = new OPtr(palloc());
-    clsi = OPtr.classIndex;
+    clsi = storage.store(OPtr);
     setPtriClassi(ptri, clsi);
+    setPtriStatus(ptri, state || STATE_PALLOC);
+    setPtriType(ptri, type || PTRTYPE_HEADER);
     blen = OPtr.byteLength;
     len = OPtr.length;
     return function(byteLength = blen, length = len) {
@@ -355,6 +397,8 @@ global = {
         byteOffset = malloc(byteLength);
         setByteOffset(ptri, byteOffset);
         setByteLength(ptri, byteLength);
+        setPtriStatus(ptri, STATE_MALLOC);
+        setPtriType(ptri, PTRTYPE_DATAPTR);
         if (length) {
           setLength(ptri, length);
         }
@@ -542,7 +586,7 @@ global = {
   },
   fff: getterProtocolTest = function(ptri = this) {
     var stri;
-    if (!(stri = getUint32(this + PROCEDURE_TEST_FUNCTION))) {
+    if (!(stri = getUint32(this + PROCEDURE_FILTERER))) {
       return function() {
         return 1;
       };
@@ -551,17 +595,18 @@ global = {
   },
   fff: setterProtocolTest = function(func, ptri = this) {
     var stri;
-    if (-1 === (stri = storage.storeForUint32(func))) {
-      throw /ERROR_ON_PROCEDURE_TEST_FUNCTION/;
+    if (-1 === (stri = storage.store(func))) {
+      throw /ERROR_ON_PROCEDURE_FILTERER/;
     }
-    return setUint32(this + PROCEDURE_TEST_FUNCTION, stri);
+    return setUint32(this + PROCEDURE_FILTERER, stri);
   },
   fff: addPtriChildren = function(child, ptri = this) {
     setPtriParent(child, ptri);
     return ptri;
   },
-  fff: filterPtri = function(clssi, ptri = this, previ = 0, count = 0, atomic = 0/0) {
-    var CHILDREN_NOFILTER, EVERYCLASS_CONSTRUCTED, EVERYCLASS_PTRIs, EVERYTHING, FILTERED_CHILDREN_CONSTRUCTED, FILTERED_CHILDREN_PTRIs, PClass, childi, childs, clsi, counti, length;
+  fff: looPtri = function(clssi, ptri = this, count = 0, previ = 0, atomic = 0/0) {
+    var CHILDREN_NOFILTER, EVERYCLASS_CONSTRUCTED, EVERYCLASS_PTRIs, EVERYTHING, FILTERED_CHILDREN_CONSTRUCTED, FILTERED_CHILDREN_PTRIs, PClass, childi, childs, clsi, counti, length, single;
+    single = count === 1;
     childi = (function() {
       if (!atomic) {
         return previ;
@@ -571,19 +616,16 @@ global = {
         return Atomics.add(u32, atomic, POINTER_BYTELENGTH);
       }
     })();
-    length = 0;
-    childs = new PtriArray;
-    counti = Atomics.load(u32);
-    EVERYTHING = (!ptri && !clssi) || false;
-    EVERYCLASS_PTRIs = (!ptri && clssi && !isNaN(clssi)) || false;
-    EVERYCLASS_CONSTRUCTED = (!ptri && clssi && clssi instanceof Function) || false;
-    CHILDREN_NOFILTER = (ptri && !clssi) || false;
-    FILTERED_CHILDREN_PTRIs = (ptri && clssi && !isNaN(clssi)) || false;
-    FILTERED_CHILDREN_CONSTRUCTED = (ptri && clssi && clssi instanceof Function) || false;
+    EVERYTHING = Boolean(!ptri && !clssi);
+    EVERYCLASS_PTRIs = Boolean(!ptri && clssi && !isNaN(clssi));
+    EVERYCLASS_CONSTRUCTED = Boolean(!ptri && clssi && clssi instanceof Function);
+    CHILDREN_NOFILTER = Boolean(ptri && !clssi);
+    FILTERED_CHILDREN_PTRIs = Boolean(ptri && clssi && !isNaN(clssi));
+    FILTERED_CHILDREN_CONSTRUCTED = Boolean(ptri && clssi && clssi instanceof Function);
     if (!!clssi) {
       clsi = (function() {
         if (clssi instanceof Function) {
-          return storage.indexOf(clssi);
+          return storage.indexOf(PClass = clssi);
         } else if (false === isNaN(clssi)) {
           return clssi;
         } else {
@@ -591,10 +633,16 @@ global = {
         }
       })();
     }
-    switch (!null) {
+    length = 0;
+    childs = new Collection;
+    counti = Atomics.load(u32);
+    switch (true) {
       case EVERYTHING:
         while (childi < counti) {
           childi = childi + PTR_BYTELENGTH;
+          if (ptriStateNeedsIgnore(childi)) {
+            continue;
+          }
           PClass = storage[getPtriClassi(childi)];
           childs[length++] = new PClass(childi);
           if (!--count) {
@@ -606,6 +654,9 @@ global = {
         while (childi < counti) {
           childi = childi + PTR_BYTELENGTH;
           if (clsi - getPtriClassi(childi)) {
+            continue;
+          }
+          if (ptriStateNeedsIgnore(childi)) {
             continue;
           }
           childs[length++] = childi;
@@ -620,7 +671,9 @@ global = {
           if (clsi - getPtriClassi(childi)) {
             continue;
           }
-          PClass = storage[getPtriClassi(childi)];
+          if (ptriStateNeedsIgnore(childi)) {
+            continue;
+          }
           childs[length++] = new PClass(childi);
           if (!--count) {
             break;
@@ -630,6 +683,9 @@ global = {
       case CHILDREN_NOFILTER:
         while (childi < counti) {
           childi = childi + PTR_BYTELENGTH;
+          if (ptriStateNeedsIgnore(childi)) {
+            continue;
+          }
           if (ptri - getPtriParent(childi)) {
             continue;
           }
@@ -644,6 +700,9 @@ global = {
         while (childi < counti) {
           childi = childi + PTR_BYTELENGTH;
           if (clsi - getPtriClassi(childi)) {
+            continue;
+          }
+          if (ptriStateNeedsIgnore(childi)) {
             continue;
           }
           if (ptri - getPtriParent(childi)) {
@@ -661,10 +720,12 @@ global = {
           if (clsi - getPtriClassi(childi)) {
             continue;
           }
+          if (ptriStateNeedsIgnore(childi)) {
+            continue;
+          }
           if (ptri - getPtriParent(childi)) {
             continue;
           }
-          PClass = storage[getPtriClassi(childi)];
           childs[length++] = new PClass(childi);
           if (!--count) {
             break;
@@ -674,13 +735,56 @@ global = {
       default:
         throw /UNDEFINED_FILDER/;
     }
-    return childs;
+    if (single) {
+      return childs[0];
+    } else {
+      return childs;
+    }
+  },
+  fff: getterMeshPosition = function(ptri = this) {
+    return looPtri(Position, this, 1);
+  },
+  fff: setterMeshPosition = function(position, ptri = this) {
+    return 1;
+  },
+  fff: getterPtrCAlias = function(ptri = this) {
+    return getterPtriDataAsText(ptri);
+  },
+  fff: getterPtrCKeyName = function(ptri = this) {
+    var alias;
+    alias = getterPtrCAlias(ptri);
+    return alias[0].toLowerCase() + alias.substring(1);
+  },
+  fff: getterPtrCClass = function(ptri = this) {
+    return storage[getPtriClassi(ptri)];
+  },
+  fff: getterPtrCParent = function(ptri = this) {
+    var ptrj;
+    if (!(ptrj = getPtriParent(ptri))) {
+      return new OPtr(0);
+    }
+    return new storage[getPtriClassi(ptrj)](ptrj);
+  },
+  fff: findPtriClassPointer = function(ptri = this) {
+    var clsi;
+    clsi = getPtriClassi(ptri);
+    return looPtri().find(function(clsptri) {
+      return 0 === clsi - getPtriResvUint8(clsptri);
+    });
   }
 };
 
 //? helpers ----->
+storage.storeForUint8(OPtr);
+
+info(storage);
+
 define({
-  Pointer: Number
+  Pointer: OPtr
+});
+
+define({
+  OffsetPointer: Pointer
 });
 
 define({
@@ -696,6 +800,14 @@ define({
 });
 
 define({
+  Mesh: Pointer
+});
+
+define({
+  Vertices: Pointer
+});
+
+define({
   Procedure: Text
 });
 
@@ -707,12 +819,16 @@ define({
   Queue: Pointer
 });
 
+getter(OPtr, {
+  alloc: allocNewPointer
+});
+
 define(Pointer, {
   isClass: true
 });
 
-getter(Pointer, {
-  alloc: getterAllocNewPointer
+define(Mesh, {
+  byteLength: 8 * 4
 });
 
 define(Color, {
@@ -735,8 +851,28 @@ define(Position, {
   TypedArray: Float32Array
 });
 
+define(Mesh, {
+  TypedArray: Float32Array
+});
+
 define(Pointer.prototype, {
   isPointer: true
+});
+
+define(ClassPointer.prototype, {
+  getAlias: getterPtrCAlias
+});
+
+define(ClassPointer.prototype, {
+  getKeyName: getterPtrCKeyName
+});
+
+define(ClassPointer.prototype, {
+  getPrototype: getterPtrCClass
+});
+
+define(ClassPointer.prototype, {
+  getParent: getterPtrCParent
 });
 
 define(Position.prototype, {
@@ -865,40 +1001,77 @@ define(Procedure.prototype, {
 
 define(Procedure.prototype, {
   getProtocols: function() {
-    return filterPtri(Protocol, this);
+    return looPtri(Protocol, this);
   }
 });
 
 define(Protocol.prototype, {
-  getLinked: getterPtriLinked
+  getFilterer: getterProtocolTest
 });
 
 define(Protocol.prototype, {
-  setLinked: setterPtriLinked
+  setFilterer: setterProtocolTest
 });
 
 define(Protocol.prototype, {
-  getProcedure: getterPtriParent
+  getLinkedClass: getterPtriLinked
+});
+
+define(Protocol.prototype, {
+  setLinkedClass: setterPtriLinked
 });
 
 define(Protocol.prototype, {
   setProcedure: setterPtriParent
 });
 
-define(Protocol.prototype, {
-  getTest: getterProtocolTest
+getter(Protocol.prototype, {
+  procedure: getterPtriParent
 });
 
 define(Protocol.prototype, {
-  setTest: setterProtocolTest
+  getMatchs: function() {
+    return looPtri(this.linkedClass).filter(this.filterer);
+  }
 });
+
+resv(Mesh.prototype, {
+  position: 4
+});
+
+resv(Mesh.prototype, {
+  rotation: 4
+});
+
+resv(Mesh.prototype, {
+  scale: 4
+});
+
+define(Mesh.prototype, {
+  getPosition: getterMeshPosition
+});
+
+define(Mesh.prototype, {
+  setPosition: setterMeshPosition
+});
+
+storage.store(Color);
 
 //? finish ---->
 (REDEFINEPTR = function() {
-  var Alias, BYTES_PER_ELEMENT, Class, TypedArray, alias, byteLength, cache, d, desc, descs, get, j, len1, length, prop, set, subarray;
+  var Alias, BYTES_PER_ELEMENT, Class, TypedArray, alias, byteLength, cache, d, desc, descs, get, j, kProto, len1, length, prop, set, subarray;
   for (j = 0, len1 = storage.length; j < len1; j++) {
     Class = storage[j];
-    descs = Object.getOwnPropertyDescriptors(Class.prototype);
+    if (Pointer.isPrototypeOf(Class) && ClassPointer !== Class) {
+      if (!ClassPointer.isPrototypeOf(Class)) {
+        if (!hasOwn(Class.prototype, kProto = "{{Prototype}}")) {
+          define(Class.prototype, [kProto], {
+            get: findPtriClassPointer
+          });
+        }
+      }
+    }
+    descs = getOwn(Class.prototype);
     cache = [];
 //* getProperty -> get property
 //* setProperty -> set property
@@ -957,6 +1130,7 @@ define(Protocol.prototype, {
           };
       }
     })();
+    define(Class, {length, BYTES_PER_ELEMENT});
     define(Class.prototype, {
       debug: {
         get: function() {
@@ -987,12 +1161,31 @@ define(Protocol.prototype, {
               get: () => {
                 return ptrUint8Array(this);
               }
+            },
+            state: {
+              get: () => {
+                return getPtriStatus(this);
+              }
+            },
+            hitStatePalloc: {
+              get: () => {
+                return setPtriStatus(this, STATE_PALLOC);
+              }
+            },
+            hitStateMalloc: {
+              get: () => {
+                return setPtriStatus(this, STATE_MALLOC);
+              }
+            },
+            hitStateIgnore: {
+              get: () => {
+                return setPtriStatus(this, STATE_IGNORE);
+              }
             }
           });
         }
       }
     });
-    define(Class, {length, BYTES_PER_ELEMENT});
   }
   return 0;
 })();
@@ -1023,23 +1216,30 @@ define(Protocol.prototype, {
 })();
 
 //? test ---->
-(tick = function() {
-  return requestAnimationFrame(tick);
-})();
 
-setTimeout(() => {
-  var clr, pos, procedure, protocol, protocol2;
+//do  tick = ->
+//    requestAnimationFrame tick
+queueMicrotask(() => {
+  var clr, mesh, pos, procedure, protocol, protocol2;
   pos = new Position.alloc();
   clr = new Color.alloc();
   procedure = new Procedure.alloc().set("on?");
   protocol = new Protocol.alloc();
   protocol2 = new Protocol.alloc();
+  mesh = new Mesh.alloc();
   procedure.addProtocol(protocol);
-  log({procedure});
-  protocol.linked = Position;
-  return protocol.match = function(ptri) {
+  procedure.addProtocol(protocol2);
+  log({procedure, pos, clr, protocol, protocol2});
+  warn(mesh);
+  protocol.linkedClass = Position;
+  protocol.filterer = function(ptri) {
     return 2 === getPtriClassi(ptri);
   };
+  protocol2.linkedClass = Color;
+  return protocol2.filterer = function(ptri) {
+    return 3 === getPtriClassi(ptri);
+  };
+});
+
 //error "protocol.match(pos):", protocol.match( pos )
 //error "protocol.match(clr):", protocol.match( clr )
-}, 100);
