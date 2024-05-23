@@ -1,3 +1,5 @@
+DEBUG = 0
+
 #* hello world
 Object.defineProperty self, "OPtr",
     value : ( class OPtr extends Number )
@@ -21,6 +23,7 @@ ptr = [
     STATE_IGNORE        = 1
     STATE_PALLOC        = 2
     STATE_MALLOC        = 3
+    STATE_LOCKED        = 4
     STATE_QUEUED        = 5
     STATE_UPDATING      = 6
     STATE_UPDATED       = 7
@@ -32,10 +35,24 @@ ptr = [
     PTRTYPE_HEADER      = 2
     PTRTYPE_DATAPTR     = 3
     PTRTYPE_OFFSET      = 4
+
+    ALLOC_TYPE          =
+        0 : 0
+        1 : ALLCTYPE_PTRI           = new (class ALLCTYPE_PTRI          extends Number) 1
+        2 : ALLCTYPE_TEXT           = new (class ALLCTYPE_TEXT          extends Number) 2
+        3 : ALLCTYPE_UINT8          = new (class ALLCTYPE_UINT8         extends Number) 3
+        4 : ALLCTYPE_NUMBER         = new (class ALLCTYPE_NUMBER        extends Number) 4
+        5 : ALLCTYPE_FLOAT32        = new (class ALLCTYPE_FLOAT32       extends Number) 5
+
+    INHERIT_TYPE        =
+        0 : 0
+        1 : INHRITYPE_ALLOCNEW      = new (class INHRITYPE_ALLOCNEW     extends Number) 1
+        2 : INHRITYPE_GETPARENT     = new (class INHRITYPE_GETPARENT    extends Number) 2
+        2 : INHRITYPE_COPYPARENT    = new (class INHRITYPE_COPYPARENT   extends Number) 2
     
     PTR_LENGTH          = 16
     PTR_BYTELENGTH      = BPE * PTR_LENGTH
-    
+
     PTR_STATUSi         = 0 * BPE
     PTR_CLASSi          = PTR_STATUSi + 1
     PTR_TYPEi           = PTR_STATUSi + 2
@@ -95,6 +112,8 @@ getOwn = Object.getOwnPropertyDescriptors
 protof = Object.getPrototypeOf
 encode = TextEncoder::encode.bind new TextEncoder
 decode = TextDecoder::decode.bind new TextDecoder
+
+warn { PTR_BYTELENGTH }
 
 Atomics.store u32, 0, PTR_BYTELENGTH
 Atomics.store u32, 1, 2000 * PTR_BYTELENGTH
@@ -195,7 +214,7 @@ global =
     f00 : getUint8                  = ( byteOffset ) ->
         dvw.getUint8 byteOffset
 
-    f01 : setUint8                  = ( byteOffset, value ) ->
+    f01 : setUint8                  = ( byteOffset, value = 0 ) ->
         dvw.setUint8 byteOffset, value ; value
 
     f00 : getUint32                 = ( byteOffset ) ->
@@ -256,10 +275,10 @@ global =
         getUint32 ptri + PTR_PARENTi
 
     f02 : getLinked                 = ( ptri = this ) ->
-        ptri = getPtriLinked ptri
-        clsi = getPtriClassi ptri
-
-        new storage[ clsi ] ptri
+        if  ptri = getPtriLinked ptri
+            clsi = getPtriClassi ptri
+            return new storage[ clsi ] ptri
+        0
 
     f02 : setLinked                 = ( linked, ptri = this ) ->
         setUint32 ptri + PTR_LINKEDi, linked, iLE ; linked
@@ -515,13 +534,45 @@ global =
         yield getPtriFloat32 ptri,  byteOffset +  8
         0
 
-    fff : getterPtriDataAsText      = ( ptri = this ) ->
-        decode new Uint8Array( sab,
-            getByteOffset( ptri ), getByteLength( ptri )
-        ).slice 0
+    fff : setText                   = ( text , byteOffset , length ) ->        
+        data = encode text
 
-    fff : getterPtriAliasCamelCase  = ( ptri = this ) ->
+        if  length 
+            data = data.slice 0, length 
+
+        ui8.set data, byteOffset
+        
+        text
+
+    fff : getText                   = ( byteOffset = 0, length ) ->
+        
+        data = new Uint8Array sab, byteOffset, length
+        return switch i = data.indexOf 0
+            when  0 then ""
+            when -1 then decode data.slice 0
+            else decode data.slice 0, i
+
+    fff : getterPtriDataAsText      = ( ptri = this, byteOffset = 0, length ) ->
+        
+        length or= getByteLength ptri
+        byteOffset += getByteOffset ptri 
+        textarray = new Uint8Array sab, byteOffset, length
+
+        if  -1 is i = textarray.indexOf 0, byteOffset
+            return decode textarray.slice 0
+
+        decode textarray.slice 0, i
+
+    fff : setterPtriDataFromText    = ( text , ptri = this ) ->
+        data = encode( text ).slice 0, getByteLength( ptri )
+        ui8.set data, getByteOffset( ptri ) ; text 
+
+    fff : getterPtriAliasAsKeyName  = ( ptri = this ) ->
         alias = getterPtriAlias ptri
+
+        if  alias.split("").some (c) -> c is c.toUpperCase()
+            return alias.toLocaleLowerCase()
+
         alias[0].toLowerCase() + alias.substring 1
 
     fff : getterPtriAlias           = ( ptri = this ) ->
@@ -676,12 +727,16 @@ define Color            : Pointer
 define Text             : Pointer
 define Mesh             : Pointer
 define Vertices         : Pointer
+define UUID             : Text
 define Procedure        : Text
 define Protocol         : Pointer
 define Allocation       : Text
+define ValueAllocation  : Allocation
 define Queue            : Pointer
 getter Pointer          , alloc                 : allocNewPointer
 define Pointer          , isClass               : on
+define Pointer::        , toString              : ->
+    throw [ "tostr:", this, Error.captureStackTrace(a = {}), a ]
 define Mesh             , byteLength            : 8 * 4
 define Color            , byteLength            : 4 * 4
 define Position         , byteLength            : 3 * 4
@@ -695,40 +750,62 @@ define Scale            , TypedArray            : Float32Array
 define Mesh             , TypedArray            : Float32Array
 define Pointer::        , isPointer             : on
 define ClassPointer     , of                    : ( any ) ->
-    clsi = any.storagei or getPtriClassi( any )
-    new ClassPointer looPtri( ClassPointer ).find ( clsptri ) ->
-        clsi is getPtriLinked clsptri
+    unless any then throw /ANY_CLASSPOINTER/
+
+    if  clsptri = any.clsptri or any.constructor.clsptri
+        return new ClassPointer clsptri
+
+    if  clsi = any.storagei or getPtriClassi( any )
+        return new ClassPointer looPtri( ClassPointer ).find ( clsptri ) ->
+            clsi is getPtriLinked clsptri
+
+    throw /ANY_CLASSPOINTER/
     
 define ClassPointer::   , getAlias              : getterPtriAlias
-getter ClassPointer::   , keyName               : getterPtriAliasCamelCase
+getter ClassPointer::   , keyName               : getterPtriAliasAsKeyName
 define ClassPointer::   , getClass              : getterPtrCPrototype
 getter ClassPointer::   , extender              : getterPtrCParent
-getter ClassPointer::   , getAvailableBytes     : -> PTR_BYTELENGTH - @getAllocLength()
-define ClassPointer::   , getAllocOffset        : -> CLSPTR_ALLOCOFFSET + getPtriResvUint8 this
+getter ClassPointer::   , availableBytes        : -> @pointerByteLength - @allocOffset
+getter ClassPointer::   , pointerByteLength     : -> PTR_BYTELENGTH
+getter ClassPointer::   , pointerAllocStart     : -> CLSPTR_ALLOCOFFSET
+define ClassPointer::   , getAllocOffset        : -> getPtriResvUint8( this ) + CLSPTR_ALLOCOFFSET
 define ClassPointer::   , getAllocLength        : -> getPtriResvUint8( this )
-define ClassPointer::   , setAllocLength        : -> setPtriResvUint8( this, arguments[0] )
+define ClassPointer::   , setAllocLength        : -> setPtriResvUint8( this , arguments[0] )
+define ClassPointer::   , addAllocLength        : -> 
+    offset = getPtriResvUint8 this
+    length = arguments[ 0 ]
+
+    if  PTR_BYTELENGTH <= offset + length + CLSPTR_ALLOCOFFSET
+        throw [ /MAX_ALLOCATABLE_EXCEEED/, @alias, this ]
+
+    setPtriResvUint8 this, offset + length
+    offset + CLSPTR_ALLOCOFFSET
+
 define ClassPointer::   , getAllocations        : -> looPtri( Allocation, this )
 
-define ClassPointer::   , alloc                 : ( Class, options = {} ) ->
-
-    clsptrLink = new ClassPointer Class.clsptri
-    @allocLength += byteLength = options.byteLength or 4
-
-    allocAlias = options.keyName or clsptrLink.keyName
-    byteOffset = @getAllocOffset()
-    
-    setPtriParent ptri = new Allocation.alloc(), this
+define ClassPointer::   , palloc                : ( any, options = {} ) ->
 
     #todo byte align needed
     #todo this alloc runs on pointer
     #todo more space could need maybe :)
 
-    ptri.setAlias       allocAlias
-    ptri.setLinked      clsptrLink
-    ptri.setByteOffset  byteOffset
-    ptri.setByteLength  byteLength
-    ptri.setIsRequired  options.isRequired  ?= 1
-    ptri.setInheritType options.inheritType ?= 1
+    if  "string" is typeof any
+        
+        byteLength = options.byteLength or throw /TEXT_ALLOC/
+        byteOffset = @addAllocLength byteLength
+        allocAlias = any
+        clsptrLink = 0
+        allocTypei = ALLCTYPE_TEXT
+
+    else if Pointer.isPrototypeOf any
+
+        byteLength = options.byteLength or 4
+        byteOffset = @addAllocLength byteLength
+        clsptrLink = new ClassPointer any.clsptri
+        allocAlias = options.keyName or clsptrLink.keyName
+        allocTypei = ALLCTYPE_PTRI
+
+    else throw [ /TEXT_ALLOC/, any, options ]
 
     definition = ( alloci, options ) ->
 
@@ -743,37 +820,114 @@ define ClassPointer::   , alloc                 : ( Class, options = {} ) ->
         config . enumerable  ?= !options.unEnumerable
         config . configurable ?= !options.unConfigurable
 
-        KeyClass    = alloci . linked . class
         byteOffset  = alloci . byteOffset
+        byteLength  = alloci . byteLength
         isRequired  = alloci . isRequired
         inheritType = alloci . inheritType
 
-        get = options.getter ? ( ->
+        getNumberDefaultValue   = ( set ) ->
+            v = switch typeof e = options.default
+                when "number"   then e
+                when "string"   then parseInt e
+                when "function" then e.call this
+                when undefined  then 0
+                else throw /UNIMPLEMENTED_DEFAULT/
+            set.call this, v ; v
+        
+        getStringDefaultValue   = ( set ) ->
+            v = switch typeof e = options.default
+                when "string"   then e
+                when "number"   then "#{e}"
+                when "function" then e.call this
+                when undefined  then ""
+                else throw /UNIMPLEMENTED_DEFAULT/
+            set.call this, v ; v
 
-            if !isRequired then return ->
+        getPointerDefaultValue  = ( set ) ->
 
-                if  ptri = getUint32 byteOffset + this
-                    return new KeyClass ptri
-
-            return switch inheritType
-
-                when 1 then ->
-
-                    if  ptri = getUint32 this + byteOffset
-                        return new KeyClass ptri
-                    
-                    if  ptri = new KeyClass.alloc()
-                        setPtriParent ptri , this
-                        setUint32 byteOffset + this, ptri
-                        return ptri
-
-                    throw /REQUIRED_BUT_NOT_REACHED/
+            return set.call this, val if ( val =
+                switch typeof e = options.default
+                    when "number"   then e
+                    when "string"   then parseInt e
+                    when "function" then e.call this )
                 
-                else throw /UNDEFINEABLE_GETTER/
-        )()
+            return null unless Boolean options.isRequired
 
-        set = options.setter ? (val) ->
-            setUint32 this + byteOffset, val
+            switch type = INHERIT_TYPE[ options.inheritType ]
+
+                when INHRITYPE_ALLOCNEW
+                    val = new (alloci.linked.class).alloc()
+                    setPtriParent val, this
+                    set.call this, val
+                    return val
+                    
+                when INHRITYPE_GETPARENT, INHRITYPE_COPYPARENT
+                    return null if !ptr = getParent this
+                    return null if !val = ptr[ keyName ]
+
+                    if  INHRITYPE_COPYPARENT is type
+                        set.call this, val
+
+                    return val
+                
+            throw /REQUIRED_BUT_HOW_INHERITES/
+        
+        switch ALLOC_TYPE[ alloci.getType() ]
+            
+            when ALLCTYPE_PTRI
+
+                set = ( val ) ->
+                    warn keyName, this, { byteOffset, val }, wof: this + byteOffset
+                    setUint32 this + byteOffset, val
+
+                get = ->
+                    error keyName, this, { byteOffset, val }
+
+                    if !val = getUint32 byteOffset + this
+                        val = getPointerDefaultValue.call this, set
+                    new ( alloci.linked.class )( val ) if val
+
+            when ALLCTYPE_TEXT
+                    
+                set = ( val ) ->
+                    setText val, this + byteOffset, byteLength
+
+                get = ->
+                    if !val = getText this + byteOffset, byteLength
+                        val = getStringDefaultValue.call this, set 
+                    val 
+
+            when ALLCTYPE_NUMBER
+                    
+                set = ( val ) ->
+                    setUint32 val, this + byteOffset, byteLength
+
+                get = ->
+                    if !val = getUint32 this + byteOffset, byteLength
+                        val = getNumberDefaultValue.call this, set
+                    val 
+
+            when ALLCTYPE_UINT8
+                    
+                set = ( val ) ->
+                    setUint8 val, this + byteOffset, byteLength
+
+                get = ->
+                    if !val = getUint8 this + byteOffset, byteLength
+                        val = getNumberDefaultValue.call this, set 
+                    val 
+
+            when ALLCTYPE_FLOAT32
+                    
+                set = ( val ) ->
+                    setFloat32 val, this + byteOffset, byteLength
+
+                get = ->
+                    if !val = getFloat32 this + byteOffset, byteLength
+                        val = getNumberDefaultValue.call this, set
+                    val 
+
+            else throw [ /NO_ALLOCTYPE/, alloci.type ]
 
         keyNameGet = options.keyNameGet ? get
         keyNameSet = options.keyNameSet ? set
@@ -797,12 +951,29 @@ define ClassPointer::   , alloc                 : ( Class, options = {} ) ->
 
         return alloci
 
-    .call this, ptri, options
+    .call( this, ( ->
+        setPtriParent ptri = new Allocation.alloc(), this
 
+        ptri.setType        allocTypei
+        ptri.setAlias       allocAlias
+        ptri.setLinked      clsptrLink
+        ptri.setByteOffset  byteOffset
+        ptri.setByteLength  byteLength
+        ptri.setIsRequired  options.isRequired
+        ptri.setInheritType options.inheritType
+
+        ptri
+
+    ).call( this ), options )
+
+    ; 0
+    
 define Allocation::     , getLinked             : -> getLinked this
 define Allocation::     , setLinked             : -> setPtriLinked this, arguments[0]
 define Allocation::     , getAlias              : getterPtriAlias
 define Allocation::     , setAlias              : setterPtriAlias
+define Allocation::     , getType               : -> ALLOC_TYPE[ getPtriResvUint8 this ]
+define Allocation::     , setType               : -> setPtriResvUint8 this, arguments[0]
 define Allocation::     , getByteLength         : -> getUint8 this + ALLOCPTR_BYTELENGTH
 define Allocation::     , setByteLength         : -> setUint8 this + ALLOCPTR_BYTELENGTH, arguments[0]
 define Allocation::     , getByteOffset         : -> getUint8 this + ALLOCPTR_BYTEOFFSET
@@ -857,7 +1028,6 @@ define Protocol::       , getMatchs             : -> looPtri( @linkedClass ).fil
 
 
 
-storage.store Color
 
 #? finish ---->
 
@@ -939,7 +1109,7 @@ do CLEARPROTOS = ->
 
     for p in "
         __defineGetter__ __defineSetter__ __lookupGetter__ __lookupSetter__
-        propertyIsEnumerable toLocaleString hasOwnProperty isPrototypeOf
+        propertyIsEnumerable toLocaleString hasOwnProperty
     ".split(/\n|\s+/g) then Reflect.deleteProperty( Object::, p )    
 
 
@@ -958,19 +1128,29 @@ queueMicrotask =>
     protocol = new Protocol.alloc()  
     protocol2 = new Protocol.alloc()  
 
-    mesh = new Mesh.alloc()
+    
 
     procedure.addProtocol protocol
     procedure.addProtocol protocol2
 
-    log { procedure, pos, clr, protocol, protocol2 }
-    warn mesh
+    uuidClass = ClassPointer.of UUID
+    uuidClass.palloc "value", {
+        byteLength  : 36,
+        default     : crypto.randomUUID.bind crypto
+    }
 
-    warn meshClassPtri = ClassPointer.of mesh
-    warn meshClassPtri.alloc Position, { isRequired: 0 }
-    warn meshClassPtri.alloc Rotation
-    warn meshClassPtri.alloc Scale
-    warn meshClassPtri.alloc Color
+
+    do  MeshClassProperties = -> 
+        meshClass = ClassPointer.of Mesh
+        meshClass.palloc UUID, { inheritType: INHRITYPE_ALLOCNEW, isRequired: on }
+        meshClass.palloc Position, { inheritType: INHRITYPE_ALLOCNEW, isRequired: on }
+        meshClass.palloc Rotation, { isRequired: on, default : -> new Rotation.alloc() }
+        meshClass.palloc Scale
+        meshClass.palloc Color
+
+    mesh = new Mesh.alloc()
+
+    log mesh, procedure, pos, clr, protocol, protocol2
 
     protocol.linkedClass = Position
     protocol.filterer = ( ptri ) ->
