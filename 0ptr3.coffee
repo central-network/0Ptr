@@ -754,7 +754,7 @@ define ClassPointer     , of                    : ( any ) ->
     throw /ANY_CLASSPOINTER/
 define ClassPointer::   , getAlias              : getterPtriAlias
 getter ClassPointer::   , keyName               : getterPtriAliasAsKeyName
-define ClassPointer::   , getClass              : getterPtrCPrototype
+define ClassPointer::   , getPrototype          : getterPtrCPrototype
 getter ClassPointer::   , parent                : getterPtrCParent
 getter ClassPointer::   , bytesAvailable        : ->
     PTR_BYTELENGTH - ( @bytesUsed + CLSPTR_ALLOCOFFSET )
@@ -778,7 +778,6 @@ define ClassPointer::   , addAllocLength        : ( byteLength ) ->
     setPtriResvUint8 this, thisOffset + byteLength
     
     return rootOffset
-
 define ClassPointer::   , getAllocations        : ->
     
     allocArr = looPtri Allocation, ei = this
@@ -787,7 +786,6 @@ define ClassPointer::   , getAllocations        : ->
             looPtri( Allocation, ei )
         )
     allocArr
-
 define ClassPointer::   , findKey               : ( keyName ) ->
     @getAllocations().find (a) -> a.keyName is keyName
 define ClassPointer::   , palloc                : ( any, options ) ->
@@ -880,7 +878,7 @@ define ClassPointer::   , palloc                : ( any, options ) ->
             switch type = INHERIT_TYPE[ options.inheritType ]
 
                 when INHRITYPE_ALLOCNEW
-                    val = new (alloci.linked.class).alloc()
+                    val = new (alloci.linked.prototype).alloc()
                     setPtriParent val, this
                     set.call this, val
                     return val
@@ -906,7 +904,7 @@ define ClassPointer::   , palloc                : ( any, options ) ->
                 get = ->
                     if !val = getUint32 byteOffset + this
                         val = getPointerDefaultValue.call this, set
-                    new ( alloci.linked.class )( val ) if val
+                    new ( alloci.linked.prototype )( val ) if val
 
             when ALLCTYPE_TEXT
                     
@@ -962,12 +960,12 @@ define ClassPointer::   , palloc                : ( any, options ) ->
             keyNameSet = setKeyName = undefined
 
         if  getKeyName
-            define @class::, "get#{KeyName}", { ...config , value : getKeyName }
+            define @prototype::, "get#{KeyName}", { ...config , value : getKeyName }
 
         if  setKeyName
-            define @class::, "set#{KeyName}", { ...config , value : setKeyName }
+            define @prototype::, "set#{KeyName}", { ...config , value : setKeyName }
         
-        define @class::, keyName, { ...config, get : keyNameGet, set : keyNameSet }
+        define @prototype::, keyName, { ...config, get : keyNameGet, set : keyNameSet }
 
         ;0
 

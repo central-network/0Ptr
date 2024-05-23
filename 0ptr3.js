@@ -1009,7 +1009,7 @@ getter(ClassPointer.prototype, {
 });
 
 define(ClassPointer.prototype, {
-  getClass: getterPtrCPrototype
+  getPrototype: getterPtrCPrototype
 });
 
 getter(ClassPointer.prototype, {
@@ -1183,7 +1183,7 @@ define(ClassPointer.prototype, {
         }
         switch (type = INHERIT_TYPE[options.inheritType]) {
           case INHRITYPE_ALLOCNEW:
-            val = new alloci.linked.class.alloc();
+            val = new alloci.linked.prototype.alloc();
             setPtriParent(val, this);
             set.call(this, val);
             return val;
@@ -1213,7 +1213,7 @@ define(ClassPointer.prototype, {
               val = getPointerDefaultValue.call(this, set);
             }
             if (val) {
-              return new alloci.linked.class(val);
+              return new alloci.linked.prototype(val);
             }
           };
           break;
@@ -1279,18 +1279,18 @@ define(ClassPointer.prototype, {
         keyNameSet = setKeyName = void 0;
       }
       if (getKeyName) {
-        define(this.class.prototype, `get${KeyName}`, {
+        define(this.prototype.prototype, `get${KeyName}`, {
           ...config,
           value: getKeyName
         });
       }
       if (setKeyName) {
-        define(this.class.prototype, `set${KeyName}`, {
+        define(this.prototype.prototype, `set${KeyName}`, {
           ...config,
           value: setKeyName
         });
       }
-      define(this.class.prototype, keyName, {
+      define(this.prototype.prototype, keyName, {
         ...config,
         get: keyNameGet,
         set: keyNameSet
