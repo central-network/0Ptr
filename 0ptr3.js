@@ -1018,7 +1018,7 @@ getter(ClassPointer.prototype, {
 
 getter(ClassPointer.prototype, {
   availableBytes: function() {
-    return this.pointerByteLength - this.allocOffset;
+    return PTR_BYTELENGTH - this.allocOffset;
   }
 });
 
@@ -1036,38 +1036,46 @@ getter(ClassPointer.prototype, {
 
 define(ClassPointer.prototype, {
   getAllocOffset: function() {
-    return getPtriResvUint8(this) + CLSPTR_ALLOCOFFSET;
+    return this.getAllocLength() + CLSPTR_ALLOCOFFSET;
   }
 });
 
 define(ClassPointer.prototype, {
   getAllocLength: function() {
-    return getPtriResvUint8(this);
-  }
-});
-
-define(ClassPointer.prototype, {
-  setAllocLength: function() {
-    return setPtriResvUint8(this, arguments[0]);
+    var byteOffset, e;
+    byteOffset = getPtriResvUint8(e = this);
+    while (e = e.extender) {
+      byteOffset += getPtriResvUint8(e);
+    }
+    return byteOffset;
   }
 });
 
 define(ClassPointer.prototype, {
   addAllocLength: function() {
-    var length, offset;
-    offset = getPtriResvUint8(this);
-    length = arguments[0];
-    if (PTR_BYTELENGTH <= offset + length + CLSPTR_ALLOCOFFSET) {
+    var byteLength, e, rootOffset, thisOffset;
+    byteLength = arguments[0];
+    rootOffset = thisOffset = getPtriResvUint8(e = this);
+    while (e = e.extender) {
+      rootOffset += getPtriResvUint8(e);
+    }
+    rootOffset += CLSPTR_ALLOCOFFSET;
+    if (PTR_BYTELENGTH <= rootOffset + byteLength) {
       throw [/MAX_ALLOCATABLE_EXCEEED/, this.alias, this];
     }
-    setPtriResvUint8(this, offset + length);
-    return offset + CLSPTR_ALLOCOFFSET;
+    setPtriResvUint8(this, thisOffset + byteLength);
+    return rootOffset;
   }
 });
 
 define(ClassPointer.prototype, {
   getAllocations: function() {
-    return looPtri(Allocation, this);
+    var allocs, e;
+    allocs = looPtri(Allocation, e = this);
+    while (e = e.extender) {
+      allocs.push(...looPtri(Allocation, e));
+    }
+    return allocs;
   }
 });
 
@@ -1341,6 +1349,10 @@ define(Allocation.prototype, {
 
 define(Allocation.prototype, {
   setAlias: setterPtriAlias
+});
+
+getter(Allocation.prototype, {
+  parent: getterPtriParent
 });
 
 define(Allocation.prototype, {
@@ -1705,7 +1717,7 @@ define(Protocol.prototype, {
 //do  tick = ->
 //    requestAnimationFrame tick
 queueMicrotask(() => {
-  var MeshClass, Vector3Class, clr, mesh, pos, procedure, protocol, protocol2, uuidClass;
+  var MeshClass, PositionClass, Vector3Class, clr, mesh, pos, procedure, protocol, protocol2, uuidClass;
   pos = new Position.alloc();
   clr = new Color.alloc();
   procedure = new Procedure.alloc().set("on?");
@@ -1732,6 +1744,8 @@ queueMicrotask(() => {
       }
     });
   })();
+  PositionClass = ClassPointer.of(Position);
+  PositionClass.palloc("love", ALLCTYPE_NUMBER);
   (MeshClass = function() {
     MeshClass = ClassPointer.of(Mesh);
     MeshClass.palloc(UUID);

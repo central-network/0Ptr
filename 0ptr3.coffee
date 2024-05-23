@@ -756,24 +756,48 @@ define ClassPointer::   , getAlias              : getterPtriAlias
 getter ClassPointer::   , keyName               : getterPtriAliasAsKeyName
 define ClassPointer::   , getClass              : getterPtrCPrototype
 getter ClassPointer::   , extender              : getterPtrCParent
-getter ClassPointer::   , availableBytes        : -> @pointerByteLength - @allocOffset
+getter ClassPointer::   , availableBytes        : -> PTR_BYTELENGTH - @allocOffset
 getter ClassPointer::   , pointerByteLength     : -> PTR_BYTELENGTH
 getter ClassPointer::   , pointerAllocStart     : -> CLSPTR_ALLOCOFFSET
-define ClassPointer::   , getAllocOffset        : -> getPtriResvUint8( this ) + CLSPTR_ALLOCOFFSET
-define ClassPointer::   , getAllocLength        : -> getPtriResvUint8( this )
-define ClassPointer::   , setAllocLength        : -> setPtriResvUint8( this , arguments[0] )
-define ClassPointer::   , addAllocLength        : -> 
-    offset = getPtriResvUint8 this
-    length = arguments[ 0 ]
+define ClassPointer::   , getAllocOffset        : ->
 
-    if  PTR_BYTELENGTH <= offset + length + CLSPTR_ALLOCOFFSET
+    @getAllocLength() + CLSPTR_ALLOCOFFSET
+        
+define ClassPointer::   , getAllocLength        : ->
+    byteOffset = getPtriResvUint8 e = this
+    while e = e.extender
+        byteOffset += getPtriResvUint8 e
+    byteOffset
+
+define ClassPointer::   , addAllocLength        : -> 
+
+    byteLength = arguments[ 0 ]
+    rootOffset = 
+    thisOffset = getPtriResvUint8 e = this
+    
+    while e = e.extender
+        rootOffset += getPtriResvUint8 e
+    rootOffset += CLSPTR_ALLOCOFFSET
+
+    if  PTR_BYTELENGTH <= rootOffset + byteLength
         throw [ /MAX_ALLOCATABLE_EXCEEED/, @alias, this ]
 
-    setPtriResvUint8 this, offset + length
-    offset + CLSPTR_ALLOCOFFSET
-define ClassPointer::   , getAllocations        : -> looPtri( Allocation, this )
+    setPtriResvUint8 this, thisOffset + byteLength
+    
+    return rootOffset
+
+define ClassPointer::   , getAllocations        : ->
+    
+    allocs = looPtri Allocation, e = this
+    
+    while e = e.extender
+        allocs.push( ...looPtri Allocation, e )
+
+    allocs
+
 define ClassPointer::   , findKey               : ( keyName ) ->
     looPtri( Allocation, this ).find ( ptri ) -> ptri.alias is keyName
+
 define ClassPointer::   , palloc                : ( any, options ) ->
 
     #todo byte align needed
@@ -977,6 +1001,7 @@ define Allocation::     , getLinked             : -> getLinked this
 define Allocation::     , setLinked             : -> setPtriLinked this, arguments[0]
 define Allocation::     , getAlias              : getterPtriAlias
 define Allocation::     , setAlias              : setterPtriAlias
+getter Allocation::     , parent                : getterPtriParent
 define Allocation::     , getType               : -> ALLOC_TYPE[ getPtriResvUint8 this ]
 define Allocation::     , setType               : -> setPtriResvUint8 this, arguments[0]
 define Allocation::     , getByteLength         : -> getUint8 this + ALLOCPTR_BYTELENGTH
@@ -1143,6 +1168,7 @@ queueMicrotask =>
         byteLength : 36, default : crypto.randomUUID.bind crypto
     }
 
+
     do  Vector3Class = ->
         Vector3Class = ClassPointer.of Vector3
         Vector3Class . palloc "x", ALLCTYPE_FLOAT32
@@ -1155,6 +1181,10 @@ queueMicrotask =>
 
         getter Vector3::, subarray : ( offset = subarrayFrom ) ->
             new Float32Array sab, this + offset, 3
+
+    PositionClass = ClassPointer.of Position
+    PositionClass . palloc "love", ALLCTYPE_NUMBER
+        
 
     do  MeshClass = -> 
         MeshClass = ClassPointer.of Mesh
