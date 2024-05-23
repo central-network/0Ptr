@@ -1,9 +1,6 @@
 DEBUG = 0
 
 #* hello world
-Object.defineProperty self, "OPtr",
-    value : ( class OPtr extends Number )
-
 
 GL2KEY = Object.keys     WebGL2RenderingContext
 GL2VAL = Object.values   WebGL2RenderingContext
@@ -77,9 +74,9 @@ ptr = [
     PROCEDURE_FILTERER  = 6 * BPE 
 ]
 
-class Collection extends Array
+class Collection    extends Array
 
-class Storage extends Array
+class Storage       extends Array
         constructor         : -> super( arguments... )[0] ?= null
         store               : ( any, bytes = 2 ) ->
             if  hasOwn any, "storagei"
@@ -113,8 +110,6 @@ protof = Object.getPrototypeOf
 encode = TextEncoder::encode.bind new TextEncoder
 decode = TextDecoder::decode.bind new TextDecoder
 
-warn { PTR_BYTELENGTH }
-
 Atomics.store u32, 0, PTR_BYTELENGTH
 Atomics.store u32, 1, 2000 * PTR_BYTELENGTH
 Atomics.store u32, 2, 0
@@ -140,7 +135,7 @@ define = ( object, props, desc ) ->
         Clss = self[ Alias ]
 
         storage . storeForUint8 Clss
-        clsptri = allocNewPointer( OPtr, PTRTYPE_CLASS )()
+        clsptri = allocNewPointer( Pointer, PTRTYPE_CLASS )()
 
         define Clss, clsptri: +clsptri
         setPtriLinked clsptri, Clss.storagei      
@@ -152,7 +147,7 @@ define = ( object, props, desc ) ->
         if  ClassPointer?
             storagei = ClassPointer.storagei
 
-            looPtri( OPtr ).forEach ( ptri ) ->                
+            looPtri( Pointer ).forEach ( ptri ) ->                
                 return if PTRTYPE_CLASS is getPtriType ptri
                 return if storagei is getPtriClassi ptri
                 return setPtriClassi ptri, storagei
@@ -215,18 +210,21 @@ global =
         dvw.getUint8 byteOffset
 
     f01 : setUint8                  = ( byteOffset, value = 0 ) ->
+        if byteOffset < 64 then throw new Error /DANGER_BYTEOFFSET/
         dvw.setUint8 byteOffset, value ; value
 
     f00 : getUint32                 = ( byteOffset ) ->
         dvw.getUint32 byteOffset, iLE
 
     f01 : setUint32                 = ( byteOffset, value ) ->
+        if byteOffset < 64 then throw new Error /DANGER_BYTEOFFSET/
         dvw.setUint32 byteOffset, value, iLE ; value
 
     f00 : getFloat32                = ( byteOffset ) ->
         dvw.getFloat32 byteOffset, iLE
 
     f01 : setFloat32                = ( byteOffset, value ) ->
+        if byteOffset < 64 then throw new Error /DANGER_BYTEOFFSET/
         dvw.setFloat32 byteOffset, value, iLE ; value
 
     f07 : getFloat32Array           = ( byteOffset, length ) ->
@@ -534,7 +532,7 @@ global =
         yield getPtriFloat32 ptri,  byteOffset +  8
         0
 
-    fff : setText                   = ( text , byteOffset , length ) ->        
+    fff : setText                   = ( byteOffset, text, length ) ->        
         data = encode text
 
         if  length 
@@ -545,8 +543,10 @@ global =
         text
 
     fff : getText                   = ( byteOffset = 0, length ) ->
-        
+
+        length ||= 1 + ui8.indexOf 0, byteOffset
         data = new Uint8Array sab, byteOffset, length
+
         return switch i = data.indexOf 0
             when  0 then ""
             when -1 then decode data.slice 0
@@ -707,7 +707,7 @@ global =
 
     fff : getterPtrCParent          = ( ptri = this ) ->
         if !ptrj = getPtriParent ptri
-            return new OPtr 0
+            return new Number 0
         new storage[ getPtriClassi ptrj ] ptrj
 
     fff : findPtriPrototype      = ( ptri = this ) ->
@@ -715,14 +715,12 @@ global =
 
     #? helpers ----->
 
-storage.storeForUint8 OPtr
-info storage
-
 define Pointer          : Number
 define ClassPointer     : Pointer
-define Position         : Pointer
-define Rotation         : Pointer
-define Scale            : Pointer
+define Vector3          : Pointer
+define Position         : Vector3
+define Rotation         : Vector3
+define Scale            : Vector3
 define Color            : Pointer
 define Text             : Pointer
 define Mesh             : Pointer
@@ -739,14 +737,8 @@ define Pointer::        , toString              : ->
     throw [ "tostr:", this, Error.captureStackTrace(a = {}), a ]
 define Mesh             , byteLength            : 8 * 4
 define Color            , byteLength            : 4 * 4
-define Position         , byteLength            : 3 * 4
-define Rotation         , byteLength            : 3 * 4
-define Scale            , byteLength            : 3 * 4
 define Text             , TypedArray            : Uint8Array
 define Color            , TypedArray            : Float32Array
-define Position         , TypedArray            : Float32Array
-define Rotation         , TypedArray            : Float32Array
-define Scale            , TypedArray            : Float32Array
 define Mesh             , TypedArray            : Float32Array
 define Pointer::        , isPointer             : on
 define ClassPointer     , of                    : ( any ) ->
@@ -760,7 +752,6 @@ define ClassPointer     , of                    : ( any ) ->
             clsi is getPtriLinked clsptri
 
     throw /ANY_CLASSPOINTER/
-    
 define ClassPointer::   , getAlias              : getterPtriAlias
 getter ClassPointer::   , keyName               : getterPtriAliasAsKeyName
 define ClassPointer::   , getClass              : getterPtrCPrototype
@@ -780,32 +771,49 @@ define ClassPointer::   , addAllocLength        : ->
 
     setPtriResvUint8 this, offset + length
     offset + CLSPTR_ALLOCOFFSET
-
 define ClassPointer::   , getAllocations        : -> looPtri( Allocation, this )
-
-define ClassPointer::   , palloc                : ( any, options = {} ) ->
+define ClassPointer::   , findKey               : ( keyName ) ->
+    looPtri( Allocation, this ).find ( ptri ) -> ptri.alias is keyName
+define ClassPointer::   , palloc                : ( any, options ) ->
 
     #todo byte align needed
     #todo this alloc runs on pointer
     #todo more space could need maybe :)
 
-    if  "string" is typeof any
+    options ?= new Object(
+        isRequired  : 1
+        inheritType : INHRITYPE_ALLOCNEW
+    )
+
+    if  type = ALLOC_TYPE[ options ]
+        byteLength = {
+            [ ALLCTYPE_FLOAT32 ] : 4
+            [ ALLCTYPE_NUMBER ] : 4
+            [ ALLCTYPE_UINT8 ] : 1
+        }[ type ]
+        options = { type, byteLength }
+
+    switch Boolean on
+
+        when /string/.test( typeof any )
         
-        byteLength = options.byteLength or throw /TEXT_ALLOC/
-        byteOffset = @addAllocLength byteLength
-        allocAlias = any
-        clsptrLink = 0
-        allocTypei = ALLCTYPE_TEXT
+            byteLength = options.byteLength or throw /ALLOC_BYTEERR/
+            byteOffset = @addAllocLength byteLength
 
-    else if Pointer.isPrototypeOf any
+            allocAlias = "#{any}"
+            clsptrLink = 0
+            allocTypei = options.type or= ALLCTYPE_TEXT
 
-        byteLength = options.byteLength or 4
-        byteOffset = @addAllocLength byteLength
-        clsptrLink = new ClassPointer any.clsptri
-        allocAlias = options.keyName or clsptrLink.keyName
-        allocTypei = ALLCTYPE_PTRI
+        when Pointer.isPrototypeOf any
 
-    else throw [ /TEXT_ALLOC/, any, options ]
+            byteLength = 4
+            byteOffset = @addAllocLength byteLength
+
+            clsptrLink = new ClassPointer any.clsptri
+            allocAlias = options.keyName or clsptrLink.keyName
+            allocTypei = ALLCTYPE_PTRI
+
+        else throw /UNRESOLVED_PALLOC_ANY/
 
     definition = ( alloci, options ) ->
 
@@ -827,19 +835,19 @@ define ClassPointer::   , palloc                : ( any, options = {} ) ->
 
         getNumberDefaultValue   = ( set ) ->
             v = switch typeof e = options.default
-                when "number"   then e
-                when "string"   then parseInt e
-                when "function" then e.call this
-                when undefined  then 0
+                when "number"    then e
+                when "string"    then parseInt e
+                when "function"  then e.call this
+                when "undefined" then 0
                 else throw /UNIMPLEMENTED_DEFAULT/
             set.call this, v ; v
         
         getStringDefaultValue   = ( set ) ->
             v = switch typeof e = options.default
-                when "string"   then e
-                when "number"   then "#{e}"
-                when "function" then e.call this
-                when undefined  then ""
+                when "string"    then e
+                when "number"    then "#{e}"
+                when "function"  then e.call this
+                when "undefined" then ""
                 else throw /UNIMPLEMENTED_DEFAULT/
             set.call this, v ; v
 
@@ -877,12 +885,9 @@ define ClassPointer::   , palloc                : ( any, options = {} ) ->
             when ALLCTYPE_PTRI
 
                 set = ( val ) ->
-                    warn keyName, this, { byteOffset, val }, wof: this + byteOffset
                     setUint32 this + byteOffset, val
 
                 get = ->
-                    error keyName, this, { byteOffset, val }
-
                     if !val = getUint32 byteOffset + this
                         val = getPointerDefaultValue.call this, set
                     new ( alloci.linked.class )( val ) if val
@@ -890,7 +895,7 @@ define ClassPointer::   , palloc                : ( any, options = {} ) ->
             when ALLCTYPE_TEXT
                     
                 set = ( val ) ->
-                    setText val, this + byteOffset, byteLength
+                    setText this + byteOffset, val, byteLength
 
                 get = ->
                     if !val = getText this + byteOffset, byteLength
@@ -900,30 +905,30 @@ define ClassPointer::   , palloc                : ( any, options = {} ) ->
             when ALLCTYPE_NUMBER
                     
                 set = ( val ) ->
-                    setUint32 val, this + byteOffset, byteLength
+                    setUint32 this + byteOffset, val
 
                 get = ->
-                    if !val = getUint32 this + byteOffset, byteLength
+                    if !val = getUint32 this + byteOffset
                         val = getNumberDefaultValue.call this, set
                     val 
 
             when ALLCTYPE_UINT8
                     
                 set = ( val ) ->
-                    setUint8 val, this + byteOffset, byteLength
+                    setUint8 this + byteOffset, val
 
                 get = ->
-                    if !val = getUint8 this + byteOffset, byteLength
+                    if !val = getUint8 this + byteOffset
                         val = getNumberDefaultValue.call this, set 
                     val 
 
             when ALLCTYPE_FLOAT32
                     
                 set = ( val ) ->
-                    setFloat32 val, this + byteOffset, byteLength
+                    setFloat32 this + byteOffset, val
 
                 get = ->
-                    if !val = getFloat32 this + byteOffset, byteLength
+                    if !val = getFloat32 this + byteOffset
                         val = getNumberDefaultValue.call this, set
                     val 
 
@@ -946,12 +951,12 @@ define ClassPointer::   , palloc                : ( any, options = {} ) ->
         if  setKeyName
             define @class::, "set#{KeyName}", { ...config , value : setKeyName }
         
-        if !options.onlyFunctions
-            define @class::, keyName, { ...config, get : keyNameGet, set : keyNameSet }
+        define @class::, keyName, { ...config, get : keyNameGet, set : keyNameSet }
 
-        return alloci
+        ;0
 
     .call( this, ( ->
+
         setPtriParent ptri = new Allocation.alloc(), this
 
         ptri.setType        allocTypei
@@ -966,8 +971,8 @@ define ClassPointer::   , palloc                : ( any, options = {} ) ->
 
     ).call( this ), options )
 
-    ; 0
-    
+    ; this
+
 define Allocation::     , getLinked             : -> getLinked this
 define Allocation::     , setLinked             : -> setPtriLinked this, arguments[0]
 define Allocation::     , getAlias              : getterPtriAlias
@@ -982,20 +987,20 @@ define Allocation::     , getIsRequired         : -> getUint8 this + ALLOCPTR_IS
 define Allocation::     , setIsRequired         : -> setUint8 this + ALLOCPTR_ISREQUIRED, arguments[0]
 define Allocation::     , getInheritType        : -> getUint8 this + ALLOCPTR_INHERITTYP
 define Allocation::     , setInheritType        : -> setUint8 this + ALLOCPTR_INHERITTYP, arguments[0]
-define Allocation::     , getStateHandler       : -> storage[ getUint32 this + ALLOCPTR_STATHANDLE ]
-define Allocation::     , setStateHandler       : -> setUint32 this + ALLOCPTR_STATHANDLE, storage.store arguments[0]
 
+getter Vector3::        , vectorLength          : ->
+    Math.sqrt(
+        Math.pow( @x, 2 ) +
+        Math.pow( @y, 2 ) +
+        Math.pow( @z, 2 ) 
+    )
 
-define Position::       , getX                  : getterPtriVectorX
-define Position::       , getY                  : getterPtriVectorY
-define Position::       , getZ                  : getterPtriVectorZ
-define Position::       , setX                  : setterPtriVectorX
-define Position::       , setY                  : setterPtriVectorY
-define Position::       , setZ                  : setterPtriVectorZ
-getter Position::       , subarray              : getterPtriFloat32Array
-getter Position::       , vectorLength          : getterPtriVectorLength
-define Position::       , set                   : updateFloat32DataArray
-symbol Position::       , iterator              : iteratPtriFloat32x3
+define Vector3::        , set                   : updateFloat32DataArray
+symbol Vector3::        , iterator              : ->
+    yield @x
+    yield @y
+    yield @z
+    0
 define Color::          , getRed                : getterPtriColorRed
 define Color::          , setRed                : setterPtriColorRed
 define Color::          , getGreen              : getterPtriColorGreen
@@ -1039,7 +1044,7 @@ do REDEFINEPTR = ->
 
     for Clss in storage
 
-        if ![ ClassPointer, Pointer, OPtr, Number, Allocation ].includes Clss
+        if ![ ClassPointer, Pointer, Number, Allocation ].includes Clss
             getter Clss::, [ "{{Class}}" ] : -> new ClassPointer @constructor.clsptri
 
         descs = getOwn Clss::
@@ -1135,18 +1140,30 @@ queueMicrotask =>
 
     uuidClass = ClassPointer.of UUID
     uuidClass.palloc "value", {
-        byteLength  : 36,
-        default     : crypto.randomUUID.bind crypto
+        byteLength : 36, default : crypto.randomUUID.bind crypto
     }
 
+    do  Vector3Class = ->
+        Vector3Class = ClassPointer.of Vector3
+        Vector3Class . palloc "x", ALLCTYPE_FLOAT32
+        Vector3Class . palloc "y", ALLCTYPE_FLOAT32
+        Vector3Class . palloc "z", ALLCTYPE_FLOAT32
+        Vector3Class
+        
+        subarrayFrom = Vector3Class
+            .findKey( "x" ).byteOffset
 
-    do  MeshClassProperties = -> 
-        meshClass = ClassPointer.of Mesh
-        meshClass.palloc UUID, { inheritType: INHRITYPE_ALLOCNEW, isRequired: on }
-        meshClass.palloc Position, { inheritType: INHRITYPE_ALLOCNEW, isRequired: on }
-        meshClass.palloc Rotation, { isRequired: on, default : -> new Rotation.alloc() }
-        meshClass.palloc Scale
-        meshClass.palloc Color
+        getter Vector3::, subarray : ( offset = subarrayFrom ) ->
+            new Float32Array sab, this + offset, 3
+
+    do  MeshClass = -> 
+        MeshClass = ClassPointer.of Mesh
+        MeshClass . palloc UUID
+        MeshClass . palloc Position
+        MeshClass . palloc Rotation
+        MeshClass . palloc Scale
+        MeshClass . palloc Color
+        MeshClass
 
     mesh = new Mesh.alloc()
 
@@ -1154,7 +1171,7 @@ queueMicrotask =>
 
     protocol.linkedClass = Position
     protocol.filterer = ( ptri ) ->
-        2 is getPtriClassi ptri
+        4 is getPtriClassi ptri
 
     protocol2.linkedClass = Color
     protocol2.filterer = ( ptri ) ->

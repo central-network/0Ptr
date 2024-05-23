@@ -1,12 +1,8 @@
-var ALLCTYPE_FLOAT32, ALLCTYPE_NUMBER, ALLCTYPE_PTRI, ALLCTYPE_TEXT, ALLCTYPE_UINT8, ALLOCPTR_BYTELENGTH, ALLOCPTR_BYTEOFFSET, ALLOCPTR_INHERITTYP, ALLOCPTR_ISREQUIRED, ALLOCPTR_STATHANDLE, ALLOC_TYPE, BPE, CLEARPROTOS, CLSPTR_ALLOCLENGTH, CLSPTR_ALLOCOFFSET, Collection, DEBUG, GL2KEY, GL2NUM, GL2VAL, HAS_BYTELENGTH, HAS_BYTEOFFSET, HAS_LENGTH, INHERIT_TYPE, INHRITYPE_ALLOCNEW, INHRITYPE_COPYPARENT, INHRITYPE_GETPARENT, OPtr, PROCEDURE_FILTERER, PTRTYPE_CLASS, PTRTYPE_DATAPTR, PTRTYPE_HEADER, PTRTYPE_OFFSET, PTR_BYTELENGTH, PTR_CLASSi, PTR_LENGTH, PTR_LINKEDi, PTR_PARENTi, PTR_RESVu8, PTR_STATUSi, PTR_TYPEi, REDEFINEPTR, STATE_DELETE, STATE_IGNORE, STATE_LOCKED, STATE_MALLOC, STATE_PALLOC, STATE_QUEUED, STATE_UPDATED, STATE_UPDATING, STATE_UPLOAD, STATE_UPLOADED, STATE_UPLOADING, Storage, addPtriChildren, allocNewPointer, assign, debug, decode, define, dvw, encode, error, f32, findPtriPrototype, getByteLength, getByteOffset, getFloat32, getFloat32Array, getLength, getLinked, getOwn, getPtriClassi, getPtriColorValue, getPtriFloat32, getPtriLinked, getPtriParent, getPtriResvUint8, getPtriStatus, getPtriType, getPtriVectorValue, getText, getUint32, getUint8, getter, getterMeshPosition, getterProtocolTest, getterPtrCAlias, getterPtrCParent, getterPtrCPrototype, getterPtriAlias, getterPtriAliasAsKeyName, getterPtriColorAlpha, getterPtriColorAsArray, getterPtriColorAsCSS, getterPtriColorAsHEX, getterPtriColorAsHSLA, getterPtriColorAsNumber, getterPtriColorAsRGBA, getterPtriColorBlue, getterPtriColorGreen, getterPtriColorRed, getterPtriDataAsText, getterPtriFloat32Array, getterPtriLinked, getterPtriParent, getterPtriVectorLength, getterPtriVectorX, getterPtriVectorY, getterPtriVectorZ, global, hasOwn, iLE, info, iteratPtriFloat32x3, iteratPtriFloat32x4, log, looPtri, malloc, palloc, protof, ptr, ptrFloat32Array, ptrUint32Array, ptrUint8Array, ptriAllocAndSet, ptriFloat32Array, ptriStateNeedsIgnore, resv, sab, setByteLength, setByteOffset, setFloat32, setLength, setLinked, setPtriClassi, setPtriColorValue, setPtriFloat32, setPtriLinked, setPtriParent, setPtriResvUint8, setPtriStatus, setPtriType, setPtriVectorValue, setText, setUint32, setUint8, setter, setterMeshPosition, setterProtocolTest, setterPtriAlias, setterPtriColorAlpha, setterPtriColorBlue, setterPtriColorGreen, setterPtriColorRed, setterPtriDataFromText, setterPtriLinked, setterPtriParent, setterPtriVectorX, setterPtriVectorY, setterPtriVectorZ, storage, symbol, table, u32, ui8, updateFloat32DataArray, updateTextRawString, warn;
+var ALLCTYPE_FLOAT32, ALLCTYPE_NUMBER, ALLCTYPE_PTRI, ALLCTYPE_TEXT, ALLCTYPE_UINT8, ALLOCPTR_BYTELENGTH, ALLOCPTR_BYTEOFFSET, ALLOCPTR_INHERITTYP, ALLOCPTR_ISREQUIRED, ALLOCPTR_STATHANDLE, ALLOC_TYPE, BPE, CLEARPROTOS, CLSPTR_ALLOCLENGTH, CLSPTR_ALLOCOFFSET, Collection, DEBUG, GL2KEY, GL2NUM, GL2VAL, HAS_BYTELENGTH, HAS_BYTEOFFSET, HAS_LENGTH, INHERIT_TYPE, INHRITYPE_ALLOCNEW, INHRITYPE_COPYPARENT, INHRITYPE_GETPARENT, PROCEDURE_FILTERER, PTRTYPE_CLASS, PTRTYPE_DATAPTR, PTRTYPE_HEADER, PTRTYPE_OFFSET, PTR_BYTELENGTH, PTR_CLASSi, PTR_LENGTH, PTR_LINKEDi, PTR_PARENTi, PTR_RESVu8, PTR_STATUSi, PTR_TYPEi, REDEFINEPTR, STATE_DELETE, STATE_IGNORE, STATE_LOCKED, STATE_MALLOC, STATE_PALLOC, STATE_QUEUED, STATE_UPDATED, STATE_UPDATING, STATE_UPLOAD, STATE_UPLOADED, STATE_UPLOADING, Storage, addPtriChildren, allocNewPointer, assign, debug, decode, define, dvw, encode, error, f32, findPtriPrototype, getByteLength, getByteOffset, getFloat32, getFloat32Array, getLength, getLinked, getOwn, getPtriClassi, getPtriColorValue, getPtriFloat32, getPtriLinked, getPtriParent, getPtriResvUint8, getPtriStatus, getPtriType, getPtriVectorValue, getText, getUint32, getUint8, getter, getterMeshPosition, getterProtocolTest, getterPtrCAlias, getterPtrCParent, getterPtrCPrototype, getterPtriAlias, getterPtriAliasAsKeyName, getterPtriColorAlpha, getterPtriColorAsArray, getterPtriColorAsCSS, getterPtriColorAsHEX, getterPtriColorAsHSLA, getterPtriColorAsNumber, getterPtriColorAsRGBA, getterPtriColorBlue, getterPtriColorGreen, getterPtriColorRed, getterPtriDataAsText, getterPtriFloat32Array, getterPtriLinked, getterPtriParent, getterPtriVectorLength, getterPtriVectorX, getterPtriVectorY, getterPtriVectorZ, global, hasOwn, iLE, info, iteratPtriFloat32x3, iteratPtriFloat32x4, log, looPtri, malloc, palloc, protof, ptr, ptrFloat32Array, ptrUint32Array, ptrUint8Array, ptriAllocAndSet, ptriFloat32Array, ptriStateNeedsIgnore, resv, sab, setByteLength, setByteOffset, setFloat32, setLength, setLinked, setPtriClassi, setPtriColorValue, setPtriFloat32, setPtriLinked, setPtriParent, setPtriResvUint8, setPtriStatus, setPtriType, setPtriVectorValue, setText, setUint32, setUint8, setter, setterMeshPosition, setterProtocolTest, setterPtriAlias, setterPtriColorAlpha, setterPtriColorBlue, setterPtriColorGreen, setterPtriColorRed, setterPtriDataFromText, setterPtriLinked, setterPtriParent, setterPtriVectorX, setterPtriVectorY, setterPtriVectorZ, storage, symbol, table, u32, ui8, updateFloat32DataArray, updateTextRawString, warn;
 
 DEBUG = 0;
 
 //* hello world
-Object.defineProperty(self, "OPtr", {
-  value: (OPtr = class OPtr extends Number {})
-});
-
 GL2KEY = Object.keys(WebGL2RenderingContext);
 
 GL2VAL = Object.values(WebGL2RenderingContext);
@@ -142,8 +138,6 @@ encode = TextEncoder.prototype.encode.bind(new TextEncoder);
 
 decode = TextDecoder.prototype.decode.bind(new TextDecoder);
 
-warn({PTR_BYTELENGTH});
-
 Atomics.store(u32, 0, PTR_BYTELENGTH);
 
 Atomics.store(u32, 1, 2000 * PTR_BYTELENGTH);
@@ -170,7 +164,7 @@ define = function(object, props, desc) {
     document.head.append(assign($ = document.createElement("script"), {text}));
     Clss = self[Alias];
     storage.storeForUint8(Clss);
-    clsptri = allocNewPointer(OPtr, PTRTYPE_CLASS)();
+    clsptri = allocNewPointer(Pointer, PTRTYPE_CLASS)();
     define(Clss, {
       clsptri: +clsptri
     });
@@ -181,7 +175,7 @@ define = function(object, props, desc) {
     }
     if (typeof ClassPointer !== "undefined" && ClassPointer !== null) {
       storagei = ClassPointer.storagei;
-      looPtri(OPtr).forEach(function(ptri) {
+      looPtri(Pointer).forEach(function(ptri) {
         if (PTRTYPE_CLASS === getPtriType(ptri)) {
           return;
         }
@@ -278,6 +272,9 @@ global = {
     return dvw.getUint8(byteOffset);
   },
   f01: setUint8 = function(byteOffset, value = 0) {
+    if (byteOffset < 64) {
+      throw new Error(/DANGER_BYTEOFFSET/);
+    }
     dvw.setUint8(byteOffset, value);
     return value;
   },
@@ -285,6 +282,9 @@ global = {
     return dvw.getUint32(byteOffset, iLE);
   },
   f01: setUint32 = function(byteOffset, value) {
+    if (byteOffset < 64) {
+      throw new Error(/DANGER_BYTEOFFSET/);
+    }
     dvw.setUint32(byteOffset, value, iLE);
     return value;
   },
@@ -292,6 +292,9 @@ global = {
     return dvw.getFloat32(byteOffset, iLE);
   },
   f01: setFloat32 = function(byteOffset, value) {
+    if (byteOffset < 64) {
+      throw new Error(/DANGER_BYTEOFFSET/);
+    }
     dvw.setFloat32(byteOffset, value, iLE);
     return value;
   },
@@ -620,7 +623,7 @@ global = {
     yield getPtriFloat32(ptri, byteOffset + 8);
     return 0;
   },
-  fff: setText = function(text, byteOffset, length) {
+  fff: setText = function(byteOffset, text, length) {
     var data;
     data = encode(text);
     if (length) {
@@ -631,6 +634,7 @@ global = {
   },
   fff: getText = function(byteOffset = 0, length) {
     var data, i;
+    length || (length = 1 + ui8.indexOf(0, byteOffset));
     data = new Uint8Array(sab, byteOffset, length);
     switch (i = data.indexOf(0)) {
       case 0:
@@ -865,7 +869,7 @@ global = {
   fff: getterPtrCParent = function(ptri = this) {
     var ptrj;
     if (!(ptrj = getPtriParent(ptri))) {
-      return new OPtr(0);
+      return new Number(0);
     }
     return new storage[getPtriClassi(ptrj)](ptrj);
   },
@@ -875,10 +879,6 @@ global = {
 };
 
 //? helpers ----->
-storage.storeForUint8(OPtr);
-
-info(storage);
-
 define({
   Pointer: Number
 });
@@ -888,15 +888,19 @@ define({
 });
 
 define({
-  Position: Pointer
+  Vector3: Pointer
 });
 
 define({
-  Rotation: Pointer
+  Position: Vector3
 });
 
 define({
-  Scale: Pointer
+  Rotation: Vector3
+});
+
+define({
+  Scale: Vector3
 });
 
 define({
@@ -962,35 +966,11 @@ define(Color, {
   byteLength: 4 * 4
 });
 
-define(Position, {
-  byteLength: 3 * 4
-});
-
-define(Rotation, {
-  byteLength: 3 * 4
-});
-
-define(Scale, {
-  byteLength: 3 * 4
-});
-
 define(Text, {
   TypedArray: Uint8Array
 });
 
 define(Color, {
-  TypedArray: Float32Array
-});
-
-define(Position, {
-  TypedArray: Float32Array
-});
-
-define(Rotation, {
-  TypedArray: Float32Array
-});
-
-define(Scale, {
   TypedArray: Float32Array
 });
 
@@ -1092,27 +1072,52 @@ define(ClassPointer.prototype, {
 });
 
 define(ClassPointer.prototype, {
-  palloc: function(any, options = {}) {
-    var allocAlias, allocTypei, byteLength, byteOffset, clsptrLink, definition;
+  findKey: function(keyName) {
+    return looPtri(Allocation, this).find(function(ptri) {
+      return ptri.alias === keyName;
+    });
+  }
+});
+
+define(ClassPointer.prototype, {
+  palloc: function(any, options) {
+    var allocAlias, allocTypei, byteLength, byteOffset, clsptrLink, definition, type;
     //todo byte align needed
     //todo this alloc runs on pointer
     //todo more space could need maybe :)
-    if ("string" === typeof any) {
-      byteLength = options.byteLength || (function() {
-        throw /TEXT_ALLOC/;
-      })();
-      byteOffset = this.addAllocLength(byteLength);
-      allocAlias = any;
-      clsptrLink = 0;
-      allocTypei = ALLCTYPE_TEXT;
-    } else if (Pointer.isPrototypeOf(any)) {
-      byteLength = options.byteLength || 4;
-      byteOffset = this.addAllocLength(byteLength);
-      clsptrLink = new ClassPointer(any.clsptri);
-      allocAlias = options.keyName || clsptrLink.keyName;
-      allocTypei = ALLCTYPE_PTRI;
-    } else {
-      throw [/TEXT_ALLOC/, any, options];
+    if (options == null) {
+      options = new Object({
+        isRequired: 1,
+        inheritType: INHRITYPE_ALLOCNEW
+      });
+    }
+    if (type = ALLOC_TYPE[options]) {
+      byteLength = {
+        [ALLCTYPE_FLOAT32]: 4,
+        [ALLCTYPE_NUMBER]: 4,
+        [ALLCTYPE_UINT8]: 1
+      }[type];
+      options = {type, byteLength};
+    }
+    switch (Boolean(true)) {
+      case /string/.test(typeof any):
+        byteLength = options.byteLength || (function() {
+          throw /ALLOC_BYTEERR/;
+        })();
+        byteOffset = this.addAllocLength(byteLength);
+        allocAlias = `${any}`;
+        clsptrLink = 0;
+        allocTypei = options.type || (options.type = ALLCTYPE_TEXT);
+        break;
+      case Pointer.isPrototypeOf(any):
+        byteLength = 4;
+        byteOffset = this.addAllocLength(byteLength);
+        clsptrLink = new ClassPointer(any.clsptri);
+        allocAlias = options.keyName || clsptrLink.keyName;
+        allocTypei = ALLCTYPE_PTRI;
+        break;
+      default:
+        throw /UNRESOLVED_PALLOC_ANY/;
     }
     definition = (function(alloci, options) {
       var KeyName, config, get, getKeyName, getNumberDefaultValue, getPointerDefaultValue, getStringDefaultValue, inheritType, isRequired, keyName, keyNameGet, keyNameSet, ref, ref1, ref2, ref3, ref4, set, setKeyName;
@@ -1142,7 +1147,7 @@ define(ClassPointer.prototype, {
               return parseInt(e);
             case "function":
               return e.call(this);
-            case void 0:
+            case "undefined":
               return 0;
             default:
               throw /UNIMPLEMENTED_DEFAULT/;
@@ -1161,7 +1166,7 @@ define(ClassPointer.prototype, {
               return `${e}`;
             case "function":
               return e.call(this);
-            case void 0:
+            case "undefined":
               return "";
             default:
               throw /UNIMPLEMENTED_DEFAULT/;
@@ -1171,7 +1176,7 @@ define(ClassPointer.prototype, {
         return v;
       };
       getPointerDefaultValue = function(set) {
-        var e, type, val;
+        var e, val;
         if ((val = (function() {
           switch (typeof (e = options.default)) {
             case "number":
@@ -1211,14 +1216,10 @@ define(ClassPointer.prototype, {
       switch (ALLOC_TYPE[alloci.getType()]) {
         case ALLCTYPE_PTRI:
           set = function(val) {
-            warn(keyName, this, {byteOffset, val}, {
-              wof: this + byteOffset
-            });
             return setUint32(this + byteOffset, val);
           };
           get = function() {
             var val;
-            error(keyName, this, {byteOffset, val});
             if (!(val = getUint32(byteOffset + this))) {
               val = getPointerDefaultValue.call(this, set);
             }
@@ -1229,7 +1230,7 @@ define(ClassPointer.prototype, {
           break;
         case ALLCTYPE_TEXT:
           set = function(val) {
-            return setText(val, this + byteOffset, byteLength);
+            return setText(this + byteOffset, val, byteLength);
           };
           get = function() {
             var val;
@@ -1241,11 +1242,11 @@ define(ClassPointer.prototype, {
           break;
         case ALLCTYPE_NUMBER:
           set = function(val) {
-            return setUint32(val, this + byteOffset, byteLength);
+            return setUint32(this + byteOffset, val);
           };
           get = function() {
             var val;
-            if (!(val = getUint32(this + byteOffset, byteLength))) {
+            if (!(val = getUint32(this + byteOffset))) {
               val = getNumberDefaultValue.call(this, set);
             }
             return val;
@@ -1253,11 +1254,11 @@ define(ClassPointer.prototype, {
           break;
         case ALLCTYPE_UINT8:
           set = function(val) {
-            return setUint8(val, this + byteOffset, byteLength);
+            return setUint8(this + byteOffset, val);
           };
           get = function() {
             var val;
-            if (!(val = getUint8(this + byteOffset, byteLength))) {
+            if (!(val = getUint8(this + byteOffset))) {
               val = getNumberDefaultValue.call(this, set);
             }
             return val;
@@ -1265,11 +1266,11 @@ define(ClassPointer.prototype, {
           break;
         case ALLCTYPE_FLOAT32:
           set = function(val) {
-            return setFloat32(val, this + byteOffset, byteLength);
+            return setFloat32(this + byteOffset, val);
           };
           get = function() {
             var val;
-            if (!(val = getFloat32(this + byteOffset, byteLength))) {
+            if (!(val = getFloat32(this + byteOffset))) {
               val = getNumberDefaultValue.call(this, set);
             }
             return val;
@@ -1300,14 +1301,12 @@ define(ClassPointer.prototype, {
           value: setKeyName
         });
       }
-      if (!options.onlyFunctions) {
-        define(this.class.prototype, keyName, {
-          ...config,
-          get: keyNameGet,
-          set: keyNameSet
-        });
-      }
-      return alloci;
+      define(this.class.prototype, keyName, {
+        ...config,
+        get: keyNameGet,
+        set: keyNameSet
+      });
+      return 0;
     }).call(this, (function() {
       var ptri;
       setPtriParent(ptri = new Allocation.alloc(), this);
@@ -1320,7 +1319,7 @@ define(ClassPointer.prototype, {
       ptri.setInheritType(options.inheritType);
       return ptri;
     }).call(this), options);
-    return 0;
+    return this;
   }
 });
 
@@ -1404,56 +1403,23 @@ define(Allocation.prototype, {
   }
 });
 
-define(Allocation.prototype, {
-  getStateHandler: function() {
-    return storage[getUint32(this + ALLOCPTR_STATHANDLE)];
+getter(Vector3.prototype, {
+  vectorLength: function() {
+    return Math.sqrt(Math.pow(this.x, 2) + Math.pow(this.y, 2) + Math.pow(this.z, 2));
   }
 });
 
-define(Allocation.prototype, {
-  setStateHandler: function() {
-    return setUint32(this + ALLOCPTR_STATHANDLE, storage.store(arguments[0]));
-  }
-});
-
-define(Position.prototype, {
-  getX: getterPtriVectorX
-});
-
-define(Position.prototype, {
-  getY: getterPtriVectorY
-});
-
-define(Position.prototype, {
-  getZ: getterPtriVectorZ
-});
-
-define(Position.prototype, {
-  setX: setterPtriVectorX
-});
-
-define(Position.prototype, {
-  setY: setterPtriVectorY
-});
-
-define(Position.prototype, {
-  setZ: setterPtriVectorZ
-});
-
-getter(Position.prototype, {
-  subarray: getterPtriFloat32Array
-});
-
-getter(Position.prototype, {
-  vectorLength: getterPtriVectorLength
-});
-
-define(Position.prototype, {
+define(Vector3.prototype, {
   set: updateFloat32DataArray
 });
 
-symbol(Position.prototype, {
-  iterator: iteratPtriFloat32x3
+symbol(Vector3.prototype, {
+  iterator: function*() {
+    yield this.x;
+    yield this.y;
+    yield this.z;
+    return 0;
+  }
 });
 
 define(Color.prototype, {
@@ -1583,7 +1549,7 @@ define(Protocol.prototype, {
   Class = class Class extends ClassPointer {};
   for (j = 0, len1 = storage.length; j < len1; j++) {
     Clss = storage[j];
-    if (![ClassPointer, Pointer, OPtr, Number, Allocation].includes(Clss)) {
+    if (![ClassPointer, Pointer, Number, Allocation].includes(Clss)) {
       getter(Clss.prototype, {
         ["{{Class}}"]: function() {
           return new ClassPointer(this.constructor.clsptri);
@@ -1739,7 +1705,7 @@ define(Protocol.prototype, {
 //do  tick = ->
 //    requestAnimationFrame tick
 queueMicrotask(() => {
-  var MeshClassProperties, clr, mesh, pos, procedure, protocol, protocol2, uuidClass;
+  var MeshClass, Vector3Class, clr, mesh, pos, procedure, protocol, protocol2, uuidClass;
   pos = new Position.alloc();
   clr = new Color.alloc();
   procedure = new Procedure.alloc().set("on?");
@@ -1752,31 +1718,34 @@ queueMicrotask(() => {
     byteLength: 36,
     default: crypto.randomUUID.bind(crypto)
   });
-  (MeshClassProperties = function() {
-    var meshClass;
-    meshClass = ClassPointer.of(Mesh);
-    meshClass.palloc(UUID, {
-      inheritType: INHRITYPE_ALLOCNEW,
-      isRequired: true
-    });
-    meshClass.palloc(Position, {
-      inheritType: INHRITYPE_ALLOCNEW,
-      isRequired: true
-    });
-    meshClass.palloc(Rotation, {
-      isRequired: true,
-      default: function() {
-        return new Rotation.alloc();
+  (Vector3Class = function() {
+    var subarrayFrom;
+    Vector3Class = ClassPointer.of(Vector3);
+    Vector3Class.palloc("x", ALLCTYPE_FLOAT32);
+    Vector3Class.palloc("y", ALLCTYPE_FLOAT32);
+    Vector3Class.palloc("z", ALLCTYPE_FLOAT32);
+    Vector3Class;
+    subarrayFrom = Vector3Class.findKey("x").byteOffset;
+    return getter(Vector3.prototype, {
+      subarray: function(offset = subarrayFrom) {
+        return new Float32Array(sab, this + offset, 3);
       }
     });
-    meshClass.palloc(Scale);
-    return meshClass.palloc(Color);
+  })();
+  (MeshClass = function() {
+    MeshClass = ClassPointer.of(Mesh);
+    MeshClass.palloc(UUID);
+    MeshClass.palloc(Position);
+    MeshClass.palloc(Rotation);
+    MeshClass.palloc(Scale);
+    MeshClass.palloc(Color);
+    return MeshClass;
   })();
   mesh = new Mesh.alloc();
   log(mesh, procedure, pos, clr, protocol, protocol2);
   protocol.linkedClass = Position;
   protocol.filterer = function(ptri) {
-    return 2 === getPtriClassi(ptri);
+    return 4 === getPtriClassi(ptri);
   };
   protocol2.linkedClass = Color;
   return protocol2.filterer = function(ptri) {
