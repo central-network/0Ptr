@@ -1013,38 +1013,20 @@ define(ClassPointer.prototype, {
 });
 
 getter(ClassPointer.prototype, {
-  extender: getterPtrCParent
+  parent: getterPtrCParent
 });
 
 getter(ClassPointer.prototype, {
-  availableBytes: function() {
-    return PTR_BYTELENGTH - this.allocOffset;
-  }
-});
-
-getter(ClassPointer.prototype, {
-  pointerByteLength: function() {
-    return PTR_BYTELENGTH;
+  bytesAvailable: function() {
+    return PTR_BYTELENGTH - (this.bytesUsed + CLSPTR_ALLOCOFFSET);
   }
 });
 
 getter(ClassPointer.prototype, {
-  pointerAllocStart: function() {
-    return CLSPTR_ALLOCOFFSET;
-  }
-});
-
-define(ClassPointer.prototype, {
-  getAllocOffset: function() {
-    return this.getAllocLength() + CLSPTR_ALLOCOFFSET;
-  }
-});
-
-define(ClassPointer.prototype, {
-  getAllocLength: function() {
+  bytesUsed: function() {
     var byteOffset, e;
     byteOffset = getPtriResvUint8(e = this);
-    while (e = e.extender) {
+    while (e = e.parent) {
       byteOffset += getPtriResvUint8(e);
     }
     return byteOffset;
@@ -1052,12 +1034,11 @@ define(ClassPointer.prototype, {
 });
 
 define(ClassPointer.prototype, {
-  addAllocLength: function() {
-    var byteLength, e, rootOffset, thisOffset;
-    byteLength = arguments[0];
-    rootOffset = thisOffset = getPtriResvUint8(e = this);
-    while (e = e.extender) {
-      rootOffset += getPtriResvUint8(e);
+  addAllocLength: function(byteLength) {
+    var ei, rootOffset, thisOffset;
+    rootOffset = thisOffset = getPtriResvUint8(ei = this);
+    while (ei = getPtriParent(ei)) {
+      rootOffset += getPtriResvUint8(ei);
     }
     rootOffset += CLSPTR_ALLOCOFFSET;
     if (PTR_BYTELENGTH <= rootOffset + byteLength) {
@@ -1070,26 +1051,26 @@ define(ClassPointer.prototype, {
 
 define(ClassPointer.prototype, {
   getAllocations: function() {
-    var allocs, e;
-    allocs = looPtri(Allocation, e = this);
-    while (e = e.extender) {
-      allocs.push(...looPtri(Allocation, e));
+    var allocArr, ei;
+    allocArr = looPtri(Allocation, ei = this);
+    while (ei = getPtriParent(ei)) {
+      allocArr.push.apply(allocArr, looPtri(Allocation, ei));
     }
-    return allocs;
+    return allocArr;
   }
 });
 
 define(ClassPointer.prototype, {
   findKey: function(keyName) {
-    return looPtri(Allocation, this).find(function(ptri) {
-      return ptri.alias === keyName;
+    return this.getAllocations().find(function(a) {
+      return a.keyName === keyName;
     });
   }
 });
 
 define(ClassPointer.prototype, {
   palloc: function(any, options) {
-    var allocAlias, allocTypei, byteLength, byteOffset, clsptrLink, definition, type;
+    var allocTypei, byteLength, byteOffset, clsptrLink, definition, keyName, type;
     //todo byte align needed
     //todo this alloc runs on pointer
     //todo more space could need maybe :)
@@ -1113,7 +1094,7 @@ define(ClassPointer.prototype, {
           throw /ALLOC_BYTEERR/;
         })();
         byteOffset = this.addAllocLength(byteLength);
-        allocAlias = `${any}`;
+        keyName = `${any}`;
         clsptrLink = 0;
         allocTypei = options.type || (options.type = ALLCTYPE_TEXT);
         break;
@@ -1121,15 +1102,15 @@ define(ClassPointer.prototype, {
         byteLength = 4;
         byteOffset = this.addAllocLength(byteLength);
         clsptrLink = new ClassPointer(any.clsptri);
-        allocAlias = options.keyName || clsptrLink.keyName;
+        keyName = options.keyName || clsptrLink.keyName;
         allocTypei = ALLCTYPE_PTRI;
         break;
       default:
         throw /UNRESOLVED_PALLOC_ANY/;
     }
     definition = (function(alloci, options) {
-      var KeyName, config, get, getKeyName, getNumberDefaultValue, getPointerDefaultValue, getStringDefaultValue, inheritType, isRequired, keyName, keyNameGet, keyNameSet, ref, ref1, ref2, ref3, ref4, set, setKeyName;
-      keyName = alloci.getAlias();
+      var KeyName, config, get, getKeyName, getNumberDefaultValue, getPointerDefaultValue, getStringDefaultValue, inheritType, isRequired, keyNameGet, keyNameSet, ref, ref1, ref2, ref3, ref4, set, setKeyName;
+      keyName = alloci.getKeyName();
       KeyName = `${keyName.substring(0, 1e0).toUpperCase()} ${keyName.substring(1, 5e1)}`.replace(/\s+|\n|\r|\t+/g, "");
       config = (ref = options.config) != null ? ref : {};
       if (config.writeable == null) {
@@ -1319,8 +1300,8 @@ define(ClassPointer.prototype, {
       var ptri;
       setPtriParent(ptri = new Allocation.alloc(), this);
       ptri.setType(allocTypei);
-      ptri.setAlias(allocAlias);
       ptri.setLinked(clsptrLink);
+      ptri.setKeyName(keyName);
       ptri.setByteOffset(byteOffset);
       ptri.setByteLength(byteLength);
       ptri.setIsRequired(options.isRequired);
@@ -1344,11 +1325,11 @@ define(Allocation.prototype, {
 });
 
 define(Allocation.prototype, {
-  getAlias: getterPtriAlias
+  getKeyName: getterPtriAlias
 });
 
 define(Allocation.prototype, {
-  setAlias: setterPtriAlias
+  setKeyName: setterPtriAlias
 });
 
 getter(Allocation.prototype, {
@@ -1422,7 +1403,10 @@ getter(Vector3.prototype, {
 });
 
 define(Vector3.prototype, {
-  set: updateFloat32DataArray
+  set: function() {
+    this.subarray.set(arguments[0]);
+    return this;
+  }
 });
 
 symbol(Vector3.prototype, {
@@ -1717,7 +1701,7 @@ define(Protocol.prototype, {
 //do  tick = ->
 //    requestAnimationFrame tick
 queueMicrotask(() => {
-  var MeshClass, PositionClass, Vector3Class, clr, mesh, pos, procedure, protocol, protocol2, uuidClass;
+  var MeshClass, UUIDClass, Vector3Class, clr, mesh, pos, procedure, protocol, protocol2;
   pos = new Position.alloc();
   clr = new Color.alloc();
   procedure = new Procedure.alloc().set("on?");
@@ -1725,11 +1709,13 @@ queueMicrotask(() => {
   protocol2 = new Protocol.alloc();
   procedure.addProtocol(protocol);
   procedure.addProtocol(protocol2);
-  uuidClass = ClassPointer.of(UUID);
-  uuidClass.palloc("value", {
-    byteLength: 36,
-    default: crypto.randomUUID.bind(crypto)
-  });
+  (UUIDClass = function() {
+    UUIDClass = ClassPointer.of(UUID);
+    return UUIDClass.palloc("value", {
+      byteLength: 36,
+      default: crypto.randomUUID.bind(crypto)
+    });
+  })();
   (Vector3Class = function() {
     var subarrayFrom;
     Vector3Class = ClassPointer.of(Vector3);
@@ -1744,8 +1730,6 @@ queueMicrotask(() => {
       }
     });
   })();
-  PositionClass = ClassPointer.of(Position);
-  PositionClass.palloc("love", ALLCTYPE_NUMBER);
   (MeshClass = function() {
     MeshClass = ClassPointer.of(Mesh);
     MeshClass.palloc(UUID);

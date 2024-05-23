@@ -755,28 +755,21 @@ define ClassPointer     , of                    : ( any ) ->
 define ClassPointer::   , getAlias              : getterPtriAlias
 getter ClassPointer::   , keyName               : getterPtriAliasAsKeyName
 define ClassPointer::   , getClass              : getterPtrCPrototype
-getter ClassPointer::   , extender              : getterPtrCParent
-getter ClassPointer::   , availableBytes        : -> PTR_BYTELENGTH - @allocOffset
-getter ClassPointer::   , pointerByteLength     : -> PTR_BYTELENGTH
-getter ClassPointer::   , pointerAllocStart     : -> CLSPTR_ALLOCOFFSET
-define ClassPointer::   , getAllocOffset        : ->
-
-    @getAllocLength() + CLSPTR_ALLOCOFFSET
-        
-define ClassPointer::   , getAllocLength        : ->
+getter ClassPointer::   , parent                : getterPtrCParent
+getter ClassPointer::   , bytesAvailable        : ->
+    PTR_BYTELENGTH - ( @bytesUsed + CLSPTR_ALLOCOFFSET )
+getter ClassPointer::   , bytesUsed             : ->
     byteOffset = getPtriResvUint8 e = this
-    while e = e.extender
+    while e = e.parent
         byteOffset += getPtriResvUint8 e
     byteOffset
+define ClassPointer::   , addAllocLength        : ( byteLength ) ->
 
-define ClassPointer::   , addAllocLength        : -> 
-
-    byteLength = arguments[ 0 ]
-    rootOffset = 
-    thisOffset = getPtriResvUint8 e = this
+    rootOffset = thisOffset =
+        getPtriResvUint8 ei = this
     
-    while e = e.extender
-        rootOffset += getPtriResvUint8 e
+    while ei = getPtriParent ei
+        rootOffset += getPtriResvUint8 ei
     rootOffset += CLSPTR_ALLOCOFFSET
 
     if  PTR_BYTELENGTH <= rootOffset + byteLength
@@ -788,16 +781,15 @@ define ClassPointer::   , addAllocLength        : ->
 
 define ClassPointer::   , getAllocations        : ->
     
-    allocs = looPtri Allocation, e = this
-    
-    while e = e.extender
-        allocs.push( ...looPtri Allocation, e )
-
-    allocs
+    allocArr = looPtri Allocation, ei = this
+    while ei = getPtriParent ei
+        allocArr.push.apply( allocArr,
+            looPtri( Allocation, ei )
+        )
+    allocArr
 
 define ClassPointer::   , findKey               : ( keyName ) ->
-    looPtri( Allocation, this ).find ( ptri ) -> ptri.alias is keyName
-
+    @getAllocations().find (a) -> a.keyName is keyName
 define ClassPointer::   , palloc                : ( any, options ) ->
 
     #todo byte align needed
@@ -824,7 +816,7 @@ define ClassPointer::   , palloc                : ( any, options ) ->
             byteLength = options.byteLength or throw /ALLOC_BYTEERR/
             byteOffset = @addAllocLength byteLength
 
-            allocAlias = "#{any}"
+            keyName = "#{any}"
             clsptrLink = 0
             allocTypei = options.type or= ALLCTYPE_TEXT
 
@@ -834,14 +826,14 @@ define ClassPointer::   , palloc                : ( any, options ) ->
             byteOffset = @addAllocLength byteLength
 
             clsptrLink = new ClassPointer any.clsptri
-            allocAlias = options.keyName or clsptrLink.keyName
+            keyName = options.keyName or clsptrLink.keyName
             allocTypei = ALLCTYPE_PTRI
 
         else throw /UNRESOLVED_PALLOC_ANY/
 
     definition = ( alloci, options ) ->
 
-        keyName = alloci.getAlias()
+        keyName = alloci.getKeyName()
         KeyName = "
             #{keyName.substring( 0 , 1e0 ).toUpperCase()}
             #{keyName.substring( 1 , 5e1 )}
@@ -984,8 +976,8 @@ define ClassPointer::   , palloc                : ( any, options ) ->
         setPtriParent ptri = new Allocation.alloc(), this
 
         ptri.setType        allocTypei
-        ptri.setAlias       allocAlias
         ptri.setLinked      clsptrLink
+        ptri.setKeyName     keyName
         ptri.setByteOffset  byteOffset
         ptri.setByteLength  byteLength
         ptri.setIsRequired  options.isRequired
@@ -999,8 +991,8 @@ define ClassPointer::   , palloc                : ( any, options ) ->
 
 define Allocation::     , getLinked             : -> getLinked this
 define Allocation::     , setLinked             : -> setPtriLinked this, arguments[0]
-define Allocation::     , getAlias              : getterPtriAlias
-define Allocation::     , setAlias              : setterPtriAlias
+define Allocation::     , getKeyName            : getterPtriAlias
+define Allocation::     , setKeyName            : setterPtriAlias
 getter Allocation::     , parent                : getterPtriParent
 define Allocation::     , getType               : -> ALLOC_TYPE[ getPtriResvUint8 this ]
 define Allocation::     , setType               : -> setPtriResvUint8 this, arguments[0]
@@ -1019,13 +1011,11 @@ getter Vector3::        , vectorLength          : ->
         Math.pow( @y, 2 ) +
         Math.pow( @z, 2 ) 
     )
-
-define Vector3::        , set                   : updateFloat32DataArray
+define Vector3::        , set                   : ->
+    @subarray.set arguments[0] ; this
 symbol Vector3::        , iterator              : ->
-    yield @x
-    yield @y
-    yield @z
-    0
+    yield @x; yield @y; yield @z; 0
+
 define Color::          , getRed                : getterPtriColorRed
 define Color::          , setRed                : setterPtriColorRed
 define Color::          , getGreen              : getterPtriColorGreen
@@ -1157,19 +1147,18 @@ queueMicrotask =>
     procedure = new Procedure.alloc().set "on?"
     protocol = new Protocol.alloc()  
     protocol2 = new Protocol.alloc()  
-
     
-
     procedure.addProtocol protocol
     procedure.addProtocol protocol2
 
-    uuidClass = ClassPointer.of UUID
-    uuidClass.palloc "value", {
-        byteLength : 36, default : crypto.randomUUID.bind crypto
-    }
+    do  UUIDClass       = ->
+        UUIDClass = ClassPointer.of UUID
+        UUIDClass . palloc "value", {
+            byteLength  : 36
+            default     : crypto.randomUUID.bind crypto
+        }
 
-
-    do  Vector3Class = ->
+    do  Vector3Class    = ->
         Vector3Class = ClassPointer.of Vector3
         Vector3Class . palloc "x", ALLCTYPE_FLOAT32
         Vector3Class . palloc "y", ALLCTYPE_FLOAT32
@@ -1182,11 +1171,7 @@ queueMicrotask =>
         getter Vector3::, subarray : ( offset = subarrayFrom ) ->
             new Float32Array sab, this + offset, 3
 
-    PositionClass = ClassPointer.of Position
-    PositionClass . palloc "love", ALLCTYPE_NUMBER
-        
-
-    do  MeshClass = -> 
+    do  MeshClass       = -> 
         MeshClass = ClassPointer.of Mesh
         MeshClass . palloc UUID
         MeshClass . palloc Position
