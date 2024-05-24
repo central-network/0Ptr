@@ -473,7 +473,7 @@ global =
         "rgba( #{red}, #{green}, #{blue} }, #{alpha / 0xff} )"
 
     fff : getterPtriColorAsArray    = ( ptri = this ) ->
-        subarray = getterPtriFloat32Array ptri
+        subarray = Color::subarray.call ptri
         [ ...subarray ].map (v) -> Math.trunc v * 0xff
 
     fff : getterPtriColorAsNumber   = ( ptri = this ) ->
@@ -738,7 +738,6 @@ define Pointer::        , toString              : ->
 define Mesh             , byteLength            : 8 * 4
 define Color            , byteLength            : 4 * 4
 define Text             , TypedArray            : Uint8Array
-define Color            , TypedArray            : Float32Array
 define Mesh             , TypedArray            : Float32Array
 define Pointer::        , isPointer             : on
 define ClassPointer     , of                    : ( any ) ->
@@ -778,14 +777,14 @@ define ClassPointer::   , addAllocLength        : ( byteLength ) ->
     setPtriResvUint8 this, thisOffset + byteLength
     
     return rootOffset
-define ClassPointer::   , getAllocations        : ->
-    
+define ClassPointer::   , getAllocations        : ->    
     allocArr = looPtri Allocation, ei = this
     while ei = getPtriParent ei
         allocArr.push.apply( allocArr,
             looPtri( Allocation, ei )
         )
     allocArr
+    
 define ClassPointer::   , findKey               : ( keyName ) ->
     @getAllocations().find (a) -> a.keyName is keyName
 define ClassPointer::   , palloc                : ( any, options ) ->
@@ -1009,28 +1008,74 @@ getter Vector3::        , vectorLength          : ->
         Math.pow( @y, 2 ) +
         Math.pow( @z, 2 ) 
     )
-define Vector3::        , set                   : ->
-    @subarray.set arguments[0] ; this
+define Vector3::        , set                   : -> @subarray.set arguments[0] ; this
 symbol Vector3::        , iterator              : ->
-    yield @x; yield @y; yield @z; 0
+    [ x, y, z ] = @subarray
+    yield x
+    yield y
+    yield z
+    0
+getter Color::          , hex                   : ->
+    [ red, green, blue, alpha ] = @array
 
-define Color::          , getRed                : getterPtriColorRed
-define Color::          , setRed                : setterPtriColorRed
-define Color::          , getGreen              : getterPtriColorGreen
-define Color::          , setGreen              : setterPtriColorGreen
-define Color::          , getBlue               : getterPtriColorBlue
-define Color::          , setBlue               : setterPtriColorBlue
-define Color::          , getAlpha              : getterPtriColorAlpha
-define Color::          , setAlpha              : setterPtriColorAlpha
-define Color::          , set                   : updateFloat32DataArray
-getter Color::          , hex                   : getterPtriColorAsHEX
-getter Color::          , hsla                  : getterPtriColorAsHSLA  
-getter Color::          , rgba                  : getterPtriColorAsRGBA
-getter Color::          , css                   : getterPtriColorAsCSS
-getter Color::          , number                : getterPtriColorAsNumber
-getter Color::          , array                 : getterPtriColorAsArray
-getter Color::          , subarray              : getterPtriFloat32Array
-symbol Color::          , iterator              : iteratPtriFloat32x4
+    r = red     .toString(16).padStart(2,0)
+    g = green   .toString(16).padStart(2,0)
+    b = blue    .toString(16).padStart(2,0)
+    a = alpha   .toString(16).padStart(2,0)
+
+    "0x#{r}#{g}#{b}#{a}"
+getter Color::          , hsla                  : ->
+    [ r, g, b, a ] = @subarray
+
+    # ref   : https://stackoverflow.com/a/58426404/21225939
+    # author: @Crashalot
+    # edit  : @Mike Pomax Kamermans, me
+    max = Math.max r, g, b
+    min = Math.min r, g, b
+    
+    delta = max - min
+    h = s = l = 0
+
+    unless  delta
+        h = 0
+
+    else if max is r
+        h = ((g - b) / delta) % 6
+    
+    else if max is g
+        h = ((b - r) / delta  + 2)
+    
+    else if max is b
+        h = ((r - g) / delta  + 4)
+
+    h = Math.round h * 60
+    h = 360 + h if h < 0
+    l = ( max + min ) / 2
+    s = delta / (1 - Math.abs( 2 * l - 1 ))
+        
+    # Multiply l, a and s by 100
+    s = Math.trunc s * 100
+    l = Math.trunc l * 100
+    a = Math.trunc a * 100
+
+    { hue: h, saturation: s, lightness: l, alpha: a }  
+getter Color::          , rgba                  : ->
+    [ red, green, blue, alpha ] = @subarray
+    { red, green, blue, alpha }
+getter Color::          , css                   : ->
+    [ red, green, blue, alpha ] = @array
+    "rgba( #{red}, #{green}, #{blue} }, #{alpha * 0xff} )"
+getter Color::          , number                : ->
+    parseInt @hex, 16
+getter Color::          , array                 : -> [ ...@subarray ].map (n) -> Math.trunc n * 0xff
+define Color::          , set                   : -> @subarray.set arguments[0] ; this
+symbol Color::          , iterator              : ->
+    [ r, g, b, a ] = @subarray
+    yield r
+    yield g
+    yield b
+    yield a
+    0
 define Text::           , set                   : updateTextRawString
 define Procedure::      , getAlias              : getterPtriAlias
 define Procedure::      , setAlias              : setterPtriAlias 
@@ -1169,6 +1214,20 @@ queueMicrotask =>
         getter Vector3::, subarray : ( offset = subarrayFrom ) ->
             new Float32Array sab, this + offset, 3
 
+    do  ColorClass      = ->
+        ColorClass = ClassPointer.of Color
+        ColorClass . palloc "r", ALLCTYPE_FLOAT32
+        ColorClass . palloc "g", ALLCTYPE_FLOAT32
+        ColorClass . palloc "b", ALLCTYPE_FLOAT32
+        ColorClass . palloc "a", ALLCTYPE_FLOAT32
+        ColorClass
+        
+        subarrayFrom = ColorClass
+            .findKey( "r" ).byteOffset
+
+        getter Color::, subarray : ( offset = subarrayFrom ) ->
+            new Float32Array sab, this + offset, 4
+
     do  MeshClass       = -> 
         MeshClass = ClassPointer.of Mesh
         MeshClass . palloc UUID
@@ -1179,6 +1238,11 @@ queueMicrotask =>
         MeshClass
 
     mesh = new Mesh.alloc()
+
+    clr = new Color.alloc()
+    clr.g = .5
+    for a from clr
+        warn a:a
 
     log mesh, procedure, pos, clr, protocol, protocol2
 

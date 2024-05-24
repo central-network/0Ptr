@@ -560,7 +560,7 @@ global = {
   },
   fff: getterPtriColorAsArray = function(ptri = this) {
     var subarray;
-    subarray = getterPtriFloat32Array(ptri);
+    subarray = Color.prototype.subarray.call(ptri);
     return [...subarray].map(function(v) {
       return Math.trunc(v * 0xff);
     });
@@ -968,10 +968,6 @@ define(Color, {
 
 define(Text, {
   TypedArray: Uint8Array
-});
-
-define(Color, {
-  TypedArray: Float32Array
 });
 
 define(Mesh, {
@@ -1411,79 +1407,114 @@ define(Vector3.prototype, {
 
 symbol(Vector3.prototype, {
   iterator: function*() {
-    yield this.x;
-    yield this.y;
-    yield this.z;
+    var x, y, z;
+    [x, y, z] = this.subarray;
+    yield x;
+    yield y;
+    yield z;
     return 0;
   }
 });
 
-define(Color.prototype, {
-  getRed: getterPtriColorRed
-});
-
-define(Color.prototype, {
-  setRed: setterPtriColorRed
-});
-
-define(Color.prototype, {
-  getGreen: getterPtriColorGreen
-});
-
-define(Color.prototype, {
-  setGreen: setterPtriColorGreen
-});
-
-define(Color.prototype, {
-  getBlue: getterPtriColorBlue
-});
-
-define(Color.prototype, {
-  setBlue: setterPtriColorBlue
-});
-
-define(Color.prototype, {
-  getAlpha: getterPtriColorAlpha
-});
-
-define(Color.prototype, {
-  setAlpha: setterPtriColorAlpha
-});
-
-define(Color.prototype, {
-  set: updateFloat32DataArray
+getter(Color.prototype, {
+  hex: function() {
+    var a, alpha, b, blue, g, green, r, red;
+    [red, green, blue, alpha] = this.array;
+    r = red.toString(16).padStart(2, 0);
+    g = green.toString(16).padStart(2, 0);
+    b = blue.toString(16).padStart(2, 0);
+    a = alpha.toString(16).padStart(2, 0);
+    return `0x${r}${g}${b}${a}`;
+  }
 });
 
 getter(Color.prototype, {
-  hex: getterPtriColorAsHEX
+  hsla: function() {
+    var a, b, delta, g, h, l, max, min, r, s;
+    [r, g, b, a] = this.subarray;
+    // ref   : https://stackoverflow.com/a/58426404/21225939
+    // author: @Crashalot
+    // edit  : @Mike Pomax Kamermans, me
+    max = Math.max(r, g, b);
+    min = Math.min(r, g, b);
+    delta = max - min;
+    h = s = l = 0;
+    if (!delta) {
+      h = 0;
+    } else if (max === r) {
+      h = ((g - b) / delta) % 6;
+    } else if (max === g) {
+      h = (b - r) / delta + 2;
+    } else if (max === b) {
+      h = (r - g) / delta + 4;
+    }
+    h = Math.round(h * 60);
+    if (h < 0) {
+      h = 360 + h;
+    }
+    l = (max + min) / 2;
+    s = delta / (1 - Math.abs(2 * l - 1));
+    
+    // Multiply l, a and s by 100
+    s = Math.trunc(s * 100);
+    l = Math.trunc(l * 100);
+    a = Math.trunc(a * 100);
+    return {
+      hue: h,
+      saturation: s,
+      lightness: l,
+      alpha: a
+    };
+  }
 });
 
 getter(Color.prototype, {
-  hsla: getterPtriColorAsHSLA
+  rgba: function() {
+    var alpha, blue, green, red;
+    [red, green, blue, alpha] = this.subarray;
+    return {red, green, blue, alpha};
+  }
 });
 
 getter(Color.prototype, {
-  rgba: getterPtriColorAsRGBA
+  css: function() {
+    var alpha, blue, green, red;
+    [red, green, blue, alpha] = this.array;
+    return `rgba( ${red}, ${green}, ${blue} }, ${alpha * 0xff} )`;
+  }
 });
 
 getter(Color.prototype, {
-  css: getterPtriColorAsCSS
+  number: function() {
+    return parseInt(this.hex, 16);
+  }
 });
 
 getter(Color.prototype, {
-  number: getterPtriColorAsNumber
+  array: function() {
+    return [...this.subarray].map(function(n) {
+      return Math.trunc(n * 0xff);
+    });
+  }
 });
 
-getter(Color.prototype, {
-  array: getterPtriColorAsArray
-});
-
-getter(Color.prototype, {
-  subarray: getterPtriFloat32Array
+define(Color.prototype, {
+  set: function() {
+    this.subarray.set(arguments[0]);
+    return this;
+  }
 });
 
 symbol(Color.prototype, {
-  iterator: iteratPtriFloat32x4
+  iterator: function*() {
+    var a, b, g, r;
+    [r, g, b, a] = this.subarray;
+    yield r;
+    yield g;
+    yield b;
+    yield a;
+    return 0;
+  }
 });
 
 define(Text.prototype, {
@@ -1672,7 +1703,7 @@ define(Protocol.prototype, {
 })();
 
 (CLEARPROTOS = function() {
-  var j, k, len1, len2, len3, len4, m, n, p, ref, ref1, ref2, ref3;
+  var j, k, len1, len2, len3, len4, m, p, q, ref, ref1, ref2, ref3;
   ref = "isFinite isInteger isNaN isSafeInteger parseFloat parseInt".split(/\n|\s+/g);
   for (j = 0, len1 = ref.length; j < len1; j++) {
     p = ref[j];
@@ -1689,8 +1720,8 @@ define(Protocol.prototype, {
     Reflect.deleteProperty(Object, p);
   }
   ref3 = "__defineGetter__ __defineSetter__ __lookupGetter__ __lookupSetter__ propertyIsEnumerable toLocaleString hasOwnProperty".split(/\n|\s+/g);
-  for (n = 0, len4 = ref3.length; n < len4; n++) {
-    p = ref3[n];
+  for (q = 0, len4 = ref3.length; q < len4; q++) {
+    p = ref3[q];
     Reflect.deleteProperty(Object.prototype, p);
   }
   return 0;
@@ -1701,7 +1732,7 @@ define(Protocol.prototype, {
 //do  tick = ->
 //    requestAnimationFrame tick
 queueMicrotask(() => {
-  var MeshClass, UUIDClass, Vector3Class, clr, mesh, pos, procedure, protocol, protocol2;
+  var ColorClass, MeshClass, UUIDClass, Vector3Class, a, clr, mesh, pos, procedure, protocol, protocol2;
   pos = new Position.alloc();
   clr = new Color.alloc();
   procedure = new Procedure.alloc().set("on?");
@@ -1730,6 +1761,21 @@ queueMicrotask(() => {
       }
     });
   })();
+  (ColorClass = function() {
+    var subarrayFrom;
+    ColorClass = ClassPointer.of(Color);
+    ColorClass.palloc("r", ALLCTYPE_FLOAT32);
+    ColorClass.palloc("g", ALLCTYPE_FLOAT32);
+    ColorClass.palloc("b", ALLCTYPE_FLOAT32);
+    ColorClass.palloc("a", ALLCTYPE_FLOAT32);
+    ColorClass;
+    subarrayFrom = ColorClass.findKey("r").byteOffset;
+    return getter(Color.prototype, {
+      subarray: function(offset = subarrayFrom) {
+        return new Float32Array(sab, this + offset, 4);
+      }
+    });
+  })();
   (MeshClass = function() {
     MeshClass = ClassPointer.of(Mesh);
     MeshClass.palloc(UUID);
@@ -1740,6 +1786,13 @@ queueMicrotask(() => {
     return MeshClass;
   })();
   mesh = new Mesh.alloc();
+  clr = new Color.alloc();
+  clr.g = .5;
+  for (a of clr) {
+    warn({
+      a: a
+    });
+  }
   log(mesh, procedure, pos, clr, protocol, protocol2);
   protocol.linkedClass = Position;
   protocol.filterer = function(ptri) {
