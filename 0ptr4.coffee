@@ -5,21 +5,6 @@ DEBUG = 0
 GL2KEY = Object.keys     WebGL2RenderingContext
 GL2VAL = Object.values   WebGL2RenderingContext
 GL2NUM = new Object
-SCRIPT = ->
-    src = ( -> Object.defineProperty( self,
-        "Alias", value : (class Alias extends storage[i]))
-    ).toString()
-
-    src = src
-        .substring(
-            src.indexOf(  "Object" ),
-            src.lastIndexOf(  "}" ))   
-        .replace( /Alias/g , Alias )
-        .replace( "[i]", "[#{parentStorageIndex}]" )
-
-    document.head.appendChild(
-        assign(document.createElement("script"), {text: src})
-    ).remove()
 
 { log, warn, error, table, debug, info } = console
 
@@ -32,11 +17,35 @@ iLE = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
 BPE = 4
 PTR = 16 * BPE
 
+iSTATE = 0
+iTYPE = 1
+iOFFSET = 2
+iRESv = 3
+
+getState  = Atomics.load.bind Atomics, ui8
+setState  = Atomics.store.bind Atomics, ui8
+getType   = ( ptri ) -> dvw.getUint8 ptri + iTYPE
+setType   = ( ptri , value ) -> dvw.setUint8 ptri + iTYPE, value
+getOffset = ( ptri ) -> dvw.getUint8 ptri + iOFFSET
+setOffset = ( ptri , value ) -> dvw.setUint8 ptri + iOFFSET, value
+getResvi8 = ( ptri ) -> dvw.getInt8 ptri + iRESv
+setResvi8 = ( ptri , value ) -> dvw.setInt8 ptri + iRESv, value
+
+PTRTYPE =
+    PTRTYPE_CLASS : PTRTYPE_CLASS = 1
+    PTRTYPE_OBJECT : PTRTYPE_OBJECT = 2
+
+PTRSTAT =
+    PTRSTAT_DELETE : PTRSTAT_DELETE = 0
+    PTRSTAT_IGNORE : PTRSTAT_IGNORE = 2
+    PTRSTAT_ACTIVE : PTRSTAT_ACTIVE = 10
+    PTRSTAT_PALLOC : PTRSTAT_PALLOC = 11
+
 PALLOC_TYPE =    
     PALLOC_UINT8 : PALLOC_UINT8 = 1
     PALLOC_UINT32 : PALLOC_UINT32 = 4
 
-for c in [ PALLOC_TYPE ]
+for c in [ PTRTYPE, PALLOC_TYPE ]
     for key, val of c 
         c[ val ] = val
 
@@ -87,7 +96,8 @@ palloc = ->
     o = Atomics.add u32, 0, PTR
     unless o then throw [ /PALLOC/, u32.slice(0,2) ]
     o
-Atomics.or u32, 0, PTR
+#Atomics.or u32, 0, PTR
+
 
 do clearself = ->
     for p in "
@@ -125,62 +135,38 @@ register = ->
         if  storage.find (c) -> c?.name is Alias
             throw /ALREADY_REGISTERED/
 
+        storagei = storage.storeForUint8( Alias )
+
         document.head.appendChild(
             assign(document.createElement("script"), { text :
-                "class #{Alias} extends storage[#{i}] {};
-                storage.storeForUint8( #{Alias} );"
+                "#{Alias} = class extends storage[#{i}] {};
+                 storage[ #{storagei} ] = #{Alias};"
             })
-        ).remove()
+        )#.remove()
 
+    0
 
 register Pointer    : Number
+
+###        
+
 register Class      : Pointer
 register Allocation : Pointer
 register Vector3    : Pointer
 
 
-define Pointer      ,
-    "{{Class}}"     , get : ->
-        stri = storage.indexOf this
-        ptri = Atomics.load u32
 
-        while ptri -= PTR
-            break if stri is dvw.getUint8 ptri + 2
-
-        unless ptri then if ptri = palloc()
-            dvw.setUint8 ptri + 0, 1 #status
-            dvw.setUint8 ptri + 1, 4 #inner alloc offset
-            dvw.setUint8 ptri + 2, stri
-
-        new Class ptri
 
 define Class::      ,
 
-    statusi         :
-        get : -> dvw.getUint8 this + 0
-        set : -> dvw.setUint8 this + 0, arguments[0]
-
-    byteLength      :
-        get : -> dvw.getUint8 this + 1
-        set : -> dvw.setUint8 this + 1, arguments[0]
-
-    storagei        :
-        get : -> dvw.getUint8 this + 2
-        set : -> dvw.setUint8 this + 2, arguments[0]
-
-    resvUi8         :
-        get : -> dvw.getUint8 this + 3
-        set : -> dvw.setUint8 this + 3, arguments[0]
-
     prototype       :
         enumerable  : on
-        get : -> storage[ @storagei ]
+        get : -> storage.find ({ clsptri }) =>
+            ( clsptri - this ) is 0
 
     name            :
         enumerable  : on
-        get : ->
-            warn 1
-            @prototype.name
+        get : -> @prototype.name
 
     parent          :
         enumerable  : on
@@ -191,7 +177,6 @@ define Class::      ,
         name = @name
         if  name.split("").some (c) -> c is c.toUpperCase()
             return name.toLocaleLowerCase()
-
         name[0].toLowerCase() + name.substring 1
 
 define Pointer , alloc : get : ->
@@ -201,30 +186,124 @@ define Pointer , alloc : get : ->
 
     ->
         ptri
+###
+
+parse = {}
+
+# type 2 is a property definition
+parse[ TYPEOF_PROPERTY_DEFINITION = 2 ] = ( offset ) ->
+
+    byteOffset  = offset * 4
+    byteLength  = u32[ offset++ ] * 4
+    type        = u32[ offset++ ]
+
+    #? read propname bytelength
+    propByteLength      = u32[ offset++ ] # next of type 
+
+    #? read options bytelength
+    optionsByteLength   = u32[ offset++ ] # next of namesize
+
+    propBegin           = offset * 4
+    propEnd             = propBegin + propByteLength
+
+    optionsBegin        = propEnd
+    optionsEnd          = optionsBegin + optionsByteLength
+
+    #? decode name
+    prop                = decode ui8.slice propBegin, propEnd
+    options             = decode ui8.slice optionsBegin, optionsEnd
+    
+    return {
+        byteOffset , byteLength ,
+        type , name : prop,
+        data : JSON.parse options
+    }
+
+findProperty = ( prop ) ->
+
+    offset = 0
+    while length = u32[ offset ]
+        #* readed bytelength belongs to all packet
+
+        if  TYPEOF_PROPERTY_DEFINITION is u32[ offset + 1 ]
+            property = parse[ TYPEOF_PROPERTY_DEFINITION ]( offset )
+            if  property.name is prop
+                return property
+                    
+        offset += length
+
+    null
+
+allocate = ( byteLength ) ->
+    offset = 0
+
+    while length = u32[ offset ]
+        warn { offset, length }
+        offset += length
+
+    byteLength = Math.max byteLength, 1
+
+    if  mod = byteLength % 8
+        byteLength += 8 - mod
+    
+    u32[ offset ] = byteLength / 8
+
+    offset
+
+define Pointer , defineProperty : ( prop, options ) ->
+
+        if  findProperty prop
+            throw "property is already registered: " + prop
 
 
-define Pointer , palloc : ->
+        nameArray = encode prop
+        optsArray = encode JSON.stringify options
 
-        #? class pointer search
-        clsptri = this["{{Class}}"]
- 
-        log this.name, clsptri, arguments[0]
+        type = 1
+        byteLength = 3 +
+            nameArray.byteLength + 
+            optsArray.byteLength
 
-        for prop, desc of arguments[0]
-            if  byteLength = PALLOC_TYPE[ desc ]
-                desc = { byteLength }
+        offset = allocate byteLength
 
-            byteOffset = clsptri.byteLength
-            clsptri.byteLength += byteLength
+        log offset, nameArray.byteLength 
+
+        u32[ ++offset ] = type 
+        u32[ ++offset ] = nameArray.byteLength 
+        u32[ ++offset ] = optsArray.byteLength 
+
+        log { offset }, u32.slice( offset - 3, offset + 2 ) 
+
+
+        nameArrayBegin = offset * 4
+        optsArrayBegin = nameArrayBegin + nameArray.byteLength
+
+        ui8.set nameArray, nameArrayBegin
+        ui8.set optsArray, optsArrayBegin
+
+        Object.defineProperty @prototype, prop, {
+            get : ->
+        }
+
+        log u32
             
-            define clsptri::, prop,
-                get : ->
-                set : ->
-
-            aptri = new Allocation.alloc()
+        return 
 
 
-Class.palloc parent : PALLOC_UINT32
-Vector3.palloc x : PALLOC_UINT8
 
-log new Vector3 palloc()
+
+
+Pointer.defineProperty "parent", {
+    size : 4, type : 2
+}
+
+warn "find:", findProperty "parent"
+
+Pointer.defineProperty "linked", {
+    size : 4, type : 3
+}
+
+log new Pointer 2
+#Vector3.palloc x : PALLOC_UINT8
+
+#log new Vector3 palloc()

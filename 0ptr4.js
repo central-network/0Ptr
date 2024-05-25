@@ -1,4 +1,41 @@
-var BPE, Collection, DEBUG, GL2KEY, GL2NUM, GL2VAL, PALLOC_TYPE, PALLOC_UINT32, PALLOC_UINT8, PTR, SCRIPT, Storage, assign, c, clearself, debug, decode, define, dvw, encode, error, f32, getOwn, hasOwn, iLE, info, j, key, len, log, palloc, protof, ref, register, sab, table, u32, ui8, val, warn;
+
+/*        
+
+register Class      : Pointer
+register Allocation : Pointer
+register Vector3    : Pointer
+
+define Class::      ,
+
+    prototype       :
+        enumerable  : on
+        get : -> storage.find ({ clsptri }) =>
+            ( clsptri - this ) is 0
+
+    name            :
+        enumerable  : on
+        get : -> @prototype.name
+
+    parent          :
+        enumerable  : on
+        get : ->
+            protof( @prototype )["{{Class}}"] or new Number 0           
+
+    keyName         : get : ->
+        name = @name
+        if  name.split("").some (c) -> c is c.toUpperCase()
+            return name.toLocaleLowerCase()
+        name[0].toLowerCase() + name.substring 1
+
+define Pointer , alloc : get : ->
+    ptri = new this palloc()
+    dvw.setUint8 ptri + 0, 1 #status
+    dvw.setUint8 ptri + 1, 4 #inner alloc offset
+
+    ->
+        ptri
+*/
+var BPE, Collection, DEBUG, GL2KEY, GL2NUM, GL2VAL, PALLOC_TYPE, PALLOC_UINT32, PALLOC_UINT8, PTR, PTRSTAT, PTRSTAT_ACTIVE, PTRSTAT_DELETE, PTRSTAT_IGNORE, PTRSTAT_PALLOC, PTRTYPE, PTRTYPE_CLASS, PTRTYPE_OBJECT, Storage, TYPEOF_PROPERTY_DEFINITION, allocate, assign, c, clearself, debug, decode, define, dvw, encode, error, f32, findProperty, getOffset, getOwn, getResvi8, getState, getType, hasOwn, iLE, iOFFSET, iRESv, iSTATE, iTYPE, info, j, key, len, log, palloc, parse, protof, ref, register, sab, setOffset, setResvi8, setState, setType, table, u32, ui8, val, warn;
 
 DEBUG = 0;
 
@@ -8,20 +45,6 @@ GL2KEY = Object.keys(WebGL2RenderingContext);
 GL2VAL = Object.values(WebGL2RenderingContext);
 
 GL2NUM = new Object;
-
-SCRIPT = function() {
-  var src;
-  src = (function() {
-    var Alias;
-    return Object.defineProperty(self, "Alias", {
-      value: (Alias = class Alias extends storage[i] {})
-    });
-  }).toString();
-  src = src.substring(src.indexOf("Object"), src.lastIndexOf("}")).replace(/Alias/g, Alias).replace("[i]", `[${parentStorageIndex}]`);
-  return document.head.appendChild(assign(document.createElement("script"), {
-    text: src
-  })).remove();
-};
 
 ({log, warn, error, table, debug, info} = console);
 
@@ -41,12 +64,60 @@ BPE = 4;
 
 PTR = 16 * BPE;
 
+iSTATE = 0;
+
+iTYPE = 1;
+
+iOFFSET = 2;
+
+iRESv = 3;
+
+getState = Atomics.load.bind(Atomics, ui8);
+
+setState = Atomics.store.bind(Atomics, ui8);
+
+getType = function(ptri) {
+  return dvw.getUint8(ptri + iTYPE);
+};
+
+setType = function(ptri, value) {
+  return dvw.setUint8(ptri + iTYPE, value);
+};
+
+getOffset = function(ptri) {
+  return dvw.getUint8(ptri + iOFFSET);
+};
+
+setOffset = function(ptri, value) {
+  return dvw.setUint8(ptri + iOFFSET, value);
+};
+
+getResvi8 = function(ptri) {
+  return dvw.getInt8(ptri + iRESv);
+};
+
+setResvi8 = function(ptri, value) {
+  return dvw.setInt8(ptri + iRESv, value);
+};
+
+PTRTYPE = {
+  PTRTYPE_CLASS: PTRTYPE_CLASS = 1,
+  PTRTYPE_OBJECT: PTRTYPE_OBJECT = 2
+};
+
+PTRSTAT = {
+  PTRSTAT_DELETE: PTRSTAT_DELETE = 0,
+  PTRSTAT_IGNORE: PTRSTAT_IGNORE = 2,
+  PTRSTAT_ACTIVE: PTRSTAT_ACTIVE = 10,
+  PTRSTAT_PALLOC: PTRSTAT_PALLOC = 11
+};
+
 PALLOC_TYPE = {
   PALLOC_UINT8: PALLOC_UINT8 = 1,
   PALLOC_UINT32: PALLOC_UINT32 = 4
 };
 
-ref = [PALLOC_TYPE];
+ref = [PTRTYPE, PALLOC_TYPE];
 for (j = 0, len = ref.length; j < len; j++) {
   c = ref[j];
   for (key in c) {
@@ -142,8 +213,7 @@ palloc = function() {
   return o;
 };
 
-Atomics.or(u32, 0, PTR);
-
+//Atomics.or u32, 0, PTR
 (clearself = function() {
   var k, l, len1, len2, len3, len4, m, n, p, ref1, ref2, ref3, ref4;
   ref1 = "isFinite isInteger isNaN isSafeInteger parseFloat parseInt".split(/\n|\s+/g);
@@ -180,9 +250,8 @@ define(Number.prototype, {
 });
 
 register = function() {
-  var Alias, Parent, i, ref1, results;
+  var Alias, Parent, i, ref1, storagei;
   ref1 = arguments[0];
-  results = [];
   for (Alias in ref1) {
     Parent = ref1[Alias];
     if (-1 === (i = storage.indexOf(Parent))) {
@@ -193,161 +262,121 @@ register = function() {
     })) {
       throw /ALREADY_REGISTERED/;
     }
-    results.push(document.head.appendChild(assign(document.createElement("script"), {
-      text: `class ${Alias} extends storage[${i}] {}; storage.storeForUint8( ${Alias} );`
-    })).remove());
+    storagei = storage.storeForUint8(Alias);
+    document.head.appendChild(assign(document.createElement("script"), {
+      text: `${Alias} = class extends storage[${i}] {}; storage[ ${storagei} ] = ${Alias
+//.remove()
+};`
+    }));
   }
-  return results;
+  return 0;
 };
 
 register({
   Pointer: Number
 });
 
-register({
-  Class: Pointer
-});
+parse = {};
 
-register({
-  Allocation: Pointer
-});
+// type 2 is a property definition
+parse[TYPEOF_PROPERTY_DEFINITION = 2] = function(offset) {
+  var byteLength, byteOffset, options, optionsBegin, optionsByteLength, optionsEnd, prop, propBegin, propByteLength, propEnd, type;
+  byteOffset = offset * 4;
+  byteLength = u32[offset++] * 4;
+  type = u32[offset++];
+  //? read propname bytelength
+  propByteLength = u32[offset++];
+  
+  //? read options bytelength
+  optionsByteLength = u32[offset++];
+  propBegin = offset * 4;
+  propEnd = propBegin + propByteLength;
+  optionsBegin = propEnd;
+  optionsEnd = optionsBegin + optionsByteLength;
+  //? decode name
+  prop = decode(ui8.slice(propBegin, propEnd));
+  options = decode(ui8.slice(optionsBegin, optionsEnd));
+  return {
+    byteOffset,
+    byteLength,
+    type,
+    name: prop,
+    data: JSON.parse(options)
+  };
+};
 
-register({
-  Vector3: Pointer
-});
-
-define(Pointer, "{{Class}}", {
-  get: function() {
-    var ptri, stri;
-    stri = storage.indexOf(this);
-    ptri = Atomics.load(u32);
-    while (ptri -= PTR) {
-      if (stri === dvw.getUint8(ptri + 2)) {
-        break;
+findProperty = function(prop) {
+  var length, offset, property;
+  offset = 0;
+  while (length = u32[offset]) {
+    //* readed bytelength belongs to all packet
+    if (TYPEOF_PROPERTY_DEFINITION === u32[offset + 1]) {
+      property = parse[TYPEOF_PROPERTY_DEFINITION](offset);
+      if (property.name === prop) {
+        return property;
       }
     }
-    if (!ptri) {
-      if (ptri = palloc()) {
-        dvw.setUint8(ptri + 0, 1); //status
-        dvw.setUint8(ptri + 1, 4); //inner alloc offset
-        dvw.setUint8(ptri + 2, stri);
-      }
-    }
-    return new Class(ptri);
+    offset += length;
   }
-});
+  return null;
+};
 
-define(Class.prototype, {
-  statusi: {
-    get: function() {
-      return dvw.getUint8(this + 0);
-    },
-    set: function() {
-      return dvw.setUint8(this + 0, arguments[0]);
-    }
-  },
-  byteLength: {
-    get: function() {
-      return dvw.getUint8(this + 1);
-    },
-    set: function() {
-      return dvw.setUint8(this + 1, arguments[0]);
-    }
-  },
-  storagei: {
-    get: function() {
-      return dvw.getUint8(this + 2);
-    },
-    set: function() {
-      return dvw.setUint8(this + 2, arguments[0]);
-    }
-  },
-  resvUi8: {
-    get: function() {
-      return dvw.getUint8(this + 3);
-    },
-    set: function() {
-      return dvw.setUint8(this + 3, arguments[0]);
-    }
-  },
-  prototype: {
-    enumerable: true,
-    get: function() {
-      return storage[this.storagei];
-    }
-  },
-  name: {
-    enumerable: true,
-    get: function() {
-      warn(1);
-      return this.prototype.name;
-    }
-  },
-  parent: {
-    enumerable: true,
-    get: function() {
-      return protof(this.prototype)["{{Class}}"] || new Number(0);
-    }
-  },
-  keyName: {
-    get: function() {
-      var name;
-      name = this.name;
-      if (name.split("").some(function(c) {
-        return c === c.toUpperCase();
-      })) {
-        return name.toLocaleLowerCase();
-      }
-      return name[0].toLowerCase() + name.substring(1);
-    }
+allocate = function(byteLength) {
+  var length, mod, offset;
+  offset = 0;
+  while (length = u32[offset]) {
+    warn({offset, length});
+    offset += length;
   }
-});
+  byteLength = Math.max(byteLength, 1);
+  if (mod = byteLength % 8) {
+    byteLength += 8 - mod;
+  }
+  u32[offset] = byteLength / 8;
+  return offset;
+};
 
 define(Pointer, {
-  alloc: {
-    get: function() {
-      var ptri;
-      ptri = new this(palloc());
-      dvw.setUint8(ptri + 0, 1); //status
-      dvw.setUint8(ptri + 1, 4); //inner alloc offset
-      return function() {
-        return ptri;
-      };
+  defineProperty: function(prop, options) {
+    var byteLength, nameArray, nameArrayBegin, offset, optsArray, optsArrayBegin, type;
+    if (findProperty(prop)) {
+      throw "property is already registered: " + prop;
     }
+    nameArray = encode(prop);
+    optsArray = encode(JSON.stringify(options));
+    type = 1;
+    byteLength = 3 + nameArray.byteLength + optsArray.byteLength;
+    offset = allocate(byteLength);
+    log(offset, nameArray.byteLength);
+    u32[++offset] = type;
+    u32[++offset] = nameArray.byteLength;
+    u32[++offset] = optsArray.byteLength;
+    log({offset}, u32.slice(offset - 3, offset + 2));
+    nameArrayBegin = offset * 4;
+    optsArrayBegin = nameArrayBegin + nameArray.byteLength;
+    ui8.set(nameArray, nameArrayBegin);
+    ui8.set(optsArray, optsArrayBegin);
+    Object.defineProperty(this.prototype, prop, {
+      get: function() {}
+    });
+    log(u32);
   }
 });
 
-define(Pointer, {
-  palloc: function() {
-    var aptri, byteLength, byteOffset, clsptri, desc, prop, ref1, results;
-    //? class pointer search
-    clsptri = this["{{Class}}"];
-    log(this.name, clsptri, arguments[0]);
-    ref1 = arguments[0];
-    results = [];
-    for (prop in ref1) {
-      desc = ref1[prop];
-      if (byteLength = PALLOC_TYPE[desc]) {
-        desc = {byteLength};
-      }
-      byteOffset = clsptri.byteLength;
-      clsptri.byteLength += byteLength;
-      define(clsptri.prototype, prop, {
-        get: function() {},
-        set: function() {}
-      });
-      results.push(aptri = new Allocation.alloc());
-    }
-    return results;
-  }
+Pointer.defineProperty("parent", {
+  size: 4,
+  type: 2
 });
 
-Class.palloc({
-  parent: PALLOC_UINT32
+warn("find:", findProperty("parent"));
+
+Pointer.defineProperty("linked", {
+  size: 4,
+  type: 3
 });
 
-Vector3.palloc({
-  x: PALLOC_UINT8
-});
+log(new Pointer(2));
 
-log(new Vector3(palloc()));
+//Vector3.palloc x : PALLOC_UINT8
+
+//log new Vector3 palloc()
