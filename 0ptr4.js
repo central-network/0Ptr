@@ -1,4 +1,4 @@
-var DEBUG, GL2KEY, GL2NUM, GL2VAL, TYPE_JSON, TYPE_TEXT, bufferize, debug, decodeJSON, decodeText, dvw, encodeJSON, encodeText, error, externref, f32, iLE, info, iterate, log, objectify, offset, ref, restore, sab, store, table, u32, ui8, warn;
+var DEBUG, GL2KEY, GL2NUM, GL2VAL, JSONDecoder, JSONEncoder, TYPE_BYTE, TYPE_JSON, TYPE_NULL, TYPE_TEXT, bufferize, debug, dvw, error, externref, f32, iLE, info, iterate, log, ref, restore, sab, store, subarray, table, u32, ui8, warn;
 
 DEBUG = 0;
 
@@ -11,7 +11,21 @@ GL2NUM = new Object;
 
 ({log, warn, error, table, debug, info} = console);
 
-sab = new SharedArrayBuffer(256);
+JSONEncoder = class JSONEncoder extends TextEncoder {
+  encode() {
+    return super.encode(JSON.stringify(...arguments));
+  }
+
+};
+
+JSONDecoder = class JSONDecoder extends TextDecoder {
+  decode() {
+    return JSON.parse(super.decode(...arguments));
+  }
+
+};
+
+sab = new SharedArrayBuffer(8 * 1e7);
 
 dvw = new DataView(sab);
 
@@ -23,104 +37,143 @@ f32 = new Float32Array(sab);
 
 iLE = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
 
-ref = new Array(null);
+ref = new Array;
 
-encodeText = TextEncoder.prototype.encode.bind(new TextEncoder);
-
-decodeText = TextDecoder.prototype.decode.bind(new TextDecoder);
-
-encodeJSON = function() {
-  return encodeText(JSON.stringify(...arguments));
-};
-
-decodeJSON = function() {
-  return JSON.parse(decodeText(...arguments));
+self.dump = function() {
+  console.table(iterate());
+  return console.warn("externref:", ref);
 };
 
 iterate = function(begin = 0, count = 0) {
-  var byteLength, byteOffset, encoding, object, stored;
-  stored = [];
+  var byteLength, byteOffset, item, items;
+  items = [];
   byteOffset = begin;
   while (byteLength = dvw.getUint32(byteOffset, iLE)) {
-    object = restore(byteOffset);
-    encoding = dvw.getUint32(byteOffset + 4, iLE);
-    stored.push({object, encoding, byteOffset, byteLength});
+    item = {
+      data: restore(byteOffset)
+    };
+    Object.defineProperties(item, {
+      type: {
+        value: dvw.getUint32(byteOffset + 4, iLE)
+      },
+      ["{{Buffer}}"]: {
+        value: {
+          buffer: bufferize(byteOffset),
+          byteOffset: byteOffset,
+          byteLength: byteLength
+        }
+      },
+      ["{{Headers}}"]: {
+        value: new Uint32Array(sab, byteOffset, 2)
+      }
+    });
+    items.push(item);
     if (!--count) {
       break;
     } else {
       byteOffset += byteLength + 8;
     }
   }
-  return stored;
+  return items;
 };
 
-bufferize = function(object, encoding = 0) {
-  return ref[encoding].encode(object);
-};
-
-objectify = function(buffer, encoding = 0) {
-  return ref[encoding].decode(buffer);
-};
-
-externref = function(coders = {encode, decode}) {
+externref = function(any) {
   var i;
-  if (-1 === (i = ref.indexOf(coders))) {
-    i += ref.push(coders);
+  if (-1 === (i = ref.indexOf(any))) {
+    i += ref.push(any);
   }
   return i;
 };
 
-offset = function() {
-  var byteOffset, len;
-  byteOffset = 0;
-  while (len = dvw.getUint32(byteOffset, iLE)) {
-    byteOffset += len + 8;
-  }
-  return byteOffset;
-};
-
-store = function(object, encoding) {
-  var buffer, byteLength, byteOffset;
-  buffer = bufferize(object, encoding);
-  byteLength = buffer.byteLength;
-  byteOffset = offset();
-  dvw.setUint32(byteOffset, byteLength, iLE);
-  dvw.setUint32(byteOffset + 4, encoding, iLE);
-  ui8.set(buffer, byteOffset + 8);
-  return byteOffset;
-};
-
-restore = function(byteOffset) {
-  var buffer, byteLength, encoding;
+subarray = function(byteOffset, TypedArray = Uint8Array) {
+  var byteLength, length;
   byteLength = dvw.getUint32(byteOffset, iLE);
-  encoding = dvw.getUint32(byteOffset + 4, iLE);
-  buffer = new Uint8Array(sab, byteOffset + 8, byteLength);
-  return objectify(buffer, encoding);
+  length = byteLength / TypedArray.BYTES_PER_ELEMENT;
+  return new TypedArray(sab, byteOffset + 8, length);
 };
 
-self.dump = function() {
-  return console.table(iterate());
+store = function(data, type = 0) {
+  var buffer, byteLength, byteOffset, size;
+  buffer = ref[type].encode(data);
+  byteOffset = 0;
+  byteLength = buffer.byteLength;
+  while (size = dvw.getUint32(byteOffset, iLE)) {
+    //? to the end of sab
+    byteOffset += size + 8;
+  }
+  dvw.setUint32(byteOffset, byteLength, iLE);
+  dvw.setUint32(byteOffset + 4, type, iLE);
+  subarray(byteOffset).set(buffer);
+  return byteOffset;
 };
 
-TYPE_TEXT = externref({
-  encode: function(object) {
-    return encodeText(object);
+restore = function(byteOffset, type) {
+  type || (type = dvw.getUint32(byteOffset + 4, iLE));
+  return ref[type].decode(subarray(byteOffset).slice());
+};
+
+bufferize = function(byteOffset) {
+  return subarray(byteOffset).slice().buffer;
+};
+
+TYPE_NULL = externref({
+  alias: "NULL",
+  encode: function(any) {
+    switch (true) {
+      case false === Boolean(any):
+        switch (true) {
+          case any === void 0:
+            return Boolean;
+          case any === false:
+            return Boolean;
+          case any === null:
+            return Boolean;
+          case any === (0/0):
+            return Number;
+          case any === 0:
+            return Number;
+          case any === "":
+            return String;
+        }
+        break;
+      case ArrayBuffer.isView(any):
+        switch (any.constructor) {
+          case Uint8Array:
+            return ref[TYPE_BYTE].encode(any);
+        }
+    }
   },
-  decode: function(buffer) {
-    return decodeText(buffer.slice());
+  decode: function() {
+    return arguments[0];
+  }
+});
+
+TYPE_BYTE = externref({
+  alias: "BYTE",
+  encode: function() {
+    return arguments[0];
+  },
+  decode: function() {
+    return arguments[0];
   }
 });
 
 TYPE_JSON = externref({
-  encode: function(object) {
-    return encodeJSON(object);
-  },
-  decode: function(buffer) {
-    return decodeJSON(buffer.slice());
-  }
+  alias: "JSON",
+  encode: JSONEncoder.prototype.encode.bind(new JSONEncoder),
+  decode: JSONDecoder.prototype.decode.bind(new JSONDecoder),
+  filter: function() {},
+  matchs: function(any) {}
 });
 
-warn({TYPE_TEXT, TYPE_JSON}, ref);
+TYPE_TEXT = externref({
+  alias: "TEXT",
+  encode: TextEncoder.prototype.encode.bind(new TextEncoder),
+  decode: TextDecoder.prototype.decode.bind(new TextDecoder),
+  filter: function() {}
+});
+
+store(new Uint8Array([1, 4, 4, 1]));
 
 store({
   type: 0,
@@ -129,6 +182,4 @@ store({
 
 store("kamon", TYPE_TEXT);
 
-log(dump());
-
-log(ui8);
+dump();
