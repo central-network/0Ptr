@@ -1,4 +1,3 @@
-DEBUG = 0
 
 #* hello world
 
@@ -8,11 +7,6 @@ GL2NUM = new Object
 
 { log, warn, error, table, debug, info } = console
 
-class JSONEncoder extends TextEncoder
-    encode : -> super JSON.stringify arguments...
-class JSONDecoder extends TextDecoder
-    decode : -> JSON.parse super arguments...
-
 sab = new SharedArrayBuffer 8 * 1e7
 dvw = new DataView sab
 ui8 = new Uint8Array sab
@@ -21,34 +15,93 @@ f32 = new Float32Array sab
 iLE = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
 ref = new Array
 
-self.dump   = ->
-    console.table iterate()
-    console.warn "externref:", ref
+encode = TextEncoder::encode.bind new TextEncoder
+decode = TextDecoder::decode.bind new TextDecoder
 
-iterate     = ( begin = 0, count = 0 ) ->
-
-    items = []
-    byteOffset = begin
-
-    while byteLength = dvw.getUint32 byteOffset, iLE
-
-        item = data : restore byteOffset
+Object.defineProperty self, "dump", get : ->
+    console.table do ->
+        items = []
+        for byteOffset from iterate()
             
-        Object.defineProperties item,
-            type : value : dvw.getUint32 byteOffset + 4, iLE
-            ["{{Buffer}}"]  : value :
-                buffer      : bufferize byteOffset
-                byteOffset  : byteOffset
-                byteLength  : byteLength
-            ["{{Headers}}"] : value :
-                new Uint32Array sab, byteOffset, 2
+            type = dvw.getUint32 byteOffset-4, iLE
+            size = dvw.getUint32 byteOffset-8, iLE
+            item = data: restore byteOffset , type
+        
+            items.push Object.defineProperties item,
+                type : value : type
+    
+                ["{{Buffer}}"]  : value :
+                    buffer      : bufferize byteOffset, type
+                    byteOffset  : byteOffset
+                    byteLength  : size
+    
+                ["{{Headers}}"] : value :
+                    new Uint32Array sab, byteOffset - 8, 2
+        return items
+    console.warn "externref:", ref
+    console.warn ui8
 
-        items.push item
+iterate     = ( options = {} ) ->
+    
+    byteOffset = options.begin or 0
+    
+    MATCH_TYPE = Boolean type = options.type
+    APPLY_TEST = Boolean test = ref[ type ]?.test
 
-        unless --count then break
-        else byteOffset += byteLength + 8
+    if !testOffset = options.testOffset
+        #todo this is unnecessary
+        APPLY_TEST = !1
 
-    items
+    f = switch done = yes
+
+        # { type: 1, testOffset : 4 }
+        when  MATCH_TYPE and  APPLY_TEST
+            ->
+                while byteLength = dvw.getUint32 byteOffset, iLE
+
+                    if  type - dvw.getUint32 byteOffset + 4, iLE
+                        byteOffset += 8 + byteLength
+                        continue
+
+                    if !test testOffset, byteOffset + 8
+                        byteOffset += 8 + byteLength
+                        continue
+
+                    value = byteOffset + 8
+                    byteOffset = value + byteLength
+
+                    return { value }
+                return { done }
+
+        # { type: 1 }
+        when  MATCH_TYPE and !APPLY_TEST
+            ->
+                while byteLength = dvw.getUint32 byteOffset, iLE
+
+                    if  type - dvw.getUint32 byteOffset + 4, iLE
+                        byteOffset += 8 + byteLength
+                        continue
+
+                    value = byteOffset + 8
+                    byteOffset = value + byteLength
+
+                    return { value }
+                return { done }
+
+        # { }
+        when !MATCH_TYPE and !APPLY_TEST
+            ->
+                while byteLength = dvw.getUint32 byteOffset, iLE
+
+                    value = byteOffset + 8
+                    byteOffset = value + byteLength
+
+                    return { value }
+                return { done }
+
+        else throw [ /ITERATOR_FAILED/, options ]
+
+    Iterator.from { next: f }
 
 externref   = ( any ) ->
     if -1 is i = ref.indexOf any
@@ -56,15 +109,19 @@ externref   = ( any ) ->
     i
 
 subarray    = ( byteOffset, TypedArray = Uint8Array ) ->
-    byteLength = dvw.getUint32 byteOffset, iLE
+    byteLength = dvw.getUint32 byteOffset - 8, iLE
     length = byteLength / TypedArray.BYTES_PER_ELEMENT
-    new TypedArray sab, byteOffset + 8, length
+    new TypedArray sab, byteOffset, length
 
 store       = ( data, type = 0 ) ->
     buffer = ref[ type ].encode data
     
     byteOffset = 0
     byteLength = buffer.byteLength
+
+    if  mod = byteLength % 8
+        byteLength += 8 - mod
+
     while size = dvw.getUint32 byteOffset, iLE
         #? to the end of sab
         byteOffset += size + 8
@@ -72,60 +129,117 @@ store       = ( data, type = 0 ) ->
     dvw.setUint32 byteOffset , byteLength, iLE
     dvw.setUint32 byteOffset + 4 ,   type, iLE
 
+    byteOffset += 8
     subarray( byteOffset ).set buffer
-
     ; byteOffset
     
 restore     = ( byteOffset, type ) ->
-    type ||= dvw.getUint32 byteOffset + 4, iLE
-    ref[ type ].decode subarray( byteOffset ).slice()
-
+    type ||= dvw.getUint32 byteOffset - 4, iLE
+    ref[ type ].decode subarray byteOffset
+    
 bufferize   = ( byteOffset ) ->
     subarray( byteOffset ).slice().buffer
 
-
-TYPE_NULL   = externref {
-    alias  : "NULL"
-    encode : ( any ) -> return switch on
-
-        when ( false is Boolean any ) then switch true
-            when any is undefined     then Boolean
-            when any is false         then Boolean
-            when any is null          then Boolean
-            when any is NaN           then Number
-            when any is 0             then Number
-            when any is ""            then String
-
-        when ArrayBuffer.isView( any ) then switch any.constructor            
-            when Uint8Array then ref[ TYPE_BYTE ].encode any
-
-    decode : -> arguments[0]
-}
-    
 TYPE_BYTE   = externref {
-    alias  : "BYTE"
-    encode : -> arguments[0]
-    decode : -> arguments[0]
-}
+
+    object : ArrayBuffer
+
+    encode : ->
+        data = arguments[0]
+
+        if  ArrayBuffer.isView data
+
+            if  data . buffer.grow?
+                data = data.slice()
     
-TYPE_JSON   = externref {
-    alias  : "JSON"
-    encode : JSONEncoder::encode.bind new JSONEncoder
-    decode : JSONDecoder::decode.bind new JSONDecoder
-    filter : ->
-    matchs : ( any ) ->
+            if  data instanceof Uint8Array
+                return data
+            
+            return new Uint8Array data.buffer
+        
+        if  Array.isArray data
+            return Uint8Array.from data
+
+        throw /UNENCODEABLE/
+    
+    decode : -> arguments[0]
+
+    test   : ( byteOffset, testOffset ) ->
+
+        byteLength = dvw.getUint32 testOffset - 8, iLE
+        if  byteLength - dvw.getUint32 byteOffset - 8, iLE
+            return no
+
+        offset = 0
+        length = byteLength - 1
+
+        # length could be even or odd
+        while no is ( offset > length )
+
+            #? right equality check
+            return no if (
+                dvw.getUint8( byteOffset + length ) -
+                dvw.getUint8( testOffset + length ) )
+            
+            #* left equality check
+            return no if (
+                dvw.getUint8( byteOffset + offset ) -
+                dvw.getUint8( testOffset + offset ) )
+            
+            #! walk one step
+            offset++ ; --length
+
+        return yes
 }
 
 TYPE_TEXT   = externref {
-    alias  : "TEXT"
-    encode : TextEncoder::encode.bind new TextEncoder
-    decode : TextDecoder::decode.bind new TextDecoder
-    filter : ->
+
+    object  : String
+
+    encode  : ( string ) ->
+        textArray   = encode string
+        byteLength  = textArray.byteLength
+        data        = new Uint8Array byteLength + 4
+
+        new DataView( data.buffer )
+            .setUint32 0, byteLength, iLE
+
+        data.set textArray, 4 ; data
+
+    decode  : ( subarray ) ->
+        { buffer, byteOffset, byteLength } = subarray
+        
+        begin = 4
+        end = begin + new DataView(
+            buffer, byteOffset, byteLength
+        ).getUint32 0, iLE
+        
+        decode subarray.slice begin, end
+
+    test    : ( byteOffset, testOffset ) ->
+        
+        textLength = dvw.getUint32 byteOffset, iLE
+        if  textLength - dvw.getUint32 testOffset, iLE
+            return no
+
+        ref[ TYPE_BYTE ].test byteOffset, testOffset 
 }
 
-store new Uint8Array([1,4,4,1])
-store { type : 0, name : "some", }, TYPE_JSON
-store "kamon", TYPE_TEXT
 
+TYPE_JSON   = externref {
+    encode : -> ref[ TYPE_TEXT ].encode JSON.stringify arguments[0]
+    decode : -> JSON.parse ref[ TYPE_TEXT ].decode arguments[0]
+}
 
-dump()
+store new Float32Array( new SharedArrayBuffer(8) )
+of1 = store "getByteLength", TYPE_TEXT
+of2 = store "getByteLength", TYPE_TEXT
+store { type : 0, name : "some", }, TYPE_JSON   
+of3 = store "getByteOffset", TYPE_TEXT
+
+for iter from iterate({ type : 1, testOffset: of2 })
+    log { match: iter, item: String(restore(iter)) }
+
+dump
+
+#? primitives done, now we can walk -->
