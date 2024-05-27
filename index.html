@@ -127,6 +127,14 @@
     </script>	
 </head>
 <body title="146.853.146.838 ops/sec">    
+    <script>
+        worker = new Worker("wasm_worker.js");
+
+        WebAssembly
+            .compileStreaming(fetch("0ptr.wasm"))
+            .then(worker.postMessage.bind(worker))
+
+    </script>
     <script src="0ptr4.js" type="module">
         import { Scene, Mesh, RenderingContext } from "./0ptr2.js"
 

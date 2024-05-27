@@ -1,5 +1,5 @@
 //* hello world
-var GL2KEY, GL2NUM, GL2VAL, TYPE_BYTE, TYPE_JSON, TYPE_TEXT, bufferize, debug, decode, dvw, encode, error, externref, f32, iLE, info, iter, iterate, log, of1, of2, of3, ref, ref1, restore, sab, store, subarray, table, u32, ui8, warn;
+var GL2KEY, GL2NUM, GL2VAL, Link, Parent, TYPE_BYTE, TYPE_JSON, TYPE_LINK, TYPE_PARENT, TYPE_TEXT, TYPE_TYPE, bufferize, debug, decode, dvw, encode, error, externref, f32, filter, iLE, info, iter, iterate, log, of1, of2, of3, of4, ofb, ofj, ref, ref3, ref4, ref5, restore, sab, store, subarray, table, typedef, u32, ui8, warn;
 
 GL2KEY = Object.keys(WebGL2RenderingContext);
 
@@ -30,10 +30,10 @@ decode = TextDecoder.prototype.decode.bind(new TextDecoder);
 Object.defineProperty(self, "dump", {
   get: function() {
     console.table((function() {
-      var byteOffset, item, items, ref1, size, type;
+      var byteOffset, item, items, ref3, size, type;
       items = [];
-      ref1 = iterate();
-      for (byteOffset of ref1) {
+      ref3 = iterate();
+      for (byteOffset of ref3) {
         type = dvw.getUint32(byteOffset - 4, iLE);
         size = dvw.getUint32(byteOffset - 8, iLE);
         item = {
@@ -62,11 +62,38 @@ Object.defineProperty(self, "dump", {
   }
 });
 
+filter = function(type, test, options = {}) {
+  var byteOffset;
+  byteOffset = 0;
+  return Iterator.from({
+    next: function() {
+      var byteLength, value;
+      while (byteLength = dvw.getUint32(byteOffset, iLE)) {
+        error(type);
+        if (type - dvw.getUint32(byteOffset + 4, iLE)) {
+          byteOffset += 8 + byteLength;
+          continue;
+        }
+        if (!test(byteOffset + 8)) {
+          byteOffset += 8 + byteLength;
+          continue;
+        }
+        value = ref[type];
+        byteOffset = value + byteLength;
+        return {value};
+      }
+      return {
+        done: true
+      };
+    }
+  });
+};
+
 iterate = function(options = {}) {
-  var APPLY_TEST, MATCH_TYPE, byteOffset, done, f, ref1, test, testOffset, type;
+  var APPLY_TEST, MATCH_TYPE, byteOffset, done, f, ref3, test, testOffset, type;
   byteOffset = options.begin || 0;
   MATCH_TYPE = Boolean(type = options.type);
-  APPLY_TEST = Boolean(test = (ref1 = ref[type]) != null ? ref1.test : void 0);
+  APPLY_TEST = Boolean(test = (ref3 = ref[type]) != null ? ref3.test : void 0);
   if (!(testOffset = options.testOffset)) {
     //todo this is unnecessary
     APPLY_TEST = !1;
@@ -141,9 +168,9 @@ subarray = function(byteOffset, TypedArray = Uint8Array) {
   return new TypedArray(sab, byteOffset, length);
 };
 
-store = function(data, type = 0) {
+store = function(type = 0, ...data) {
   var buffer, byteLength, byteOffset, mod, size;
-  buffer = ref[type].encode(data);
+  buffer = ref[type].encode(...data);
   byteOffset = 0;
   byteLength = buffer.byteLength;
   if (mod = byteLength % 8) {
@@ -219,6 +246,28 @@ TYPE_BYTE = externref({
   }
 });
 
+TYPE_LINK = externref({
+  object: Link = class Link extends Uint32Array {},
+  encode: function([ref1, ref2]) {
+    return new Uint8Array(this.object.of(ref1, ref2).buffer);
+  },
+  decode: function(subarray) {
+    var ref1, ref2;
+    ref1 = dvw.getUint32(subarray.byteOffset, iLE);
+    ref2 = dvw.getUint32(subarray.byteOffset + 4, iLE);
+    return this.object.of(ref1, ref2);
+  },
+  test: function(byteOffset, testOffset) {
+    if (dvw.getUint32(byteOffset, iLE) - dvw.getUint32(testOffset, iLE)) {
+      return false;
+    }
+    if (dvw.getUint32(byteOffset + 4, iLE) - dvw.getUint32(testOffset + 4, iLE)) {
+      return false;
+    }
+    return true;
+  }
+});
+
 TYPE_TEXT = externref({
   object: String,
   encode: function(string) {
@@ -247,37 +296,124 @@ TYPE_TEXT = externref({
   }
 });
 
+TYPE_TYPE = externref({
+  encode: function(alias, byteOffset) {
+    var buffer, byteArray, byteLength, dataView, nameArray, nameLength;
+    nameArray = encode(alias);
+    nameLength = nameArray.byteLength;
+    byteLength = nameLength + 12;
+    buffer = new ArrayBuffer(byteLength);
+    byteArray = new Uint8Array(buffer);
+    dataView = new DataView(buffer);
+    dataView.setUint32(4, byteOffset, iLE);
+    dataView.setUint32(8, nameLength, iLE);
+    byteArray.set(nameArray, 12);
+    return byteArray;
+  },
+  decode: function(subarray) {
+    var nameLength;
+    nameLength = dvw.getUint32(subarray.byteOffset + 8, iLE);
+    return {
+      byteOffset: dvw.getUint32(subarray.byteOffset, iLE),
+      index: dvw.getUint32(subarray.byteOffset + 4, iLE),
+      alias: decode(subarray.slice(12, 12 + nameLength))
+    };
+  },
+  test: function(byteOffset, testOffset) {
+    return dvw.getUint32(byteOffset) === dvw.getUint32(testOffset);
+  }
+});
+
 TYPE_JSON = externref({
   encode: function() {
     return ref[TYPE_TEXT].encode(JSON.stringify(arguments[0]));
   },
   decode: function() {
     return JSON.parse(ref[TYPE_TEXT].decode(arguments[0]));
-  }
+  },
+  test: ref[TYPE_TEXT].test
 });
 
-store(new Float32Array(new SharedArrayBuffer(8)));
+typedef = function(object) {
+  var def, i;
+  if (-1 === (i = ref.indexOf(object))) {
+    i += ref.push(object);
+  }
+  i;
+  def = store(TYPE_TYPE, object.name, i);
+  dvw.setUint32(def, def, iLE);
+  warn({object, i, def});
+  return def;
+};
 
-of1 = store("getByteLength", TYPE_TEXT);
+ofb = store(TYPE_BYTE, new Float32Array(new SharedArrayBuffer(8)));
 
-of2 = store("getByteLength", TYPE_TEXT);
+of1 = store(TYPE_TEXT, "getByteLength");
 
-store({
+of2 = store(TYPE_TEXT, "getByteLength");
+
+ofj = store(TYPE_JSON, {
   type: 0,
   name: "some"
-}, TYPE_JSON);
+});
 
-of3 = store("getByteOffset", TYPE_TEXT);
+of3 = store(TYPE_TEXT, "getByteOffset");
 
-ref1 = iterate({
+of4 = store(TYPE_LINK, [of1, of2]);
+
+TYPE_PARENT = typedef(Parent = (function() {
+  class Parent {
+    encode(a, b) {
+      return new Uint8Array(Uint32Array.of(a, b).buffer);
+    }
+
+    decode(byteOffset) {
+      return new this.Object(sab, byteOffset, 2);
+    }
+
+    isIndex(index, byteOffset = this) {
+      return index === dvw.getUint32(byteOffset, iLE);
+    }
+
+  };
+
+  Parent.byteLength = 8;
+
+  Parent.prototype.Object = Uint32Array;
+
+  return Parent;
+
+}).call(this));
+
+ref3 = iterate({
   type: 1,
   testOffset: of2
 });
-for (iter of ref1) {
-  log({
+for (iter of ref3) {
+  log("str iter:", {
     match: iter,
     item: String(restore(iter))
   });
+}
+
+ref4 = iterate({
+  type: TYPE_LINK,
+  testOffset: of4
+});
+for (iter of ref4) {
+  log("lnk iter:", {
+    match: iter,
+    item: restore(iter)
+  });
+}
+
+error({TYPE_PARENT});
+
+ref5 = filter(TYPE_PARENT, function(byteOffset) {
+  return 0 === TYPE_PARENT - dvw.getUint32(byteOffset, iLE);
+});
+for (iter of ref5) {
+  error(iter);
 }
 
 dump;
