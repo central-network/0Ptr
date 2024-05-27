@@ -1,25 +1,27 @@
-imports    =
+$call =
+
+    # imports triggerable in wasm
     log     : console.log
     warn    : console.warn
     error   : console.error
 
-onmessage = ({ data: module }) =>
+onmessage = ({ data }) =>
 
-    { exports } = await WebAssembly
-        .instantiate module, { imports }
+    { exports : {
 
-    {
+        # exports can triggerable from js
         memory,
         accumulate
-    } = exports
-    
-    console.log memory
 
-    i32 = new Uint32Array memory.buffer
+    }} = await WebAssembly
+        .instantiate data, { $call }
 
-    for i in [ 0 ... 10 ]
-        i32[i] = i
+    console.log { memory }
+
+    i32 = new Int32Array memory.buffer
+    i32.set crypto.getRandomValues new Int32Array 10
     
-    sum = accumulate(0, 10);
-    console.log(sum);
+    sum = accumulate 0, 10
+
+    console.log { sum }
 
