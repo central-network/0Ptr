@@ -1,21 +1,19 @@
-var $call, onmessage;
+var debug, error, info, log, onmessage, table, warn;
 
-$call = {
-  // imports triggerable in wasm
-  log: console.log,
-  warn: console.warn,
-  error: console.error
-};
+({log, warn, error, table, debug, info} = console);
 
-onmessage = async({data}) => {
-  var accumulate, i32, memory, sum;
-  ({
-    // exports can triggerable from js
-    exports: {memory, accumulate}
-  } = (await WebAssembly.instantiate(data, {$call})));
-  console.log({memory});
-  i32 = new Int32Array(memory.buffer);
-  i32.set(crypto.getRandomValues(new Int32Array(10)));
-  sum = accumulate(0, 10);
-  return console.log({sum});
+onmessage = function(e) {
+  return WebAssembly.instantiate(e.data, {
+    console: {log, warn, error},
+    main: {
+      init: function() {
+        return warn("main init:", ...arguments);
+      },
+      exit: function() {
+        return warn("main exit:", ...arguments);
+      }
+    }
+  }).then(function(e) {
+    return log(e.exports.memory.buffer);
+  });
 };
