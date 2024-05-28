@@ -5,15 +5,22 @@
     (func $warn     (import "console" "warn") (param i32))
     (func $error    (import "console" "error") (param i32))
     (func $memdump  (import "console" "memdump") (param i32 i32))
-
     (func $exit     (import "env" "exit"))
-    (func $init     (import "env" "init"))
-
 
     (memory $memory 1 10 shared)
-    (export "memory" (memory $memory))
+    (export "memory"
+    (memory $memory))
+
+    (global $headLength i32 (i32.const 12))
+    (global $sizeOffset i32 (i32.const  4))
+    (global $typeOffset i32 (i32.const  8))
+    (global $alignBytes i32 (i32.const  8))
+
+    (global $TYPEofTYPE i32 (i32.const  1))
+    (global $SIZEofTYPE i32 (i32.const  4))
 
 
+    ;; see what happens with console.log
     (func $dump 
         (param $nextOffset i32)
         (local $byteOffset i32)
@@ -22,11 +29,19 @@
         (if (i32.load (local.get $nextOffset) ) (then
 
             (local.set $byteOffset 
-                (i32.add (i32.const 8) (local.get $nextOffset))
+                (i32.add 
+                    (local.get $nextOffset)
+                    (global.get $headLength)
+                )
             )
 
             (local.set $byteLength 
-                (i32.load (i32.add (i32.const 4) (local.get $nextOffset)))
+                (i32.load
+                    (i32.add 
+                        (local.get $nextOffset)
+                        (global.get $sizeOffset)
+                    )
+                )
             )
 
             
@@ -42,6 +57,8 @@
         ))
     )
 
+
+    ;; change bytesize for stability
     (func $align
         (param $value i32)
         (param $bytes i32)
@@ -66,8 +83,31 @@
         (return (local.get $value))
     )
 
+
+    ;; check loop is finished
+    (func $br_if
+        (param $byteOffset i32)
+                   (result i32)
+
+        (local $r i32)
+        (local $O i32)
+
+        (local.set $O 
+            (i32.load 
+                (local.get $byteOffset)))
+
+        (if (i32.eq (local.get $O) (i32.const 0))
+        (then       (local.set $r  (i32.const 1)))
+        (else       (local.set $r  (i32.const 0))))
+
+        (return (local.get $r))
+    )
+
+
+    ;; reserv BYTELENGTH for TYPE   
     (func $malloc 
         (param $byteLength i32)
+        (param $mallocType i32)
                    (result i32)
 
         (local $byteOffset i32)
@@ -77,28 +117,31 @@
         (local.set $allocBytes 
             (i32.add 
                 (local.get $byteLength)
-                (i32.const 8))
-        ) ;; headers = byteLength + 8
+                (global.get $headLength)
+            )
+        ) ;; headers = byteLength + 12
 
         (local.set $allocBytes 
             (call $align 
                 (local.get $allocBytes)
-                (i32.const 8))
+                (global.get $alignBytes)
+            )
         ) ;; aligned = allocBytes % 8
-
 
         (block $loop (loop $next
 
-            (br_if $loop (i32.eq (i32.const 0)
-                (i32.load( local.get $byteOffset ))
-            ))
+            (br_if $loop (call 
+            $br_if(local.get $byteOffset)))
 
             (local.set $byteOffset
-                (i32.load( local.get $byteOffset ))
+                (i32.load 
+                    (local.get $byteOffset)
+                )
             )
 
-            (br $next))
-        )
+            (br $next)
+        ))
+        ;; til the end of allocs
 
         (i32.store
             (local.get $byteOffset)
@@ -107,60 +150,128 @@
                 (local.get $allocBytes) 
             )
         )
+        ;; save the green keep'n mind
 
         (i32.store
-            (i32.add (i32.const 4) (local.get $byteOffset))
+            (i32.add 
+                (local.get $byteOffset)
+                (global.get $sizeOffset)
+            )
             (local.get $byteLength)
         )
+        ;; size header -> byteLength
 
-        (return 
-            (i32.add (i32.const 8) (local.get $byteOffset))
+        (i32.store
+            (i32.add 
+                (local.get $byteOffset)
+                (global.get $typeOffset)
+            )
+            (local.get $mallocType)
         )
+        ;; type header -> identifier
+
+        (return (i32.add 
+            (local.get $byteOffset)
+            (global.get $headLength)
+        )) ;; NOT including headers
     )
 
-    (func $defineProperty
-        (result i32)
-        ;;get next type id
 
-        (local $byteLength i32)
+    ;; count of registered types
+    (func $typeCount 
+        (param $mallocType i32)
+                   (result i32)
+
+        (local $byteOffset i32)
+        (local $count      i32)
+        (local $offsetType i32)
+
+        (block $loop (loop $next
+
+            (br_if $loop (call 
+            $br_if(local.get $byteOffset)))
+
+            (local.set $offsetType
+                (i32.load 
+                    (i32.add 
+                        (local.get $byteOffset)
+                        (global.get $typeOffset)
+                    )
+                )
+            ) ;; read type of current packet
+
+            (if (i32.eq 
+                (local.get $mallocType)
+                (local.get $offsetType)) ;; matched
+                
+                (then
+                    (local.set $count 
+                        (i32.add
+                            (i32.const 1)
+                            (local.get $count)
+                        ) ;; increase 1
+                    )
+                )
+            ) ;; check requested type id
+
+            (local.set $byteOffset 
+                (i32.load
+                    (local.get $byteOffset)
+                )
+            ) ;; jump to next            
+        
+            (br $next))
+        )
+
+        (return (local.get $count))
+    )
+
+
+    ;; register new type identifier
+    (func $nextTypeId 
+        (result i32)
+
         (local $byteOffset i32)
         
-        (local $resvTypeId i32)
-
-        (local.set $byteLength (i32.const 4))
         (local.set $byteOffset
-            (call $malloc (local.get $byteLength))
-        )
-
-        (local.set $resvTypeId                 
-            (i32.const 35)
-        )
+            (call $malloc
+                (global.get $SIZEofTYPE)
+                (global.get $TYPEofTYPE)))
 
         (i32.store 
             (local.get $byteOffset)
-            (local.get $resvTypeId)
+            (i32.add 
+                (i32.const 1) 
+                (call $typeCount (global.get $TYPEofTYPE))) 
         )
             
         (return (local.get $byteOffset))
     )
 
-    (func (export "main") 
-        (local $TYPE i32)
+
+    ;; trigger from js
+    (func $init (export "init")
+
+        (local $newTypeOffset i32)
+        (local $newTypeOffset2 i32)
     
-    (call $init)
+        (drop (call $malloc (i32.const 21) (i32.const 1)))
+        (drop (call $malloc (i32.const 82) (i32.const 1)))
+        (drop (call $malloc (i32.const 3 ) (i32.const 0)))
 
 
-        (local.set $TYPE (call $defineProperty))
-        (call $log (local.get $TYPE) )
+        (local.set $newTypeOffset (call $nextTypeId))
+        (call $error (local.get $newTypeOffset) )
 
-        (drop (call $malloc (i32.const 21)))
-        (drop (call $malloc (i32.const 82)))
-        (drop (call $malloc (i32.const 3)))
-
-
+        (local.set $newTypeOffset2 (call $nextTypeId))
+        (call $error (local.get $newTypeOffset2) )
 
         (call $dump (i32.const 0))
-    
-    (call $exit)
     )
+
+
+    (func $main
+        ;; attention: runs before WASM.instantiate 
+        ;; you could NOT see somethings on console 
+    )(start $main)
 )

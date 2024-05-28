@@ -15,26 +15,20 @@ onmessage = function(e) {
           byteOffset,
           byteLength,
           byteArray: new Uint8Array(buffer, byteOffset, byteLength),
-          headers: new Uint32Array(buffer, byteOffset - 8, 2)
+          headers: new Uint32Array(buffer, byteOffset - 12, 3)
         });
         return log("\n\n");
       }
     },
     env: {
-      memory: new WebAssembly.Memory({
-        initial: 10,
-        maximum: 100,
-        shared: true
-      }),
-      init: error.bind(error, "main init"),
       exit: error.bind(error, "main exit")
     }
   }).then(function({
-      exports: {memory, main}
+      exports: {memory, init}
     }) {
     buffer = memory.buffer;
-    main();
     return setTimeout(() => {
+      init();
       return log(new Uint32Array(buffer));
     }, 1000);
   });

@@ -11,25 +11,22 @@ onmessage = (e) -> WebAssembly.instantiate( e.data,
                 byteOffset,
                 byteLength,
                 byteArray : new Uint8Array buffer, byteOffset, byteLength
-                headers: new Uint32Array buffer, byteOffset-8, 2
+                headers: new Uint32Array buffer, byteOffset-12, 3
             }
             log "\n\n"
 
     }
 
     env         :
-        memory  : new WebAssembly.Memory(
-            initial : 10, maximum : 100, shared: yes
-        )
-
-        init    : error.bind error, "main init"
         exit    : error.bind error, "main exit"
 
-).then ({exports: {memory, main}}) ->
+).then ({exports: {memory, init}}) ->
     buffer = memory.buffer
-    main()
 
+    
     setTimeout =>
+        init()
+
         log new Uint32Array buffer
     , 1000
 
