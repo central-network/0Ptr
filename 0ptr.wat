@@ -1,14 +1,15 @@
 (module
+    (memory $memory (import "env" "memory") 10 100 shared)
+
     (func $log      (import "console" "log") (param i32))
     (func $log2     (import "console" "log") (param i32 i32))
     (func $warn     (import "console" "warn") (param i32))
     (func $error    (import "console" "error") (param i32))
+    (func $memdump  (import "console" "memdump") (param i32 i32))
 
-    (func $exit     (import "main" "exit") (param i32))
-    (func $init     (import "main" "init") (param i32))
+    (func $exit     (import "main" "exit"))
+    (func $init     (import "main" "init"))
 
-    (memory $memory 10 100 shared)
-    (export "memory" (memory $memory))
     
     (func $iterate
         (param $ptr i32) ;; arguments[0] 
@@ -71,6 +72,93 @@
         (local.get $sum)
     )
 
+
+    (func $dump 
+        (param $byteOffset i32)
+        (local $byteLength i32)
+        
+        ;; load byteLength of given offset
+        (local.set $byteLength
+            (i32.load (local.get $byteOffset)))
+
+        ;; console.log packet info
+        (call $memdump
+            (local.get $byteOffset) (local.get $byteLength))
+
+        ;; sum byteLength for next offset
+        (local.set $byteOffset 
+            (i32.add 
+                (local.get $byteOffset)
+                (local.get $byteLength))
+        )            
+
+        ;; recall if next offset has byteLength
+        (if (i32.load( local.get $byteOffset )) (then
+            (call $dump ( local.get $byteOffset ))))
+
+        (return)
+    )
+
+    (func $align
+        (param $value i32)
+        (param $mod   i32)
+              (result i32)
+        (local $rem   i32)
+
+        (local.set $rem 
+            (i32.rem_u 
+                (local.get $value)
+                (local.get $mod)
+            )
+        )
+
+        (if (local.get $rem) (then
+            (local.set $value (i32.add
+                (local.get $value)
+                (i32.sub
+                    (local.get $mod)
+                    (local.get $rem)))))
+        )
+
+        (local.get $value)
+    )
+
+    (func $malloc 
+        (param $byteLength i32)
+                   (result i32)
+        (local $byteOffset i32)
+
+
+        (local.set $byteLength 
+            (call $align 
+                (local.get $byteLength)
+                (i32.const 8)))
+
+
+        (block $loop (loop $next
+
+            (br_if $loop (i32.eq 
+                (i32.const 0)
+                (i32.load( local.get $byteOffset ))
+            ))
+
+            (local.set $byteOffset
+                (i32.add 
+                    (local.get $byteOffset)
+                    (i32.load(
+                        local.get $byteOffset))))
+
+            (br $next))
+        )
+
+        (i32.store
+            (local.get $byteOffset)
+            (local.get $byteLength))
+
+        (return (local.get $byteOffset))
+
+    )
+
     (func $typedef
         (result i32)
         ;;get next type id
@@ -95,9 +183,6 @@
             (local.get $type)
             (i32.add (i32.load (i32.const 4)) (i32.const 1)))
 
-        (i32.load (i32.const 0))
-        (i32.load (i32.const 4))
-        (call $log2)
 
 
 
@@ -105,22 +190,17 @@
     )
 
     (func $main 
-        (local $var i32)
-        (local $type i32)
+    (call $init)
 
-        (local.get $var)
-        (call $init)
+        (drop (call $malloc (i32.const 429)))
+        (drop (call $malloc (i32.const 160)))
+        (drop (call $malloc (i32.const 124)))
         
-        (i32.add                
-            (local.get $var)
-            (i32.const 4))
-        
-        (local.set $type (call $typedef))
-        (local.set $type (call $typedef))
-        (local.set $type (call $typedef))
-        
-        (call $exit)
+
+        (call $dump (i32.const 0))
+    
+    (call $exit)
     )
-    (start $main)
 
+    (start $main)
 )
