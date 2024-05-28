@@ -24,9 +24,18 @@ onmessage = function(e) {
       exit: error.bind(error, "main exit")
     }
   }).then(function({
-      exports: {memory, init}
+      exports: {memory, init, SIMDf32x4mul}
     }) {
+    var inA, inB, out, vec;
     buffer = memory.buffer;
+    vec = 4;
+    inA = 240 + (vec * 4);
+    inB = inA + (vec * 4);
+    out = inB + (vec * 4);
+    new Float32Array(buffer, inA, vec).set([2, -2.4, 0, 0]);
+    new Float32Array(buffer, inB, vec).set([4, 1.24, 0, 0]);
+    SIMDf32x4mul(inA, inB, out);
+    log("SIMDf32x4mul:", new Float32Array(buffer, out, vec));
     return setTimeout(() => {
       init();
       return log(new Uint32Array(buffer));

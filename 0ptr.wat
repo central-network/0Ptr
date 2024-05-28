@@ -2,6 +2,9 @@
 
     (func $log      (import "console" "log") (param i32))
     (func $log2     (import "console" "log") (param i32 i32))
+    (func $log3xi32 (import "console" "log") (param i32 i32 i32))
+    (func $log4xf32 (import "console" "log") (param f32 f32 f32 f32))
+
     (func $warn     (import "console" "warn") (param i32))
     (func $error    (import "console" "error") (param i32))
     (func $memdump  (import "console" "memdump") (param i32 i32))
@@ -11,6 +14,8 @@
     (export "memory"
     (memory $memory))
 
+    
+
     (global $headLength i32 (i32.const 12))
     (global $sizeOffset i32 (i32.const  4))
     (global $typeOffset i32 (i32.const  8))
@@ -19,6 +24,107 @@
     (global $TYPEofTYPE i32 (i32.const  1))
     (global $SIZEofTYPE i32 (i32.const  4))
 
+
+    (func  (export "SIMDf32x4mul") 
+        (param $inA i32) ;; vec4 ---> read offset for 16 bytes [ f32, f32, f32, f32 ]
+        (param $inB i32) ;; vec4 ---> read offset for 16 bytes [ f32, f32, f32, f32 ]
+        (param $out i32) ;; vec4 ---> write offset for 16 bytes [ f32, f32, f32, f32 ]
+            (result i32)
+
+        (v128.store (local.get $out)
+            (f32x4.mul 
+                (v128.load (local.get $inA)) 
+                (v128.load (local.get $inB))
+            )
+        )
+
+        (i32.const 0)
+
+        (;
+        ;;https://github.com/WebAssembly/testsuite
+        ;;/blob/6dfedc8b8423a91c1dc340d3af1a7f4fbf7868b4
+        ;;/simd_load.wast
+         
+        (local $i i32) 
+        (local $j i32)
+        (local $k i32)
+
+        (local.set $i (i32.const 240))
+        (local.set $j (i32.const 256))
+        (local.set $k (i32.const 272))
+
+        (v128.store (local.get $i) (v128.const 
+            f32x4 
+                0x00000043 0x0000803f 0x6666e63f 0x000080bf
+        ;;             128        1.0       1.8          -1
+        ))
+
+        (v128.store (local.get $j) (v128.const 
+            f32x4 
+                0x00000040 0x00000040 0x00000040 0x00000040 
+        ;;             2.0        2.0        2.0        2.0
+        ))
+
+        (v128.store (local.get $k) (v128.const 
+            i32x4 
+                0x03020100 0x07060504 0x0b0a0908 0x0f0e0d0c
+        ))
+
+        (v128.store (local.get $k) (v128.const 
+            i16x8 
+                0x0302 0x0100 0x0706 0x0504 
+                0x0b0a 0x0908 0x0f0e 0x0d0c
+        ))
+
+        (v128.store (local.get $k) (v128.const 
+            i8x16 
+                0x03 0x02 0x01 0x00 
+                0x07 0x06 0x05 0x04 
+                0x0b 0x0a 0x09 0x08 
+                0x0f 0x0e 0x0d 0x0c
+        ))
+
+        (call $log4xf32 
+            (f32.load (local.get $k))
+            (f32.load (i32.add (local.get $k) (i32.const  4)))
+            (f32.load (i32.add (local.get $k) (i32.const  8)))
+            (f32.load (i32.add (local.get $k) (i32.const 12)))
+        )
+
+        ;; 128  1.0  1.8   -1
+        ;; 2.0  2.0  2.0  2.0
+        (v128.store (local.get $k)
+            (f32x4.mul 
+                (v128.load (local.get $i)) 
+                (v128.load (local.get $j))
+            )
+        )
+
+        (call $log4xf32 
+            (f32.load (local.get $k))
+            (f32.load (i32.add (local.get $k) (i32.const  4)))
+            (f32.load (i32.add (local.get $k) (i32.const  8)))
+            (f32.load (i32.add (local.get $k) (i32.const 12)))
+        )
+
+
+        ;; 2 2 2 2  +  3 3 3 3  =  5 5 5 5
+        (v128.store (local.get $k)
+            (i8x16.add 
+                (v128.load (local.get $k)) 
+                (v128.load (local.get $j))
+            )
+        )
+
+        (call $log4xf32 
+            (f32.load (local.get $k))
+            (f32.load (i32.add (local.get $k) (i32.const  4)))
+            (f32.load (i32.add (local.get $k) (i32.const  8)))
+            (f32.load (i32.add (local.get $k) (i32.const 12)))
+        )
+        ;)
+
+    )
 
     ;; see what happens with console.log
     (func $dump 
@@ -274,4 +380,5 @@
         ;; attention: runs before WASM.instantiate 
         ;; you could NOT see somethings on console 
     )(start $main)
+
 )
