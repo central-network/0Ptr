@@ -7,7 +7,7 @@
 
     (func $warn     (import "console" "warn") (param i32))
     (func $error    (import "console" "error") (param i32))
-    (func $memdump  (import "console" "memdump") (param i32 i32))
+    (func $memdump  (import "console" "memdump") (param i32 i32 i32))
     (func $exit     (import "env" "exit"))
 
     (memory $memory 1 10 shared)
@@ -21,10 +21,15 @@
     (global $TYPEofTYPE i32 (i32.const  1))
     (global $SIZEofTYPE i32 (i32.const  4))
 
+    (global $GL      (mut i32) (i32.const 0))
+    (global $BUFFER  (mut i32) (i32.const 0))
+    (global $PROGRAM (mut i32) (i32.const 0))
+    (global $VSHADER (mut i32) (i32.const 0))
+    (global $FSHADER (mut i32) (i32.const 0))
 
-    ;; just testing SIMD operations
+    ;; beggining of SIMD operations
     (func $SIMDf32x4mul 
-    (export "SIMDf32x4mul") 
+        (export "SIMDf32x4mul") 
 
         (param $inA i32) ;; vec4 ---> read  offset for 16 bytes / 4 element [ f32, f32, f32, f32 ]
         (param $inB i32) ;; vec4 ---> read  offset for 16 bytes / 4 element [ f32, f32, f32, f32 ]
@@ -128,251 +133,243 @@
 
     ;; see what happens with console.log
     (func $dump 
-        (param $nextOffset i32)
-        (local $byteOffset i32)
-        (local $byteLength i32)
+        (param $byteOffset i32)
+            (local $nextOffset i32)
+            (local $byteLength i32)
 
-        (if (i32.load (local.get $nextOffset) ) (then
+            (if (i32.load (local.get $byteOffset) ) (then
 
-            (local.set $byteOffset 
-                (i32.add 
-                    (local.get $nextOffset)
-                    (global.get $headLength)
-                )
-            )
-
-            (local.set $byteLength 
-                (i32.load
+                (local.set $nextOffset 
                     (i32.add 
-                        (local.get $nextOffset)
-                        (global.get $sizeOffset)
+                        (local.get $byteOffset)
+                        (global.get $headLength)
                     )
                 )
-            )
 
-            
-            (call $log (local.get $byteLength))
+                (local.set $byteLength 
+                    (i32.load
+                        (i32.add 
+                            (local.get $byteOffset)
+                            (global.get $sizeOffset)
+                        )
+                    )
+                )
 
-            ;; console.log packet info
-            (call $memdump 
-                (local.get $byteOffset)
-                (local.get $byteLength)
-            ) 
-            
-            (call $dump (i32.load (local.get $nextOffset)))
-        ))
+                ;; console.log packet info
+                (call $memdump 
+                    (local.get $nextOffset)
+                    (local.get $byteLength)
+                    (i32.load
+                        (i32.sub 
+                            (local.get $nextOffset)
+                            (global.get $typeOffset)
+                        )
+                    )
+                ) 
+                
+                (call $dump (i32.load (local.get $byteOffset)))
+            ))
     )
 
 
-    ;; change bytesize for stability
+    ;; change byteLength for stability
     (func $align
-        (param $value i32)
-        (param $bytes i32)
-              (result i32)
-        (local $rem_u i32)
-              
-        (local.set $rem_u 
-            (i32.rem_u 
-                (local.get $value)
-                (local.get $bytes))
-        )
+        (param $byteLength i32)
+        (param $alignBytes i32) (result i32)
+            (local $rem_u i32)
+                
+            (local.set $rem_u 
+                (i32.rem_u 
+                    (local.get $byteLength)
+                    (local.get $alignBytes))
+            )
 
-        (if (local.get $rem_u) (then
-            (local.set $value 
-                (i32.add
-                    (local.get $value)
-                    (i32.sub
-                        (local.get $bytes)
-                        (local.get $rem_u)))))
-        )
+            (if (local.get $rem_u) (then
+                (local.set $byteLength 
+                    (i32.add
+                        (local.get $byteLength)
+                        (i32.sub
+                            (local.get $alignBytes)
+                            (local.get $rem_u)))))
+            )
 
-        (return (local.get $value))
+            (return (local.get $byteLength))
     )
 
 
     ;; check loop is finished
     (func $br_if
-        (param $byteOffset i32)
-                   (result i32)
+        (param $byteOffset i32) (result i32)
 
-        (local $r i32)
-        (local $O i32)
+            (local $r i32)
+            (local $O i32)
 
-        (local.set $O 
-            (i32.load 
-                (local.get $byteOffset)))
+            (local.set $O 
+                (i32.load 
+                    (local.get $byteOffset)))
 
-        (if (i32.eq (local.get $O) (i32.const 0))
-        (then       (local.set $r  (i32.const 1)))
-        (else       (local.set $r  (i32.const 0))))
+            (if (i32.eq (local.get $O) (i32.const 0))
+            (then       (local.set $r  (i32.const 1)))
+            (else       (local.set $r  (i32.const 0))))
 
-        (return (local.get $r))
+            (return (local.get $r))
     )
 
 
     ;; reserv BYTELENGTH for TYPE   
     (func $malloc 
         (param $byteLength i32)
-        (param $mallocType i32)
-                   (result i32)
+        (param $mallocType i32) (result i32)
 
-        (local $byteOffset i32)
-        (local $allocBytes i32)
+            (local $byteOffset i32)
+            (local $allocBytes i32)
 
 
-        (local.set $allocBytes 
-            (i32.add 
-                (local.get $byteLength)
-                (global.get $headLength)
-            )
-        ) ;; headers = byteLength + 12
+            (local.set $allocBytes 
+                (i32.add 
+                    (local.get $byteLength)
+                    (global.get $headLength)
+                )
+            ) ;; headers = byteLength + 12
 
-        (local.set $allocBytes 
-            (call $align 
-                (local.get $allocBytes)
-                (global.get $alignBytes)
-            )
-        ) ;; aligned = allocBytes % 8
+            (local.set $allocBytes 
+                (call $align 
+                    (local.get $allocBytes)
+                    (global.get $alignBytes)
+                )
+            ) ;; aligned = allocBytes % 8
 
-        (block $loop (loop $next
+            (block $loop (loop $next
 
-            (br_if $loop (call 
-            $br_if(local.get $byteOffset)))
+                (br_if $loop (call 
+                $br_if(local.get $byteOffset)))
 
-            (local.set $byteOffset
-                (i32.load 
+                (local.set $byteOffset
+                    (i32.load 
+                        (local.get $byteOffset)
+                    )
+                )
+
+                (br $next)
+            ))
+            ;; til the end of allocs
+
+            (i32.store
+                (local.get $byteOffset)
+                (i32.add 
                     (local.get $byteOffset)
+                    (local.get $allocBytes) 
                 )
             )
+            ;; save the green keep'n mind
 
-            (br $next)
-        ))
-        ;; til the end of allocs
-
-        (i32.store
-            (local.get $byteOffset)
-            (i32.add 
-                (local.get $byteOffset)
-                (local.get $allocBytes) 
+            (i32.store
+                (i32.add 
+                    (local.get $byteOffset)
+                    (global.get $sizeOffset)
+                )
+                (local.get $byteLength)
             )
-        )
-        ;; save the green keep'n mind
+            ;; size header -> byteLength
 
-        (i32.store
-            (i32.add 
-                (local.get $byteOffset)
-                (global.get $sizeOffset)
+            (i32.store
+                (i32.add 
+                    (local.get $byteOffset)
+                    (global.get $typeOffset)
+                )
+                (local.get $mallocType)
             )
-            (local.get $byteLength)
-        )
-        ;; size header -> byteLength
+            ;; type header -> identifier
 
-        (i32.store
-            (i32.add 
+            (return (i32.add 
                 (local.get $byteOffset)
-                (global.get $typeOffset)
-            )
-            (local.get $mallocType)
-        )
-        ;; type header -> identifier
-
-        (return (i32.add 
-            (local.get $byteOffset)
-            (global.get $headLength)
-        )) ;; NOT including headers
+                (global.get $headLength)
+            )) ;; NOT including headers
     )
 
 
     ;; count of registered types
     (func $typeCount 
-        (param $mallocType i32)
-                   (result i32)
+        (param $mallocType i32) (result i32)
 
-        (local $byteOffset i32)
-        (local $count      i32)
-        (local $offsetType i32)
+            (local $byteOffset i32)
+            (local $count      i32)
+            (local $offsetType i32)
 
-        (block $loop (loop $next
+            (block $loop (loop $next
 
-            (br_if $loop (call 
-            $br_if(local.get $byteOffset)))
+                (br_if $loop (call 
+                $br_if(local.get $byteOffset)))
 
-            (local.set $offsetType
-                (i32.load 
-                    (i32.add 
+                (local.set $offsetType
+                    (i32.load 
+                        (i32.add 
+                            (local.get $byteOffset)
+                            (global.get $typeOffset)
+                        )
+                    )
+                ) ;; read type of current packet
+
+                (if (i32.eq 
+                    (local.get $mallocType)
+                    (local.get $offsetType)) ;; matched
+                    
+                    (then
+                        (local.set $count 
+                            (i32.add
+                                (i32.const 1)
+                                (local.get $count)
+                            ) ;; increase 1
+                        )
+                    )
+                ) ;; check requested type id
+
+                (local.set $byteOffset 
+                    (i32.load
                         (local.get $byteOffset)
-                        (global.get $typeOffset)
                     )
-                )
-            ) ;; read type of current packet
+                ) ;; jump to next            
+            
+                (br $next))
+            )
 
-            (if (i32.eq 
-                (local.get $mallocType)
-                (local.get $offsetType)) ;; matched
-                
-                (then
-                    (local.set $count 
-                        (i32.add
-                            (i32.const 1)
-                            (local.get $count)
-                        ) ;; increase 1
-                    )
-                )
-            ) ;; check requested type id
-
-            (local.set $byteOffset 
-                (i32.load
-                    (local.get $byteOffset)
-                )
-            ) ;; jump to next            
-        
-            (br $next))
-        )
-
-        (return (local.get $count))
+            (return (local.get $count))
     )
 
 
     ;; register new type identifier
-    (func $nextTypeId 
+    (func $newTypeId 
         (result i32)
 
-        (local $byteOffset i32)
-        
-        (local.set $byteOffset
-            (call $malloc
-                (global.get $SIZEofTYPE)
-                (global.get $TYPEofTYPE)))
-
-        (i32.store 
-            (local.get $byteOffset)
-            (i32.add 
-                (i32.const 1) 
-                (call $typeCount (global.get $TYPEofTYPE))) 
-        )
+            (local $byteOffset i32)
             
-        (return (local.get $byteOffset))
+            (local.set $byteOffset
+                (call $malloc
+                    (global.get $SIZEofTYPE)
+                    (global.get $TYPEofTYPE)))
+
+            (i32.store 
+                (local.get $byteOffset)
+                (i32.add 
+                    (i32.const 1) 
+                    (call $typeCount (global.get $TYPEofTYPE))) 
+            )
+                
+            (return (local.get $byteOffset))
     )
 
 
     ;; triggers from js
     (func $init (export "init")
 
-        (local $newTypeOffset i32)
-        (local $newTypeOffset2 i32)
-    
-        (drop (call $malloc (i32.const 21) (i32.const 1)))
-        (drop (call $malloc (i32.const 82) (i32.const 1)))
-        (drop (call $malloc (i32.const 3 ) (i32.const 0)))
+        (global.set $GL      (call $newTypeId))
+        (global.set $BUFFER  (call $newTypeId))
+        (global.set $PROGRAM (call $newTypeId))
+        (global.set $VSHADER (call $newTypeId))
+        (global.set $FSHADER (call $newTypeId))
 
-
-        (local.set $newTypeOffset (call $nextTypeId))
-        (call $error (local.get $newTypeOffset) )
-
-        (local.set $newTypeOffset2 (call $nextTypeId))
-        (call $error (local.get $newTypeOffset2) )
-
-        (call $dump (i32.const 0))
+        (call $dump 
+            (i32.const 0))
     )
 
 

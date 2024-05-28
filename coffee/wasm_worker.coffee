@@ -6,10 +6,12 @@ onmessage = (e) -> WebAssembly.instantiate( e.data,
 
     console     : {
         log, warn, error,
-        memdump : ( byteOffset, byteLength ) ->
+
+        memdump : ( byteOffset, byteLength, typeId ) ->
             warn {
                 byteOffset,
                 byteLength,
+                typeId,
                 byteArray : new Uint8Array buffer, byteOffset, byteLength
                 headers: new Uint32Array buffer, byteOffset-12, 3
             }
@@ -37,8 +39,10 @@ onmessage = (e) -> WebAssembly.instantiate( e.data,
 
     SIMDf32x4mul inA, inB, out
     
-    log "SIMDf32x4mul:", new Float32Array buffer, out, vec
-    
+    log SIMDf32x4mul
+    log new Float32Array buffer, out, vec
+    log "\n"
+
     setTimeout =>
         init()
 

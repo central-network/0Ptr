@@ -10,10 +10,11 @@ onmessage = function(e) {
       log,
       warn,
       error,
-      memdump: function(byteOffset, byteLength) {
+      memdump: function(byteOffset, byteLength, typeId) {
         warn({
           byteOffset,
           byteLength,
+          typeId,
           byteArray: new Uint8Array(buffer, byteOffset, byteLength),
           headers: new Uint32Array(buffer, byteOffset - 12, 3)
         });
@@ -35,7 +36,9 @@ onmessage = function(e) {
     new Float32Array(buffer, inA, vec).set([2, -2.4, 0, 0]);
     new Float32Array(buffer, inB, vec).set([4, 1.24, 0, 0]);
     SIMDf32x4mul(inA, inB, out);
-    log("SIMDf32x4mul:", new Float32Array(buffer, out, vec));
+    log(SIMDf32x4mul);
+    log(new Float32Array(buffer, out, vec));
+    log("\n");
     return setTimeout(() => {
       init();
       return log(new Uint32Array(buffer));
