@@ -1,10 +1,19 @@
 { log, warn, error, table, debug, info } = console
 
-buffer = null
-storage = [null]
-dataView = null
-malloc = null
-iLE = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
+[
+    buffer = null
+    dataView = null
+    {
+        memory,
+        init,
+        malloc,
+        isPointer,
+        nextChild,
+        setHeader, setType, setParent, setLink, setIsUpdated, setIsUploaded,
+        getHeader, getType, getParent, getLink, isUpdated, isUploaded
+    } = {}
+    iLE = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
+]
 
 
 classes = [
@@ -69,16 +78,73 @@ Object.defineProperty Pointer,                  "byteLength",
             parent = Object.getPrototypeOf parent
 
         length * 4
+Object.defineProperty Pointer,                  "of",
+    value : ( ptri ) ->
+        ptri and new classes[ getType ptri ] ptri
 Object.defineProperty Pointer,                  "malloc",
     get : ->
         ptri = new this malloc @byteLength, @type
         ( extras ) -> ptri
         
 
-Object.defineProperty Pointer::,                "{{Buffer}}",
+Object.defineProperty Pointer::,                "{{Pointer}}",
     get : ->
-        new Uint8Array buffer, this, @constructor.byteLength
+        [   nextOffset, byteLength, type, state, parent, linkedi,
+            isUpdated, isUploaded, iterOffset, iterLength, ...rest ] =
+            i32 = new Int32Array buffer, this - 64, 16
 
+        {
+            nextOffset, byteLength, type, state, parent, linkedi,
+            iterOffset, iterLength, rest, i32,
+
+            parent : @getParent this
+            islinked : !!getLink this
+            link : @getLinked this
+            storage : @storage
+            needsUpdate : !isUpdated
+            needsUpload : !isUploaded
+        }
+
+Object.defineProperties Pointer::,
+
+    [ Symbol.iterator ] : value : ( prev = 0 ) ->
+
+        next = +prev
+        ptri = +this
+
+        Iterator.from next : ->
+            if !next = nextChild ptri, next
+                return done : true
+            value : Pointer.of next
+
+
+    storage     : value : [0]
+
+    getParent   : value : -> Pointer.of getParent this
+    setParent   : value : -> setParent this, arguments[0] ; this
+    
+    getLinked   : value : ->
+        if  0 < i = getLink this
+            return Pointer.of i 
+        return @storage[ -i ] 
+
+    setLink     : value : ( any ) ->
+        if !(any instanceof Pointer) and !isPointer any
+            if  -1 is i = @storage.indexOf any
+                i += @storage.push any
+            any = -i
+        setLink this, any ; any
+
+    getState    : value : -> getState this
+    setState    : value : -> setState this, arguments[0] ; this
+
+    parent      : get : ->
+        Pointer.of getParent this
+
+    children    : get : ->
+        children = []
+        children . push i for i from this
+        children
 
 onmessage = (e) -> WebAssembly.instantiate( e.data,
 
@@ -86,35 +152,57 @@ onmessage = (e) -> WebAssembly.instantiate( e.data,
         log, warn, error,
 
         memdump : ( byteOffset, byteLength, typeId ) ->
-            warn {
+            warn "-->", {
                 byteOffset,
                 byteLength,
                 typeId,
                 i32 : new Int32Array buffer, byteOffset, byteLength/4
-                headers: new Int32Array buffer, byteOffset-12, 3
+                headers: new Int32Array buffer, byteOffset-64, 16
             }
-            log "\n\n"
     }
 
-).then ({exports}) ->
+).then ({ exports: wasm }) ->
     {
         memory,
         init,
         malloc,
-        relate
-    } = exports
+        isPointer,
+        nextChild,
+        setHeader, setType, setParent, setLink, setIsUpdated, setIsUploaded,
+        getHeader, getType, getParent, getLink, isUpdated, isUploaded
+    } = wasm
 
     buffer = memory.buffer
     dataView = new DataView buffer
 
 
-
     mesh = new Mesh.malloc()
     position = new Position.malloc()
 
-    relate position, mesh, -1
-    log mesh
-    log position
 
+    mesh2 = new Mesh.malloc()
+    position2 = new Position.malloc()
+
+
+    mesh3 = new Mesh.malloc()
+    position3 = new Position.malloc()
+
+
+    mesh4 = new Mesh.malloc()
+    position4 = new Position.malloc()
+
+
+    mesh5 = new Mesh.malloc()
+    position5 = new Position.malloc()
+
+    position.setLink new OffscreenCanvas(1,1)
+    mesh.setLink new OffscreenCanvas(1,1)
+    position.setLink mesh.getLinked()
+
+    setParent position, mesh
+    setParent position2, mesh
+    setParent position3, mesh
+
+    log mesh, position, position2, position3
 
     init()

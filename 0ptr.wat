@@ -10,14 +10,21 @@
     (func $error        (import "console" "error") (param i32))
     (func $memdump      (import "console" "memdump") (param i32 i32 i32))
     
-
     (memory $memory 1 10 shared)
 
-    (global $headLength         i32 (i32.const 12))
-    (global $sizeOffset         i32 (i32.const  4))
-    (global $typeOffset         i32 (i32.const  8))
-    (global $alignBytes         i32 (i32.const  8))
-    (global $TYPE_RELATION      i32 (i32.const -1))
+    (global $PTR_BYTELENGTH     i32 (i32.const 64))
+    (global $PTR_ALIGNBYTES     i32 (i32.const  8))
+
+    (global $OFFSET_NEXTOFFSET  i32 (i32.const  0))
+    (global $OFFSET_BYTELENGTH  i32 (i32.const  4))
+    (global $OFFSET_TYPE        i32 (i32.const  8))
+    (global $OFFSET_STATE       i32 (i32.const 12))
+    (global $OFFSET_PARENT      i32 (i32.const 16))
+    (global $OFFSET_LINK        i32 (i32.const 20))
+    (global $OFFSET_IS_UPDATED  i32 (i32.const 24))
+    (global $OFFSET_IS_UPLOADED i32 (i32.const 28))
+    (global $OFFSET_ITER_OFFSET i32 (i32.const 32))
+    (global $OFFSET_ITER_LENGTH i32 (i32.const 36))
 
     ;; beggining of SIMD operations
     (func $SIMDf32x4mul 
@@ -131,7 +138,7 @@
                 (local.set $nextOffset 
                     (i32.add 
                         (local.get $byteOffset)
-                        (global.get $headLength)
+                        (global.get $PTR_BYTELENGTH)
                     )
                 )
 
@@ -139,7 +146,7 @@
                     (i32.load
                         (i32.add 
                             (local.get $byteOffset)
-                            (global.get $sizeOffset)
+                            (global.get $OFFSET_BYTELENGTH)
                         )
                     )
                 )
@@ -152,9 +159,9 @@
                         (i32.add 
                             (i32.sub 
                                 (local.get $nextOffset)
-                                (global.get $headLength)
+                                (global.get $PTR_BYTELENGTH)
                             )
-                            (global.get $typeOffset)
+                            (global.get $OFFSET_TYPE)
                         )
                     )
                 ) 
@@ -163,17 +170,16 @@
             ))
     )
 
-
     ;; change byteLength for stability
     (func $align
         (param $byteLength i32)
-        (param $alignBytes i32) (result i32)
+        (param $PTR_ALIGNBYTES i32) (result i32)
             (local $rem_u i32)
                 
             (local.set $rem_u 
                 (i32.rem_u 
                     (local.get $byteLength)
-                    (local.get $alignBytes))
+                    (local.get $PTR_ALIGNBYTES))
             )
 
             (if (local.get $rem_u) (then
@@ -181,13 +187,12 @@
                     (i32.add
                         (local.get $byteLength)
                         (i32.sub
-                            (local.get $alignBytes)
+                            (local.get $PTR_ALIGNBYTES)
                             (local.get $rem_u)))))
             )
 
             (return (local.get $byteLength))
     )
-
 
     ;; check loop is finished
     (func $br_if
@@ -207,7 +212,6 @@
             (return (local.get $r))
     )
 
-
     ;; reserv BYTELENGTH for TYPE   
     (func $malloc 
         (param $byteLength i32)
@@ -220,14 +224,14 @@
             (local.set $allocBytes 
                 (i32.add 
                     (local.get $byteLength)
-                    (global.get $headLength)
+                    (global.get $PTR_BYTELENGTH)
                 )
             ) ;; headers = byteLength + 12
 
             (local.set $allocBytes 
                 (call $align 
                     (local.get $allocBytes)
-                    (global.get $alignBytes)
+                    (global.get $PTR_ALIGNBYTES)
                 )
             ) ;; aligned = allocBytes % 8
 
@@ -258,7 +262,7 @@
             (i32.store
                 (i32.add 
                     (local.get $byteOffset)
-                    (global.get $sizeOffset)
+                    (global.get $OFFSET_BYTELENGTH)
                 )
                 (local.get $byteLength)
             )
@@ -267,7 +271,7 @@
             (i32.store
                 (i32.add 
                     (local.get $byteOffset)
-                    (global.get $typeOffset)
+                    (global.get $OFFSET_TYPE)
                 )
                 (local.get $mallocType)
             )
@@ -275,7 +279,7 @@
 
             (return (i32.add 
                 (local.get $byteOffset)
-                (global.get $headLength)
+                (global.get $PTR_BYTELENGTH)
             )) ;; NOT including headers
     )
 
@@ -296,7 +300,7 @@
                     (i32.load 
                         (i32.add 
                             (local.get $byteOffset)
-                            (global.get $typeOffset)
+                            (global.get $OFFSET_TYPE)
                         )
                     )
                 ) ;; read type of current packet
@@ -327,49 +331,320 @@
             (return (local.get $count))
     )
 
-    ;; create a realationship object
-    (func $relate
-        (param $object i32)
-        (param $target i32)
-        (param $typeof i32)
-               (result i32)
+    ;; malloc header setter
+    (func $setHeader
+        (param $ptri i32)
+        (param $value i32)
+        (param $header i32)
 
-        (local $ptri i32)
-        (local.set $ptri 
-            (call $malloc 
-                (i32.const 8)
-                (global.get $TYPE_RELATION)
-            ))
-
-        (i32.store 
-            (local.get $ptri)
-            (local.get $object)
-        )
-
-        (i32.store 
-            (i32.add (i32.const 4) (local.get $ptri))
-            (local.get $target)
-        )
-
-        (i32.store 
-            (i32.add (i32.const 8) (local.get $ptri))
-            (local.get $typeof)
-        )
-
-        (local.get $ptri)
+            (i32.store 
+                (i32.add 
+                    (local.get $header)
+                    (i32.sub 
+                        (local.get $ptri)
+                        (global.get $PTR_BYTELENGTH)
+                    )
+                )
+                (local.get $value)
+            )
     )
 
+    ;; malloc header getter
+    (func $getHeader
+        (param $ptri i32)
+        (param $header i32) (result i32)
+
+            (i32.load 
+                (i32.add 
+                    (local.get $header)
+                    (i32.sub 
+                        (local.get $ptri)
+                        (global.get $PTR_BYTELENGTH)
+                    )
+                )
+            )
+    )
+
+    ;; malloc header getter
+    (func $isPointer
+        (param $ptri i32) (result i32)
+
+            (local $is         i32)
+            (local $byteOffset i32)
+            (local $ptriOffset i32)
+
+            (if (local.get $ptri)
+            (then
+                (local.set $ptriOffset
+                    (i32.sub 
+                        (local.get $ptri)
+                        (global.get $PTR_BYTELENGTH)
+                    )
+                )
+
+                (if (call $getType (local.get $ptri))
+                (then
+                    (block $loop (loop $next
+
+                        (br_if $loop (call 
+                        $br_if(local.get $byteOffset)))
+
+                        (if (i32.eq 
+                            (local.get $ptriOffset)
+                            (local.get $byteOffset)) ;; matched
+                            
+                            (then
+                                (local.set $is (i32.const 1))
+                                (br $loop)
+                            )
+                        ) ;; check offset match
+
+                        (local.set $byteOffset 
+                            (i32.load (local.get $byteOffset))
+                        ) ;; jump to next            
+                    
+                        (br $next))
+                    )
+                ))   
+            ))
+
+            (local.get $is)         
+    )
+
+    ;; shortcut for setHeader
+    (func $setType
+        (param $ptri i32)
+        (param $type i32)
+            
+            (call $setHeader 
+                (local.get  $ptri)
+                (local.get  $type)
+                (global.get $OFFSET_TYPE)
+            )
+            
+    )
+
+    ;; shortcut for getHeader
+    (func $getType
+        (param $ptri i32) (result i32)
+            
+            (call $getHeader 
+                (local.get  $ptri)
+                (global.get $OFFSET_TYPE)
+            )
+    )
+
+    ;; shortcut for setHeader
+    (func $setParent
+        (param $ptri i32)
+        (param $parent i32)
+            
+            (call $setHeader 
+                (local.get  $ptri)
+                (local.get  $parent)
+                (global.get $OFFSET_PARENT)
+            )
+            
+    )
+
+    ;; shortcut for getHeader
+    (func $getParent
+        (param $ptri i32) (result i32)
+            
+            (call $getHeader 
+                (local.get  $ptri)
+                (global.get $OFFSET_PARENT)
+            )
+    )
+
+    ;; shortcut for setHeader
+    (func $setLink
+        (param $ptri i32)
+        (param $link i32)
+            
+            (call $setHeader 
+                (local.get  $ptri)
+                (local.get  $link)
+                (global.get $OFFSET_LINK)
+            )
+            
+    )
+
+    ;; shortcut for getHeader
+    (func $getLink
+        (param $ptri i32) (result i32)
+            
+            (call $getHeader 
+                (local.get  $ptri)
+                (global.get $OFFSET_LINK)
+            )
+            
+    )
+
+    ;; shortcut for setHeader
+    (func $setState
+        (param $ptri i32)
+        (param $state i32)
+            
+            (call $setHeader 
+                (local.get  $ptri)
+                (local.get  $state)
+                (global.get $OFFSET_STATE)
+            )
+            
+    )
+
+    ;; shortcut for getHeader
+    (func $getState
+        (param $ptri i32) (result i32)
+            
+            (call $getHeader 
+                (local.get  $ptri)
+                (global.get $OFFSET_STATE)
+            )
+            
+    )
+
+    ;; shortcut for setHeader
+    (func $setIsUpdated
+        (param $ptri i32)
+        (param $is i32)
+            
+            (call $setHeader 
+                (local.get  $ptri)
+                (local.get  $is)
+                (global.get $OFFSET_IS_UPDATED)
+            )
+            
+    )
+
+    ;; shortcut for getHeader
+    (func $getIsUpdated
+        (param $ptri i32) (result i32)
+            
+            (call $getHeader 
+                (local.get  $ptri)
+                (global.get $OFFSET_IS_UPDATED)
+            )
+            
+    )
+
+    ;; shortcut for setHeader
+    (func $setIsUploaded
+        (param $ptri i32)
+        (param $is i32)
+            
+            (call $setHeader 
+                (local.get  $ptri)
+                (local.get  $is)
+                (global.get $OFFSET_IS_UPLOADED)
+            )
+            
+    )
+
+    ;; shortcut for getHeader
+    (func $getIsUploaded
+        (param $ptri i32) (result i32)
+            
+            (call $getHeader 
+                (local.get  $ptri)
+                (global.get $OFFSET_IS_UPLOADED)
+            )
+            
+    )
+    
     ;; triggers from js
     (func $init
         (call $dump 
             (i32.const 0))
     )
 
+    ;; find next children of ptri
+    (func $nextChild
+        (param $ptri i32)
+        (param $byteOffset i32) (result i32)
+
+            (local $child i32)
+
+            (if (local.get $byteOffset)(then
+                (local.set $byteOffset 
+                    (i32.load (i32.sub
+                        (local.get $byteOffset)
+                        (global.get $PTR_BYTELENGTH)
+                    ))
+                ) 
+            )) ;; has previous -> jump nexf of previous
+
+            (block $loop (loop $next
+
+                (br_if $loop (call 
+                $br_if(local.get $byteOffset)))
+
+                (if (i32.eq 
+                    
+                        (local.get $ptri)
+                        (i32.load 
+                            (i32.add 
+                                (local.get $byteOffset)
+                                (global.get $OFFSET_PARENT)
+                            )
+                        )
+
+                ) (; matched ;) (then
+
+                    (local.set $child 
+                        (i32.add 
+                            (local.get $byteOffset)
+                            (global.get $PTR_BYTELENGTH)
+                        )
+                    )
+
+                    (br $loop) ;; break loop 
+                
+                )) ;; end if
+
+                (local.set $byteOffset 
+                    (i32.load (local.get $byteOffset))
+                ) ;; jump to next            
+            
+                (br $next))
+            )
+
+            (return (local.get $child))
+    )
+
 
     (export "memory"            (memory $memory))
     (export "malloc"            (func $malloc))
-    (export "relate"            (func $relate))
     (export "init"              (func $init))
     (export "SIMDf32x4mul"      (func $SIMDf32x4mul)) 
+
+    (export "isPointer"         (func $isPointer)) 
+    (export "nextChild"         (func $nextChild)) 
+
+    (export "setHeader"         (func $setHeader)) 
+    (export "setType"           (func $setType)) 
+    (export "setParent"         (func $setParent)) 
+    (export "setLink"           (func $setLink)) 
+    (export "setIsUpdated"      (func $setIsUpdated)) 
+    (export "setIsUploaded"     (func $setIsUploaded))
+
+    (export "getType"           (func $getType)) 
+    (export "getHeader"         (func $getHeader)) 
+    (export "getParent"         (func $getParent)) 
+    (export "getLink"           (func $getLink)) 
+    (export "isUpdated"         (func $getIsUpdated)) 
+    (export "isUploaded"        (func $getIsUploaded))
+
+    (export "BYTELENGTH"        (global $OFFSET_BYTELENGTH  ))
+    (export "TYPE"              (global $OFFSET_TYPE        ))
+    (export "STATE"             (global $OFFSET_STATE       ))
+    (export "PARENT"            (global $OFFSET_PARENT      ))
+    (export "LINK"              (global $OFFSET_LINK        ))
+    (export "IS_UPDATED"        (global $OFFSET_IS_UPDATED  ))
+    (export "IS_UPLOADED"       (global $OFFSET_IS_UPLOADED ))
+    (export "ITER_OFFSET"       (global $OFFSET_ITER_OFFSET ))
+    (export "ITER_LENGTH"       (global $OFFSET_ITER_LENGTH ))
+
 
 )
