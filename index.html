@@ -126,13 +126,72 @@
         }
     </script>	
 </head>
-<body title="146.853.146.838 ops/sec">    
+<body title="146.853.146.838 ops/sec"> 
+    <canvas id="gpu"></canvas>   
     <script>
         worker = new Worker("wasm_worker.js");
+        const canvas = document.querySelector("#gpu");
+        const context = canvas.getContext("webgpu");
 
         WebAssembly
             .compileStreaming(fetch("0ptr.wasm"))
             .then(worker.postMessage.bind(worker))
+
+        let scope = [,];
+
+        let getSlotResv = function ( item, i ) {
+            if ( -1 === ( i = scope.indexOf( item ) ) ) {
+                i += scope.push( item );
+            }
+            return i;
+        }
+
+        let encode = TextEncoder.prototype.encode.bind(
+            new TextEncoder()
+        )
+
+        let prepareData = function ( data ) {
+            switch (true) {
+                case ( data instanceof Node ) :
+                    return encode(Int32Array.of(
+                        getSlotResv( data )
+                    )).buffer
+                break
+            }
+        }
+
+        worker.onmessage = function ({ data }) {
+
+            let func, This, chain, call;
+            let atomic, writer;
+
+            func = This = self
+            chain = data.chain.split(".")
+
+
+            atomic = new Int32Array(
+                data.byteArray.buffer,
+                data.byteArray.byteOffset, 1
+            )
+            
+            writer = new Uint8Array(
+                data.byteArray.buffer,
+                data.byteArray.byteOffset + 4,
+                data.byteArray.byteLength - 4,
+            )
+
+            while (step = chain.splice(0,1)[0])
+                func = (This = func)[ step ]
+
+            call = func.call( This, ...data.args )
+            buffer = prepareData( call )
+            data = new Uint8Array( buffer )
+            writer.set( data )
+
+            Atomics.store( atomic, 0, data.byteLength )
+            Atomics.notify( atomic, 0, 1 )
+
+        }
 
     </script>
     <script src="0ptr4.js" type="module">

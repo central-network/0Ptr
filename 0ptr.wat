@@ -10,7 +10,7 @@
     (func $error        (import "console" "error") (param i32))
     (func $memdump      (import "console" "memdump") (param i32 i32 i32))
     
-    (memory $memory 1 10 shared)
+    (memory $memory 10 100 shared)
 
     (global $PTR_BYTELENGTH     i32 (i32.const 64))
     (global $PTR_ALIGNBYTES     i32 (i32.const  8))
@@ -457,6 +457,16 @@
             )
     )
 
+    ;; shortcut for getHeader
+    (func $getByteLength
+        (param $ptri i32) (result i32)
+            
+            (call $getHeader 
+                (local.get  $ptri)
+                (global.get $OFFSET_BYTELENGTH)
+            )
+    )
+
     ;; shortcut for setHeader
     (func $setLink
         (param $ptri i32)
@@ -629,8 +639,9 @@
     (export "setIsUpdated"      (func $setIsUpdated)) 
     (export "setIsUploaded"     (func $setIsUploaded))
 
-    (export "getType"           (func $getType)) 
     (export "getHeader"         (func $getHeader)) 
+    (export "getByteLength"     (func $getByteLength)) 
+    (export "getType"           (func $getType)) 
     (export "getParent"         (func $getParent)) 
     (export "getLink"           (func $getLink)) 
     (export "isUpdated"         (func $getIsUpdated)) 
