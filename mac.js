@@ -1,9 +1,9 @@
-var debug, delay, error, info, log, onkeyboardevents, onpointerevents, table, warn;
+var debug, delay, error, info, log, onbatteryevents, onkeyboardevents, onnetworkevents, onpointerevents, table, warn;
 
 ({log, warn, error, table, debug, info, delay} = console);
 
 (onpointerevents = function() {
-  var changeX, changeY, clientX, clientY, counters, dataView, device, e, iLast, j, len, lendian, offsets, onevent, positions, screenX, screenY;
+  var changeX, changeY, clientX, clientY, counters, dataView, device, e, iLast, j, lastEvent, len, lendian, offsets, onevent, positions, screenX, screenY;
   device = new ArrayBuffer(64);
   counters = new Int32Array(device, 0, 10);
   positions = new Float32Array(device, 40, 6);
@@ -21,6 +21,7 @@ var debug, delay, error, info, log, onkeyboardevents, onpointerevents, table, wa
     })(e.substring(2), onevent.indexOf(e));
   }
   offsets = positions.byteOffset - 4;
+  lastEvent = dataView.getInt32.bind(dataView, offsets, lendian);
   changeX = dataView.getFloat32.bind(dataView, offsets += 4, lendian);
   changeY = dataView.getFloat32.bind(dataView, offsets += 4, lendian);
   screenX = dataView.getFloat32.bind(dataView, offsets += 4, lendian);
@@ -30,7 +31,7 @@ var debug, delay, error, info, log, onkeyboardevents, onpointerevents, table, wa
 })();
 
 (onkeyboardevents = function() {
-  var activeKey, altKey, counters, ctrlKey, dataView, device, eventType, iEventCount, iKeyDownCount, iKeyUpCount, keyArray, keys, lastChar, lastCode, lastEvent, lendian, metaKey, offsetAltKey, offsetCharCode, offsetCtrlKey, offsetLastEvent, offsetLocation, offsetMetaKey, offsetRepeat, offsetShiftKey, shiftKey;
+  var activeKey, altKey, counters, ctrlKey, dataView, device, eventType, iEventCount, iKeyDownCount, iKeyUpCount, keyArray, keys, lastChar, lastCode, lastEvent, lendian, metaKey, offset, offsetAltKey, offsetCharCode, offsetCtrlKey, offsetLastEvent, offsetLocation, offsetMetaKey, offsetRepeat, offsetShiftKey, shiftKey;
   device = new ArrayBuffer(144);
   counters = new Int32Array(device, 0, 3);
   dataView = new DataView(device);
@@ -40,14 +41,15 @@ var debug, delay, error, info, log, onkeyboardevents, onpointerevents, table, wa
   iKeyDownCount = 0;
   iKeyUpCount = 1;
   iEventCount = 2;
-  offsetCharCode = 12;
-  offsetShiftKey = 14;
-  offsetCtrlKey = 15;
-  offsetAltKey = 16;
-  offsetMetaKey = 17;
-  offsetRepeat = 18;
-  offsetLocation = 19;
-  offsetLastEvent = 20;
+  offset = counters.byteOffset + counters.byteLength;
+  offsetCharCode = offset++;
+  offsetShiftKey = offset++;
+  offsetCtrlKey = offset++;
+  offsetAltKey = offset++;
+  offsetMetaKey = offset++;
+  offsetRepeat = offset++;
+  offsetLocation = offset++;
+  offsetLastEvent = offset++;
   window.addEventListener("keydown", function(e) {
     var charCode;
     counters[iEventCount]++;
@@ -95,5 +97,65 @@ var debug, delay, error, info, log, onkeyboardevents, onpointerevents, table, wa
     return keys[keyArray.findIndex(function(v) {
       return v;
     })] || 0;
+  };
+})();
+
+(onbatteryevents = function() {
+  var charging, chargingTime, counters, dataView, device, dischargingTime, lastEvent, lendian, level, offsetCTime, offsetDTime, offsetEvent, offsetLevel, offsetState, onevents;
+  device = new ArrayBuffer(24);
+  counters = new Uint16Array(device, 0, 6);
+  dataView = new DataView(device);
+  lendian = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
+  offsetEvent = 8;
+  offsetState = 10;
+  offsetLevel = 12;
+  offsetCTime = 16;
+  offsetDTime = 20;
+  onevents = 'onchargingchange onchargingtimechange ondischargingtimechange onlevelchange'.split(/\s+|\n/);
+  navigator.getBattery().then(function(dev) {
+    var e, iLast, j, len, results;
+    results = [];
+    for (iLast = j = 0, len = onevents.length; j < len; iLast = ++j) {
+      e = onevents[iLast];
+      results.push((function(evnt, i) {
+        return this[evnt] = function(t) {
+          ++counters[counters[iLast] = i];
+          dataView.setUint8(offsetState, this.charging);
+          dataView.setInt16(offsetLevel, this.level * 1e2, lendian);
+          dataView.setInt16(offsetCTime, this.chargingTime, lendian);
+          dataView.setInt16(offsetDTime, this.dischargingTime, lendian);
+          return t.preventDefault();
+        };
+      }).call(dev, e, onevents.indexOf(e)));
+    }
+    return results;
+  });
+  lastEvent = dataView.getInt16.bind(dataView, offsetEvent, lendian);
+  level = dataView.getInt16.bind(dataView, offsetLevel, lendian);
+  chargingTime = dataView.getInt16.bind(dataView, offsetCTime, lendian);
+  dischargingTime = dataView.getInt16.bind(dataView, offsetDTime, lendian);
+  return charging = dataView.getUint8.bind(dataView, offsetState);
+})();
+
+(onnetworkevents = function() {
+  return self.onclick = async function() {
+    var dev;
+    //await navigator.bluetooth.requestDevice({acceptAllDevices: 1})
+    log(1, dev = (await navigator.bluetooth.requestDevice({
+      filters: [
+        {
+          name: "Data-9 iMac"
+        }
+      ]
+    })));
+    try {
+      log((await dev.gatt.getPrimaryService()));
+    } catch (error1) {}
+    try {
+      log((await dev.gatt.getPrimaryServices()));
+    } catch (error1) {}
+    try {
+      return log((await dev.gatt.connect()));
+    } catch (error1) {}
   };
 })();
