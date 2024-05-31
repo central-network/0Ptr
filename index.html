@@ -128,7 +128,7 @@
 </head>
 <body title="146.853.146.838 ops/sec"> 
     <canvas id="gpu"></canvas>   
-    <script>
+    <script src="">
         worker = new Worker("wasm_worker.js");
         const canvas = document.querySelector("#gpu");
         const context = canvas.getContext("webgpu");
@@ -156,16 +156,22 @@
                     return encode(Int32Array.of(
                         getSlotResv( data )
                     )).buffer
-                break
+                break;
+
+                default:
+                    return encode(JSON.stringify(
+                        data
+                    )).buffer
+                break;
             }
         }
 
         worker.onmessage = function ({ data }) {
 
-            let func, This, chain, call;
+            let prop, This, chain, call;
             let atomic, writer;
 
-            func = This = self
+            prop = This = self
             chain = data.chain.split(".")
 
 
@@ -173,18 +179,35 @@
                 data.byteArray.buffer,
                 data.byteArray.byteOffset, 1
             )
-            
+
             writer = new Uint8Array(
                 data.byteArray.buffer,
                 data.byteArray.byteOffset + 4,
                 data.byteArray.byteLength - 4,
             )
 
-            while (step = chain.splice(0,1)[0])
-                func = (This = func)[ step ]
+            while (step = chain.splice(0,1)[0]) {
 
-            call = func.call( This, ...data.args )
-            buffer = prepareData( call )
+                if ( step.startsWith("$") ) {
+                    prop = scope[ step.substring(1) ]
+                    continue
+                }
+
+                This = prop;
+                prop = prop[ step ]
+            }
+
+            switch (typeof prop) {
+                case "function":
+                    result = prop.call( This, ...data.args )
+                break;
+
+                default:
+                    result = prop;
+                break;
+            }
+
+            buffer = prepareData( result )
             data = new Uint8Array( buffer )
             writer.set( data )
 
@@ -194,6 +217,7 @@
         }
 
     </script>
+    <script src="mac.js"></script>
     <script src="0ptr4.js" type="module">
         import { Scene, Mesh, RenderingContext } from "./0ptr2.js"
 

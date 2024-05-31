@@ -977,8 +977,6 @@ registerClass("Display", Pointer);
 
 registerClass("Event", Pointer);
 
-log(new Event(1));
-
 define(Ozgur.prototype, {
   getSome: {
     enumerable: true,

@@ -771,11 +771,7 @@ Object.defineProperties(HTMLElement.prototype, {
   },
   call: {
     value: function(chain, ...args) {
-      this.lock(postMessage({
-        byteArray: this.byteArray,
-        args,
-        chain: `${this.name}.${chain}`
-      }));
+      this.lock(postMessage({byteArray: this.byteArray, args, chain}));
       return this.read();
     }
   }
@@ -793,11 +789,22 @@ Object.defineProperties(HTMLDocument.prototype, {
   createElement: {
     value: function(tagName) {
       var Element, element, slotref;
-      slotref = this.call("createElement", tagName);
+      slotref = this.call("document.createElement", tagName);
       Element = this.TagElement[tagName] || HTMLElement;
       element = new Element.malloc();
       setParent(element, this);
       return assign(element, {slotref});
+    }
+  }
+});
+
+Object.defineProperties(HTMLCanvasElement.prototype, {
+  tagName: {
+    value: "canvas"
+  },
+  baseURI: {
+    get: function() {
+      return this.call(`$${this.slotref}.baseURI`);
     }
   }
 });

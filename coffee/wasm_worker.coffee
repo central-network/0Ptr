@@ -449,20 +449,19 @@ Object.defineProperties HTMLElement::,
     call        :
         value   : ( chain, ...args ) ->
             @lock postMessage {
-                @byteArray, args,
-                chain : "#{@name}.#{chain}",
+                @byteArray, args, chain
             }
             @read()
 
 Object.defineProperties HTMLDocument::,
 
-    name          : value : "document"
+    name            : value : "document"
 
-    TagElement    : value :
-        canvas    : HTMLCanvasElement
+    TagElement      : value :
+        canvas      : HTMLCanvasElement
 
-    createElement : value : ( tagName ) ->
-        slotref = @call "createElement", tagName
+    createElement   : value : ( tagName ) ->
+        slotref = @call "document.createElement", tagName
         Element = @TagElement[ tagName ] or HTMLElement
         element = new Element.malloc()
 
@@ -470,11 +469,19 @@ Object.defineProperties HTMLDocument::,
         assign element, { slotref }
     
 
+Object.defineProperties HTMLCanvasElement::,
+
+    tagName         : value : "canvas"
+
+    baseURI         :
+        get   : -> @call "$#{@slotref}.baseURI"
+
+
 oninit = ->
     document = new HTMLDocument.malloc()
     canvas = document.createElement "canvas"
 
-    
+
     log canvas
 
     a = ->
