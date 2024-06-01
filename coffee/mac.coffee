@@ -1,5 +1,10 @@
 {log,warn,error,table,debug,info,delay} = console
 
+window.onerror =
+window.onunhandledrejection = ->
+    document.body.innerHTML += JSON.stringify arguments
+    true
+
 do  mouse = ->
     device      = new ArrayBuffer 64
     counters    = new Int32Array device, 0, 10
@@ -100,7 +105,7 @@ do  keyboard = ->
         dataView.setUint8 offsetLastEvent, 0
 
         keyArray[ keys.indexOf e.code ] = 1
-        e.preventDefault()
+        #e.preventDefault()
 
     window.addEventListener "keyup", (e) ->
         counters[iEventCount]++
@@ -117,7 +122,7 @@ do  keyboard = ->
         dataView.setUint8 offsetLastEvent, 1
 
         keyArray[ keys.indexOf e.code ] = 0
-        e.preventDefault()
+        #e.preventDefault()
 
     lastEvent = dataView.getUint8.bind dataView, offsetLastEvent
     shiftKey  = dataView.getUint8.bind dataView, offsetShiftKey
@@ -212,24 +217,24 @@ do  fs = ->
 
     device = new ArrayBuffer 4096 * 256 * 128 #128mb önbellek
 
-    counters    = new Int32Array device, 0, 4
-    info        = new DataView device, counters.byteOffset, 4
-    
-    dataArray   = new Uint8Array device, info.byteOffset
+    counters    = new Int32Array device, 0, 10
+    dataArray   = new Uint8Array device, counters.byteLength 
     dataView    = new DataView device 
     lendian     = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
     handles     = [,]
     root        = null
     currentDir  = null
+    currentFile = null
 
     quota       = dataView.getInt32.bind dataView, 12, lendian
     usage       = dataView.getInt32.bind dataView, 16, lendian
     write       = dataView.getInt32.bind dataView, 20, lendian
     read        = dataView.getInt32.bind dataView, 24, lendian
     create      = dataView.getInt32.bind dataView, 28, lendian
+    remove      = dataView.getInt32.bind dataView, 32, lendian
 
-    state       = dataView.getUint8.bind dataView, 32
-    status      = dataView.getUint8.bind dataView, 34
+    state       = dataView.getUint8.bind dataView, 36
+    status      = dataView.getUint8.bind dataView, 37
 
     STATE_INIT               = 0
     STATE_ROOT_HANDLE        = 1
@@ -244,19 +249,28 @@ do  fs = ->
     onstorageroothandle
     onstoragepersisted
     onstoragecreatedirectory
-    storagecreatefile
+    onstoragecreatefile
+    onstorageremovefile
     '.split( /\s+|\n/g )
 
-    emit = ( type, detail = {} ) ->
-        window.dispatchEvent new CustomEvent type, { detail }
+    emit = ( type, detail ) ->
+        window.dispatchEvent new CustomEvent type, { detail }; detail
 
     window.addEventListener "storagecreatedirectory", ({ detail }) ->
         dataView.setInt32 28, create()+1, lendian
         log "onstoragecreatedirectory:", detail
 
+    window.addEventListener "storageremovedirectory", ({ detail }) ->
+        dataView.setInt32 32, remove()+1, lendian
+        log "onstorageremovedirectory:", detail
+
     window.addEventListener "storagecreatefile", ({ detail }) ->
         dataView.setInt32 28, create()+1, lendian
         log "onstoragecreatefile:", detail
+
+    window.addEventListener "storageremovefile", ({ detail }) ->
+        dataView.setInt32 32, remove()+1, lendian
+        log "onstorageremovefile:", detail
 
     window.addEventListener "storagepersist", ->
         dataView.setUint8 32, STATE_PERSISTED_HANDLE
@@ -287,113 +301,378 @@ do  fs = ->
                 handles.push( root = handle )
                 window.dispatchEvent new Event "storageroothandle"
 
-    cd = ( dirName, handle = currentDir ) ->
+    cd      = ( dirName, handle = currentDir ) ->
         currentDir = await handle.getDirectoryHandle dirName
 
-    mkdir = ( dirName, handle = currentDir ) ->
+    mkdir   = ( dirName, handle = currentDir ) ->
         if  dir = await handle.getDirectoryHandle( dirName, { create: true } )
             emit "storagecreatedirectory", { dir }
         dir
 
-    touch = ( fileName, handle = currentDir ) ->
-        if  file = await handle.getFileHandle( fileName, { create: true } )
-            emit "storagecreatefile", { file }
-        file
+    touch   = ( anyForD, target = currentDir ) ->
 
-    ls = ( handle = currentDir ) ->
+        if  anyForD instanceof FileSystemFileHandle
+            return await touch anyForD.name, target
+
+        if  anyForD instanceof FileSystemDirectoryHandle
+            return await mkdir anyForD.name, target
+
+        if  typeof anyForD is "string"
+            handle = await target.getFileHandle(
+                anyForD, { create: true }
+            )
+            emit "storagecreatefile", handle
+
+        handle
+
+    parent  = ( handle = currentDir ) ->
+        #todo
+        
+    rmdir   = ( dirName, recursive = no, handle = currentDir ) ->
+        if  recursive instanceof FileSystemHandle
+            recursive = !( handle = recursive )
+
+        await handle.removeEntry( dirName, { recursive } )
+        emit "storageremovedirectory", { dirName }
+
+    rm      = ( fileName, handle = currentDir ) ->
+        await handle.removeEntry( fileName )
+        emit "storageremovefile", { fileName }
+
+    ls      = ( handle = currentDir ) ->
         iterator = await handle.entries()
         items = []
         loop
             item = await iterator.next()
             break if item.done is true
             items.push item.value
-
         items
 
-    cwd = ( handle = currentDir ) ->
+    resolv  = ( handle = currentDir ) ->
         await root.resolve handle
 
-    self.mkdir = mkdir
-    self.cwd = cwd
-    self.touch = touch
-    self.handles = handles
+    queryp  = ( handle, mode = "readwrite" ) ->
+        "granted" is await handle.queryPermission { mode }
 
-    trapArguments = ( args, include = "" ) ->
+    askp    = ( handle, mode = "readwrite" ) ->
+        "granted" is await handle.requestPermission { mode }
 
-        list = 'abcdefghijklmnoptrstuvyzqxw'
-        list = list + list.toUpperCase()
-        list = list.split ""
+    issame  = ( handle, target ) ->
+        await target.isSameEntry handle
+
+    read    = ( file, handle = currentDir ) ->
+        if  file instanceof FileSystemFileHandle
+            { name : file } = ( fhandle = file )
+
+        else if  Array.isArray file
+            [ file , fhandle ] = ( file )
+
+        else if "string" is typeof file
+            for item in await ls handle
+                continue if file isnt item[0]
+                [ file, fhandle ] = ( item )
+                break
+
+        if !fhandle instanceof FileSystemFileHandle
+            throw [ /FILE_HANDLE_NOTAFILE/, arguments... ]
+            
+        await fhandle.getFile()
+
+    write   = ( data, writeableFHandle = currentFile ) ->
+        if  data instanceof FileSystemFileHandle
+            data = await read data
+
+        try
+            writableStream =
+                # FileSystemWritableFileStream
+                await writeableFHandle.createWritable()
+            await writableStream.write data
+            await writableStream.close()
+
+        catch e then error e, arguments...
+        finally return writeableFHandle
+
+    pick    = ( type = "directory" ) ->
+        return  if /dir/.test type
+            await window.showDirectoryPicker()
+        else    if /file/.test type
+            await window.showOpenFilePicker()
+        else    if /savefile/.test type
+            await window.showSaveFilePicker()
+        else    throw /UNDEFINED_TYPE_PICK/
+
+    mv_f2f  = ( srcFHandle, dstFHandle, force = no ) ->
+        if !srcFHandle instanceof FileSystemFileHandle
+            throw /SRC_MUST_BE_FILE/
+
+        if !dstFHandle instanceof FileSystemFileHandle
+            throw /DST_MUST_BE_FILE/
+
+        if (await issame srcFHandle, dstFHandle)
+            throw /SRC_AND_DST_ISSAME/
+
+        if (await queryp dstFHandle) is no
+            throw /NO_PERMISSON_WRITE_TO_TARGET/
+
+        if (await queryp srcFHandle, "read") is no
+            throw /NO_PERMISSON_READ_TO_SOURCE/
+
+        await write srcFHandle, dstFHandle
+
+    mv_f2d  = ( srcFHandle, dstDHandle ) ->
+        if !srcFHandle instanceof FileSystemFileHandle
+            throw /SRC_MUST_BE_FILE/
+
+        if !dstDHandle instanceof FileSystemDirectoryHandle
+            throw /DST_MUST_BE_DIRECTORY/
+
+        if (await queryp dstDHandle) is no
+            throw /NO_PERMISSON_WRITE_TO_TARGET/
+
+        if (await queryp srcFHandle, "read") is no
+            throw /NO_PERMISSON_READ_TO_SOURCE/
+            
+        dstFHandle = await touch srcFHandle, dstDHandle 
+        await mv_f2f srcFHandle, dstFHandle
+
+    mv_d2d  = ( srcDHandle, dstDHandle ) ->
+        if !srcDHandle instanceof FileSystemDirectoryHandle
+            throw /SRC_MUST_BE_DIRECTORY/
+
+        if !dstDHandle instanceof FileSystemDirectoryHandle
+            throw /DST_MUST_BE_DIRECTORY/
+
+        if (await issame srcDHandle, dstDHandle)
+            throw /SRC_AND_DST_ISSAME/
+
+        d = await mkdir srcDHandle.name, dstDHandle
+
+        for [ , fdHandle ] in await ls srcDHandle
+
+            if  fdHandle instanceof FileSystemFileHandle
+                await mv_f2d fdHandle, d
+                continue
+            
+            if  fdHandle instanceof FileSystemDirectoryHandle
+                await mv_d2d fdHandle, d
+                continue
+        1
+
+    mv      = ( handle, target = currentDir ) ->
+
+        if  target instanceof Array
+            target = target.find (i) ->
+                i instanceof FileSystemHandle
+
+        if  typeof target is "string"
+            target = if target is "." then currentDir
+            else
+                _ls = await ls currentDir
+                _ls . find (fd) -> fd.name is target
+        
+        if !target instanceof FileSystemHandle
+            throw [ /TARGET_UNRESOLVED/, arguments... ]
+
+        if  handle instanceof FileSystemFileHandle
+
+            if  target instanceof FileSystemFileHandle
+                return await mv_f2f handle, target
+
+            if  target instanceof FileSystemDirectoryHandle
+                return await mv_f2d handle, target
+
+        if  handle instanceof FileSystemDirectoryHandle
+
+            if  target instanceof FileSystemFileHandle
+                throw /NOT_POSSIBLE_WRITE_DIR_TO_FILE/
+
+            if  target instanceof FileSystemDirectoryHandle
+                return await mv_d2d handle, target
+
+        if  handle instanceof Array
+
+            await mv ihandle, target for ihandle in handle
+
+        if  typeof handle is "string"
+            
+            handle = ( await ls currentDir
+            ).find (i) -> i.name is handle
+            return await mv handle, target
+
+        throw [ /SOURCE_ARRAY_UNRESOLVED/, handle ]
+        await rmdir handle.name, target
 
 
-        for char in list.slice()
-            for num in [ 0 ... 10 ]
-                list.push char + num
+    self.onclick = ->
+        log handle = await pick( "dir" )
+        log await ls handle
 
-        if  "string" is typeof include
-            include = include.split " "
+        if  handle instanceof FileSystemDirectoryHandle
+            await mv handle, currentDir
 
-        for arg in include when !list.includes arg
-            list.push arg 
+        else if Array.isArray handle
+            2
+        else if handle instanceof FileSystemFileHandle
+            3
 
-        parameters = {}
-        for parameter in list
-            parameters[ parameter ] =
-                configurable: on, get : args.push.bind args, parameter
+    
+    do terminalify = ->
 
-        for k of parameters
-            Object.defineProperty window, k, parameters[k]
+        trapArguments = ( args, include = "" ) ->
 
-        queueMicrotask ->
+            list = 'abcdefghijklmnoptrstuvyzqxw'
+            list = list + list.toUpperCase()
+            list = list.split ""
+
+            getter = ->
+                if  arguments[1] is Symbol.toPrimitive
+                    return -> trap.primitived++ ; 1
+
+                args.push arguments[1]
+                trap.proxied++
+
+                new Proxy {}, { get: getter }
+
+            for char in list.slice()
+                for num in [ 0 ... 10 ]
+                    list.push char + num
+
+            if  "string" is typeof include
+                include = include.split " "
+
+            for arg in include when !list.includes arg
+                list.push arg 
+
+            parameters = {}
+            for parameter in list
+                parameters[ parameter ] =
+                    configurable: on, get : getter.bind null, null, parameter
+
             for k of parameters
-                Reflect.deleteProperty window, k
+                Object.defineProperty window, k, parameters[k]
 
-        args
-
-
-    Object.defineProperties window,
-
-        cd : get : ->
-            trapArguments args = [], "up"
-
-            pxy = new Proxy {}, {
-                get : ( o, key ) -> switch true
-                    when (key is Symbol.toPrimitive)
-                        return -> args.push ".." ; 0
-                    when ("string" is typeof key)
-                        args.push key ; 0
-            }
-            
             queueMicrotask ->
+                for k of parameters
+                    Reflect.deleteProperty window, k
 
-                if  -1 isnt up = args.indexOf "up"
-                    args.splice up, 1
+            args
 
-                if  args[0] is ".."
-                    throw /UP/
 
-                await cd args[0]
+        trap = []
+        trap.primitived = 0
+        trap.proxied = 0
+        a = 0
+        get = ->
+            if  arguments[1] is Symbol.toPrimitive
+                return -> trap.primitived++ ; 1
 
-            pxy
+            clearTimeout(a)
+            a = setTimeout ->
 
-        ls : get : ->
-            trapArguments args = [], "la lh"
-            
-            queueMicrotask ->
-                [ dirName = "" ] = await cwd()
-                ( dirName = "/" + dirName )
+                b = trap.slice()
+
+
+                b.argc = trap.primitived-1
+                b.extarg = trap.proxied - trap.primitived
+
+                t = b.slice().sort( (a,b) => (a.length < b.length) && 1 || -1 )
+                j = 0
+
+                while b.extarg--
+                    bi = b.findIndex( (v) => v is t[j] )
+                    b[bi] = "/" + b[bi]
+                    j++
+
+                while b.argc--
+                    bi = b.findIndex( (v) => v is t[j] )
+                    b[bi] = "-" + b[bi]
+                    j++
+
+                o = []
+                for k in b
+
+                    if  k.startsWith "/"
+                        if !o.length
+                            o.push k
+                            continue
+
+                        if  o[o.length-1].startsWith "-"
+                            o.push k
+                            continue
+
+                        o[ o.length-1 ] =
+                            (o[ o.length-1 ] + k).replace /\/\//g, "/"
+
+                        continue
+
+                    o.push k                    
+
+                log "get:", o
+            , 30
+
+            trapArguments trap
+
+            if  arguments[1]
+                trap.push "/" + arguments[1]
+
+            trap.proxied++
+            new Proxy {}, { get }
+
+        self.trap = trap
+
+        Object.defineProperties window,
+
+            cwd : get : -> currentDir
+
+            rm : { get }
+
+            cd :
+                set : ->
+                    log "cd.."
+
+                get : ->
+                    trapArguments args = [], "up"
+
+                    pxy = new Proxy {}, {
+                        get : ( o, key ) ->
+                            switch true
+                                when (key is Symbol.toPrimitive)
+                                    return -> args.push ".." ; 0
+                                when ("string" is typeof key)
+                                    args.push key ; 0
+                    }
+                    
+                    queueMicrotask ->
+
+                        if  -1 isnt up = args.indexOf "up"
+                            args.splice up, 1
+
+                        if  args[0] is ".."
+                            return warn /NOT_IMPLEMENTED_YET/
+
+                        await cd args[0]
+
+                    pxy
+
+            ls : get : ->
+                trapArguments args = [], "la lh"
                 
-                ls().then ( items ) ->
+                queueMicrotask ->
+                    [ dirName = "" ] = [ cwd.name ]
+                    ( dirName = "/" + dirName )
+                    
+                    ls().then ( items ) ->
 
-                    gid = [ "total:", items.length, "path:", dirName ]
-                    console.group gid...
-                    console.log ".."
+                        gid = [ "total:", items.length, "path:", dirName ]
+                        console.group gid...
+                        console.log ".."
 
-                    for [ item ] in items
-                        console.log item
+                        for [ item ] in items
+                            console.log item
 
-                    console.groupEnd gid...
-            
-            1
+                        console.groupEnd gid...
+                
+                1
 
     do init
 

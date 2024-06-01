@@ -2,15 +2,20 @@ var battery, debug, delay, error, fs, info, keyboard, log, mouse, netlink, table
 
 ({log, warn, error, table, debug, info, delay} = console);
 
+window.onerror = window.onunhandledrejection = function() {
+  document.body.innerHTML += JSON.stringify(arguments);
+  return true;
+};
+
 (mouse = function() {
-  var changeX, changeY, clientX, clientY, counters, dataView, device, e, iLast, j, lastEvent, len, lendian, offsets, onevent, positions, screenX, screenY;
+  var changeX, changeY, clientX, clientY, counters, dataView, device, e, iLast, l, lastEvent, len, lendian, offsets, onevent, positions, screenX, screenY;
   device = new ArrayBuffer(64);
   counters = new Int32Array(device, 0, 10);
   positions = new Float32Array(device, 40, 6);
   dataView = new DataView(device);
   lendian = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
   onevent = 'onpointerdown onpointermove onpointerup onpointercancel onpointerover onpointerout onpointerenter onpointerleave'.split(/\s+|\n/g);
-  for (iLast = j = 0, len = onevent.length; j < len; iLast = ++j) {
+  for (iLast = l = 0, len = onevent.length; l < len; iLast = ++l) {
     e = onevent[iLast];
     (function(evnt, i) {
       return window.addEventListener(evnt, function(t) {
@@ -63,9 +68,9 @@ var battery, debug, delay, error, fs, info, keyboard, log, mouse, netlink, table
     dataView.setUint8(offsetRepeat, e.repeat);
     dataView.setUint8(offsetLocation, e.location);
     dataView.setUint8(offsetLastEvent, 0);
-    keyArray[keys.indexOf(e.code)] = 1;
-    return e.preventDefault();
+    return keyArray[keys.indexOf(e.code)] = 1;
   });
+  //e.preventDefault()
   window.addEventListener("keyup", function(e) {
     counters[iEventCount]++;
     counters[iKeyUpCount]++;
@@ -77,9 +82,9 @@ var battery, debug, delay, error, fs, info, keyboard, log, mouse, netlink, table
     dataView.setUint8(offsetRepeat, e.repeat);
     dataView.setUint8(offsetLocation, e.location);
     dataView.setUint8(offsetLastEvent, 1);
-    keyArray[keys.indexOf(e.code)] = 0;
-    return e.preventDefault();
+    return keyArray[keys.indexOf(e.code)] = 0;
   });
+  //e.preventDefault()
   lastEvent = dataView.getUint8.bind(dataView, offsetLastEvent);
   shiftKey = dataView.getUint8.bind(dataView, offsetShiftKey);
   ctrlKey = dataView.getUint8.bind(dataView, offsetCtrlKey);
@@ -113,9 +118,9 @@ var battery, debug, delay, error, fs, info, keyboard, log, mouse, netlink, table
   offsetDTime = 20;
   onevents = 'onchargingchange onchargingtimechange ondischargingtimechange onlevelchange'.split(/\s+|\n/);
   navigator.getBattery().then(function(dev) {
-    var e, iLast, j, len, results;
+    var e, iLast, l, len, results;
     results = [];
-    for (iLast = j = 0, len = onevents.length; j < len; iLast = ++j) {
+    for (iLast = l = 0, len = onevents.length; l < len; iLast = ++l) {
       e = onevents[iLast];
       results.push((function(evnt, i) {
         return this[evnt] = function(t) {
@@ -176,23 +181,24 @@ var battery, debug, delay, error, fs, info, keyboard, log, mouse, netlink, table
 })();
 
 (fs = function() {
-  var STATE_INIT, STATE_PERSISTED_HANDLE, STATE_ROOT_HANDLE, STATE_UNPERSISTED_HANDLE, STATUS_IDLE, STATUS_READING, STATUS_WRITING, cd, counters, create, currentDir, cwd, dataArray, dataView, device, emit, events, handles, init, lendian, ls, mkdir, quota, read, root, state, status, touch, trapArguments, usage, write;
+  var STATE_INIT, STATE_PERSISTED_HANDLE, STATE_ROOT_HANDLE, STATE_UNPERSISTED_HANDLE, STATUS_IDLE, STATUS_READING, STATUS_WRITING, askp, cd, counters, create, currentDir, currentFile, dataArray, dataView, device, emit, events, handles, init, issame, lendian, ls, mkdir, mv, mv_d2d, mv_f2d, mv_f2f, parent, pick, queryp, quota, read, remove, resolv, rm, rmdir, root, state, status, terminalify, touch, usage, write;
   device = new ArrayBuffer(4096 * 256 * 128); //128mb önbellek
-  counters = new Int32Array(device, 0, 4);
-  info = new DataView(device, counters.byteOffset, 4);
-  dataArray = new Uint8Array(device, info.byteOffset);
+  counters = new Int32Array(device, 0, 10);
+  dataArray = new Uint8Array(device, counters.byteLength);
   dataView = new DataView(device);
   lendian = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
   handles = [, ];
   root = null;
   currentDir = null;
+  currentFile = null;
   quota = dataView.getInt32.bind(dataView, 12, lendian);
   usage = dataView.getInt32.bind(dataView, 16, lendian);
   write = dataView.getInt32.bind(dataView, 20, lendian);
   read = dataView.getInt32.bind(dataView, 24, lendian);
   create = dataView.getInt32.bind(dataView, 28, lendian);
-  state = dataView.getUint8.bind(dataView, 32);
-  status = dataView.getUint8.bind(dataView, 34);
+  remove = dataView.getInt32.bind(dataView, 32, lendian);
+  state = dataView.getUint8.bind(dataView, 36);
+  status = dataView.getUint8.bind(dataView, 37);
   STATE_INIT = 0;
   STATE_ROOT_HANDLE = 1;
   STATE_UNPERSISTED_HANDLE = 2;
@@ -200,17 +206,26 @@ var battery, debug, delay, error, fs, info, keyboard, log, mouse, netlink, table
   STATUS_IDLE = 0;
   STATUS_READING = 1;
   STATUS_WRITING = 2;
-  events = 'onstorageroothandle onstoragepersisted onstoragecreatedirectory storagecreatefile'.split(/\s+|\n/g);
-  emit = function(type, detail = {}) {
-    return window.dispatchEvent(new CustomEvent(type, {detail}));
+  events = 'onstorageroothandle onstoragepersisted onstoragecreatedirectory onstoragecreatefile onstorageremovefile'.split(/\s+|\n/g);
+  emit = function(type, detail) {
+    window.dispatchEvent(new CustomEvent(type, {detail}));
+    return detail;
   };
   window.addEventListener("storagecreatedirectory", function({detail}) {
     dataView.setInt32(28, create() + 1, lendian);
     return log("onstoragecreatedirectory:", detail);
   });
+  window.addEventListener("storageremovedirectory", function({detail}) {
+    dataView.setInt32(32, remove() + 1, lendian);
+    return log("onstorageremovedirectory:", detail);
+  });
   window.addEventListener("storagecreatefile", function({detail}) {
     dataView.setInt32(28, create() + 1, lendian);
     return log("onstoragecreatefile:", detail);
+  });
+  window.addEventListener("storageremovefile", function({detail}) {
+    dataView.setInt32(32, remove() + 1, lendian);
+    return log("onstorageremovefile:", detail);
   });
   window.addEventListener("storagepersist", function() {
     return dataView.setUint8(32, STATE_PERSISTED_HANDLE);
@@ -262,14 +277,34 @@ var battery, debug, delay, error, fs, info, keyboard, log, mouse, netlink, table
     }
     return dir;
   };
-  touch = async function(fileName, handle = currentDir) {
-    var file;
-    if (file = (await handle.getFileHandle(fileName, {
-      create: true
-    }))) {
-      emit("storagecreatefile", {file});
+  touch = async function(anyForD, target = currentDir) {
+    var handle;
+    if (anyForD instanceof FileSystemFileHandle) {
+      return (await touch(anyForD.name, target));
     }
-    return file;
+    if (anyForD instanceof FileSystemDirectoryHandle) {
+      return (await mkdir(anyForD.name, target));
+    }
+    if (typeof anyForD === "string") {
+      handle = (await target.getFileHandle(anyForD, {
+        create: true
+      }));
+      emit("storagecreatefile", handle);
+    }
+    return handle;
+  };
+  parent = function(handle = currentDir) {};
+  //todo
+  rmdir = async function(dirName, recursive = false, handle = currentDir) {
+    if (recursive instanceof FileSystemHandle) {
+      recursive = !(handle = recursive);
+    }
+    await handle.removeEntry(dirName, {recursive});
+    return emit("storageremovedirectory", {dirName});
+  };
+  rm = async function(fileName, handle = currentDir) {
+    await handle.removeEntry(fileName);
+    return emit("storageremovefile", {fileName});
   };
   ls = async function(handle = currentDir) {
     var item, items, iterator;
@@ -284,111 +319,374 @@ var battery, debug, delay, error, fs, info, keyboard, log, mouse, netlink, table
     }
     return items;
   };
-  cwd = async function(handle = currentDir) {
+  resolv = async function(handle = currentDir) {
     return (await root.resolve(handle));
   };
-  self.mkdir = mkdir;
-  self.cwd = cwd;
-  self.touch = touch;
-  self.handles = handles;
-  trapArguments = function(args, include = "") {
-    var arg, char, j, k, l, len, len1, len2, list, m, n, num, parameter, parameters, ref;
-    list = 'abcdefghijklmnoptrstuvyzqxw';
-    list = list + list.toUpperCase();
-    list = list.split("");
-    ref = list.slice();
-    for (j = 0, len = ref.length; j < len; j++) {
-      char = ref[j];
-      for (num = l = 0; l < 10; num = ++l) {
-        list.push(char + num);
-      }
-    }
-    if ("string" === typeof include) {
-      include = include.split(" ");
-    }
-    for (m = 0, len1 = include.length; m < len1; m++) {
-      arg = include[m];
-      if (!list.includes(arg)) {
-        list.push(arg);
-      }
-    }
-    parameters = {};
-    for (n = 0, len2 = list.length; n < len2; n++) {
-      parameter = list[n];
-      parameters[parameter] = {
-        configurable: true,
-        get: args.push.bind(args, parameter)
-      };
-    }
-    for (k in parameters) {
-      Object.defineProperty(window, k, parameters[k]);
-    }
-    queueMicrotask(function() {
-      var results;
-      results = [];
-      for (k in parameters) {
-        results.push(Reflect.deleteProperty(window, k));
-      }
-      return results;
-    });
-    return args;
+  queryp = async function(handle, mode = "readwrite") {
+    return "granted" === (await handle.queryPermission({mode}));
   };
-  Object.defineProperties(window, {
-    cd: {
-      get: function() {
-        var args, pxy;
-        trapArguments(args = [], "up");
-        pxy = new Proxy({}, {
-          get: function(o, key) {
-            switch (true) {
-              case key === Symbol.toPrimitive:
-                return function() {
-                  args.push("..");
-                  return 0;
-                };
-              case "string" === typeof key:
-                args.push(key);
-                return 0;
-            }
-          }
-        });
-        queueMicrotask(async function() {
-          var up;
-          if (-1 !== (up = args.indexOf("up"))) {
-            args.splice(up, 1);
-          }
-          if (args[0] === "..") {
-            throw /UP/;
-          }
-          return (await cd(args[0]));
-        });
-        return pxy;
-      }
-    },
-    ls: {
-      get: function() {
-        var args;
-        trapArguments(args = [], "la lh");
-        queueMicrotask(async function() {
-          var dirName;
-          [dirName = ""] = (await cwd());
-          (dirName = "/" + dirName);
-          return ls().then(function(items) {
-            var gid, item, j, len;
-            gid = ["total:", items.length, "path:", dirName];
-            console.group(...gid);
-            console.log("..");
-            for (j = 0, len = items.length; j < len; j++) {
-              [item] = items[j];
-              console.log(item);
-            }
-            return console.groupEnd(...gid);
-          });
-        });
-        return 1;
+  askp = async function(handle, mode = "readwrite") {
+    return "granted" === (await handle.requestPermission({mode}));
+  };
+  issame = async function(handle, target) {
+    return (await target.isSameEntry(handle));
+  };
+  read = async function(file, handle = currentDir) {
+    var fhandle, item, l, len, ref;
+    if (file instanceof FileSystemFileHandle) {
+      ({
+        name: file
+      } = (fhandle = file));
+    } else if (Array.isArray(file)) {
+      [file, fhandle] = file;
+    } else if ("string" === typeof file) {
+      ref = (await ls(handle));
+      for (l = 0, len = ref.length; l < len; l++) {
+        item = ref[l];
+        if (file !== item[0]) {
+          continue;
+        }
+        [file, fhandle] = item;
+        break;
       }
     }
-  });
+    if (!fhandle instanceof FileSystemFileHandle) {
+      throw [/FILE_HANDLE_NOTAFILE/, ...arguments];
+    }
+    return (await fhandle.getFile());
+  };
+  write = async function(data, writeableFHandle = currentFile) {
+    var e, writableStream;
+    if (data instanceof FileSystemFileHandle) {
+      data = (await read(data));
+    }
+    try {
+      // FileSystemWritableFileStream
+      writableStream = (await writeableFHandle.createWritable());
+      await writableStream.write(data);
+      return (await writableStream.close());
+    } catch (error1) {
+      e = error1;
+      return error(e, ...arguments);
+    } finally {
+      return writeableFHandle;
+    }
+  };
+  pick = async function(type = "directory") {
+    if (/dir/.test(type)) {
+      return (await window.showDirectoryPicker());
+    } else if (/file/.test(type)) {
+      return (await window.showOpenFilePicker());
+    } else if (/savefile/.test(type)) {
+      return (await window.showSaveFilePicker());
+    } else {
+      throw /UNDEFINED_TYPE_PICK/;
+    }
+  };
+  mv_f2f = async function(srcFHandle, dstFHandle, force = false) {
+    if (!srcFHandle instanceof FileSystemFileHandle) {
+      throw /SRC_MUST_BE_FILE/;
+    }
+    if (!dstFHandle instanceof FileSystemFileHandle) {
+      throw /DST_MUST_BE_FILE/;
+    }
+    if ((await issame(srcFHandle, dstFHandle))) {
+      throw /SRC_AND_DST_ISSAME/;
+    }
+    if (((await queryp(dstFHandle))) === false) {
+      throw /NO_PERMISSON_WRITE_TO_TARGET/;
+    }
+    if (((await queryp(srcFHandle, "read"))) === false) {
+      throw /NO_PERMISSON_READ_TO_SOURCE/;
+    }
+    return (await write(srcFHandle, dstFHandle));
+  };
+  mv_f2d = async function(srcFHandle, dstDHandle) {
+    var dstFHandle;
+    if (!srcFHandle instanceof FileSystemFileHandle) {
+      throw /SRC_MUST_BE_FILE/;
+    }
+    if (!dstDHandle instanceof FileSystemDirectoryHandle) {
+      throw /DST_MUST_BE_DIRECTORY/;
+    }
+    if (((await queryp(dstDHandle))) === false) {
+      throw /NO_PERMISSON_WRITE_TO_TARGET/;
+    }
+    if (((await queryp(srcFHandle, "read"))) === false) {
+      throw /NO_PERMISSON_READ_TO_SOURCE/;
+    }
+    dstFHandle = (await touch(srcFHandle, dstDHandle));
+    return (await mv_f2f(srcFHandle, dstFHandle));
+  };
+  mv_d2d = async function(srcDHandle, dstDHandle) {
+    var d, fdHandle, l, len, ref;
+    if (!srcDHandle instanceof FileSystemDirectoryHandle) {
+      throw /SRC_MUST_BE_DIRECTORY/;
+    }
+    if (!dstDHandle instanceof FileSystemDirectoryHandle) {
+      throw /DST_MUST_BE_DIRECTORY/;
+    }
+    if ((await issame(srcDHandle, dstDHandle))) {
+      throw /SRC_AND_DST_ISSAME/;
+    }
+    d = (await mkdir(srcDHandle.name, dstDHandle));
+    ref = (await ls(srcDHandle));
+    for (l = 0, len = ref.length; l < len; l++) {
+      [, fdHandle] = ref[l];
+      if (fdHandle instanceof FileSystemFileHandle) {
+        await mv_f2d(fdHandle, d);
+        continue;
+      }
+      if (fdHandle instanceof FileSystemDirectoryHandle) {
+        await mv_d2d(fdHandle, d);
+        continue;
+      }
+    }
+    return 1;
+  };
+  mv = async function(handle, target = currentDir) {
+    var _ls, ihandle, l, len;
+    if (target instanceof Array) {
+      target = target.find(function(i) {
+        return i instanceof FileSystemHandle;
+      });
+    }
+    if (typeof target === "string") {
+      target = target === "." ? currentDir : (_ls = (await ls(currentDir)), _ls.find(function(fd) {
+        return fd.name === target;
+      }));
+    }
+    if (!target instanceof FileSystemHandle) {
+      throw [/TARGET_UNRESOLVED/, ...arguments];
+    }
+    if (handle instanceof FileSystemFileHandle) {
+      if (target instanceof FileSystemFileHandle) {
+        return (await mv_f2f(handle, target));
+      }
+      if (target instanceof FileSystemDirectoryHandle) {
+        return (await mv_f2d(handle, target));
+      }
+    }
+    if (handle instanceof FileSystemDirectoryHandle) {
+      if (target instanceof FileSystemFileHandle) {
+        throw /NOT_POSSIBLE_WRITE_DIR_TO_FILE/;
+      }
+      if (target instanceof FileSystemDirectoryHandle) {
+        return (await mv_d2d(handle, target));
+      }
+    }
+    if (handle instanceof Array) {
+      for (l = 0, len = handle.length; l < len; l++) {
+        ihandle = handle[l];
+        await mv(ihandle, target);
+      }
+    }
+    if (typeof handle === "string") {
+      handle = ((await ls(currentDir))).find(function(i) {
+        return i.name === handle;
+      });
+      return (await mv(handle, target));
+    }
+    throw [/SOURCE_ARRAY_UNRESOLVED/, handle];
+    return (await rmdir(handle.name, target));
+  };
+  self.onclick = async function() {
+    var handle;
+    log(handle = (await pick("dir")));
+    log((await ls(handle)));
+    if (handle instanceof FileSystemDirectoryHandle) {
+      return (await mv(handle, currentDir));
+    } else if (Array.isArray(handle)) {
+      return 2;
+    } else if (handle instanceof FileSystemFileHandle) {
+      return 3;
+    }
+  };
+  (terminalify = function() {
+    var a, get, trap, trapArguments;
+    trapArguments = function(args, include = "") {
+      var arg, char, getter, k, l, len, len1, len2, list, m, n, num, p, parameter, parameters, ref;
+      list = 'abcdefghijklmnoptrstuvyzqxw';
+      list = list + list.toUpperCase();
+      list = list.split("");
+      getter = function() {
+        if (arguments[1] === Symbol.toPrimitive) {
+          return function() {
+            trap.primitived++;
+            return 1;
+          };
+        }
+        args.push(arguments[1]);
+        trap.proxied++;
+        return new Proxy({}, {
+          get: getter
+        });
+      };
+      ref = list.slice();
+      for (l = 0, len = ref.length; l < len; l++) {
+        char = ref[l];
+        for (num = m = 0; m < 10; num = ++m) {
+          list.push(char + num);
+        }
+      }
+      if ("string" === typeof include) {
+        include = include.split(" ");
+      }
+      for (n = 0, len1 = include.length; n < len1; n++) {
+        arg = include[n];
+        if (!list.includes(arg)) {
+          list.push(arg);
+        }
+      }
+      parameters = {};
+      for (p = 0, len2 = list.length; p < len2; p++) {
+        parameter = list[p];
+        parameters[parameter] = {
+          configurable: true,
+          get: getter.bind(null, null, parameter)
+        };
+      }
+      for (k in parameters) {
+        Object.defineProperty(window, k, parameters[k]);
+      }
+      queueMicrotask(function() {
+        var results;
+        results = [];
+        for (k in parameters) {
+          results.push(Reflect.deleteProperty(window, k));
+        }
+        return results;
+      });
+      return args;
+    };
+    trap = [];
+    trap.primitived = 0;
+    trap.proxied = 0;
+    a = 0;
+    get = function() {
+      if (arguments[1] === Symbol.toPrimitive) {
+        return function() {
+          trap.primitived++;
+          return 1;
+        };
+      }
+      clearTimeout(a);
+      a = setTimeout(function() {
+        var b, bi, j, k, l, len, o, t;
+        b = trap.slice();
+        b.argc = trap.primitived - 1;
+        b.extarg = trap.proxied - trap.primitived;
+        t = b.slice().sort((a, b) => {
+          return (a.length < b.length) && 1 || -1;
+        });
+        j = 0;
+        while (b.extarg--) {
+          bi = b.findIndex((v) => {
+            return v === t[j];
+          });
+          b[bi] = "/" + b[bi];
+          j++;
+        }
+        while (b.argc--) {
+          bi = b.findIndex((v) => {
+            return v === t[j];
+          });
+          b[bi] = "-" + b[bi];
+          j++;
+        }
+        o = [];
+        for (l = 0, len = b.length; l < len; l++) {
+          k = b[l];
+          if (k.startsWith("/")) {
+            if (!o.length) {
+              o.push(k);
+              continue;
+            }
+            if (o[o.length - 1].startsWith("-")) {
+              o.push(k);
+              continue;
+            }
+            o[o.length - 1] = (o[o.length - 1] + k).replace(/\/\//g, "/");
+            continue;
+          }
+          o.push(k);
+        }
+        return log("get:", o);
+      }, 30);
+      trapArguments(trap);
+      if (arguments[1]) {
+        trap.push("/" + arguments[1]);
+      }
+      trap.proxied++;
+      return new Proxy({}, {get});
+    };
+    self.trap = trap;
+    return Object.defineProperties(window, {
+      cwd: {
+        get: function() {
+          return currentDir;
+        }
+      },
+      rm: {get},
+      cd: {
+        set: function() {
+          return log("cd..");
+        },
+        get: function() {
+          var args, pxy;
+          trapArguments(args = [], "up");
+          pxy = new Proxy({}, {
+            get: function(o, key) {
+              switch (true) {
+                case key === Symbol.toPrimitive:
+                  return function() {
+                    args.push("..");
+                    return 0;
+                  };
+                case "string" === typeof key:
+                  args.push(key);
+                  return 0;
+              }
+            }
+          });
+          queueMicrotask(async function() {
+            var up;
+            if (-1 !== (up = args.indexOf("up"))) {
+              args.splice(up, 1);
+            }
+            if (args[0] === "..") {
+              return warn(/NOT_IMPLEMENTED_YET/);
+            }
+            return (await cd(args[0]));
+          });
+          return pxy;
+        }
+      },
+      ls: {
+        get: function() {
+          var args;
+          trapArguments(args = [], "la lh");
+          queueMicrotask(function() {
+            var dirName;
+            [dirName = ""] = [cwd.name];
+            (dirName = "/" + dirName);
+            return ls().then(function(items) {
+              var gid, item, l, len;
+              gid = ["total:", items.length, "path:", dirName];
+              console.group(...gid);
+              console.log("..");
+              for (l = 0, len = items.length; l < len; l++) {
+                [item] = items[l];
+                console.log(item);
+              }
+              return console.groupEnd(...gid);
+            });
+          });
+          return 1;
+        }
+      }
+    });
+  })();
   init();
   return requestIdleCallback(function() {
     return log("state:", state(), "persisted:", state() >= STATE_PERSISTED_HANDLE, "status:", status());
