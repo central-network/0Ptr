@@ -8,14 +8,14 @@ window.onerror = window.onunhandledrejection = function() {
 };
 
 (mouse = function() {
-  var changeX, changeY, clientX, clientY, counters, dataView, device, e, iLast, l, lastEvent, len, lendian, offsets, onevent, positions, screenX, screenY;
+  var changeX, changeY, clientX, clientY, counters, dataView, device, e, iLast, j, lastEvent, len, lendian, offsets, onevent, positions, screenX, screenY;
   device = new ArrayBuffer(64);
   counters = new Int32Array(device, 0, 10);
   positions = new Float32Array(device, 40, 6);
   dataView = new DataView(device);
   lendian = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
   onevent = 'onpointerdown onpointermove onpointerup onpointercancel onpointerover onpointerout onpointerenter onpointerleave'.split(/\s+|\n/g);
-  for (iLast = l = 0, len = onevent.length; l < len; iLast = ++l) {
+  for (iLast = j = 0, len = onevent.length; j < len; iLast = ++j) {
     e = onevent[iLast];
     (function(evnt, i) {
       return window.addEventListener(evnt, function(t) {
@@ -118,9 +118,9 @@ window.onerror = window.onunhandledrejection = function() {
   offsetDTime = 20;
   onevents = 'onchargingchange onchargingtimechange ondischargingtimechange onlevelchange'.split(/\s+|\n/);
   navigator.getBattery().then(function(dev) {
-    var e, iLast, l, len, results;
+    var e, iLast, j, len, results;
     results = [];
-    for (iLast = l = 0, len = onevents.length; l < len; iLast = ++l) {
+    for (iLast = j = 0, len = onevents.length; j < len; iLast = ++j) {
       e = onevents[iLast];
       results.push((function(evnt, i) {
         return this[evnt] = function(t) {
@@ -181,7 +181,19 @@ window.onerror = window.onunhandledrejection = function() {
 })();
 
 (fs = function() {
-  var STATE_INIT, STATE_PERSISTED_HANDLE, STATE_ROOT_HANDLE, STATE_UNPERSISTED_HANDLE, STATUS_IDLE, STATUS_READING, STATUS_WRITING, askp, cd, counters, create, currentDir, currentFile, dataArray, dataView, device, emit, events, handles, init, issame, lendian, ls, mkdir, mv, mv_d2d, mv_f2d, mv_f2f, parent, pick, queryp, quota, read, remove, resolv, rm, rmdir, root, state, status, terminalify, touch, usage, write;
+  /* 
+  log handle = await pick( "dir" )
+  log await ls handle
+
+  if  handle instanceof FileSystemDirectoryHandle
+      await mv handle, currentDir
+
+  else if Array.isArray handle
+      2
+  else if handle instanceof FileSystemFileHandle
+      3
+  */
+  var STATE_INIT, STATE_PERSISTED_HANDLE, STATE_ROOT_HANDLE, STATE_UNPERSISTED_HANDLE, STATUS_IDLE, STATUS_READING, STATUS_WRITING, askp, cat, cd, counters, create, currentDir, currentFile, dataArray, dataView, device, emit, events, handles, init, issame, lendian, ls, mkdir, mv, mv_d2d, mv_f2d, mv_f2f, parent, pick, queryp, quota, read, remove, resolv, rm, rmdir, root, setcwd, state, status, terminalify, touch, usage, write;
   device = new ArrayBuffer(4096 * 256 * 128); //128mb önbellek
   counters = new Int32Array(device, 0, 10);
   dataArray = new Uint8Array(device, counters.byteLength);
@@ -230,9 +242,9 @@ window.onerror = window.onunhandledrejection = function() {
   window.addEventListener("storagepersist", function() {
     return dataView.setUint8(32, STATE_PERSISTED_HANDLE);
   });
-  window.addEventListener("storageroothandle", function() {
+  window.addEventListener("storageroothandle", async function() {
     dataView.setUint8(32, STATE_ROOT_HANDLE);
-    currentDir = root;
+    await setcwd(currentDir = root);
     try {
       navigator.storage.persisted().then(function(persisted) {
         if (!persisted) {
@@ -266,7 +278,15 @@ window.onerror = window.onunhandledrejection = function() {
     } catch (error1) {}
   };
   cd = async function(dirName, handle = currentDir) {
-    return currentDir = (await handle.getDirectoryHandle(dirName));
+    return (await setcwd(currentDir = (await handle.getDirectoryHandle(dirName))));
+  };
+  setcwd = async function(handle = currentDir) {
+    Object.defineProperty(window, "cwd", {
+      writable: true,
+      configurable: true,
+      value: "/" + [...(await resolv(handle))].join("/")
+    });
+    return handle;
   };
   mkdir = async function(dirName, handle = currentDir) {
     var dir;
@@ -302,9 +322,28 @@ window.onerror = window.onunhandledrejection = function() {
     await handle.removeEntry(dirName, {recursive});
     return emit("storageremovedirectory", {dirName});
   };
-  rm = async function(fileName, handle = currentDir) {
-    await handle.removeEntry(fileName);
-    return emit("storageremovefile", {fileName});
+  rm = async function(anyForD, force = false, recursive = false, handle = currentDir) {
+    var item;
+    if (force instanceof FileSystemHandle) {
+      force = recursive = !(handle = force);
+    }
+    if (recursive instanceof FileSystemHandle) {
+      recursive = !(handle = recursive);
+    }
+    if (!(item = ((await ls(handle))).find(function([i]) {
+      return i === anyForD;
+    }))) {
+      return error(`File or folder (${anyForD}) is not in: ${cwd}`);
+    }
+    if (item[1] instanceof FileSystemDirectoryHandle) {
+      if (!force) {
+        if (((await ls(item[1]))).length) {
+          return error("Folder is not empty");
+        }
+      }
+    }
+    await handle.removeEntry(anyForD, {recursive});
+    return emit("storageremovefile", {anyForD});
   };
   ls = async function(handle = currentDir) {
     var item, items, iterator;
@@ -332,7 +371,7 @@ window.onerror = window.onunhandledrejection = function() {
     return (await target.isSameEntry(handle));
   };
   read = async function(file, handle = currentDir) {
-    var fhandle, item, l, len, ref;
+    var fhandle, j, len, ref;
     if (file instanceof FileSystemFileHandle) {
       ({
         name: file
@@ -341,19 +380,21 @@ window.onerror = window.onunhandledrejection = function() {
       [file, fhandle] = file;
     } else if ("string" === typeof file) {
       ref = (await ls(handle));
-      for (l = 0, len = ref.length; l < len; l++) {
-        item = ref[l];
-        if (file !== item[0]) {
+      for (j = 0, len = ref.length; j < len; j++) {
+        [, fhandle] = ref[j];
+        if (fhandle.name !== file) {
           continue;
         }
-        [file, fhandle] = item;
-        break;
+        return (await fhandle.getFile());
       }
     }
     if (!fhandle instanceof FileSystemFileHandle) {
       throw [/FILE_HANDLE_NOTAFILE/, ...arguments];
     }
     return (await fhandle.getFile());
+  };
+  cat = async function(file, handle = currentDir) {
+    return (await ((await read(file, handle))).text());
   };
   write = async function(data, writeableFHandle = currentFile) {
     var e, writableStream;
@@ -419,7 +460,7 @@ window.onerror = window.onunhandledrejection = function() {
     return (await mv_f2f(srcFHandle, dstFHandle));
   };
   mv_d2d = async function(srcDHandle, dstDHandle) {
-    var d, fdHandle, l, len, ref;
+    var d, fdHandle, j, len, ref;
     if (!srcDHandle instanceof FileSystemDirectoryHandle) {
       throw /SRC_MUST_BE_DIRECTORY/;
     }
@@ -431,8 +472,8 @@ window.onerror = window.onunhandledrejection = function() {
     }
     d = (await mkdir(srcDHandle.name, dstDHandle));
     ref = (await ls(srcDHandle));
-    for (l = 0, len = ref.length; l < len; l++) {
-      [, fdHandle] = ref[l];
+    for (j = 0, len = ref.length; j < len; j++) {
+      [, fdHandle] = ref[j];
       if (fdHandle instanceof FileSystemFileHandle) {
         await mv_f2d(fdHandle, d);
         continue;
@@ -445,7 +486,7 @@ window.onerror = window.onunhandledrejection = function() {
     return 1;
   };
   mv = async function(handle, target = currentDir) {
-    var _ls, ihandle, l, len;
+    var _ls, ihandle, j, len;
     if (target instanceof Array) {
       target = target.find(function(i) {
         return i instanceof FileSystemHandle;
@@ -476,8 +517,8 @@ window.onerror = window.onunhandledrejection = function() {
       }
     }
     if (handle instanceof Array) {
-      for (l = 0, len = handle.length; l < len; l++) {
-        ihandle = handle[l];
+      for (j = 0, len = handle.length; j < len; j++) {
+        ihandle = handle[j];
         await mv(ihandle, target);
       }
     }
@@ -491,24 +532,12 @@ window.onerror = window.onunhandledrejection = function() {
     return (await rmdir(handle.name, target));
   };
   self.onclick = async function() {
-    var handle;
-    log(handle = (await pick("dir")));
-    log((await ls(handle)));
-    if (handle instanceof FileSystemDirectoryHandle) {
-      return (await mv(handle, currentDir));
-    } else if (Array.isArray(handle)) {
-      return 2;
-    } else if (handle instanceof FileSystemFileHandle) {
-      return 3;
-    }
+    return log((await cat("worker.js")));
   };
   (terminalify = function() {
-    var a, get, trap, trapArguments;
-    trapArguments = function(args, include = "") {
-      var arg, char, getter, k, l, len, len1, len2, list, m, n, num, p, parameter, parameters, ref;
-      list = 'abcdefghijklmnoptrstuvyzqxw';
-      list = list + list.toUpperCase();
-      list = list.split("");
+    var a, cmd, get, trap, trapArguments;
+    trapArguments = function(args, list) {
+      var getter, j, k, len, parameter, parameters;
       getter = function() {
         if (arguments[1] === Symbol.toPrimitive) {
           return function() {
@@ -522,25 +551,9 @@ window.onerror = window.onunhandledrejection = function() {
           get: getter
         });
       };
-      ref = list.slice();
-      for (l = 0, len = ref.length; l < len; l++) {
-        char = ref[l];
-        for (num = m = 0; m < 10; num = ++m) {
-          list.push(char + num);
-        }
-      }
-      if ("string" === typeof include) {
-        include = include.split(" ");
-      }
-      for (n = 0, len1 = include.length; n < len1; n++) {
-        arg = include[n];
-        if (!list.includes(arg)) {
-          list.push(arg);
-        }
-      }
       parameters = {};
-      for (p = 0, len2 = list.length; p < len2; p++) {
-        parameter = list[p];
+      for (j = 0, len = list.length; j < len; j++) {
+        parameter = list[j];
         parameters[parameter] = {
           configurable: true,
           get: getter.bind(null, null, parameter)
@@ -563,71 +576,91 @@ window.onerror = window.onunhandledrejection = function() {
     trap.primitived = 0;
     trap.proxied = 0;
     a = 0;
+    cmd = null;
     get = function() {
+      var args, cmda;
+      if (this instanceof String) {
+        cmda = this + "";
+        [cmd, ...args] = cmda.split(" ");
+        trap = [];
+        trap.primitived = 0;
+        trap.proxied = 0;
+        trapArguments(trap, args.map(function(a) {
+          return a.replace(/\-/, "");
+        }));
+      } else {
+        clearTimeout(a);
+        a = setTimeout(function() {
+          /*
+              b = trap.slice()
+
+              b.argc = trap.primitived-1
+              b.extarg = trap.proxied - trap.primitived
+
+              t = b.slice().sort( (a,b) => (a.length < b.length) && 1 || -1 )
+              j = 0
+
+              while b.extarg--
+                  bi = b.findIndex( (v) => v is t[j] )
+                  b[bi] = "/" + b[bi]
+                  j++
+
+              while b.argc--
+                  bi = b.findIndex( (v) => v is t[j] )
+                  b[bi] = "-" + b[bi]
+                  j++
+
+              o = []
+              for k in b
+
+                  if  k.startsWith "/"
+                      if !o.length
+                          o.push k
+                          continue
+
+                      if  o[o.length-1].startsWith "-"
+                          o.push k
+                          continue
+
+                      o[ o.length-1 ] =
+                          (o[ o.length-1 ] + k).replace /\/\//g, "/"
+
+                      continue
+
+                  o.push k                    
+
+              log cmd, "get:", o
+              log cmd, "get:", trap
+          */
+          return window[cmd] = trap;
+        }, 30);
+      }
       if (arguments[1] === Symbol.toPrimitive) {
         return function() {
           trap.primitived++;
           return 1;
         };
       }
-      clearTimeout(a);
-      a = setTimeout(function() {
-        var b, bi, j, k, l, len, o, t;
-        b = trap.slice();
-        b.argc = trap.primitived - 1;
-        b.extarg = trap.proxied - trap.primitived;
-        t = b.slice().sort((a, b) => {
-          return (a.length < b.length) && 1 || -1;
-        });
-        j = 0;
-        while (b.extarg--) {
-          bi = b.findIndex((v) => {
-            return v === t[j];
-          });
-          b[bi] = "/" + b[bi];
-          j++;
-        }
-        while (b.argc--) {
-          bi = b.findIndex((v) => {
-            return v === t[j];
-          });
-          b[bi] = "-" + b[bi];
-          j++;
-        }
-        o = [];
-        for (l = 0, len = b.length; l < len; l++) {
-          k = b[l];
-          if (k.startsWith("/")) {
-            if (!o.length) {
-              o.push(k);
-              continue;
-            }
-            if (o[o.length - 1].startsWith("-")) {
-              o.push(k);
-              continue;
-            }
-            o[o.length - 1] = (o[o.length - 1] + k).replace(/\/\//g, "/");
-            continue;
-          }
-          o.push(k);
-        }
-        return log("get:", o);
-      }, 30);
-      trapArguments(trap);
       if (arguments[1]) {
-        trap.push("/" + arguments[1]);
+        trap.push(arguments[1]);
       }
       trap.proxied++;
       return new Proxy({}, {get});
     };
     self.trap = trap;
     return Object.defineProperties(window, {
-      cwd: {
-        get: function() {
-          return currentDir;
+      rm: {
+        get: get.bind("rm -r -f"),
+        set: async function(args) {
+          var fdname, force, recursive;
+          recursive = args.includes("r");
+          force = args.includes("f");
+          fdname = args.filter(function(a) {
+            return !["r", "f"].includes(a);
+          }).join(".");
+          return (await rm(fdname, force, recursive));
         }
       },
-      rm: {get},
       cd: {
         set: function() {
           return log("cd..");
@@ -662,27 +695,52 @@ window.onerror = window.onunhandledrejection = function() {
           return pxy;
         }
       },
+      cat: {
+        get: get.bind("cat"),
+        set: async function(args) {
+          return log((await cat(args.join("."))));
+        }
+      },
       ls: {
-        get: function() {
-          var args;
-          trapArguments(args = [], "la lh");
-          queueMicrotask(function() {
-            var dirName;
-            [dirName = ""] = [cwd.name];
-            (dirName = "/" + dirName);
-            return ls().then(function(items) {
-              var gid, item, l, len;
-              gid = ["total:", items.length, "path:", dirName];
-              console.group(...gid);
-              console.log("..");
-              for (l = 0, len = items.length; l < len; l++) {
-                [item] = items[l];
-                console.log(item);
-              }
-              return console.groupEnd(...gid);
-            });
+        get: get.bind("ls -l"),
+        set: async function(args) {
+          var _date, byteLength, dirCount, fileCount, iname, item, j, kb, kind, lastModifiedDate, len, lines, ref, size, type;
+          lines = [];
+          dirCount = 0;
+          fileCount = 0;
+          byteLength = 0;
+          ref = (await ls());
+          for (j = 0, len = ref.length; j < len; j++) {
+            [iname, item] = ref[j];
+            if ("file" === (kind = item.kind)) {
+              ({size, type, lastModifiedDate} = (await read(item)));
+              _date = lastModifiedDate.toDateString().split(" ").slice(1).slice(0, 2).join(" ") + " " + lastModifiedDate.toTimeString().substring(0, 5);
+              byteLength += size;
+              fileCount++;
+            } else {
+              [size, type] = [0, 0];
+              _date = "".padEnd(16, " ");
+              dirCount++;
+            }
+            if (kind === "directory") {
+              size = "";
+              kind = "dir";
+              lines.push([kind, "\t", "\t", _date, " ", iname]);
+              continue;
+            }
+            if (!size) {
+              lines.push([kind, "\t", 0, "\t\t", _date, " ", iname]);
+              continue;
+            }
+            lines.push([kind, "\t", size, "\t", _date, " ", iname]);
+          }
+          kb = (byteLength / 1e3).toFixed(1) * 1;
+          console.group("path:", cwd);
+          console.warn("total:", kb, "Kbytes");
+          lines.reverse().forEach(function(l) {
+            return console.log(...l);
           });
-          return 1;
+          return console.groupEnd(cwd);
         }
       }
     });

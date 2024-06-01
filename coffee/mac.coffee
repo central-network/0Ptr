@@ -277,7 +277,7 @@ do  fs = ->
         
     window.addEventListener "storageroothandle", ->
         dataView.setUint8 32, STATE_ROOT_HANDLE
-        currentDir = root
+        await setcwd currentDir = root
 
         try navigator.storage.persisted().then ( persisted ) ->
 
@@ -302,7 +302,17 @@ do  fs = ->
                 window.dispatchEvent new Event "storageroothandle"
 
     cd      = ( dirName, handle = currentDir ) ->
-        currentDir = await handle.getDirectoryHandle dirName
+        await setcwd currentDir =
+            await handle.getDirectoryHandle dirName
+
+    setcwd = ( handle = currentDir ) ->
+        Object.defineProperty window, "cwd",
+            writable: on
+            configurable: on
+            value : "/" + [ 
+                ...await resolv handle
+            ].join "/"
+        handle
 
     mkdir   = ( dirName, handle = currentDir ) ->
         if  dir = await handle.getDirectoryHandle( dirName, { create: true } )
@@ -335,9 +345,23 @@ do  fs = ->
         await handle.removeEntry( dirName, { recursive } )
         emit "storageremovedirectory", { dirName }
 
-    rm      = ( fileName, handle = currentDir ) ->
-        await handle.removeEntry( fileName )
-        emit "storageremovefile", { fileName }
+    rm      = ( anyForD, force = no, recursive = no, handle = currentDir ) ->
+        if  force instanceof FileSystemHandle
+            force = recursive = !( handle = force )
+
+        if  recursive instanceof FileSystemHandle
+            recursive = !( handle = recursive )
+
+        if !item = ( await ls handle ).find ([i]) -> i is anyForD
+            return error "File or folder (#{anyForD}) is not in: #{cwd}"
+
+        if  item[1] instanceof FileSystemDirectoryHandle
+            if !force then if ( await ls item[1] ).length
+                return error "Folder is not empty"
+
+        await handle.removeEntry( anyForD, { recursive } )
+
+        emit "storageremovefile", { anyForD }
 
     ls      = ( handle = currentDir ) ->
         iterator = await handle.entries()
@@ -368,15 +392,17 @@ do  fs = ->
             [ file , fhandle ] = ( file )
 
         else if "string" is typeof file
-            for item in await ls handle
-                continue if file isnt item[0]
-                [ file, fhandle ] = ( item )
-                break
+            for [ , fhandle ] in await ls handle
+                continue if fhandle.name isnt file
+                return await fhandle.getFile()
 
         if !fhandle instanceof FileSystemFileHandle
             throw [ /FILE_HANDLE_NOTAFILE/, arguments... ]
             
         await fhandle.getFile()
+
+    cat     = ( file, handle = currentDir ) ->
+        await ( await read file, handle ).text()
 
     write   = ( data, writeableFHandle = currentFile ) ->
         if  data instanceof FileSystemFileHandle
@@ -504,6 +530,9 @@ do  fs = ->
 
 
     self.onclick = ->
+        log await cat "worker.coffee"
+
+        ### 
         log handle = await pick( "dir" )
         log await ls handle
 
@@ -514,15 +543,13 @@ do  fs = ->
             2
         else if handle instanceof FileSystemFileHandle
             3
+        ### 
 
+    
     
     do terminalify = ->
 
-        trapArguments = ( args, include = "" ) ->
-
-            list = 'abcdefghijklmnoptrstuvyzqxw'
-            list = list + list.toUpperCase()
-            list = list.split ""
+        trapArguments = ( args, list ) ->
 
             getter = ->
                 if  arguments[1] is Symbol.toPrimitive
@@ -532,16 +559,6 @@ do  fs = ->
                 trap.proxied++
 
                 new Proxy {}, { get: getter }
-
-            for char in list.slice()
-                for num in [ 0 ... 10 ]
-                    list.push char + num
-
-            if  "string" is typeof include
-                include = include.split " "
-
-            for arg in include when !list.includes arg
-                list.push arg 
 
             parameters = {}
             for parameter in list
@@ -562,58 +579,72 @@ do  fs = ->
         trap.primitived = 0
         trap.proxied = 0
         a = 0
+        cmd = null
         get = ->
+            if  this instanceof String
+                cmda = this + ""
+                [ cmd, ...args ] = cmda.split( " " )
+                trap = []
+                trap.primitived = 0
+                trap.proxied = 0
+                trapArguments trap, args.map (a) -> a.replace /\-/, ""
+
+            else
+
+                clearTimeout(a)
+
+                a = setTimeout( ->
+    
+                    ###
+                        b = trap.slice()
+        
+                        b.argc = trap.primitived-1
+                        b.extarg = trap.proxied - trap.primitived
+        
+                        t = b.slice().sort( (a,b) => (a.length < b.length) && 1 || -1 )
+                        j = 0
+        
+                        while b.extarg--
+                            bi = b.findIndex( (v) => v is t[j] )
+                            b[bi] = "/" + b[bi]
+                            j++
+        
+                        while b.argc--
+                            bi = b.findIndex( (v) => v is t[j] )
+                            b[bi] = "-" + b[bi]
+                            j++
+        
+                        o = []
+                        for k in b
+        
+                            if  k.startsWith "/"
+                                if !o.length
+                                    o.push k
+                                    continue
+        
+                                if  o[o.length-1].startsWith "-"
+                                    o.push k
+                                    continue
+        
+                                o[ o.length-1 ] =
+                                    (o[ o.length-1 ] + k).replace /\/\//g, "/"
+        
+                                continue
+        
+                            o.push k                    
+        
+                        log cmd, "get:", o
+                        log cmd, "get:", trap
+                    ###
+    
+                    window[cmd] = trap
+                , 30 )
+            
             if  arguments[1] is Symbol.toPrimitive
                 return -> trap.primitived++ ; 1
 
-            clearTimeout(a)
-            a = setTimeout ->
-
-                b = trap.slice()
-
-
-                b.argc = trap.primitived-1
-                b.extarg = trap.proxied - trap.primitived
-
-                t = b.slice().sort( (a,b) => (a.length < b.length) && 1 || -1 )
-                j = 0
-
-                while b.extarg--
-                    bi = b.findIndex( (v) => v is t[j] )
-                    b[bi] = "/" + b[bi]
-                    j++
-
-                while b.argc--
-                    bi = b.findIndex( (v) => v is t[j] )
-                    b[bi] = "-" + b[bi]
-                    j++
-
-                o = []
-                for k in b
-
-                    if  k.startsWith "/"
-                        if !o.length
-                            o.push k
-                            continue
-
-                        if  o[o.length-1].startsWith "-"
-                            o.push k
-                            continue
-
-                        o[ o.length-1 ] =
-                            (o[ o.length-1 ] + k).replace /\/\//g, "/"
-
-                        continue
-
-                    o.push k                    
-
-                log "get:", o
-            , 30
-
-            trapArguments trap
-
             if  arguments[1]
-                trap.push "/" + arguments[1]
+                trap.push arguments[1]
 
             trap.proxied++
             new Proxy {}, { get }
@@ -622,11 +653,19 @@ do  fs = ->
 
         Object.defineProperties window,
 
-            cwd : get : -> currentDir
+            rm :
+                get  : get.bind "rm -r -f"
+                set  : ( args ) ->
+                    
+                    recursive = args.includes "r"
+                    force = args.includes "f"
+                    fdname = args.filter(
+                        (a) -> !["r", "f"].includes a
+                    ).join "."
 
-            rm : { get }
+                    await rm fdname, force, recursive
 
-            cd :
+            cd  :
                 set : ->
                     log "cd.."
 
@@ -654,25 +693,63 @@ do  fs = ->
 
                     pxy
 
-            ls : get : ->
-                trapArguments args = [], "la lh"
-                
-                queueMicrotask ->
-                    [ dirName = "" ] = [ cwd.name ]
-                    ( dirName = "/" + dirName )
+            cat :
+                get  : get.bind "cat"
+                set  : ( args ) ->
+                    log await cat args.join "."
+
+            ls  : 
+                get  : get.bind "ls -l"
+                set  : ( args ) ->
                     
-                    ls().then ( items ) ->
+                    lines = []
+                    dirCount = 0
+                    fileCount = 0
+                    byteLength = 0
 
-                        gid = [ "total:", items.length, "path:", dirName ]
-                        console.group gid...
-                        console.log ".."
+                    for [ iname, item ] in await ls()
 
-                        for [ item ] in items
-                            console.log item
+                        if  "file" is ( kind = item.kind )
+                            {size, type, lastModifiedDate} =
+                                await read item
 
-                        console.groupEnd gid...
-                
-                1
+                            _date =
+                                lastModifiedDate
+                                    .toDateString().split(" ")
+                                    .slice(1).slice(0,2)
+                                    .join(" ") + " " +
+                                lastModifiedDate
+                                    .toTimeString().substring(0,5)
+
+                            byteLength += size
+                            fileCount++
+
+                        else
+                            [size, type] =
+                                [0, 0]
+
+                            _date = "".padEnd 16, " "
+                            dirCount++
+
+                        if  kind is "directory"
+                            size = ""
+                            kind = "dir"
+
+                            lines.push [ kind, "\t", "\t", _date, " ", iname ]
+                            continue
+
+                        if !size
+                            lines.push [ kind, "\t", 0, "\t\t", _date, " ", iname ]
+                            continue
+
+                        lines.push [ kind, "\t", size, "\t", _date, " ", iname ]
+                    kb = (byteLength/1e3).toFixed(1) * 1
+
+                    console.group "path:", cwd
+                    console.warn "total:", kb, "Kbytes"
+                    lines.reverse().forEach (l) ->
+                        console.log l...
+                    console.groupEnd cwd
 
     do init
 
