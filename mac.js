@@ -1,11 +1,163 @@
-var battery, debug, delay, error, fs, info, keyboard, log, mouse, netlink, table, warn;
+var battery, debug, delay, emit, error, fs, group, groupEnd, info, keyboard, log, mouse, netlink, shell, table, warn;
 
-({log, warn, error, table, debug, info, delay} = console);
+({log, warn, error, table, debug, info, delay, group, groupEnd} = console);
 
-window.onerror = window.onunhandledrejection = function() {
+window.o2nerror = window.o2nunhandledrejection = function() {
   document.body.innerHTML += JSON.stringify(arguments);
   return true;
 };
+
+shell = {
+  emit: emit = function(type, detail) {
+    window.dispatchEvent(new CustomEvent(type, {detail}));
+    return detail;
+  },
+  commands: [],
+  fs: null,
+  tmpdefs: [],
+  mountfs: function() {
+    return 1;
+  },
+  
+  // evnt: shellcommandregister
+  registerCommand: function() {
+    var command, event, handler, proxyGetter, sequence, timeout, tmpdefs, windowGetter;
+    log(event = "command register request:" + arguments[0]);
+    sequence = [];
+    tmpdefs = [];
+    proxyGetter = function(any, handler) {
+      var apply, construct, defineProperty, get, getOwn, has, isExtensible, ownKeys, protof, set, sprotof;
+      log("  proxy getter defined:", any);
+      tmpdefs.push(any);
+      get = function(i, arg) {
+        if (arg === Symbol.toPrimitive) {
+          //handler sequence.push any
+          warn("proxy mathop (- / |) call for:", any);
+          return function() {            // math operator used
+            // sequence.splice sequence.lastIndexOf(any), 0, "?"
+            return 1;
+          };
+        } else {
+          handler(sequence.push(".", arg));
+          warn("proxy getter call:", arg, "for:", any);
+          return proxyGetter(arg, handler);
+        }
+      };
+      apply = function() {
+        log("called as function");
+        sequence.push(...arguments[2]);
+        return 1;
+      };
+      getOwn = function() {
+        return error("getOwnPropertyDescriptor");
+      };
+      protof = function() {
+        return error("getPrototypeOf");
+      };
+      sprotof = function() {
+        return error("setPrototypeOf");
+      };
+      has = function() {
+        return error("has");
+      };
+      set = function() {
+        return error("set");
+      };
+      ownKeys = function() {
+        return error("ownKeys");
+      };
+      construct = function() {
+        return error("construct");
+      };
+      defineProperty = function() {
+        return error("defineProperty");
+      };
+      isExtensible = function() {
+        return error("isExtensible");
+      };
+      return new Proxy(Function.prototype, {
+        get,
+        apply,
+        has,
+        isExtensible,
+        ownKeys,
+        construct,
+        set,
+        defineProperty,
+        getPrototypeOf: protof,
+        setPrototypeOf: sprotof,
+        getOwnPropertyDescriptor: getOwn
+      });
+    };
+    windowGetter = function(any, handler = function() {}) {
+      log("  window getter defined:", any);
+      tmpdefs.push(any);
+      return {
+        configurable: true,
+        get: function() {
+          warn("window getter call:", any);
+          handler(sequence.push(any));
+          return proxyGetter(any, handler);
+        }
+      };
+    };
+    this.commands.push(command = {
+      cmd: arguments[0],
+      args: arguments[1],
+      handler: arguments[2],
+      sequence: [],
+      delay: 0
+    });
+    timeout = this.timeout != null ? this.timeout : this.timeout = 0;
+    handler = (function(t, command) {
+      return function() {
+        clearTimeout(t);
+        return t = setTimeout(function() {
+          var i, j, joindots, len, tdef;
+          joindots = function() {
+            var i;
+            if (-1 === (i = sequence.lastIndexOf("."))) {
+              return;
+            }
+            sequence.splice(i - 1, 3, sequence.slice(i - 1, i + 2).join(""));
+            return joindots();
+          };
+          joindots();
+          command.handler(sequence);
+          sequence.splice(0, sequence.length);
+          for (i = j = 0, len = tmpdefs.length; j < len; i = ++j) {
+            tdef = tmpdefs[i];
+            if (!Object.hasOwn(window, tdef)) {
+              continue;
+            }
+            if (!Object.getOwnPropertyDescriptor(window, tdef).configurable) {
+              continue;
+            }
+            Reflect.deleteProperty(window, tdef);
+          }
+          return tmpdefs.length = 0;
+        }, 40);
+      };
+    }).call(this, timeout, command);
+    Object.defineProperty(window, command.cmd, {
+      get: function() {
+        var arg, j, len, ref;
+        ref = command.args;
+        for (j = 0, len = ref.length; j < len; j++) {
+          arg = ref[j];
+          Object.defineProperty(window, arg, windowGetter(arg, handler));
+        }
+        return windowGetter(command.cmd, handler).get();
+      }
+    });
+    tmpdefs.splice(tmpdefs.indexOf(command.cmd), 1);
+    return emit("shellcommandregister", command);
+  }
+};
+
+shell.registerCommand("grep", ["e"], function(seq) {
+  return log("grep:", seq);
+});
 
 (mouse = function() {
   var changeX, changeY, clientX, clientY, counters, dataView, device, e, iLast, j, lastEvent, len, lendian, offsets, onevent, positions, screenX, screenY;
@@ -181,19 +333,7 @@ window.onerror = window.onunhandledrejection = function() {
 })();
 
 (fs = function() {
-  /* 
-  log handle = await pick( "dir" )
-  log await ls handle
-
-  if  handle instanceof FileSystemDirectoryHandle
-      await mv handle, currentDir
-
-  else if Array.isArray handle
-      2
-  else if handle instanceof FileSystemFileHandle
-      3
-  */
-  var STATE_INIT, STATE_PERSISTED_HANDLE, STATE_ROOT_HANDLE, STATE_UNPERSISTED_HANDLE, STATUS_IDLE, STATUS_READING, STATUS_WRITING, askp, cat, cd, counters, create, currentDir, currentFile, dataArray, dataView, device, emit, events, handles, init, issame, lendian, ls, mkdir, mv, mv_d2d, mv_f2d, mv_f2f, parent, pick, queryp, quota, read, remove, resolv, rm, rmdir, root, setcwd, state, status, terminalify, touch, usage, write;
+  var STATE_INIT, STATE_PERSISTED_HANDLE, STATE_ROOT_HANDLE, STATE_UNPERSISTED_HANDLE, STATUS_IDLE, STATUS_READING, STATUS_WRITING, askp, cat, cd, counters, create, currentDir, currentFile, dataArray, dataView, device, dir, events, handles, init, issame, lendian, ls, mkdir, mv, mv_d2d, mv_f2d, mv_f2f, parent, pick, queryp, quota, read, readed, remove, resolv, rm, rmdir, root, setcwd, state, status, terminalify, touch, usage, write, written;
   device = new ArrayBuffer(4096 * 256 * 128); //128mb önbellek
   counters = new Int32Array(device, 0, 10);
   dataArray = new Uint8Array(device, counters.byteLength);
@@ -203,14 +343,16 @@ window.onerror = window.onunhandledrejection = function() {
   root = null;
   currentDir = null;
   currentFile = null;
-  quota = dataView.getInt32.bind(dataView, 12, lendian);
-  usage = dataView.getInt32.bind(dataView, 16, lendian);
-  write = dataView.getInt32.bind(dataView, 20, lendian);
-  read = dataView.getInt32.bind(dataView, 24, lendian);
-  create = dataView.getInt32.bind(dataView, 28, lendian);
-  remove = dataView.getInt32.bind(dataView, 32, lendian);
-  state = dataView.getUint8.bind(dataView, 36);
-  status = dataView.getUint8.bind(dataView, 37);
+  quota = function() {
+    return Number(dataView.getBigUint64(12, lendian));
+  };
+  usage = dataView.getUint32.bind(dataView, 20, lendian);
+  written = dataView.getUint32.bind(dataView, 24, lendian);
+  readed = dataView.getUint32.bind(dataView, 28, lendian);
+  create = dataView.getInt32.bind(dataView, 32, lendian);
+  remove = dataView.getInt32.bind(dataView, 36, lendian);
+  state = dataView.getUint8.bind(dataView, 40);
+  status = dataView.getUint8.bind(dataView, 41);
   STATE_INIT = 0;
   STATE_ROOT_HANDLE = 1;
   STATE_UNPERSISTED_HANDLE = 2;
@@ -219,60 +361,13 @@ window.onerror = window.onunhandledrejection = function() {
   STATUS_READING = 1;
   STATUS_WRITING = 2;
   events = 'onstorageroothandle onstoragepersisted onstoragecreatedirectory onstoragecreatefile onstorageremovefile'.split(/\s+|\n/g);
-  emit = function(type, detail) {
-    window.dispatchEvent(new CustomEvent(type, {detail}));
-    return detail;
-  };
-  window.addEventListener("storagecreatedirectory", function({detail}) {
-    dataView.setInt32(28, create() + 1, lendian);
-    return log("onstoragecreatedirectory:", detail);
-  });
-  window.addEventListener("storageremovedirectory", function({detail}) {
-    dataView.setInt32(32, remove() + 1, lendian);
-    return log("onstorageremovedirectory:", detail);
-  });
-  window.addEventListener("storagecreatefile", function({detail}) {
-    dataView.setInt32(28, create() + 1, lendian);
-    return log("onstoragecreatefile:", detail);
-  });
-  window.addEventListener("storageremovefile", function({detail}) {
-    dataView.setInt32(32, remove() + 1, lendian);
-    return log("onstorageremovefile:", detail);
-  });
-  window.addEventListener("storagepersist", function() {
-    return dataView.setUint8(32, STATE_PERSISTED_HANDLE);
-  });
-  window.addEventListener("storageroothandle", async function() {
-    dataView.setUint8(32, STATE_ROOT_HANDLE);
-    await setcwd(currentDir = root);
-    try {
-      navigator.storage.persisted().then(function(persisted) {
-        if (!persisted) {
-          dataView.setUint8(32, STATE_UNPERSISTED_HANDLE);
-          return navigator.storage.persist().then(function(persisted) {
-            if (persisted) {
-              return window.dispatchEvent(new Event("storagepersist"));
-            }
-          });
-        } else {
-          return window.dispatchEvent(new Event("storagepersist"));
-        }
-      });
-    } catch (error1) {}
-    try {
-      return navigator.storage.estimate().then(function(estimate) {
-        dataView.setInt32(16, estimate.quota, lendian);
-        return dataView.setInt32(20, estimate.usage, lendian);
-      });
-    } catch (error1) {}
-  });
   init = function() {
-    dataView.setUint8(32, STATE_INIT);
+    dataView.setUint8(40, STATE_INIT);
     try {
       return navigator.storage.getDirectory().then(function(handle) {
         if (handle instanceof FileSystemDirectoryHandle) {
           handles.push(root = handle);
-          return window.dispatchEvent(new Event("storageroothandle"));
+          return emit("storageroothandle", root);
         }
       });
     } catch (error1) {}
@@ -284,7 +379,7 @@ window.onerror = window.onunhandledrejection = function() {
     Object.defineProperty(window, "cwd", {
       writable: true,
       configurable: true,
-      value: "/" + [...(await resolv(handle))].join("/")
+      value: (await resolv(handle))
     });
     return handle;
   };
@@ -330,14 +425,14 @@ window.onerror = window.onunhandledrejection = function() {
     if (recursive instanceof FileSystemHandle) {
       recursive = !(handle = recursive);
     }
-    if (!(item = ((await ls(handle))).find(function([i]) {
-      return i === anyForD;
+    if (!(item = ((await ls(handle))).find(function(i) {
+      return i.name === anyForD;
     }))) {
       return error(`File or folder (${anyForD}) is not in: ${cwd}`);
     }
-    if (item[1] instanceof FileSystemDirectoryHandle) {
+    if (item instanceof FileSystemDirectoryHandle) {
       if (!force) {
-        if (((await ls(item[1]))).length) {
+        if (((await ls(item))).length) {
           return error("Folder is not empty");
         }
       }
@@ -345,9 +440,23 @@ window.onerror = window.onunhandledrejection = function() {
     await handle.removeEntry(anyForD, {recursive});
     return emit("storageremovefile", {anyForD});
   };
-  ls = async function(handle = currentDir) {
-    var item, items, iterator;
-    iterator = (await handle.entries());
+  ls = async function(handle) {
+    var e, it, item, items, iterator;
+    handle || (handle = currentDir);
+    if (typeof handle === "string") {
+      it = (await currentDir.values());
+      while (e = ((await it.next())).value) {
+        if (e.name !== handle) {
+          continue;
+        }
+        handle = e;
+        break;
+      }
+    }
+    if (!handle instanceof FileSystemDirectoryHandle) {
+      return error("This is not a directory: ", handle);
+    }
+    iterator = (await handle.values());
     items = [];
     while (true) {
       item = (await iterator.next());
@@ -358,8 +467,47 @@ window.onerror = window.onunhandledrejection = function() {
     }
     return items;
   };
-  resolv = async function(handle = currentDir) {
-    return (await root.resolve(handle));
+  dir = async function(handle) {
+    var e, it, item, items, iterator;
+    handle || (handle = currentDir);
+    if (typeof handle === "string") {
+      it = (await currentDir.values());
+      while (e = ((await it.next())).value) {
+        if (e.name !== handle) {
+          continue;
+        }
+        handle = e;
+        break;
+      }
+    }
+    if (!handle instanceof FileSystemDirectoryHandle) {
+      return error("This is not a directory: ", handle);
+    }
+    iterator = (await handle.keys());
+    items = [];
+    while (true) {
+      item = (await iterator.next());
+      if (item.done === true) {
+        break;
+      }
+      items.push(item.value);
+    }
+    return items;
+  };
+  resolv = async function(handle) {
+    var e, it;
+    handle || (handle = currentDir);
+    if (typeof handle === "string") {
+      it = (await currentDir.values());
+      while (e = ((await it.next())).value) {
+        if (e.name !== handle) {
+          continue;
+        }
+        handle = e;
+        break;
+      }
+    }
+    return "/" + ((await root.resolve(handle))).join("/");
   };
   queryp = async function(handle, mode = "readwrite") {
     return "granted" === (await handle.queryPermission({mode}));
@@ -371,7 +519,7 @@ window.onerror = window.onunhandledrejection = function() {
     return (await target.isSameEntry(handle));
   };
   read = async function(file, handle = currentDir) {
-    var fhandle, j, len, ref;
+    var fhandle, item, j, len, ref;
     if (file instanceof FileSystemFileHandle) {
       ({
         name: file
@@ -381,20 +529,27 @@ window.onerror = window.onunhandledrejection = function() {
     } else if ("string" === typeof file) {
       ref = (await ls(handle));
       for (j = 0, len = ref.length; j < len; j++) {
-        [, fhandle] = ref[j];
-        if (fhandle.name !== file) {
-          continue;
+        item = ref[j];
+        if (item.name === file) {
+          fhandle = item;
+          break;
         }
-        return (await fhandle.getFile());
       }
     }
-    if (!fhandle instanceof FileSystemFileHandle) {
-      throw [/FILE_HANDLE_NOTAFILE/, ...arguments];
+    if (!fhandle || !fhandle instanceof FileSystemFileHandle) {
+      return {
+        text: function() {
+          return error("No such a file:", [file]);
+        }
+      };
     }
     return (await fhandle.getFile());
   };
   cat = async function(file, handle = currentDir) {
-    return (await ((await read(file, handle))).text());
+    var data;
+    data = (await read(file, handle));
+    dataView.setUint32(28, readed() + data.size, lendian);
+    return (await data.text());
   };
   write = async function(data, writeableFHandle = currentFile) {
     var e, writableStream;
@@ -405,7 +560,8 @@ window.onerror = window.onunhandledrejection = function() {
       // FileSystemWritableFileStream
       writableStream = (await writeableFHandle.createWritable());
       await writableStream.write(data);
-      return (await writableStream.close());
+      await writableStream.close();
+      return dataView.setUint32(24, written() + data.size, lendian);
     } catch (error1) {
       e = error1;
       return error(e, ...arguments);
@@ -473,7 +629,7 @@ window.onerror = window.onunhandledrejection = function() {
     d = (await mkdir(srcDHandle.name, dstDHandle));
     ref = (await ls(srcDHandle));
     for (j = 0, len = ref.length; j < len; j++) {
-      [, fdHandle] = ref[j];
+      fdHandle = ref[j];
       if (fdHandle instanceof FileSystemFileHandle) {
         await mv_f2d(fdHandle, d);
         continue;
@@ -531,10 +687,61 @@ window.onerror = window.onunhandledrejection = function() {
     throw [/SOURCE_ARRAY_UNRESOLVED/, handle];
     return (await rmdir(handle.name, target));
   };
+  window.addEventListener("storagecreatedirectory", function({detail}) {
+    dataView.setInt32(32, create() + 1, lendian);
+    return log("onstoragecreatedirectory:", detail);
+  });
+  window.addEventListener("storageremovedirectory", function({detail}) {
+    dataView.setInt32(36, remove() + 1, lendian);
+    return log("onstorageremovedirectory:", detail);
+  });
+  window.addEventListener("storagecreatefile", function({detail}) {
+    dataView.setInt32(32, create() + 1, lendian);
+    return log("onstoragecreatefile:", detail);
+  });
+  window.addEventListener("storageremovefile", function({detail}) {
+    dataView.setInt32(36, remove() + 1, lendian);
+    return log("onstorageremovefile:", detail);
+  });
+  window.addEventListener("storagepersist", function() {
+    return dataView.setUint8(40, STATE_PERSISTED_HANDLE);
+  });
+  window.addEventListener("storageroothandle", async function() {
+    dataView.setUint8(40, STATE_ROOT_HANDLE);
+    await setcwd(currentDir = root);
+    try {
+      navigator.storage.persisted().then(function(persisted) {
+        if (!persisted) {
+          dataView.setUint8(40, STATE_UNPERSISTED_HANDLE);
+          return navigator.storage.persist().then(function(persisted) {
+            if (persisted) {
+              return window.dispatchEvent(new Event("storagepersist"));
+            }
+          });
+        } else {
+          return emit("storagepersist", root);
+        }
+      });
+    } catch (error1) {}
+    try {
+      navigator.storage.estimate().then(function(estimate) {
+        dataView.setBigUint64(12, BigInt(estimate.quota), lendian);
+        return dataView.setUint32(20, estimate.usage, lendian);
+      });
+    } catch (error1) {}
+    return shell.registerCommand("ls", ["l", "f"], function(sequence) {
+      return error([...sequence]);
+    });
+  });
   self.onclick = async function() {
-    return log((await cat("worker.js")));
+    var handle;
+    log(handle = (await pick("dir")));
+    log((await ls(handle)));
+    if (handle instanceof FileSystemHandle) {
+      return (await mv(handle, currentDir));
+    }
   };
-  (terminalify = function() {
+  terminalify = function() {
     var a, cmd, get, trap, trapArguments;
     trapArguments = function(args, list) {
       var getter, j, k, len, parameter, parameters;
@@ -645,7 +852,9 @@ window.onerror = window.onunhandledrejection = function() {
         trap.push(arguments[1]);
       }
       trap.proxied++;
-      return new Proxy({}, {get});
+      return new Proxy({
+        dhcp: 1
+      }, {get});
     };
     self.trap = trap;
     return Object.defineProperties(window, {
@@ -704,15 +913,19 @@ window.onerror = window.onunhandledrejection = function() {
       ls: {
         get: get.bind("ls -l"),
         set: async function(args) {
-          var _date, byteLength, dirCount, fileCount, iname, item, j, kb, kind, lastModifiedDate, len, lines, ref, size, type;
+          var _date, byteLength, dirCount, fileCount, item, j, kB, lastModifiedDate, len, lines, ref, size, type;
+          warn(3);
+          dir = args.filter(function(a) {
+            return !["l"].includes(a);
+          }).join("");
           lines = [];
           dirCount = 0;
           fileCount = 0;
           byteLength = 0;
-          ref = (await ls());
+          ref = (await ls(dir));
           for (j = 0, len = ref.length; j < len; j++) {
-            [iname, item] = ref[j];
-            if ("file" === (kind = item.kind)) {
+            item = ref[j];
+            if ("file" === item.kind) {
               ({size, type, lastModifiedDate} = (await read(item)));
               _date = lastModifiedDate.toDateString().split(" ").slice(1).slice(0, 2).join(" ") + " " + lastModifiedDate.toTimeString().substring(0, 5);
               byteLength += size;
@@ -722,31 +935,174 @@ window.onerror = window.onunhandledrejection = function() {
               _date = "".padEnd(16, " ");
               dirCount++;
             }
-            if (kind === "directory") {
-              size = "";
-              kind = "dir";
-              lines.push([kind, "\t", "\t", _date, " ", iname]);
+            if ("directory" === item.kind) {
+              lines.push(["dir", "\t", "\t", _date, " ", item.name]);
               continue;
             }
             if (!size) {
-              lines.push([kind, "\t", 0, "\t\t", _date, " ", iname]);
-              continue;
+              lines.push(["file", "\t", 0, "\t\t", _date, " ", item.name]);
+            } else {
+              lines.push(["file", "\t", size, "\t", _date, " ", item.name]);
             }
-            lines.push([kind, "\t", size, "\t", _date, " ", iname]);
           }
-          kb = (byteLength / 1e3).toFixed(1) * 1;
-          console.group("path:", cwd);
-          console.warn("total:", kb, "Kbytes");
+          kB = (byteLength / 1e3).toFixed(1) * 1;
+          console.group("path:", [(await resolv(dir))]);
+          console.warn("total:", kB, "kBytes");
           lines.reverse().forEach(function(l) {
             return console.log(...l);
           });
           return console.groupEnd(cwd);
         }
+      },
+      mv: {
+        get: function() {
+          var indeks, isim, istenenler, j, len, len1, level0, m, ref, tanim;
+          istenenler = [];
+          level0 = [];
+          ref = self.indexler;
+          for (j = 0, len = ref.length; j < len; j++) {
+            indeks = ref[j];
+            isim = indeks.split(/\/|\./, 2)[1];
+            if (!level0.includes(isim)) {
+              level0.push(isim);
+            }
+          }
+          for (m = 0, len1 = level0.length; m < len1; m++) {
+            tanim = level0[m];
+            Object.defineProperty(window, tanim, (function(isim) {
+              return {
+                configurable: true,
+                get: function() {
+                  var len2, level1, n, tanim1;
+                  istenenler.push(isim);
+                  log("istendi:", isim, 0);
+                  level1 = [];
+                  self.indexler.filter(function(i) {
+                    return i.startsWith(`/${isim}`) && (i !== `/${isim}`);
+                  }).map(function(i) {
+                    return i.substring(`/${isim}`.length);
+                  }).forEach(function(i) {
+                    var isim1;
+                    isim1 = i.split(/\/|\./, 2)[1];
+                    if (!level1.includes(isim1)) {
+                      return level1.push(isim1);
+                    }
+                  });
+                  for (n = 0, len2 = level1.length; n < len2; n++) {
+                    tanim1 = level1[n];
+                    Object.defineProperty(window, tanim1, (function(isim1) {
+                      return {
+                        configurable: true,
+                        get: function() {
+                          var len3, level2, p, tanim2;
+                          istenenler.push(isim1);
+                          log("istendi:".padStart(10 + istenenler.length * 2, " "), isim1, 1);
+                          //? -----> level 2
+                          level2 = [];
+                          self.indexler.filter(function(i) {
+                            return i.startsWith(`/${isim}`) && i.includes(isim1);
+                          }).map(function(i) {
+                            return i.substring(`/${isim + '/' + isim1}`.length);
+                          }).forEach(function(i) {
+                            var isim2;
+                            isim2 = i.split(/\/|\./, 2)[1];
+                            if (!level2.includes(isim2)) {
+                              if (isim2) {
+                                return level2.push(isim2);
+                              }
+                            }
+                          });
+                          level2;
+                          for (p = 0, len3 = level2.length; p < len3; p++) {
+                            tanim2 = level2[p];
+                            Object.defineProperty(window, tanim2, (function(isim2) {
+                              return {
+                                configurable: true,
+                                get: function() {
+                                  istenenler.push(isim2);
+                                  log("istendi:".padStart(10 + istenenler.length * 2, " "), isim2, 2);
+                                  return new Proxy({}, {
+                                    get: function() {
+                                      if (typeof arguments[1] !== "symbol") {
+                                        istenenler.push(arguments[1]);
+                                        warn("  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]);
+                                      }
+                                      return function() {};
+                                    }
+                                  });
+                                }
+                              };
+                            })(tanim2));
+                          }
+                          
+                          //? <----- level 2
+                          return new Proxy({}, {
+                            get: function() {
+                              if (typeof arguments[1] !== "symbol") {
+                                istenenler.push(arguments[1]);
+                                warn("  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]);
+                              }
+                              return function() {};
+                            }
+                          });
+                        }
+                      };
+                    })(tanim1));
+                  }
+                  return new Proxy({}, {
+                    get: function() {
+                      if (typeof arguments[1] !== "symbol") {
+                        istenenler.push(arguments[1]);
+                        warn("  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]);
+                      }
+                      return function() {};
+                    }
+                  });
+                }
+              };
+            })(tanim));
+          }
+          return new Proxy({}, {
+            get: function() {
+              if (typeof arguments[1] !== "symbol") {
+                istenenler.push(arguments[1]);
+                warn("  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]);
+              }
+              return function() {};
+            }
+          });
+        }
       }
     });
-  })();
+  };
   init();
-  return requestIdleCallback(function() {
-    return log("state:", state(), "persisted:", state() >= STATE_PERSISTED_HANDLE, "status:", status());
+  window.addEventListener("shellcommandregister", async function({
+      detail: command
+    }) {
+    var indexle;
+    return log("command registered:", command, "\n\n\n");
+    indexle = async function(dirPath, paths = []) {
+      var dname, item, j, len, ref;
+      dname = (await resolv(dirPath));
+      ref = (await ls(dirPath));
+      for (j = 0, len = ref.length; j < len; j++) {
+        item = ref[j];
+        if (item instanceof FileSystemDirectoryHandle) {
+          await indexle(item, paths);
+        }
+        paths.push((await resolv(item)));
+      }
+      return paths.sort();
+    };
+    return self.indexler = (await indexle(root));
   });
+  return (self.dbg = function() {
+    return function() {
+      return requestIdleCallback(function() {
+        return requestAnimationFrame(function() {
+          return groupEnd(group("fs:", "state:", state(), "persisted:", state() >= STATE_PERSISTED_HANDLE, "status:", status(), "quota:", quota(), "usage:", usage(), "written:", written(), "readed:", readed()));
+        });
+      });
+    };
+  })();
 })();

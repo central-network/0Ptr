@@ -1,9 +1,144 @@
-{log,warn,error,table,debug,info,delay} = console
+{log,warn,error,table,debug,info,delay,group,groupEnd} = console
 
-window.onerror =
-window.onunhandledrejection = ->
+window.o2nerror =
+window.o2nunhandledrejection = ->
     document.body.innerHTML += JSON.stringify arguments
     true
+
+shell =
+    emit            : emit = ( type, detail ) ->
+        window.dispatchEvent new CustomEvent type, { detail }; detail
+
+    commands        : []
+
+    fs              : null
+
+    tmpdefs         : []
+
+    mountfs         : ->
+        1
+    
+    # evnt: shellcommandregister
+    registerCommand : ->
+        log event = "command register request:" + arguments[0]
+
+        sequence = []
+        tmpdefs = []
+
+        proxyGetter  = ( any, handler ) ->
+            log "  proxy getter defined:", any
+            tmpdefs.push any
+
+            get         = ( i, arg ) ->
+
+                if  arg is Symbol.toPrimitive
+                    #handler sequence.push any
+                    warn "proxy mathop (- / |) call for:", any
+
+                    # math operator used
+                    # sequence.splice sequence.lastIndexOf(any), 0, "?"
+                    return -> 1
+
+                else
+                    handler sequence.push ".", arg
+
+                    warn "proxy getter call:", arg, "for:", any
+                    return proxyGetter arg, handler
+                    
+            apply       = ->
+                log "called as function"
+                sequence.push arguments[2]...
+                1
+
+            getOwn      = -> error "getOwnPropertyDescriptor"
+            protof      = -> error "getPrototypeOf"
+            sprotof     = -> error "setPrototypeOf"
+            has         = -> error "has"
+            set         = -> error "set"
+            ownKeys     = -> error "ownKeys"
+            construct   = -> error "construct"
+            defineProperty = -> error "defineProperty"
+            isExtensible = -> error "isExtensible"
+
+            new Proxy Function::, { 
+                get, apply, has, isExtensible,
+                ownKeys, construct, set,
+                defineProperty,
+                getPrototypeOf : protof
+                setPrototypeOf : sprotof
+                getOwnPropertyDescriptor: getOwn
+            }
+
+        windowGetter = ( any, handler = -> ) ->
+            log "  window getter defined:", any
+            tmpdefs.push any
+
+            configurable : on, get : ->
+                warn "window getter call:", any
+                handler sequence.push any
+                proxyGetter any, handler
+
+        @commands.push command = {
+            cmd : arguments[0]
+            args : arguments[1]
+            handler : arguments[2]
+            sequence : []
+            delay : 0
+        }
+
+        timeout = @timeout ?= 0
+        handler = ( ( t, command ) -> ->
+
+            clearTimeout t
+            
+            t = setTimeout ->
+                joindots = ->
+
+                    if  -1 is i = sequence.lastIndexOf "."
+                        return
+                    
+                    sequence.splice( i-1, 3,
+                        sequence.slice( i-1, i+2 ).join("")
+                    )
+
+                    do joindots
+                joindots()
+
+                command.handler sequence
+                sequence.splice 0, sequence.length
+
+                for tdef, i in tmpdefs
+                    continue unless Object.hasOwn window, tdef
+                    continue unless Object.getOwnPropertyDescriptor(
+                        window, tdef
+                    ).configurable
+                    Reflect.deleteProperty window, tdef
+
+                tmpdefs.length = 0
+
+
+            , 40
+
+        ).call( this, timeout, command )
+
+        Object.defineProperty( window, command.cmd, {
+            get : ->
+                for arg in command.args
+                    Object.defineProperty( window, arg,
+                        windowGetter arg, handler
+                    )
+
+                windowGetter( command.cmd, handler ).get()
+        })
+
+        tmpdefs.splice(
+            tmpdefs.indexOf( command.cmd ), 1
+        )
+        
+        emit "shellcommandregister", command
+
+shell.registerCommand "grep", [ "e" ], ( seq ) ->
+    log "grep:", seq
 
 do  mouse = ->
     device      = new ArrayBuffer 64
@@ -226,15 +361,16 @@ do  fs = ->
     currentDir  = null
     currentFile = null
 
-    quota       = dataView.getInt32.bind dataView, 12, lendian
-    usage       = dataView.getInt32.bind dataView, 16, lendian
-    write       = dataView.getInt32.bind dataView, 20, lendian
-    read        = dataView.getInt32.bind dataView, 24, lendian
-    create      = dataView.getInt32.bind dataView, 28, lendian
-    remove      = dataView.getInt32.bind dataView, 32, lendian
+    quota       = ->
+        Number dataView.getBigUint64 12, lendian
+    usage       = dataView.getUint32.bind dataView, 20, lendian
+    written     = dataView.getUint32.bind dataView, 24, lendian
+    readed      = dataView.getUint32.bind dataView, 28, lendian
+    create      = dataView.getInt32.bind  dataView, 32, lendian
+    remove      = dataView.getInt32.bind  dataView, 36, lendian
 
-    state       = dataView.getUint8.bind dataView, 36
-    status      = dataView.getUint8.bind dataView, 37
+    state       = dataView.getUint8.bind dataView, 40
+    status      = dataView.getUint8.bind dataView, 41
 
     STATE_INIT               = 0
     STATE_ROOT_HANDLE        = 1
@@ -253,65 +389,22 @@ do  fs = ->
     onstorageremovefile
     '.split( /\s+|\n/g )
 
-    emit = ( type, detail ) ->
-        window.dispatchEvent new CustomEvent type, { detail }; detail
-
-    window.addEventListener "storagecreatedirectory", ({ detail }) ->
-        dataView.setInt32 28, create()+1, lendian
-        log "onstoragecreatedirectory:", detail
-
-    window.addEventListener "storageremovedirectory", ({ detail }) ->
-        dataView.setInt32 32, remove()+1, lendian
-        log "onstorageremovedirectory:", detail
-
-    window.addEventListener "storagecreatefile", ({ detail }) ->
-        dataView.setInt32 28, create()+1, lendian
-        log "onstoragecreatefile:", detail
-
-    window.addEventListener "storageremovefile", ({ detail }) ->
-        dataView.setInt32 32, remove()+1, lendian
-        log "onstorageremovefile:", detail
-
-    window.addEventListener "storagepersist", ->
-        dataView.setUint8 32, STATE_PERSISTED_HANDLE
-        
-    window.addEventListener "storageroothandle", ->
-        dataView.setUint8 32, STATE_ROOT_HANDLE
-        await setcwd currentDir = root
-
-        try navigator.storage.persisted().then ( persisted ) ->
-
-            if !persisted
-                dataView.setUint8 32, STATE_UNPERSISTED_HANDLE
-                navigator.storage.persist().then ( persisted ) ->
-                    if  persisted then window.dispatchEvent(
-                        new Event "storagepersist"
-                    )
-            else
-                window.dispatchEvent new Event "storagepersist"
-
-        try navigator.storage.estimate().then ( estimate ) ->
-            dataView.setInt32 16, estimate.quota, lendian
-            dataView.setInt32 20, estimate.usage, lendian            
-
     init = ->
-        dataView.setUint8 32, STATE_INIT
+        dataView.setUint8 40, STATE_INIT
         try navigator.storage.getDirectory().then ( handle ) ->
             if  handle instanceof FileSystemDirectoryHandle
                 handles.push( root = handle )
-                window.dispatchEvent new Event "storageroothandle"
+                emit "storageroothandle", root
 
     cd      = ( dirName, handle = currentDir ) ->
         await setcwd currentDir =
             await handle.getDirectoryHandle dirName
 
-    setcwd = ( handle = currentDir ) ->
+    setcwd  = ( handle = currentDir ) ->
         Object.defineProperty window, "cwd",
             writable: on
             configurable: on
-            value : "/" + [ 
-                ...await resolv handle
-            ].join "/"
+            value : await resolv handle
         handle
 
     mkdir   = ( dirName, handle = currentDir ) ->
@@ -352,28 +445,71 @@ do  fs = ->
         if  recursive instanceof FileSystemHandle
             recursive = !( handle = recursive )
 
-        if !item = ( await ls handle ).find ([i]) -> i is anyForD
+        if !item = ( await ls handle ).find (i) -> i.name is anyForD
             return error "File or folder (#{anyForD}) is not in: #{cwd}"
 
-        if  item[1] instanceof FileSystemDirectoryHandle
-            if !force then if ( await ls item[1] ).length
+        if  item instanceof FileSystemDirectoryHandle
+            if !force then if ( await ls item ).length
                 return error "Folder is not empty"
 
         await handle.removeEntry( anyForD, { recursive } )
 
         emit "storageremovefile", { anyForD }
 
-    ls      = ( handle = currentDir ) ->
-        iterator = await handle.entries()
+    ls      = ( handle ) ->
+        handle ||= currentDir
+
+        if  typeof handle is "string"
+            it = await currentDir.values()
+            while e = (await it.next()).value
+                continue if e.name isnt handle
+                handle = e ; break
+
+        if !handle instanceof FileSystemDirectoryHandle
+            return error "This is not a directory: ", handle
+
+        iterator = await handle.values()
         items = []
+        
+        loop
+            item = await iterator.next()
+            break if item.done is true
+            items.push item.value
+        items
+    
+    dir     = ( handle ) ->
+        handle ||= currentDir
+
+        if  typeof handle is "string"
+            it = await currentDir.values()
+            while e = (await it.next()).value
+                continue if e.name isnt handle
+                handle = e ; break
+
+        if !handle instanceof FileSystemDirectoryHandle
+            return error "This is not a directory: ", handle
+
+        iterator = await handle.keys()
+        items = []
+        
         loop
             item = await iterator.next()
             break if item.done is true
             items.push item.value
         items
 
-    resolv  = ( handle = currentDir ) ->
-        await root.resolve handle
+    resolv  = ( handle ) ->
+        handle ||= currentDir 
+
+        if  typeof handle is "string"
+            it = await currentDir.values()
+            while e = (await it.next()).value
+                continue if e.name isnt handle
+                handle = e ; break
+
+        return "/" + (
+            await root.resolve handle
+        ).join "/"
 
     queryp  = ( handle, mode = "readwrite" ) ->
         "granted" is await handle.queryPermission { mode }
@@ -392,17 +528,24 @@ do  fs = ->
             [ file , fhandle ] = ( file )
 
         else if "string" is typeof file
-            for [ , fhandle ] in await ls handle
-                continue if fhandle.name isnt file
-                return await fhandle.getFile()
+            for item in await ls handle
+                if  item.name is file
+                    fhandle = item
+                    break
 
-        if !fhandle instanceof FileSystemFileHandle
-            throw [ /FILE_HANDLE_NOTAFILE/, arguments... ]
+        if !fhandle or !fhandle instanceof FileSystemFileHandle
+            return text : -> error "No such a file:", [ file ]
             
         await fhandle.getFile()
 
     cat     = ( file, handle = currentDir ) ->
-        await ( await read file, handle ).text()
+        data = await read file, handle
+
+        dataView.setUint32( 28,
+            readed() + data.size, lendian
+        )
+
+        await data.text()
 
     write   = ( data, writeableFHandle = currentFile ) ->
         if  data instanceof FileSystemFileHandle
@@ -412,8 +555,13 @@ do  fs = ->
             writableStream =
                 # FileSystemWritableFileStream
                 await writeableFHandle.createWritable()
+
             await writableStream.write data
             await writableStream.close()
+
+            dataView.setUint32(
+                24, written() + data.size, lendian
+            )
 
         catch e then error e, arguments...
         finally return writeableFHandle
@@ -473,7 +621,7 @@ do  fs = ->
 
         d = await mkdir srcDHandle.name, dstDHandle
 
-        for [ , fdHandle ] in await ls srcDHandle
+        for fdHandle in await ls srcDHandle
 
             if  fdHandle instanceof FileSystemFileHandle
                 await mv_f2d fdHandle, d
@@ -529,25 +677,57 @@ do  fs = ->
         await rmdir handle.name, target
 
 
-    self.onclick = ->
-        log await cat "worker.coffee"
+    window.addEventListener "storagecreatedirectory", ({ detail }) ->
+        dataView.setInt32 32, create()+1, lendian
+        log "onstoragecreatedirectory:", detail
 
-        ### 
+    window.addEventListener "storageremovedirectory", ({ detail }) ->
+        dataView.setInt32 36, remove()+1, lendian
+        log "onstorageremovedirectory:", detail
+
+    window.addEventListener "storagecreatefile", ({ detail }) ->
+        dataView.setInt32 32, create()+1, lendian
+        log "onstoragecreatefile:", detail
+
+    window.addEventListener "storageremovefile", ({ detail }) ->
+        dataView.setInt32 36, remove()+1, lendian
+        log "onstorageremovefile:", detail
+
+    window.addEventListener "storagepersist", ->
+        dataView.setUint8 40, STATE_PERSISTED_HANDLE
+        
+    window.addEventListener "storageroothandle", ->
+        dataView.setUint8 40, STATE_ROOT_HANDLE
+        await setcwd currentDir = root
+
+        try navigator.storage.persisted().then ( persisted ) ->
+
+            if !persisted
+                dataView.setUint8 40, STATE_UNPERSISTED_HANDLE
+                navigator.storage.persist().then ( persisted ) ->
+                    if  persisted then window.dispatchEvent(
+                        new Event "storagepersist"
+                    )
+            else
+                emit "storagepersist", root
+
+        try navigator.storage.estimate().then ( estimate ) ->
+            dataView.setBigUint64 12, BigInt(estimate.quota), lendian
+            dataView.setUint32 20, estimate.usage, lendian    
+            
+        shell.registerCommand "ls", [ "l", "f" ], ( sequence ) ->
+            error [ ...sequence ]
+
+    self.onclick = ->
+
         log handle = await pick( "dir" )
         log await ls handle
 
-        if  handle instanceof FileSystemDirectoryHandle
+        if  handle instanceof FileSystemHandle
             await mv handle, currentDir
-
-        else if Array.isArray handle
-            2
-        else if handle instanceof FileSystemFileHandle
-            3
-        ### 
-
     
     
-    do terminalify = ->
+    terminalify = ->
 
         trapArguments = ( args, list ) ->
 
@@ -647,7 +827,9 @@ do  fs = ->
                 trap.push arguments[1]
 
             trap.proxied++
-            new Proxy {}, { get }
+            new Proxy {
+                dhcp : 1
+            }, { get }
 
         self.trap = trap
 
@@ -701,15 +883,21 @@ do  fs = ->
             ls  : 
                 get  : get.bind "ls -l"
                 set  : ( args ) ->
+
+                    warn 3
+
+                    dir = args.filter(
+                        (a) -> !["l"].includes a
+                    ).join ""
                     
                     lines = []
                     dirCount = 0
                     fileCount = 0
                     byteLength = 0
 
-                    for [ iname, item ] in await ls()
+                    for item in await ls dir
 
-                        if  "file" is ( kind = item.kind )
+                        if  "file" is item.kind
                             {size, type, lastModifiedDate} =
                                 await read item
 
@@ -725,37 +913,140 @@ do  fs = ->
                             fileCount++
 
                         else
-                            [size, type] =
-                                [0, 0]
-
+                            [size, type] = [0, 0]
                             _date = "".padEnd 16, " "
                             dirCount++
 
-                        if  kind is "directory"
-                            size = ""
-                            kind = "dir"
-
-                            lines.push [ kind, "\t", "\t", _date, " ", iname ]
+                        if  "directory" is item.kind
+                            lines.push [ "dir", "\t", "\t", _date, " ", item.name ]
                             continue
 
                         if !size
-                            lines.push [ kind, "\t", 0, "\t\t", _date, " ", iname ]
-                            continue
+                            lines.push [ "file", "\t", 0, "\t\t", _date, " ", item.name ]
+                        else
+                            lines.push [ "file", "\t", size, "\t", _date, " ", item.name ]
 
-                        lines.push [ kind, "\t", size, "\t", _date, " ", iname ]
-                    kb = (byteLength/1e3).toFixed(1) * 1
+                    kB = (byteLength/1e3).toFixed(1) * 1
 
-                    console.group "path:", cwd
-                    console.warn "total:", kb, "Kbytes"
+                    console.group "path:", [ await resolv dir ]
+                    console.warn "total:", kB, "kBytes"
                     lines.reverse().forEach (l) ->
                         console.log l...
                     console.groupEnd cwd
 
+            mv : 
+                get : ->
+                    istenenler = []
+                    level0 = []
+
+                    for indeks in self.indexler
+                        isim = indeks.split( /\/|\./, 2 )[1]
+                        if !level0.includes isim
+                            level0.push isim
+
+                    for tanim in level0
+                        Object.defineProperty( window, tanim, ( (isim)->
+                            configurable : on
+                            get : ->
+                                istenenler.push isim
+                                log "istendi:", isim, 0
+
+                                level1 = []
+                                self.indexler
+                                    .filter( (i) -> i.startsWith("/#{isim}") and (i isnt "/#{isim}"))
+                                    .map( (i) -> i.substring( "/#{isim}".length ))
+                                    .forEach (i) ->
+                                        isim1 = i.split( /\/|\./, 2 )[1]
+                                        if !level1.includes isim1
+                                            level1.push isim1
+        
+
+                                for tanim1 in level1
+                                    Object.defineProperty( window, tanim1, ( (isim1)->
+                                        configurable : on
+                                        get : ->
+                                            istenenler.push isim1
+                                            log "istendi:".padStart(10 + istenenler.length * 2, " "), isim1, 1
+
+
+                                            #? -----> level 2
+
+                                            level2 = []
+                                            self.indexler
+                                                .filter( (i) -> i.startsWith("/#{isim}") and i.includes(isim1) )
+                                                .map( (i) -> i.substring( "/#{isim + '/' + isim1}".length ) )
+                                                .forEach (i) ->
+                                                    isim2 = i.split( /\/|\./, 2 )[1]
+                                                    if !level2.includes isim2
+                                                        level2.push isim2 if isim2
+                    
+                                                level2
+            
+                                            for tanim2 in level2
+                                                Object.defineProperty( window, tanim2, ( (isim2)->
+                                                    configurable : on
+                                                    get : ->
+                                                        istenenler.push isim2
+                                                        log "istendi:".padStart(10 + istenenler.length * 2, " "), isim2, 2
+                                                        new Proxy {}, get : ->
+                                                            if typeof arguments[1] isnt "symbol"
+                                                                istenenler.push arguments[1]
+                                                                warn "  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]; 
+                                                            ->
+                                                )( tanim2 ))
+            
+
+                                            #? <----- level 2
+
+
+                                            new Proxy {}, get : ->
+                                                if typeof arguments[1] isnt "symbol"
+                                                    istenenler.push arguments[1]
+                                                    warn "  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]; 
+                                                ->
+
+                                    )( tanim1 ))
+
+
+                                new Proxy {}, get : ->
+                                    if typeof arguments[1] isnt "symbol"
+                                        istenenler.push arguments[1]
+                                        warn "  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]; 
+                                    ->
+
+                        )( tanim ))
+
+                    new Proxy {}, get : ->
+                        if typeof arguments[1] isnt "symbol"
+                            istenenler.push arguments[1]
+                            warn "  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]; 
+                        -> 
+
+
     do init
 
-    requestIdleCallback ->
-        log(
-            "state:", state()
-            "persisted:", state() >= STATE_PERSISTED_HANDLE
-            "status:", status()
-        )
+    window.addEventListener "shellcommandregister", ({ detail: command }) ->
+        return log "command registered:", command, "\n\n\n"
+
+        indexle = ( dirPath, paths = [] ) ->
+            dname = await resolv dirPath
+
+            for item in await ls dirPath
+                if  item instanceof FileSystemDirectoryHandle
+                    await indexle item, paths
+                paths.push await resolv item
+            paths.sort()
+
+        self.indexler = await indexle root
+
+    do self.dbg = -> -> 
+        requestIdleCallback -> requestAnimationFrame ->
+            groupEnd group(
+                "fs:", "state:", state(),
+                "persisted:", state() >= STATE_PERSISTED_HANDLE,
+                "status:", status(),
+                "quota:", quota(),
+                "usage:", usage(),
+                "written:", written(),
+                "readed:", readed()
+            )
