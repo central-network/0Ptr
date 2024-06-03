@@ -1,354 +1,433 @@
-{log,warn,error,table,debug,info,delay,group,groupEnd} = console
+do ->
+    {Reflect, Object, Float32Array, Int32Array, DataView, Uint32Array, ArrayBuffer,
+    Uint16Array, Uint32Array, dispatchEvent, addEventListener, Event, CustomEvent,
+    JSON, setTimeout, clearTimeout, requestIdleCallback, requestAnimationFrame,
+    navigator, Proxy, Function, __proto__, FileSystemDirectoryHandle, Symbol, console,
+    showDirectoryPicker, showOpenFilePicker, showSaveFilePicker, RegExp,
+    Array, Number, String, Boolean, Math, Uint8ClampedArray, Int8Array, Uint8Array,
+    Int16Array, Float64Array, BigInt64Array, BigUint64Array, Atomics,
+    BigInt, FileSystemFileHandle, FileSystemHandle, parseInt, parseFloat} = window
 
-window.o2nerror =
-window.o2nunhandledrejection = ->
-    document.body.innerHTML += JSON.stringify arguments
-    true
+    {log,warn,error,table,debug,info,delay,group,groupEnd} = console
 
-shell =
-    emit            : emit = ( type, detail ) ->
-        window.dispatchEvent new CustomEvent type, { detail }; detail
 
-    commands        : []
+    window.on2error =
+    window.on2unhandledrejection = ->
+        #document.body.innerHTML += JSON.stringify arguments
+        #error arguments...
+        true
 
-    fs              : null
+    shell =
+        emit            : emit = ( type, detail ) ->
+            window.dispatchEvent new CustomEvent type, { detail }; detail
 
-    tmpdefs         : []
+        commands        : []
 
-    mountfs         : ->
-        1
-    
-    # evnt: shellcommandregister
-    registerCommand : ->
-        log event = "command register request:" + arguments[0]
+        fs              : null
 
-        sequence = []
-        tmpdefs = []
+        tmpdefs         : []
 
-        proxyGetter  = ( any, handler ) ->
-            log "  proxy getter defined:", any
-            tmpdefs.push any
+        fsindex         : []
 
-            get         = ( i, arg ) ->
+        registerStorage : ( fsroot ) ->
+            @fsroot = fsroot
 
-                if  arg is Symbol.toPrimitive
-                    #handler sequence.push any
-                    warn "proxy mathop (- / |) call for:", any
+        # evnt: shellcommandregister
+        registerCommand : ->
+            log event = "command register request:" + arguments[0]
 
-                    # math operator used
-                    # sequence.splice sequence.lastIndexOf(any), 0, "?"
-                    return -> 1
 
-                else
-                    handler sequence.push ".", arg
+            tmpdefs = []
+            sequence = []
 
-                    warn "proxy getter call:", arg, "for:", any
-                    return proxyGetter arg, handler
-                    
-            apply       = ->
-                log "called as function"
-                sequence.push arguments[2]...
-                1
+            get  = ( any ) ->
+                log "  proxy getter defined:", any
+                tmpdefs.push any
 
-            getOwn      = -> error "getOwnPropertyDescriptor"
-            protof      = -> error "getPrototypeOf"
-            sprotof     = -> error "setPrototypeOf"
-            has         = -> error "has"
-            set         = -> error "set"
-            ownKeys     = -> error "ownKeys"
-            construct   = -> error "construct"
-            defineProperty = -> error "defineProperty"
-            isExtensible = -> error "isExtensible"
+                get         = ( i, arg ) ->
 
-            new Proxy Function::, { 
-                get, apply, has, isExtensible,
-                ownKeys, construct, set,
-                defineProperty,
-                getPrototypeOf : protof
-                setPrototypeOf : sprotof
-                getOwnPropertyDescriptor: getOwn
+                    if  arg is Symbol.toPrimitive
+                        #handler sequence.push any
+                        warn "proxy mathop (- / |) call for:", any
+
+                        # math operator used
+                        # sequence.splice sequence.lastIndexOf(any), 0, "?"
+                        return -> 1
+
+                    else
+                        sequence.push ".", arg
+
+                        warn "proxy getter call:", arg, "for:", any
+                        return get arg
+                        
+                apply       = ->
+                    log "called as function"
+                    sequence.push arguments[2]...
+                    1
+
+                getOwn      = -> error "getOwnPropertyDescriptor"
+                protof      = -> error "getPrototypeOf"
+                sprotof     = -> error "setPrototypeOf"
+                has         = -> error "has"
+                set         = -> error "set"
+                ownKeys     = -> error "ownKeys"
+                construct   = -> error "construct"
+                defineProperty = -> error "defineProperty"
+                isExtensible = -> error "isExtensible"
+
+                new Proxy Function::, { 
+                    get, apply, has, isExtensible,
+                    ownKeys, construct, set,
+                    defineProperty,
+                    getPrototypeOf : protof
+                    setPrototypeOf : sprotof
+                    getOwnPropertyDescriptor: getOwn
+                }
+
+            @commands.push command = {
+                cmd : arguments[0]
+                args : arguments[1]
+                handler : arguments[2]
+                sequence : []
+                delay : 0
             }
 
-        windowGetter = ( any, handler = -> ) ->
-            log "  window getter defined:", any
-            tmpdefs.push any
+            timeout = @timeout ?= 0
+            handler = ( ( t, command ) -> ->
+                clearTimeout t
+                
+                t = setTimeout ->
+                    joindots = ->
 
-            configurable : on, get : ->
-                warn "window getter call:", any
-                handler sequence.push any
-                proxyGetter any, handler
+                        if  -1 is i = sequence.lastIndexOf "."
+                            return
+                        
+                        sequence.splice( i-1, 3,
+                            sequence.slice( i-1, i+2 ).join("")
+                        )
 
-        @commands.push command = {
-            cmd : arguments[0]
-            args : arguments[1]
-            handler : arguments[2]
-            sequence : []
-            delay : 0
-        }
+                        do joindots
+                    joindots()
 
-        timeout = @timeout ?= 0
-        handler = ( ( t, command ) -> ->
+                    command.handler sequence
+                    sequence.splice 0, sequence.length
 
-            clearTimeout t
+                    for tdef, i in tmpdefs
+                        continue unless Object.hasOwn window, tdef
+                        continue unless Object.getOwnPropertyDescriptor(
+                            window, tdef
+                        ).configurable
+                        Reflect.deleteProperty window, tdef
+
+                    tmpdefs.length = 0
+
+                , 40
+            )( timeout, command )
+
+            fsindex = @fsindex 
+            defined = []
+            Object.defineProperty __proto__, command.cmd, get : ->
+
+                warn "cmd exec", command.cmd
+                warn "fsindex", fsindex 
+
+                len = fsindex.length-1
+                i = 1
+
+                while i++ < len
+                    log fsindex[i]
+
+                    if  defined.includes fsindex[i]
+                        continue
+
+                    defined.push fsindex[i]
+
+                    for dirpart in fsindex[i].split "/"
+
+                        words = dirpart.split( "." ).filter Boolean
+
+                        pxy = null
+                        for dword, di in words then switch true
+                            when di is 0
+                                if !Object.hasOwn window, dword
+                                    pxy = Object.defineProperty( window, dword, get : ( (dirpart, words, di) ->
+                                        if !word = words[di+1]
+                                            return error "chain done:", dirpart
+                                        if !Object.hasOwn this, word
+                                            return Object.defineProperty this, word, (->)()
+                                    )(dirpart, words, di))
+
+
+
+                        iWord = words.length
+                        lWord = words[ --iWord ]
+
+                        continue unless lWord
+                        
+                        pWord = Object.defineProperty { word: lWord }, lWord,
+                            get : ( (p) -> ->
+                                error "chain completed with:", p; 1
+                            )( dirpart )
+
+                        while iWord > 0 when word = words[ --iWord ]
+
+                            pWord = Object.defineProperty { word }, pWord.word, {
+                                get : ( (w, wi) -> ->
+                                    warn "word selected:", { pWord: w }
+                                    w[ w.word ] ; w
+                                )( pWord, iWord )
+                            }
+
+                            lWord = word
+                        
+                        if  Object.hasOwn window, pWord.word
+                            Object.defineProperty( pWord.word, {
+                                get : ( (w) -> ->
+                                    warn "word selected:", { pWord: w }
+                                    w[ w.word ] ; w
+                                )( pWord )
+                            })
+
+                        else
+                            Object.defineProperty( window, pWord.word, {
+                                get : ( (w) -> ->
+                                    warn "word selected:", { pWord: w }
+                                    w[ w.word ] ; w
+                                )( pWord )
+                            })
+                    i++
+
+                return 1
+                
+                clearTimeout @tout
+                @tout = setTimeout ( -> log( "seq:", sequence )), 20
+
+                get( command.cmd )
+
+            for arg in command.args
+                Object.defineProperty __proto__, arg, value : new Proxy {}, {
+                    arg ,
+                    get : ->
+                        sequence.push @arg
+                        -> 1
+                }
+
+            tmpdefs.splice(
+                tmpdefs.indexOf( command.cmd ), 1
+            )
             
-            t = setTimeout ->
-                joindots = ->
-
-                    if  -1 is i = sequence.lastIndexOf "."
-                        return
-                    
-                    sequence.splice( i-1, 3,
-                        sequence.slice( i-1, i+2 ).join("")
-                    )
-
-                    do joindots
-                joindots()
-
-                command.handler sequence
-                sequence.splice 0, sequence.length
-
-                for tdef, i in tmpdefs
-                    continue unless Object.hasOwn window, tdef
-                    continue unless Object.getOwnPropertyDescriptor(
-                        window, tdef
-                    ).configurable
-                    Reflect.deleteProperty window, tdef
-
-                tmpdefs.length = 0
+            emit "shellcommandregister", command
 
 
-            , 40
+    do  mouse = ->
+        device      = new ArrayBuffer 64
+        counters    = new Int32Array device, 0, 10
+        positions   = new Float32Array device, 40, 6
+        dataView    = new DataView device
+        lendian     = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
 
-        ).call( this, timeout, command )
+        onevent = '
+        onpointerdown 
+        onpointermove 
+        onpointerup 
+        onpointercancel 
+        onpointerover 
+        onpointerout 
+        onpointerenter 
+        onpointerleave'.split( /\s+|\n/g )
 
-        Object.defineProperty( window, command.cmd, {
-            get : ->
-                for arg in command.args
-                    Object.defineProperty( window, arg,
-                        windowGetter arg, handler
-                    )
+        for e, iLast in onevent then ( (evnt, i) ->
 
-                windowGetter( command.cmd, handler ).get()
-        })
-
-        tmpdefs.splice(
-            tmpdefs.indexOf( command.cmd ), 1
-        )
-        
-        emit "shellcommandregister", command
-
-shell.registerCommand "grep", [ "e" ], ( seq ) ->
-    log "grep:", seq
-
-do  mouse = ->
-    device      = new ArrayBuffer 64
-    counters    = new Int32Array device, 0, 10
-    positions   = new Float32Array device, 40, 6
-    dataView    = new DataView device
-    lendian     = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
-
-    onevent = '
-    onpointerdown 
-    onpointermove 
-    onpointerup 
-    onpointercancel 
-    onpointerover 
-    onpointerout 
-    onpointerenter 
-    onpointerleave'.split( /\s+|\n/g )
-
-    for e, iLast in onevent then ( (evnt, i) ->
-
-        window.addEventListener evnt, ( t ) ->
-
-            ++counters[counters[iLast] = i]
-
-            positions.set( Float32Array.of(
-                t.screenX - positions[2], 
-                t.screenY - positions[3],
-                t.screenX , t.screenY, 
-                t.clientX , t.clientY, 
-            ), 0 )
-
-            t.preventDefault()
-            
-    )( e.substring(2), onevent.indexOf e )
-
-    offsets = positions.byteOffset - 4
-
-    lastEvent = dataView.getInt32.bind dataView, offsets, lendian
-    changeX = dataView.getFloat32.bind dataView, offsets += 4, lendian
-    changeY = dataView.getFloat32.bind dataView, offsets += 4, lendian
-    screenX = dataView.getFloat32.bind dataView, offsets += 4, lendian
-    screenY = dataView.getFloat32.bind dataView, offsets += 4, lendian
-    clientX = dataView.getFloat32.bind dataView, offsets += 4, lendian
-    clientY = dataView.getFloat32.bind dataView, offsets += 4, lendian
-
-do  keyboard = ->
-
-    device      = new ArrayBuffer 144
-    counters    = new Int32Array device, 0, 3
-    dataView    = new DataView device
-    keyArray    = new Uint8Array device, 144 - 120
-    lendian     = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
-
-    keys = '
-    IntlBackslash KeyA KeyS KeyD KeyF KeyH KeyG KeyZ KeyX KeyC KeyV KeyB KeyQ 
-    KeyW KeyE KeyR KeyY KeyT Digit1 Digit2 Digit3 Digit4 Digit6 Digit5 
-    Equal Digit9 Digit7 Minus Digit8 Digit0 BracketRight KeyO KeyU BracketLeft 
-    KeyI KeyP Enter KeyL KeyJ Quote KeyK Semicolon Backslash Comma Slash KeyN 
-    KeyM Period Tab Space Backquote Backspace NumpadEnter Escape 
-    MetaRight MetaLeft ShiftLeft CapsLock AltLeft ControlLeft ShiftRight AltRight ControlRight 
-    Fn F17 NumpadDecimal NumpadMultiply NumpadAdd NumLock VolumeUp VolumeDown VolumeMute 
-    NumpadDivide NumpadSubtract F18 F19 NumpadEqual Numpad0 Numpad1 Numpad2 Numpad3 
-    Numpad4 Numpad5 Numpad6 Numpad7 Numpad8 Numpad9 NumpadComma IntlYen IntlRo 
-    F20 F5 F6 F7 F3 F8 F9 F11 F13 F16 F14 F10 F12 F15 F4 F2 F1 Lang2 Lang1 ContextMenu 
-    Help Home PageUp Delete End PageDown ArrowLeft ArrowRight ArrowDown ArrowUp    
-    '.split(/\s+|\n/) #120
-
-    iKeyDownCount   = 0
-    iKeyUpCount     = 1
-    iEventCount     = 2
-
-    offset = (
-        counters.byteOffset +
-        counters.byteLength
-    )
-        
-    offsetCharCode  = offset++
-    offsetShiftKey  = offset++
-    offsetCtrlKey   = offset++
-    offsetAltKey    = offset++
-    offsetMetaKey   = offset++
-    offsetRepeat    = offset++
-    offsetLocation  = offset++
-    offsetLastEvent = offset++
-
-    window.addEventListener "keydown", (e) ->
-        counters[iEventCount]++
-        counters[iKeyDownCount]++
-
-        charCode = !e.key[1] and e.key.charCodeAt 0
-        dataView.setUint16 offsetCharCode, charCode, lendian
-
-        dataView.setUint8 offsetShiftKey , e.shiftKey
-        dataView.setUint8 offsetCtrlKey  , e.ctrlKey
-        dataView.setUint8 offsetAltKey   , e.altKey
-        dataView.setUint8 offsetMetaKey  , e.metaKey
-        dataView.setUint8 offsetRepeat   , e.repeat
-        dataView.setUint8 offsetLocation , e.location
-        dataView.setUint8 offsetLastEvent, 0
-
-        keyArray[ keys.indexOf e.code ] = 1
-        #e.preventDefault()
-
-    window.addEventListener "keyup", (e) ->
-        counters[iEventCount]++
-        counters[iKeyUpCount]++
-
-        dataView.setUint8 offsetCharCode, 0, lendian
-
-        dataView.setUint8 offsetShiftKey , e.shiftKey
-        dataView.setUint8 offsetCtrlKey  , e.ctrlKey
-        dataView.setUint8 offsetAltKey   , e.altKey
-        dataView.setUint8 offsetMetaKey  , e.metaKey
-        dataView.setUint8 offsetRepeat   , e.repeat
-        dataView.setUint8 offsetLocation , e.location
-        dataView.setUint8 offsetLastEvent, 1
-
-        keyArray[ keys.indexOf e.code ] = 0
-        #e.preventDefault()
-
-    lastEvent = dataView.getUint8.bind dataView, offsetLastEvent
-    shiftKey  = dataView.getUint8.bind dataView, offsetShiftKey
-    ctrlKey   = dataView.getUint8.bind dataView, offsetCtrlKey
-    altKey    = dataView.getUint8.bind dataView, offsetAltKey
-    metaKey   = dataView.getUint8.bind dataView, offsetMetaKey
-    lastCode  = dataView.getUint16.bind dataView, offsetCharCode, lendian
-    lastChar  = -> ( c = lastCode() ) and String.fromCharCode( c ) or ""
-    eventType = -> [ "keydown", "keyup" ][ lastEvent() ]
-    activeKey = -> keys[ keyArray.findIndex (v) -> v ] or 0
-
-do  battery = ->
-
-    device    = new ArrayBuffer 24
-    counters  = new Uint16Array device, 0, 6
-    dataView  = new DataView device
-    lendian   = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
-
-    offsetEvent =  8
-    offsetState = 10
-    offsetLevel = 12
-    offsetCTime = 16
-    offsetDTime = 20
-
-    onevents = '
-    onchargingchange 
-    onchargingtimechange 
-    ondischargingtimechange 
-    onlevelchange'.split(/\s+|\n/)
-
-    navigator.getBattery().then ( dev ) ->
-
-        for e, iLast in onevents then ( (evnt, i) ->
-
-            this[evnt] = (t) ->
+            window.addEventListener evnt, ( t ) ->
 
                 ++counters[counters[iLast] = i]
-                
-                dataView.setUint8 offsetState, @charging
-                dataView.setInt16 offsetLevel, @level*1e2, lendian
-                dataView.setInt16 offsetCTime, @chargingTime, lendian
-                dataView.setInt16 offsetDTime, @dischargingTime, lendian
+
+                positions.set( Float32Array.of(
+                    t.screenX - positions[2], 
+                    t.screenY - positions[3],
+                    t.screenX , t.screenY, 
+                    t.clientX , t.clientY, 
+                ), 0 )
 
                 t.preventDefault()
+                
+        )( e.substring(2), onevent.indexOf e )
 
-        ).call( dev, e, onevents.indexOf e )
+        offsets = positions.byteOffset - 4
 
-    lastEvent       = dataView.getInt16.bind dataView, offsetEvent, lendian
-    level           = dataView.getInt16.bind dataView, offsetLevel, lendian
-    chargingTime    = dataView.getInt16.bind dataView, offsetCTime, lendian
-    dischargingTime = dataView.getInt16.bind dataView, offsetDTime, lendian
-    charging        = dataView.getUint8.bind dataView, offsetState
+        lastEvent = dataView.getInt32.bind dataView, offsets, lendian
+        changeX = dataView.getFloat32.bind dataView, offsets += 4, lendian
+        changeY = dataView.getFloat32.bind dataView, offsets += 4, lendian
+        screenX = dataView.getFloat32.bind dataView, offsets += 4, lendian
+        screenY = dataView.getFloat32.bind dataView, offsets += 4, lendian
+        clientX = dataView.getFloat32.bind dataView, offsets += 4, lendian
+        clientY = dataView.getFloat32.bind dataView, offsets += 4, lendian
 
-do  netlink = ->
-    
-    device      = new ArrayBuffer 16
-    counters    = new Int16Array device, 0, 4
-    dataView    = new DataView device
-    lendian     = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
+    do  keyboard = ->
 
-    ionchange = 0 #triggers on three events all
-    ioffline  = 1
-    ionline   = 2
-    itype     = 3
+        device      = new ArrayBuffer 144
+        counters    = new Int32Array device, 0, 3
+        dataView    = new DataView device
+        keyArray    = new Uint8Array device, 144 - 120
+        lendian     = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
 
-    navigator.connection.onchange = (e) ->
-        ++counters[ counters[itype] = ionchange ]
+        keys = '
+        IntlBackslash KeyA KeyS KeyD KeyF KeyH KeyG KeyZ KeyX KeyC KeyV KeyB KeyQ 
+        KeyW KeyE KeyR KeyY KeyT Digit1 Digit2 Digit3 Digit4 Digit6 Digit5 
+        Equal Digit9 Digit7 Minus Digit8 Digit0 BracketRight KeyO KeyU BracketLeft 
+        KeyI KeyP Enter KeyL KeyJ Quote KeyK Semicolon Backslash Comma Slash KeyN 
+        KeyM Period Tab Space Backquote Backspace NumpadEnter Escape 
+        MetaRight MetaLeft ShiftLeft CapsLock AltLeft ControlLeft ShiftRight AltRight ControlRight 
+        Fn F17 NumpadDecimal NumpadMultiply NumpadAdd NumLock VolumeUp VolumeDown VolumeMute 
+        NumpadDivide NumpadSubtract F18 F19 NumpadEqual Numpad0 Numpad1 Numpad2 Numpad3 
+        Numpad4 Numpad5 Numpad6 Numpad7 Numpad8 Numpad9 NumpadComma IntlYen IntlRo 
+        F20 F5 F6 F7 F3 F8 F9 F11 F13 F16 F14 F10 F12 F15 F4 F2 F1 Lang2 Lang1 ContextMenu 
+        Help Home PageUp Delete End PageDown ArrowLeft ArrowRight ArrowDown ArrowUp    
+        '.split(/\s+|\n/) #120
 
-        dataView.setUint8   14, navigator.onLine
-        dataView.setUint8   13, parseInt @effectiveType
-        dataView.setUint8   12, Number @saveData
-        dataView.setUint16  10, @rtt, lendian
-        dataView.setFloat32  8, @downlink, lendian
+        iKeyDownCount   = 0
+        iKeyUpCount     = 1
+        iEventCount     = 2
 
-        e.preventDefault()
+        offset = (
+            counters.byteOffset +
+            counters.byteLength
+        )
+            
+        offsetCharCode  = offset++
+        offsetShiftKey  = offset++
+        offsetCtrlKey   = offset++
+        offsetAltKey    = offset++
+        offsetMetaKey   = offset++
+        offsetRepeat    = offset++
+        offsetLocation  = offset++
+        offsetLastEvent = offset++
 
-    window.addEventListener "offline", -> setTimeout ->
-        ++counters[ counters[ itype ] = ioffline ]
+        window.addEventListener "keydown", (e) ->
+            counters[iEventCount]++
+            counters[iKeyDownCount]++
 
-    window.addEventListener "online", -> setTimeout ->
-        ++counters[ counters[ itype ] =  ionline ]
+            charCode = !e.key[1] and e.key.charCodeAt 0
+            dataView.setUint16 offsetCharCode, charCode, lendian
 
-    changeType = dataView.getUint16.bind dataView, 6, lendian
-    downlink = dataView.getFloat32.bind dataView, 8, lendian
-    rtt = dataView.getUint16.bind dataView, 10, lendian
-    saveData = dataView.getUint8.bind dataView, 12
-    effectiveType = dataView.getUint8.bind dataView, 13
-    currentState = dataView.getUint8.bind dataView, 14
-    changeTypes = [ "linkspeed", "linkdown", "linkup" ]
+            dataView.setUint8 offsetShiftKey , e.shiftKey
+            dataView.setUint8 offsetCtrlKey  , e.ctrlKey
+            dataView.setUint8 offsetAltKey   , e.altKey
+            dataView.setUint8 offsetMetaKey  , e.metaKey
+            dataView.setUint8 offsetRepeat   , e.repeat
+            dataView.setUint8 offsetLocation , e.location
+            dataView.setUint8 offsetLastEvent, 0
 
-do  fs = ->
+            keyArray[ keys.indexOf e.code ] = 1
+            #e.preventDefault()
+
+        window.addEventListener "keyup", (e) ->
+            counters[iEventCount]++
+            counters[iKeyUpCount]++
+
+            dataView.setUint8 offsetCharCode, 0, lendian
+
+            dataView.setUint8 offsetShiftKey , e.shiftKey
+            dataView.setUint8 offsetCtrlKey  , e.ctrlKey
+            dataView.setUint8 offsetAltKey   , e.altKey
+            dataView.setUint8 offsetMetaKey  , e.metaKey
+            dataView.setUint8 offsetRepeat   , e.repeat
+            dataView.setUint8 offsetLocation , e.location
+            dataView.setUint8 offsetLastEvent, 1
+
+            keyArray[ keys.indexOf e.code ] = 0
+            #e.preventDefault()
+
+        lastEvent = dataView.getUint8.bind dataView, offsetLastEvent
+        shiftKey  = dataView.getUint8.bind dataView, offsetShiftKey
+        ctrlKey   = dataView.getUint8.bind dataView, offsetCtrlKey
+        altKey    = dataView.getUint8.bind dataView, offsetAltKey
+        metaKey   = dataView.getUint8.bind dataView, offsetMetaKey
+        lastCode  = dataView.getUint16.bind dataView, offsetCharCode, lendian
+        lastChar  = -> ( c = lastCode() ) and String.fromCharCode( c ) or ""
+        eventType = -> [ "keydown", "keyup" ][ lastEvent() ]
+        activeKey = -> keys[ keyArray.findIndex (v) -> v ] or 0
+
+    do  battery = ->
+
+        device    = new ArrayBuffer 24
+        counters  = new Uint16Array device, 0, 6
+        dataView  = new DataView device
+        lendian   = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
+
+        offsetEvent =  8
+        offsetState = 10
+        offsetLevel = 12
+        offsetCTime = 16
+        offsetDTime = 20
+
+        onevents = '
+        onchargingchange 
+        onchargingtimechange 
+        ondischargingtimechange 
+        onlevelchange'.split(/\s+|\n/)
+
+        navigator.getBattery().then ( dev ) ->
+
+            for e, iLast in onevents then ( (evnt, i) ->
+
+                this[evnt] = (t) ->
+
+                    ++counters[counters[iLast] = i]
+                    
+                    dataView.setUint8 offsetState, @charging
+                    dataView.setInt16 offsetLevel, @level*1e2, lendian
+                    dataView.setInt16 offsetCTime, @chargingTime, lendian
+                    dataView.setInt16 offsetDTime, @dischargingTime, lendian
+
+                    t.preventDefault()
+
+            ).call( dev, e, onevents.indexOf e )
+
+        lastEvent       = dataView.getInt16.bind dataView, offsetEvent, lendian
+        level           = dataView.getInt16.bind dataView, offsetLevel, lendian
+        chargingTime    = dataView.getInt16.bind dataView, offsetCTime, lendian
+        dischargingTime = dataView.getInt16.bind dataView, offsetDTime, lendian
+        charging        = dataView.getUint8.bind dataView, offsetState
+
+    do  netlink = ->
+        
+        device      = new ArrayBuffer 16
+        counters    = new Int16Array device, 0, 4
+        dataView    = new DataView device
+        lendian     = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
+
+        ionchange = 0 #triggers on three events all
+        ioffline  = 1
+        ionline   = 2
+        itype     = 3
+
+        navigator.connection.onchange = (e) ->
+            ++counters[ counters[itype] = ionchange ]
+
+            dataView.setUint8   14, navigator.onLine
+            dataView.setUint8   13, parseInt @effectiveType
+            dataView.setUint8   12, Number @saveData
+            dataView.setUint16  10, @rtt, lendian
+            dataView.setFloat32  8, @downlink, lendian
+
+            e.preventDefault()
+
+        window.addEventListener "offline", -> setTimeout ->
+            ++counters[ counters[ itype ] = ioffline ]
+
+        window.addEventListener "online", -> setTimeout ->
+            ++counters[ counters[ itype ] =  ionline ]
+
+        changeType = dataView.getUint16.bind dataView, 6, lendian
+        downlink = dataView.getFloat32.bind dataView, 8, lendian
+        rtt = dataView.getUint16.bind dataView, 10, lendian
+        saveData = dataView.getUint8.bind dataView, 12
+        effectiveType = dataView.getUint8.bind dataView, 13
+        currentState = dataView.getUint8.bind dataView, 14
+        changeTypes = [ "linkspeed", "linkdown", "linkup" ]
+
+    do  fs = ->
 
     device = new ArrayBuffer 4096 * 256 * 128 #128mb önbellek
 
@@ -387,6 +466,7 @@ do  fs = ->
     onstoragecreatedirectory
     onstoragecreatefile
     onstorageremovefile
+    onstoragcwdupdate
     '.split( /\s+|\n/g )
 
     init = ->
@@ -401,10 +481,13 @@ do  fs = ->
             await handle.getDirectoryHandle dirName
 
     setcwd  = ( handle = currentDir ) ->
-        Object.defineProperty window, "cwd",
+        Object.defineProperty __proto__, "cwd",
             writable: on
             configurable: on
             value : await resolv handle
+
+        emit "storagcwdupdate", handle
+
         handle
 
     mkdir   = ( dirName, handle = currentDir ) ->
@@ -568,11 +651,11 @@ do  fs = ->
 
     pick    = ( type = "directory" ) ->
         return  if /dir/.test type
-            await window.showDirectoryPicker()
+            try await showDirectoryPicker()
         else    if /file/.test type
-            await window.showOpenFilePicker()
+            try await showOpenFilePicker()
         else    if /savefile/.test type
-            await window.showSaveFilePicker()
+            try await showSaveFilePicker()
         else    throw /UNDEFINED_TYPE_PICK/
 
     mv_f2f  = ( srcFHandle, dstFHandle, force = no ) ->
@@ -713,10 +796,11 @@ do  fs = ->
 
         try navigator.storage.estimate().then ( estimate ) ->
             dataView.setBigUint64 12, BigInt(estimate.quota), lendian
-            dataView.setUint32 20, estimate.usage, lendian    
-            
+            dataView.setUint32 20, estimate.usage, lendian
+                        
         shell.registerCommand "ls", [ "l", "f" ], ( sequence ) ->
             error [ ...sequence ]
+
 
     self.onclick = ->
 
@@ -1025,19 +1109,125 @@ do  fs = ->
 
     do init
 
-    window.addEventListener "shellcommandregister", ({ detail: command }) ->
-        return log "command registered:", command, "\n\n\n"
 
-        indexle = ( dirPath, paths = [] ) ->
-            dname = await resolv dirPath
+    # update shell's fsindex
+    window.addEventListener "storagcwdupdate", ({ detail: handle }) ->
 
-            for item in await ls dirPath
-                if  item instanceof FileSystemDirectoryHandle
-                    await indexle item, paths
-                paths.push await resolv item
-            paths.sort()
+        dPath = await resolv handle
 
-        self.indexler = await indexle root
+        if !shell.fsindex.includes dPath
+            shell.fsindex.push dPath, handle
+
+        for iHandle in await ls handle
+            iPath = await resolv iHandle
+
+            if !shell.fsindex.includes iPath
+                shell.fsindex.push iPath, iHandle
+
+        log "storagcwdupdate:", shell.fsindex.length
+
+        for v, i in shell.fsindex
+            continue if !i or i % 2
+
+            log "defining:", v
+            log "-> parts:", parts = v.split("/").filter(Boolean)
+
+            for p, j in parts
+                log "---> defining:", p
+                log "----> words:", words = p.split( /\.|\+/g ).filter(Boolean)
+
+                parent = null
+                for w, k in words 
+                    if !k
+                        log "\n+++++> global word:", new RegExp w
+                        
+                        has = Object.hasOwn window, w
+                        log "\t   hasown window:", has
+
+                        if !has
+                            ((o, w) -> Object.defineProperty( window, w, get : ->
+                                log "getted:", w, o
+                                o
+                            ))({ paths: [], word: w }, w)
+
+                        if !window[w].paths.includes v
+                            window[w].paths.push v
+
+                        parent = window[w]
+                        continue
+
+                    pfix = "".padStart k * 2, " "
+                    log pfix + "  +++> inner get:", w
+                    
+                    has = Object.hasOwn parent, w
+                    log pfix + "  +++> has own parent:", has
+
+                    if !has
+                        ((o, w, k) -> Object.defineProperty( parent, w, get : ->
+                            log "getted:", w, o
+                            o
+                        ))({ paths : [], word: w }, w, k)
+
+                    if !parent[w].paths.includes v
+                        parent[w].paths.push v
+
+                    parent = parent[w]
+
+
+
+            warn "   "
+
+        shell.workingDir = handle
+
+    # cleaning window object
+    window.addEventListener "storageroothandle", ({ detail: fsroot }) ->
+
+        shell.fsroot = fsroot
+
+        setTimeout =>
+            await cd "lib"
+        , 2000
+
+        d = Object.getOwnPropertyDescriptors
+        p = Object.getPrototypeOf
+        k = Object.keys
+        o = Object
+        r = Reflect
+
+        clean = (a) ->
+
+            return unless a
+
+            if /location|window|self|console/.test a.constructor.name or a.name
+                return
+
+            try for _k, v of d _ = a.__proto__
+                r.deleteProperty _, _k
+
+            try for _k, v of d _ = p a.constructor
+                r.deleteProperty _, _k
+
+            try for _k, v of d _ = a.constructor
+                r.deleteProperty _, _k
+                
+            try for _k, v of d _ = p a
+                r.deleteProperty _, _k
+
+            try for _k, v of d _ = a
+                r.deleteProperty _, _k
+                
+        if  window.chrome?
+            Object.defineProperty window, "chrome", value: "tru 💚 th"
+            Object.defineProperty __proto__, "values", value: -> []
+            Object.defineProperty __proto__, "debug", value: -> []
+            Object.defineProperty __proto__, "undebug", value: -> []
+            Object.defineProperty __proto__, "queryObjects", value: -> []
+
+            if  unmonitorEvents?
+                unmonitorEvents window
+
+        try clean window
+
 
     do self.dbg = -> -> 
         requestIdleCallback -> requestAnimationFrame ->
