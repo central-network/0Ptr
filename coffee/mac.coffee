@@ -158,6 +158,7 @@ do ->
                     key : any, 
                     isCompleted : isLast
                     since : since.join "."
+                    nextKey : parts[p+1]
                 }
 
                 n = (m, w = [], seqindex = sequence.length ) ->
@@ -227,9 +228,6 @@ do ->
 
                 if  isFirst
                     Object.defineProperty __proto__, part, get : f(o, on)
-
-                #if  isLast
-                    #Object.defineProperty __proto__, [ ...parts, "FASTGET" ].join("_"), get : -> f(o)()
 
                 log o
 

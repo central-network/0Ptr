@@ -198,7 +198,8 @@ var splice = [].splice;
           isFirst,
           key: any,
           isCompleted: isLast,
-          since: since.join(".")
+          since: since.join("."),
+          nextKey: parts[p + 1]
         };
         n = function(m, w = [], seqindex = sequence.length) {
           w.push(m);
@@ -280,8 +281,6 @@ var splice = [].splice;
             get: f(o, true)
           });
         }
-        //if  isLast
-        //Object.defineProperty __proto__, [ ...parts, "FASTGET" ].join("_"), get : -> f(o)()
         log(o);
       }
       return;
