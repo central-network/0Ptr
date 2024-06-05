@@ -23,7 +23,32 @@ do ->
 
         fsIndex         : []
 
-        deployTempProxy : ( args = [], chain = [] ) ->
+
+        FileSystemTouchable : class FileSystemTouchable extends Object
+            constructor : ->
+                Object.assign super(), arguments[0]
+
+            createDirectory : ->
+                @handle = await mkdir @name, @parent
+                await shell.updatePathIndex @parent
+
+            createFile : ->
+                @handle = await touch @name, @parent
+                await shell.updatePathIndex @parent
+
+            Object.defineProperty this::, "kind", get : ->
+                if !@name.match /\./
+                    return "directory"                
+                return "file"                
+
+            Object.defineProperty this::, "touch", get : ->
+                if !@name.match /\./
+                    await @createDirectory()                
+                else await @createFile()
+                
+                return @handle 
+
+        deployTempProxy : ( args=[], chain=[] ) ->
 
             if  self.clearTempDeploy
                 self.clearTempDeploy()
@@ -32,14 +57,14 @@ do ->
 
                 return new Proxy Function::, {
                     apply  : ( f, key, args ) ->
-                        _chain.push( as : "function", args: args )
+                        _chain.push({as : "function", args: args})
                         return crossProxy word, _chain, level + 2
 
                     get    : ( f, key ) ->
                         if  key is Symbol.toPrimitive
                             return -> 1
                         
-                        _chain.push( as : "keyword", key, level )
+                        _chain.push({as : "keyword", key, level})
                         return crossProxy word, _chain, level + 1
                 }
     
@@ -70,7 +95,7 @@ do ->
                             as : "fshandle",
                             key : word,
                             level : 1,
-                            subchain : subchain = []
+                            subchain : (subchain = [])
                         }
                         crossProxy word, subchain
                     )(w)
@@ -88,36 +113,138 @@ do ->
             chain
 
         updatePathIndex : ( dHandle, level = 0 ) ->
+                    
+            path = await resolv dHandle
+            if !@fsIndex.find (i) -> i.path is path
+                @fsIndex.push dHandle
 
-            dHandle.path = await resolv dHandle
-            dHandle.level = level 
-            dHandle.global = dHandle.name
-            .split(/\.|(\w+)/gui).filter(Boolean).at 0
-    
-            if !@fsIndex.find (i) -> i.global is dHandle.global
-                if  dHandle.global and !Object.hasOwn window, dHandle.global
-                    @fsIndex.push dHandle if dHandle.name.length>1
-    
+                dHandle.path = path
+                dHandle.level = level 
+                dHandle.global = dHandle.name.split(
+                    /\.|(\w+)/gui
+                ).filter(Boolean).at 0
+                
             for iHandle in await ls dHandle
-    
-                iHandle.path = await resolv iHandle
-                iHandle.global = iHandle.name
-                .split(/\.|(\w+)/gui).filter(Boolean).at 0
-    
-                if !@fsIndex.find (i) -> i.global is iHandle.global
-                    if  iHandle.global and !Object.hasOwn window, iHandle.global
-                        @fsIndex.push iHandle if iHandle.name.length>1
+
+                path = await resolv iHandle
+                if !@fsIndex.find (i) -> i.path is path
+                    @fsIndex.push iHandle
+
+                    iHandle.path = path
+                    iHandle.global = iHandle.name.split(
+                        /\.|(\w+)/gui
+                    ).filter(Boolean).at 0
     
                 if  iHandle.kind is "directory"
                     await @updatePathIndex iHandle, level + 1
     
-            return @fsIndex
+            return dHandle
         
-        handleArguments : ( handler, args = [] ) ->
+        resolvArguments : ( handler, args = [] ) ->
 
             setTimeout =>
-                for arg in args
-                    warn arg
+
+                sequence = []
+                dirchain = []
+                subchain = []
+                
+                for arg in args.slice()
+
+                    if  arg.as.match /command/
+                        sequence.push arg.key
+                        continue
+
+                    if  arg.as.match /argument/
+                        sequence.push "-" + arg.key
+                        continue
+
+                    if !arg.as.match /fshandle/
+                        i = 0
+
+                        if dirchain.length then i = sequence.push(
+                            "/" + dirchain.join "/"
+                        ) - 1
+                        dirchain = []
+
+                        if subchain.length then sequence[i] +=
+                            "." + subchain.join "."
+                        subchain = []
+
+                        if i then sequence[i] = path : sequence[i]
+                        continue
+                    
+                    if  arg.as.match /fshandle/
+
+                        if  subchain.length
+                            i = 0
+
+                            if dirchain.length then i = sequence.push(
+                                "/" + dirchain.join "/"
+                            ) - 1
+                            dirchain = []
+    
+                            if subchain.length then sequence[i] +=
+                                "." + subchain.join "."
+                            subchain = []
+
+                            if i then sequence[i] = path : sequence[i]
+
+                        dirchain.push arg.key
+
+                        for s in arg.subchain
+
+                            if  s.as.match /keyword/
+                                subchain.push s.key
+
+                            if  s.as.match /function/
+                                i = 0
+
+                                if dirchain.length then i = sequence.push(
+                                    "/" + dirchain.join "/"
+                                ) - 1
+                                dirchain = []
+        
+                                if subchain.length then sequence[i] +=
+                                    "." + subchain.join "."
+                                subchain = []
+
+                                if i then sequence[i] = path : sequence[i]
+                                sequence.push s.args
+                                continue
+
+                i = 0
+                if dirchain.length then i = sequence.push(
+                    "/" + dirchain.join "/"
+                ) - 1
+                dirchain = []
+
+                if subchain.length then sequence[i] +=
+                    "." + subchain.join "."
+                subchain = []
+
+                if i then sequence[i] = path : sequence[i]
+
+                for part, i in sequence when path = part.path
+
+                    if  fshandle = shell.fsIndex.find (h) -> h.path is path
+                        sequence[i] = fshandle
+
+                    parent = path
+                    while parent = parent.split("/").slice(0, -1).join("/")
+                        if  fshandle = shell.fsIndex.find (h) -> h.path is parent
+                            sequence[i].parent = fshandle
+                            break
+
+                    unless sequence[i] instanceof FileSystemHandle
+                        sequence[i] = new shell.FileSystemTouchable sequence[i]
+
+                    sequence[i].name = sequence[i].path
+                        .split("/").filter(Boolean).at(-1)
+
+
+                log sequence
+
+                handler 1
             , 100
 
             return args
@@ -128,7 +255,7 @@ do ->
                 throw [ COMMAND_NAME_ALREADY_GLOBAL : cmd ]
     
             Object.defineProperty __proto__, cmd, get : -> 
-                shell.handleArguments(handler, shell.deployTempProxy(
+                shell.resolvArguments(handler, shell.deployTempProxy(
                     args, chain = [{ as : "command", key: cmd }]
                 ))
 
@@ -406,8 +533,8 @@ do ->
 
         handle
 
-    mkdir   = ( dirName, handle = currentDir ) ->
-        if  dir = await handle.getDirectoryHandle( dirName, { create: true } )
+    mkdir   = ( dirName, target = currentDir ) ->
+        if  dir = await target.getDirectoryHandle( dirName, { create: true } )
             emit "storagecreatedirectory", { dir }
         dir
 

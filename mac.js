@@ -1,5 +1,5 @@
 (function() {
-  var Array, ArrayBuffer, Atomics, BigInt, BigInt64Array, BigUint64Array, Boolean, CustomEvent, DataView, Event, FileSystemDirectoryHandle, FileSystemFileHandle, FileSystemHandle, Float32Array, Float64Array, Function, Int16Array, Int32Array, Int8Array, JSON, Math, Number, Object, Proxy, Reflect, RegExp, STATE_INIT, STATE_PERSISTED_HANDLE, STATE_ROOT_HANDLE, STATE_UNPERSISTED_HANDLE, STATUS_IDLE, STATUS_READING, STATUS_WRITING, String, Symbol, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, __proto__, addEventListener, askp, battery, cat, cd, clearTimeout, console, counters, create, currentDir, currentFile, dataArray, dataView, debug, delay, device, dir, dispatchEvent, emit, error, events, fs, group, groupEnd, handles, info, init, issame, keyboard, lendian, log, ls, mkdir, mouse, mv, mv_d2d, mv_f2d, mv_f2f, navigator, netlink, parent, parseFloat, parseInt, pick, queryp, quota, read, readed, remove, requestAnimationFrame, requestIdleCallback, resolv, rm, rmdir, root, setTimeout, setcwd, shell, showDirectoryPicker, showOpenFilePicker, showSaveFilePicker, state, status, table, terminalify, touch, usage, warn, write, written;
+  var Array, ArrayBuffer, Atomics, BigInt, BigInt64Array, BigUint64Array, Boolean, CustomEvent, DataView, Event, FileSystemDirectoryHandle, FileSystemFileHandle, FileSystemHandle, FileSystemTouchable, Float32Array, Float64Array, Function, Int16Array, Int32Array, Int8Array, JSON, Math, Number, Object, Proxy, Reflect, RegExp, STATE_INIT, STATE_PERSISTED_HANDLE, STATE_ROOT_HANDLE, STATE_UNPERSISTED_HANDLE, STATUS_IDLE, STATUS_READING, STATUS_WRITING, String, Symbol, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, __proto__, addEventListener, askp, battery, cat, cd, clearTimeout, console, counters, create, currentDir, currentFile, dataArray, dataView, debug, delay, device, dir, dispatchEvent, emit, error, events, fs, group, groupEnd, handles, info, init, issame, keyboard, lendian, log, ls, mkdir, mouse, mv, mv_d2d, mv_f2d, mv_f2f, navigator, netlink, parent, parseFloat, parseInt, pick, queryp, quota, read, readed, remove, requestAnimationFrame, requestIdleCallback, resolv, rm, rmdir, root, setTimeout, setcwd, shell, showDirectoryPicker, showOpenFilePicker, showSaveFilePicker, state, status, table, terminalify, touch, usage, warn, write, written;
   ({Reflect, Object, Float32Array, Int32Array, DataView, Uint32Array, ArrayBuffer, Uint16Array, Uint32Array, dispatchEvent, addEventListener, Event, CustomEvent, JSON, setTimeout, clearTimeout, requestIdleCallback, requestAnimationFrame, navigator, Proxy, Function, __proto__, FileSystemDirectoryHandle, Symbol, console, showDirectoryPicker, showOpenFilePicker, showSaveFilePicker, RegExp, Array, Number, String, Boolean, Math, Uint8ClampedArray, Int8Array, Uint8Array, Int16Array, Float64Array, BigInt64Array, BigUint64Array, Atomics, BigInt, FileSystemFileHandle, FileSystemHandle, parseInt, parseFloat} = window);
   ({log, warn, error, table, debug, info, delay, group, groupEnd} = console);
   window.on2error = window.on2unhandledrejection = function() {
@@ -13,6 +13,47 @@
       return detail;
     },
     fsIndex: [],
+    FileSystemTouchable: FileSystemTouchable = (function() {
+      class FileSystemTouchable extends Object {
+        constructor() {
+          Object.assign(super(), arguments[0]);
+        }
+
+        async createDirectory() {
+          this.handle = (await mkdir(this.name, this.parent));
+          return (await shell.updatePathIndex(this.parent));
+        }
+
+        async createFile() {
+          this.handle = (await touch(this.name, this.parent));
+          return (await shell.updatePathIndex(this.parent));
+        }
+
+      };
+
+      Object.defineProperty(FileSystemTouchable.prototype, "kind", {
+        get: function() {
+          if (!this.name.match(/\./)) {
+            return "directory";
+          }
+          return "file";
+        }
+      });
+
+      Object.defineProperty(FileSystemTouchable.prototype, "touch", {
+        get: async function() {
+          if (!this.name.match(/\./)) {
+            await this.createDirectory();
+          } else {
+            await this.createFile();
+          }
+          return this.handle;
+        }
+      });
+
+      return FileSystemTouchable;
+
+    }).call(this),
     deployTempProxy: function(args = [], chain = []) {
       var a, combargs, crossProxy, i, j, len, len1, len2, m, n, ref, tempkeys, w;
       if (self.clearTempDeploy) {
@@ -34,8 +75,10 @@
               };
             }
             _chain.push({
-              as: "keyword"
-            }, key, level);
+              as: "keyword",
+              key,
+              level
+            });
             return crossProxy(word, _chain, level + 1);
           }
         });
@@ -79,7 +122,7 @@
                   as: "fshandle",
                   key: word,
                   level: 1,
-                  subchain: subchain = []
+                  subchain: (subchain = [])
                 };
                 return crossProxy(word, subchain);
               };
@@ -104,48 +147,152 @@
       return chain;
     },
     updatePathIndex: async function(dHandle, level = 0) {
-      var iHandle, j, len, ref;
-      dHandle.path = (await resolv(dHandle));
-      dHandle.level = level;
-      dHandle.global = dHandle.name.split(/\.|(\w+)/gui).filter(Boolean).at(0);
+      var iHandle, j, len, path, ref;
+      path = (await resolv(dHandle));
       if (!this.fsIndex.find(function(i) {
-        return i.global === dHandle.global;
+        return i.path === path;
       })) {
-        if (dHandle.global && !Object.hasOwn(window, dHandle.global)) {
-          if (dHandle.name.length > 1) {
-            this.fsIndex.push(dHandle);
-          }
-        }
+        this.fsIndex.push(dHandle);
+        dHandle.path = path;
+        dHandle.level = level;
+        dHandle.global = dHandle.name.split(/\.|(\w+)/gui).filter(Boolean).at(0);
       }
       ref = (await ls(dHandle));
       for (j = 0, len = ref.length; j < len; j++) {
         iHandle = ref[j];
-        iHandle.path = (await resolv(iHandle));
-        iHandle.global = iHandle.name.split(/\.|(\w+)/gui).filter(Boolean).at(0);
+        path = (await resolv(iHandle));
         if (!this.fsIndex.find(function(i) {
-          return i.global === iHandle.global;
+          return i.path === path;
         })) {
-          if (iHandle.global && !Object.hasOwn(window, iHandle.global)) {
-            if (iHandle.name.length > 1) {
-              this.fsIndex.push(iHandle);
-            }
-          }
+          this.fsIndex.push(iHandle);
+          iHandle.path = path;
+          iHandle.global = iHandle.name.split(/\.|(\w+)/gui).filter(Boolean).at(0);
         }
         if (iHandle.kind === "directory") {
           await this.updatePathIndex(iHandle, level + 1);
         }
       }
-      return this.fsIndex;
+      return dHandle;
     },
-    handleArguments: function(handler, args = []) {
+    resolvArguments: function(handler, args = []) {
       setTimeout(() => {
-        var arg, j, len, results;
-        results = [];
-        for (j = 0, len = args.length; j < len; j++) {
-          arg = args[j];
-          results.push(warn(arg));
+        var arg, dirchain, fshandle, i, j, len, len1, len2, m, n, parent, part, path, ref, ref1, s, sequence, subchain;
+        sequence = [];
+        dirchain = [];
+        subchain = [];
+        ref = args.slice();
+        for (j = 0, len = ref.length; j < len; j++) {
+          arg = ref[j];
+          if (arg.as.match(/command/)) {
+            sequence.push(arg.key);
+            continue;
+          }
+          if (arg.as.match(/argument/)) {
+            sequence.push("-" + arg.key);
+            continue;
+          }
+          if (!arg.as.match(/fshandle/)) {
+            i = 0;
+            if (dirchain.length) {
+              i = sequence.push("/" + dirchain.join("/")) - 1;
+            }
+            dirchain = [];
+            if (subchain.length) {
+              sequence[i] += "." + subchain.join(".");
+            }
+            subchain = [];
+            if (i) {
+              sequence[i] = {
+                path: sequence[i]
+              };
+            }
+            continue;
+          }
+          if (arg.as.match(/fshandle/)) {
+            if (subchain.length) {
+              i = 0;
+              if (dirchain.length) {
+                i = sequence.push("/" + dirchain.join("/")) - 1;
+              }
+              dirchain = [];
+              if (subchain.length) {
+                sequence[i] += "." + subchain.join(".");
+              }
+              subchain = [];
+              if (i) {
+                sequence[i] = {
+                  path: sequence[i]
+                };
+              }
+            }
+            dirchain.push(arg.key);
+            ref1 = arg.subchain;
+            for (m = 0, len1 = ref1.length; m < len1; m++) {
+              s = ref1[m];
+              if (s.as.match(/keyword/)) {
+                subchain.push(s.key);
+              }
+              if (s.as.match(/function/)) {
+                i = 0;
+                if (dirchain.length) {
+                  i = sequence.push("/" + dirchain.join("/")) - 1;
+                }
+                dirchain = [];
+                if (subchain.length) {
+                  sequence[i] += "." + subchain.join(".");
+                }
+                subchain = [];
+                if (i) {
+                  sequence[i] = {
+                    path: sequence[i]
+                  };
+                }
+                sequence.push(s.args);
+                continue;
+              }
+            }
+          }
         }
-        return results;
+        i = 0;
+        if (dirchain.length) {
+          i = sequence.push("/" + dirchain.join("/")) - 1;
+        }
+        dirchain = [];
+        if (subchain.length) {
+          sequence[i] += "." + subchain.join(".");
+        }
+        subchain = [];
+        if (i) {
+          sequence[i] = {
+            path: sequence[i]
+          };
+        }
+        for (i = n = 0, len2 = sequence.length; n < len2; i = ++n) {
+          part = sequence[i];
+          if (!(path = part.path)) {
+            continue;
+          }
+          if (fshandle = shell.fsIndex.find(function(h) {
+            return h.path === path;
+          })) {
+            sequence[i] = fshandle;
+          }
+          parent = path;
+          while (parent = parent.split("/").slice(0, -1).join("/")) {
+            if (fshandle = shell.fsIndex.find(function(h) {
+              return h.path === parent;
+            })) {
+              sequence[i].parent = fshandle;
+              break;
+            }
+          }
+          if (!(sequence[i] instanceof FileSystemHandle)) {
+            sequence[i] = new shell.FileSystemTouchable(sequence[i]);
+          }
+          sequence[i].name = sequence[i].path.split("/").filter(Boolean).at(-1);
+        }
+        log(sequence);
+        return handler(1);
       }, 100);
       return args;
     },
@@ -160,7 +307,7 @@
       Object.defineProperty(__proto__, cmd, {
         get: function() {
           var chain;
-          return shell.handleArguments(handler, shell.deployTempProxy(args, chain = [
+          return shell.resolvArguments(handler, shell.deployTempProxy(args, chain = [
             {
               as: "command",
               key: cmd
@@ -391,9 +538,9 @@
     emit("storagcwdupdate", handle);
     return handle;
   };
-  mkdir = async function(dirName, handle = currentDir) {
+  mkdir = async function(dirName, target = currentDir) {
     var dir;
-    if (dir = (await handle.getDirectoryHandle(dirName, {
+    if (dir = (await target.getDirectoryHandle(dirName, {
       create: true
     }))) {
       emit("storagecreatedirectory", {dir});
