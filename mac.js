@@ -1,7 +1,5 @@
-var splice = [].splice;
-
 (function() {
-  var Array, ArrayBuffer, Atomics, BigInt, BigInt64Array, BigUint64Array, Boolean, CustomEvent, DataView, Event, FileSystemDirectoryHandle, FileSystemFileHandle, FileSystemHandle, Float32Array, Float64Array, Function, Int16Array, Int32Array, Int8Array, JSON, Math, Number, Object, Proxy, Reflect, RegExp, STATE_INIT, STATE_PERSISTED_HANDLE, STATE_ROOT_HANDLE, STATE_UNPERSISTED_HANDLE, STATUS_IDLE, STATUS_READING, STATUS_WRITING, String, Symbol, TerminalParameter, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, __proto__, addEventListener, askp, battery, cat, cd, clearTimeout, console, counters, create, currentDir, currentFile, dataArray, dataView, debug, delay, device, dir, dispatchEvent, emit, error, events, fs, group, groupEnd, handles, info, init, issame, keyboard, lendian, log, ls, mkdir, mouse, mv, mv_d2d, mv_f2d, mv_f2f, navigator, netlink, parent, parseFloat, parseInt, pick, queryp, quota, read, readed, remove, requestAnimationFrame, requestIdleCallback, resolv, rm, rmdir, root, setTimeout, setcwd, shell, showDirectoryPicker, showOpenFilePicker, showSaveFilePicker, state, status, table, terminalify, touch, usage, warn, write, written;
+  var Array, ArrayBuffer, Atomics, BigInt, BigInt64Array, BigUint64Array, Boolean, CustomEvent, DataView, Event, FileSystemDirectoryHandle, FileSystemFileHandle, FileSystemHandle, Float32Array, Float64Array, Function, Int16Array, Int32Array, Int8Array, JSON, Math, Number, Object, Proxy, Reflect, RegExp, STATE_INIT, STATE_PERSISTED_HANDLE, STATE_ROOT_HANDLE, STATE_UNPERSISTED_HANDLE, STATUS_IDLE, STATUS_READING, STATUS_WRITING, String, Symbol, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, __proto__, addEventListener, askp, battery, cat, cd, clearTimeout, console, counters, create, currentDir, currentFile, dataArray, dataView, debug, delay, device, dir, dispatchEvent, emit, error, events, fs, group, groupEnd, handles, info, init, issame, keyboard, lendian, log, ls, mkdir, mouse, mv, mv_d2d, mv_f2d, mv_f2f, navigator, netlink, parent, parseFloat, parseInt, pick, queryp, quota, read, readed, remove, requestAnimationFrame, requestIdleCallback, resolv, rm, rmdir, root, setTimeout, setcwd, shell, showDirectoryPicker, showOpenFilePicker, showSaveFilePicker, state, status, table, terminalify, touch, usage, warn, write, written;
   ({Reflect, Object, Float32Array, Int32Array, DataView, Uint32Array, ArrayBuffer, Uint16Array, Uint32Array, dispatchEvent, addEventListener, Event, CustomEvent, JSON, setTimeout, clearTimeout, requestIdleCallback, requestAnimationFrame, navigator, Proxy, Function, __proto__, FileSystemDirectoryHandle, Symbol, console, showDirectoryPicker, showOpenFilePicker, showSaveFilePicker, RegExp, Array, Number, String, Boolean, Math, Uint8ClampedArray, Int8Array, Uint8Array, Int16Array, Float64Array, BigInt64Array, BigUint64Array, Atomics, BigInt, FileSystemFileHandle, FileSystemHandle, parseInt, parseFloat} = window);
   ({log, warn, error, table, debug, info, delay, group, groupEnd} = console);
   window.on2error = window.on2unhandledrejection = function() {
@@ -9,489 +7,171 @@ var splice = [].splice;
     //error arguments...
     return true;
   };
-  TerminalParameter = (function() {
-    class TerminalParameter extends Function {
-      constructor(alias) {
-        super().parseAlias(this.alias = alias);
-        log(this.parts);
-      }
-
-      toString() {
-        return this.alias;
-      }
-
-      valueOf() {
-        var apply, construct, defineProperty, deleteProperty, get, getOwnPropertyDescriptor, getPrototypeOf, has, isExtensible, ownKeys, preventExtensions, set, setPrototypeOf;
-        if (this.proxy) {
-          return this.proxy;
-        }
-        construct = function() {
-          log(key, 'pxy construct', {arguments});
-          return Reflect.construct(...arguments);
-        };
-        defineProperty = function() {
-          log(key, 'pxy defineProperty', {arguments});
-          return Reflect.defineProperty(...arguments);
-        };
-        deleteProperty = function() {
-          log(key, 'pxy deleteProperty', {arguments});
-          return Reflect.deleteProperty(...arguments);
-        };
-        getPrototypeOf = function() {
-          log(key, 'pxy getPrototypeOf', {arguments});
-          return Reflect.getPrototypeOf(...arguments);
-        };
-        has = function() {
-          log(key, 'pxy has', {arguments});
-          return Reflect.has(...arguments);
-        };
-        isExtensible = function() {
-          log(key, 'pxy isExtensible', {arguments});
-          return Reflect.isExtensible(...arguments);
-        };
-        ownKeys = function() {
-          log(key, 'pxy ownKeys', {arguments});
-          return Reflect.ownKeys(...arguments);
-        };
-        set = function() {
-          log(key, 'pxy set', {arguments});
-          return Reflect.set(...arguments);
-        };
-        setPrototypeOf = function() {
-          log(key, 'pxy setPrototypeOf', {arguments});
-          return Reflect.setPrototypeOf(...arguments);
-        };
-        preventExtensions = function() {
-          log(key, 'pxy preventExtensions', {arguments});
-          return Reflect.preventExtensions(...arguments);
-        };
-        getOwnPropertyDescriptor = function() {
-          log(key, 'pxy getOwnPropertyDescriptor', {arguments});
-          return Reflect.getOwnPropertyDescriptor(...arguments);
-        };
-        apply = function() {
-          this.seqindex = -1 + sequence.push(0);
-          sequence[this.seqindex] = {
-            kind: "arguments",
-            value: arguments[2],
-            origin: key
-          };
-          return 1;
-        };
-        get = function() {
-          var origin, seqindex, value;
-          value = arguments[1];
-          if (typeof value === "string") {
-            if (value.match(/seqindex|key/)) {
-              return this[value];
-            }
-          }
-          if (origin && origin.seqindex) {
-            origin = sequence[origin.seqindex];
-          }
-          seqindex = this.seqindex = -1 + sequence.push(0);
-          if (arguments[1] === Symbol.toPrimitive) {
-            value = this.key;
-            sequence[seqindex] = {kind, origin, value};
-            return function() {
-              return 1;
-            };
-          }
-          sequence[seqindex] = {kind, origin, value};
-          return 1;
-        };
-        return this.proxy = new Proxy(Function.prototype, {key, apply, construct, defineProperty, deleteProperty, get, getPrototypeOf, has, isExtensible, ownKeys, set, setPrototypeOf, preventExtensions, getOwnPropertyDescriptor});
-      }
-
-      parseAlias() {
-        return [this.key, ...this.parts] = this.alias.split(/\//g).at(-1).split(/\./g).map(function(v) {
-          return v.match(/\w+/g).join("_");
-        });
-      }
-
-      [Symbol.toPrimitive]() {
-        return 1;
-      }
-
-    };
-
-    TerminalParameter.prototype.key = "";
-
-    return TerminalParameter;
-
-  }).call(this);
   shell = {
     emit: emit = function(type, detail) {
       window.dispatchEvent(new CustomEvent(type, {detail}));
       return detail;
     },
-    commands: {},
-    fs: null,
-    tmpdefs: [],
-    fsindex: [],
-    registerStorage: function(fsroot) {
-      return this.fsroot = fsroot;
-    },
-    ls: function(path = "/") {
-      if (path === "/") {
-        return [
-          {
-            name: "/lib",
-            kind: "directory"
-          },
-          {
-            name: "/file.extension",
-            kind: "file"
-          }
-        ];
-      }
-      if (path === "/lib") {
-        return [
-          {
-            name: "/css",
-            kind: "directory"
-          },
-          {
-            name: "/statik",
-            kind: "directory"
-          }
-        ];
-      }
-      if (path === "/statik") {
-        return [
-          {
-            name: "/file.l+i_ke.dir",
-            kind: "directory"
-          },
-          {
-            name: "test.coff.ee",
-            kind: "file"
-          }
-        ];
-      }
-      return [];
-    },
-    // evnt: shellcommandregister
-    registerCommand: function(cmd, args, handler) {
-      var any, argdef, callwait, commands, dirdef, event, f, globalKey, handle, isFirst, isLast, lastpart, n, o, p, part, parts, plen, prev, proxy, pxychaindone, pxyglobalKey, ref, sequence, since, subparts, tempdefs;
-      log(event = "command register request:" + arguments[0]);
-      any = "file.l+i._ke.dir";
-      ref = parts = any.split(/\//g).at(-1).split(/\./g).map(function(v) {
-        return v.match(/\w+/g).join("_");
-      }), [globalKey, ...subparts] = ref, [lastpart] = splice.call(subparts, -1);
-      plen = parts.length;
-      p = -1;
-      o = null;
-      since = [];
-      sequence = [];
-      while (++p < plen) {
-        part = parts[p];
-        isLast = p === plen - 1;
-        isFirst = p < 1;
-        since.push(part);
-        if (!isFirst) {
-          o.prev = prev = o;
-        }
-        o = {
-          part,
-          isLast,
-          isFirst,
-          key: any,
-          isCompleted: isLast,
-          since: since.join("."),
-          nextKey: parts[p + 1]
-        };
-        n = function(m, w = [], seqindex = sequence.length) {
-          w.push(m);
-          log("non member getter", [w.join(".")]);
-          sequence[seqindex] = w.join(".");
-          return new Proxy(Function.prototype, {
-            apply: function() {
-              warn("break chain, call");
-              sequence[seqindex] = w.join(".");
-              return n(k, w, seqindex);
-            },
-            get: function(r, k) {
-              if (typeof k === "symbol") {
-                warn("break chain symbol", [w.join(".")]);
-                sequence[seqindex] = w.join(".");
-                return function() {
-                  return 1;
-                };
-              }
-              return n(k, w, seqindex);
-            }
-          });
-        };
-        f = function(j, seqreset, seqindex = sequence.length) {
-          return function() {
-            var proto, proxy;
-            if (seqreset) {
-              clearTimeout(self.t0);
-              self.t0 = setTimeout(function() {
-                log(sequence.slice());
-                return sequence.length = 0;
-              }, 100);
-            }
-            log({
-              k: j.part
-            }, {j});
-            if (j.isLast) {
-              warn("complete chain", [j.since]);
-              sequence[seqindex] = j.since;
-            }
-            proto = Function.prototype;
-            proxy = new Proxy(proto, {
-              apply: function() {
-                warn("break chain, call");
-                return sequence.push(`(${arguments[2]})`);
-              },
-              get: function(r, k) {
-                var w;
-                if (typeof k === "symbol") {
-                  warn("break chain symbol", [j.since]);
-                  sequence[seqindex] = j.since;
-                  return function() {
-                    return 2;
-                  };
-                }
-                if (Object.hasOwn(j, k)) {
-                  return j[k];
-                }
-                if (Object.hasOwn(r, k)) {
-                  return r[k];
-                }
-                w = [];
-                if (!j.isCompleted) {
-                  w.push(j.since);
-                }
-                return n(k, w);
-              }
+    fsIndex: [],
+    deployTempProxy: function(args = [], chain = []) {
+      var a, combargs, crossProxy, i, j, len, len1, len2, m, n, ref, tempkeys, w;
+      crossProxy = function(word, _chain = [], level = 0) {
+        return new Proxy(Function.prototype, {
+          apply: function(f, key, args) {
+            _chain.push({
+              as: "function",
+              args: args
             });
-            return proxy;
-          };
-        };
-        if (!isFirst) {
-          Object.defineProperty(prev, part, {
-            get: f(o)
-          });
+            return crossProxy(word, _chain, level + 2);
+          },
+          get: function(f, key) {
+            if (key === Symbol.toPrimitive) {
+              return function() {
+                return 1;
+              };
+            }
+            _chain.push({
+              as: "keyword"
+            }, key, level);
+            return crossProxy(word, _chain, level + 1);
+          }
+        });
+      };
+      tempkeys = [];
+      combargs = [...args];
+      for (i = j = 0, len = args.length; j < len; i = ++j) {
+        a = args[i];
+        while (i--) {
+          combargs.push(a + args[i]);
+          combargs.push(args[i] + a);
         }
-        if (isFirst) {
-          Object.defineProperty(__proto__, part, {
-            get: f(o, true)
-          });
-        }
-        log(o);
       }
-      return;
-      warn({globalKey, lastpart}, "subparts:", subparts);
-      pxychaindone = new Proxy(Function.prototype, {
-        apply: function() {
-          log("chain done with fn");
-          return 1;
-        },
-        get: function(fn, key) {
-          log("chain done with get");
-          if (typeof key === "symbol") {
-            log("                     -> symbol", key);
-            return function() {
-              return 1;
-            };
+      for (m = 0, len1 = combargs.length; m < len1; m++) {
+        w = combargs[m];
+        if (!Object.hasOwn(window, w)) {
+          Object.defineProperty(window, (tempkeys[tempkeys.length] = w), {
+            configurable: true,
+            get: (function(word) {
+              return function() {
+                chain[chain.length] = {
+                  as: "argument",
+                  key: word
+                };
+                return crossProxy(word, chain);
+              };
+            })(w)
+          });
+        }
+      }
+      ref = shell.fsIndex;
+      for (n = 0, len2 = ref.length; n < len2; n++) {
+        i = ref[n];
+        if (!Object.hasOwn(window, (w = i.global))) {
+          Object.defineProperty(window, (tempkeys[tempkeys.length] = w), {
+            configurable: true,
+            get: (function(word) {
+              return function() {
+                var subchain;
+                chain[chain.length] = {
+                  as: "fshandle",
+                  key: word,
+                  level: 1,
+                  subchain: subchain = []
+                };
+                return crossProxy(word, subchain);
+              };
+            })(w)
+          });
+        }
+      }
+      requestIdleCallback(function() {
+        return queueMicrotask(function() {
+          return requestAnimationFrame(function() {
+            return tempkeys.map(function(key) {
+              return Reflect.deleteProperty(window, key);
+            });
+          });
+        });
+      });
+      return chain;
+    },
+    updatePathIndex: async function(dHandle, level = 0) {
+      var iHandle, j, len, ref;
+      dHandle.path = (await resolv(dHandle));
+      dHandle.level = level;
+      dHandle.global = dHandle.name.split(/\.|(\w+)/gui).filter(Boolean).at(0);
+      if (!this.fsIndex.find(function(i) {
+        return i.global === dHandle.global;
+      })) {
+        if (dHandle.global && !Object.hasOwn(window, dHandle.global)) {
+          if (dHandle.name.length > 1) {
+            this.fsIndex.push(dHandle);
           }
-          return log("                     -> other", key);
         }
-      });
-      pxyglobalKey = new Proxy(Function.prototype, {
-        apply: function() {
-          debug("chain starts with fn", this, arguments);
-          return 1;
-        },
-        get: function(fn, key) {
-          log("chain starts with get");
-          if (typeof key === "symbol") {
-            log("                     -> symbol", key);
-            return function() {
-              return 1;
-            };
-          }
-          return log("                     -> other", key);
-        }
-      });
-      warn("\npxychaindone:", pxychaindone, "\npxyglobalKey:", pxyglobalKey);
-      Object.defineProperty(__proto__, globalKey, {
-        get: function() {
-          return pxyglobalKey;
-        }
-      });
-      return 2;
-      callwait = 0;
-      sequence = [];
-      commands = this.commands;
-      tempdefs = [];
-      commands[cmd] = {cmd, args, handler};
-      proxy = function(key, kind, origin) {
-        var apply, construct, defineProperty, deleteProperty, get, getOwnPropertyDescriptor, getPrototypeOf, has, isExtensible, ownKeys, preventExtensions, set, setPrototypeOf;
-        construct = function() {
-          log(key, 'pxy construct', {arguments});
-          return Reflect.construct(...arguments);
-        };
-        defineProperty = function() {
-          log(key, 'pxy defineProperty', {arguments});
-          return Reflect.defineProperty(...arguments);
-        };
-        deleteProperty = function() {
-          log(key, 'pxy deleteProperty', {arguments});
-          return Reflect.deleteProperty(...arguments);
-        };
-        getPrototypeOf = function() {
-          log(key, 'pxy getPrototypeOf', {arguments});
-          return Reflect.getPrototypeOf(...arguments);
-        };
-        has = function() {
-          log(key, 'pxy has', {arguments});
-          return Reflect.has(...arguments);
-        };
-        isExtensible = function() {
-          log(key, 'pxy isExtensible', {arguments});
-          return Reflect.isExtensible(...arguments);
-        };
-        ownKeys = function() {
-          log(key, 'pxy ownKeys', {arguments});
-          return Reflect.ownKeys(...arguments);
-        };
-        set = function() {
-          log(key, 'pxy set', {arguments});
-          return Reflect.set(...arguments);
-        };
-        setPrototypeOf = function() {
-          log(key, 'pxy setPrototypeOf', {arguments});
-          return Reflect.setPrototypeOf(...arguments);
-        };
-        preventExtensions = function() {
-          log(key, 'pxy preventExtensions', {arguments});
-          return Reflect.preventExtensions(...arguments);
-        };
-        getOwnPropertyDescriptor = function() {
-          log(key, 'pxy getOwnPropertyDescriptor', {arguments});
-          return Reflect.getOwnPropertyDescriptor(...arguments);
-        };
-        apply = function() {
-          this.seqindex = -1 + sequence.push(0);
-          sequence[this.seqindex] = {
-            kind: "arguments",
-            value: arguments[2],
-            origin: key
-          };
-          return 1;
-        };
-        get = function() {
-          var seqindex, value;
-          value = arguments[1];
-          if (typeof value === "string") {
-            if (value.match(/seqindex|key/)) {
-              return this[value];
+      }
+      ref = (await ls(dHandle));
+      for (j = 0, len = ref.length; j < len; j++) {
+        iHandle = ref[j];
+        iHandle.path = (await resolv(iHandle));
+        iHandle.global = iHandle.name.split(/\.|(\w+)/gui).filter(Boolean).at(0);
+        if (!this.fsIndex.find(function(i) {
+          return i.global === iHandle.global;
+        })) {
+          if (iHandle.global && !Object.hasOwn(window, iHandle.global)) {
+            if (iHandle.name.length > 1) {
+              this.fsIndex.push(iHandle);
             }
           }
-          if (origin && origin.seqindex) {
-            origin = sequence[origin.seqindex];
-          }
-          seqindex = this.seqindex = -1 + sequence.push(0);
-          if (arguments[1] === Symbol.toPrimitive) {
-            value = this.key;
-            sequence[seqindex] = {kind, origin, value};
-            return function() {
-              return 1;
-            };
-          }
-          sequence[seqindex] = {kind, origin, value};
-          return 1;
-        };
-        return new Proxy(Function.prototype, {key, apply, construct, defineProperty, deleteProperty, get, getPrototypeOf, has, isExtensible, ownKeys, set, setPrototypeOf, preventExtensions, getOwnPropertyDescriptor});
-      };
-      dirdef = (fsitem, parent, origin) => {
-        var defname, dotparts, get;
-        dotparts = fsitem.name.split(/\//g).at(-1).split(/\./g).map(function(v) {
-          return v.match(/\w+/g).join("_");
-        });
-        [defname] = dotparts.splice(0, 1);
-        if (__proto__[defname]) {
-          warn(__proto__[defname]);
         }
-        if (tempdefs.includes(defname)) {
-          error("already defined:", defname);
-          return;
+        if (iHandle.kind === "directory") {
+          await this.updatePathIndex(iHandle, level + 1);
         }
-        tempdefs.push(defname);
-        get = () => {
-          var len, pxy, q, ref1, subitem;
-          log("defining sub items of", fsitem.name, {arguments});
-          pxy = proxy(defname, "fsitempart", origin);
-          if (fsitem.kind === "directory") {
-            ref1 = this.ls(fsitem.name);
-            for (q = 0, len = ref1.length; q < len; q++) {
-              subitem = ref1[q];
-              dirdef(subitem, fsitem, pxy);
-            }
+      }
+      return this.fsIndex;
+    },
+    handleArguments: function(handler, args = []) {
+      setTimeout(() => {
+        var arg, j, len, results;
+        results = [];
+        for (j = 0, len = args.length; j < len; j++) {
+          arg = args[j];
+          results.push(warn(arg));
+        }
+        return results;
+      }, 100);
+      return args;
+    },
+    registerCommand: function(cmd, handler, args = []) {
+      if (Object.hasOwn(window, cmd)) {
+        throw [
+          {
+            COMMAND_NAME_ALREADY_GLOBAL: cmd
           }
-          return pxy;
-        };
-        return Object.defineProperty(__proto__, defname, {
-          configurable: true,
-          get
-        });
-      };
-      argdef = (arg) => {
-        var get;
-        if (tempdefs.includes(arg)) {
-          return;
-        }
-        tempdefs.push(arg);
-        get = () => {
-          log("window getter called for ", arg, {arguments});
-          return proxy(arg, "argument");
-        };
-        return Object.defineProperty(__proto__, arg, {
-          configurable: true,
-          get
-        });
-      };
-      handle = function() {
-        var fsitem, len, q, ref1;
-        if (!sequence.length) {
-          log("command executed", arguments[0]);
-          ({cmd, args, handler} = arguments[0]);
-          args.forEach(argdef.bind(this));
-          ref1 = this.ls();
-          for (q = 0, len = ref1.length; q < len; q++) {
-            fsitem = ref1[q];
-            dirdef(fsitem, "/");
-          }
-          clearTimeout(callwait);
-          callwait = setTimeout(function() {
-            return debug(sequence);
-          //todo sequence.length = 0
-          }, 40);
-        }
-        return sequence.push({
-          value: cmd,
-          kind: "command"
-        });
-      };
+        ];
+      }
       Object.defineProperty(__proto__, cmd, {
-        get: handle.bind(this, commands[cmd])
+        get: function() {
+          var chain;
+          return shell.handleArguments(handler, shell.deployTempProxy(args, chain = [
+            {
+              as: "command",
+              key: cmd
+            }
+          ]));
+        }
       });
       return emit("shellcommandregister", cmd);
     }
   };
   (mouse = function() {
-    var changeX, changeY, clientX, clientY, counters, dataView, device, e, iLast, lastEvent, len, lendian, offsets, onevent, positions, q, screenX, screenY;
+    var changeX, changeY, clientX, clientY, counters, dataView, device, e, iLast, j, lastEvent, len, lendian, offsets, onevent, positions, screenX, screenY;
     device = new ArrayBuffer(64);
     counters = new Int32Array(device, 0, 10);
     positions = new Float32Array(device, 40, 6);
     dataView = new DataView(device);
     lendian = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
     onevent = 'onpointerdown onpointermove onpointerup onpointercancel onpointerover onpointerout onpointerenter onpointerleave'.split(/\s+|\n/g);
-    for (iLast = q = 0, len = onevent.length; q < len; iLast = ++q) {
+    for (iLast = j = 0, len = onevent.length; j < len; iLast = ++j) {
       e = onevent[iLast];
       (function(evnt, i) {
         return window.addEventListener(evnt, function(t) {
@@ -592,9 +272,9 @@ var splice = [].splice;
     offsetDTime = 20;
     onevents = 'onchargingchange onchargingtimechange ondischargingtimechange onlevelchange'.split(/\s+|\n/);
     navigator.getBattery().then(function(dev) {
-      var e, iLast, len, q, results;
+      var e, iLast, j, len, results;
       results = [];
-      for (iLast = q = 0, len = onevents.length; q < len; iLast = ++q) {
+      for (iLast = j = 0, len = onevents.length; j < len; iLast = ++j) {
         e = onevents[iLast];
         results.push((function(evnt, i) {
           return this[evnt] = function(t) {
@@ -839,7 +519,7 @@ var splice = [].splice;
     return (await target.isSameEntry(handle));
   };
   read = async function(file, handle = currentDir) {
-    var fhandle, item, len, q, ref;
+    var fhandle, item, j, len, ref;
     if (file instanceof FileSystemFileHandle) {
       ({
         name: file
@@ -848,8 +528,8 @@ var splice = [].splice;
       [file, fhandle] = file;
     } else if ("string" === typeof file) {
       ref = (await ls(handle));
-      for (q = 0, len = ref.length; q < len; q++) {
-        item = ref[q];
+      for (j = 0, len = ref.length; j < len; j++) {
+        item = ref[j];
         if (item.name === file) {
           fhandle = item;
           break;
@@ -942,7 +622,7 @@ var splice = [].splice;
     return (await mv_f2f(srcFHandle, dstFHandle));
   };
   mv_d2d = async function(srcDHandle, dstDHandle) {
-    var d, fdHandle, len, q, ref;
+    var d, fdHandle, j, len, ref;
     if (!srcDHandle instanceof FileSystemDirectoryHandle) {
       throw /SRC_MUST_BE_DIRECTORY/;
     }
@@ -954,8 +634,8 @@ var splice = [].splice;
     }
     d = (await mkdir(srcDHandle.name, dstDHandle));
     ref = (await ls(srcDHandle));
-    for (q = 0, len = ref.length; q < len; q++) {
-      fdHandle = ref[q];
+    for (j = 0, len = ref.length; j < len; j++) {
+      fdHandle = ref[j];
       if (fdHandle instanceof FileSystemFileHandle) {
         await mv_f2d(fdHandle, d);
         continue;
@@ -968,7 +648,7 @@ var splice = [].splice;
     return 1;
   };
   mv = async function(handle, target = currentDir) {
-    var _ls, ihandle, len, q;
+    var _ls, ihandle, j, len;
     if (target instanceof Array) {
       target = target.find(function(i) {
         return i instanceof FileSystemHandle;
@@ -999,8 +679,8 @@ var splice = [].splice;
       }
     }
     if (handle instanceof Array) {
-      for (q = 0, len = handle.length; q < len; q++) {
-        ihandle = handle[q];
+      for (j = 0, len = handle.length; j < len; j++) {
+        ihandle = handle[j];
         await mv(ihandle, target);
       }
     }
@@ -1050,14 +730,11 @@ var splice = [].splice;
       });
     } catch (error1) {}
     try {
-      navigator.storage.estimate().then(function(estimate) {
+      return navigator.storage.estimate().then(function(estimate) {
         dataView.setBigUint64(12, BigInt(estimate.quota), lendian);
         return dataView.setUint32(20, estimate.usage, lendian);
       });
     } catch (error1) {}
-    return shell.registerCommand("ls", ["l", "f"], function(sequence) {
-      return error([...sequence]);
-    });
   });
   self.onclick = async function() {
     var handle;
@@ -1070,7 +747,7 @@ var splice = [].splice;
   terminalify = function() {
     var a, cmd, get, trap, trapArguments;
     trapArguments = function(args, list) {
-      var getter, k, len, parameter, parameters, q;
+      var getter, j, k, len, parameter, parameters;
       getter = function() {
         if (arguments[1] === Symbol.toPrimitive) {
           return function() {
@@ -1085,8 +762,8 @@ var splice = [].splice;
         });
       };
       parameters = {};
-      for (q = 0, len = list.length; q < len; q++) {
-        parameter = list[q];
+      for (j = 0, len = list.length; j < len; j++) {
+        parameter = list[j];
         parameters[parameter] = {
           configurable: true,
           get: getter.bind(null, null, parameter)
@@ -1239,7 +916,7 @@ var splice = [].splice;
       ls: {
         get: get.bind("ls -l"),
         set: async function(args) {
-          var _date, byteLength, dirCount, fileCount, item, kB, lastModifiedDate, len, lines, q, ref, size, type;
+          var _date, byteLength, dirCount, fileCount, item, j, kB, lastModifiedDate, len, lines, ref, size, type;
           warn(3);
           dir = args.filter(function(a) {
             return !["l"].includes(a);
@@ -1249,8 +926,8 @@ var splice = [].splice;
           fileCount = 0;
           byteLength = 0;
           ref = (await ls(dir));
-          for (q = 0, len = ref.length; q < len; q++) {
-            item = ref[q];
+          for (j = 0, len = ref.length; j < len; j++) {
+            item = ref[j];
             if ("file" === item.kind) {
               ({size, type, lastModifiedDate} = (await read(item)));
               _date = lastModifiedDate.toDateString().split(" ").slice(1).slice(0, 2).join(" ") + " " + lastModifiedDate.toTimeString().substring(0, 5);
@@ -1282,24 +959,24 @@ var splice = [].splice;
       },
       mv: {
         get: function() {
-          var indeks, isim, istenenler, len, len1, level0, q, ref, s, tanim;
+          var indeks, isim, istenenler, j, len, len1, level0, m, ref, tanim;
           istenenler = [];
           level0 = [];
           ref = self.indexler;
-          for (q = 0, len = ref.length; q < len; q++) {
-            indeks = ref[q];
+          for (j = 0, len = ref.length; j < len; j++) {
+            indeks = ref[j];
             isim = indeks.split(/\/|\./, 2)[1];
             if (!level0.includes(isim)) {
               level0.push(isim);
             }
           }
-          for (s = 0, len1 = level0.length; s < len1; s++) {
-            tanim = level0[s];
+          for (m = 0, len1 = level0.length; m < len1; m++) {
+            tanim = level0[m];
             Object.defineProperty(window, tanim, (function(isim) {
               return {
                 configurable: true,
                 get: function() {
-                  var len2, level1, tanim1, u;
+                  var len2, level1, n, tanim1;
                   istenenler.push(isim);
                   log("istendi:", isim, 0);
                   level1 = [];
@@ -1314,13 +991,13 @@ var splice = [].splice;
                       return level1.push(isim1);
                     }
                   });
-                  for (u = 0, len2 = level1.length; u < len2; u++) {
-                    tanim1 = level1[u];
+                  for (n = 0, len2 = level1.length; n < len2; n++) {
+                    tanim1 = level1[n];
                     Object.defineProperty(window, tanim1, (function(isim1) {
                       return {
                         configurable: true,
                         get: function() {
-                          var len3, level2, tanim2, x;
+                          var len3, level2, q, tanim2;
                           istenenler.push(isim1);
                           log("istendi:".padStart(10 + istenenler.length * 2, " "), isim1, 1);
                           //? -----> level 2
@@ -1339,8 +1016,8 @@ var splice = [].splice;
                             }
                           });
                           level2;
-                          for (x = 0, len3 = level2.length; x < len3; x++) {
-                            tanim2 = level2[x];
+                          for (q = 0, len3 = level2.length; q < len3; q++) {
+                            tanim2 = level2[q];
                             Object.defineProperty(window, tanim2, (function(isim2) {
                               return {
                                 configurable: true,
@@ -1402,112 +1079,21 @@ var splice = [].splice;
     });
   };
   init();
+  
   // update shell's fsindex
-  window.addEventListener("storagcwdupdate", async function({
+  window.addEventListener("storagcwdupdate", function({
       detail: handle
     }) {
-    var dPath, has, i, iHandle, iPath, j, k, len, len1, len2, len3, p, parts, pfix, q, ref, ref1, s, u, v, w, words, x;
-    return;
-    dPath = (await resolv(handle));
-    if (!shell.fsindex.includes(dPath)) {
-      shell.fsindex.push(dPath, handle);
-    }
-    ref = (await ls(handle));
-    for (q = 0, len = ref.length; q < len; q++) {
-      iHandle = ref[q];
-      iPath = (await resolv(iHandle));
-      if (!shell.fsindex.includes(iPath)) {
-        shell.fsindex.push(iPath, iHandle);
-      }
-    }
-    log("storagcwdupdate:", shell.fsindex.length);
-    ref1 = shell.fsindex;
-    for (i = s = 0, len1 = ref1.length; s < len1; i = ++s) {
-      v = ref1[i];
-      if (!i || i % 2) {
-        continue;
-      }
-      log("defining:", v);
-      parts = v.split("/").filter(Boolean);
-//log "-> parts:", parts
-      for (j = u = 0, len2 = parts.length; u < len2; j = ++u) {
-        p = parts[j];
-        //log "---> defining:", p
-        words = p.split(/\.|\+/g).filter(Boolean);
-        //log "----> words:", words
-        parent = null;
-        for (k = x = 0, len3 = words.length; x < len3; k = ++x) {
-          w = words[k];
-          if (!k) {
-            //log "\n+++++> global word:", new RegExp w
-            has = Object.hasOwn(window, w);
-            if (!has) {
-              (function(o, w) {
-                return Object.defineProperty(window, w, {
-                  get: function() {
-                    //log "getted:", w, o
-                    return o;
-                  }
-                });
-              })({
-                paths: [],
-                word: w
-              }, w);
-            }
-            if (!window[w].paths.includes(v)) {
-              window[w].paths.push(v);
-            }
-            parent = window[w];
-            continue;
-          }
-          continue;
-          if (!(has = Object.hasOwn(parent, w))) {
-            pfix = "".padStart(k * 2, " ");
-            log(pfix + "  +++> inner get:", w);
-            log(pfix + "  +++> has own parent:", has);
-            (function(o, w, isLast) {
-              return Object.defineProperty(parent, w, {
-                get: function() {
-                  var pxy;
-                  log("getted:", w, o, {isLast});
-                  pxy = function(o, v, isLast) {
-                    return {
-                      get: function() {
-                        if (isLast) {
-                          warn("last item getter of:", o);
-                          if (o.paths.length === 1) {
-                            warn(" --> exact match of:", o.paths.at(0));
-                          }
-                        }
-                        if (arguments[1] === Symbol.toPrimitive) {
-                          return function() {
-                            return 1;
-                          };
-                        }
-                        return Reflect.get(...arguments);
-                      },
-                      apply: function() {
-                        return Reflect.apply(...arguments);
-                      }
-                    };
-                  };
-                  return new Proxy(o, pxy(o, v, isLast));
-                }
-              });
-            })({
-              paths: [],
-              word: w
-            }, w, k === words.length - 1);
-          }
-          if (!parent[w].paths.includes(v)) {
-            parent[w].paths.push(v);
-          }
-          parent = parent[w];
-        }
-      }
-    }
-    return shell.workingDir = handle;
+    var args, cmd, handler;
+    shell.updatePathIndex(handle);
+    cmd = "ls";
+    args = ["l", "a", "h"];
+    handler = function(sequence) {
+      return log("command executed:", sequence);
+    };
+    return shell.registerCommand(cmd, handler, args);
   });
+  
   // cleaning window object
   window.addEventListener("storageroothandle", function({
       detail: fsroot

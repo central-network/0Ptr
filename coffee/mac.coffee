@@ -17,399 +17,112 @@ do ->
         #error arguments...
         true
 
-    class TerminalParameter extends Function
-
-        key : ""
-
-        constructor : ( alias ) ->
-            super().parseAlias @alias = alias
-
-
-            log this.parts
-
-        toString    : ->
-            @alias
-
-        valueOf     : ->
-            return @proxy if @proxy 
-
-            construct       = -> log( key, 'pxy construct', {arguments}); Reflect.construct arguments...
-            defineProperty  = -> log( key, 'pxy defineProperty', {arguments}); Reflect.defineProperty arguments...
-            deleteProperty  = -> log( key, 'pxy deleteProperty', {arguments}); Reflect.deleteProperty arguments...
-            getPrototypeOf  = -> log( key, 'pxy getPrototypeOf', {arguments}); Reflect.getPrototypeOf arguments...
-            has             = -> log( key, 'pxy has', {arguments}); Reflect.has arguments...
-            isExtensible    = -> log( key, 'pxy isExtensible', {arguments}); Reflect.isExtensible arguments...
-            ownKeys         = -> log( key, 'pxy ownKeys', {arguments}); Reflect.ownKeys arguments...
-            set             = -> log( key, 'pxy set', {arguments}); Reflect.set arguments...
-            setPrototypeOf  = -> log( key, 'pxy setPrototypeOf', {arguments}); Reflect.setPrototypeOf arguments...
-            preventExtensions = -> log( key, 'pxy preventExtensions', {arguments}); Reflect.preventExtensions arguments...
-            getOwnPropertyDescriptor = -> log( key, 'pxy getOwnPropertyDescriptor', {arguments}); Reflect.getOwnPropertyDescriptor arguments...
-
-            apply           = ->
-                @seqindex = -1 + sequence.push 0
-
-                sequence[ @seqindex ] = {
-                    kind: "arguments",
-                    value: arguments[2],
-                    origin: key
-                }
-
-                return 1
-
-            get             = ->
-                value = arguments[1]
-
-                if  typeof value is "string"
-                    if  value.match /seqindex|key/
-                        return @[value]
-
-                if  origin and origin.seqindex
-                    origin = sequence[origin.seqindex]
-
-                seqindex = @seqindex =
-                    ( -1 + sequence.push 0 )
-
-                if  arguments[1] is Symbol.toPrimitive
-                    value = @key
-
-                    sequence[ seqindex ] =
-                        { kind, origin, value }
-
-                    return -> 1
-
-                sequence[ seqindex ] =
-                    { kind, origin, value }
-
-                1
-
-            @proxy = new Proxy Function::, {
-                key, apply, construct, defineProperty, deleteProperty, 
-                get, getPrototypeOf, has, isExtensible, ownKeys, 
-                set, setPrototypeOf, preventExtensions, getOwnPropertyDescriptor
-            }
-        
-
-        parseAlias  : ->
-            [ @key, ...@parts ] = @alias
-            .split( /\//g ).at(-1).split( /\./g )
-            .map (v) -> v.match(/\w+/g).join("_")
-
-        [ Symbol.toPrimitive ] : ->
-            1
-
-
     shell =
         emit            : emit = ( type, detail ) ->
             window.dispatchEvent new CustomEvent type, { detail }; detail
 
-        commands        : {}
+        fsIndex         : []
 
-        fs              : null
+        deployTempProxy : ( args = [], chain = [] ) ->
 
-        tmpdefs         : []
+            crossProxy = ( word, _chain = [], level = 0 ) ->
 
-        fsindex         : []
+                return new Proxy Function::, {
+                    apply  : ( f, key, args ) ->
+                        _chain.push( as : "function", args: args )
+                        return crossProxy word, _chain, level + 2
 
-        registerStorage : ( fsroot ) ->
-            @fsroot = fsroot
-
-        ls              : ( path = "/" ) ->
-            if path is "/"
-                return [ { name: "/lib", kind: "directory" }, { name: "/file.extension", kind: "file" } ]
-            
-            if path is "/lib"
-                return [ { name: "/css", kind: "directory" }, { name: "/statik", kind: "directory" } ]
-
-            if path is "/statik"
-                return [ { name: "/file.l+i_ke.dir", kind: "directory" }, { name: "test.coff.ee", kind: "file" } ]
-
-            []
-
-        # evnt: shellcommandregister
-        registerCommand : ( cmd, args, handler ) ->
-            log event = "command register request:" + arguments[0]
-
-
-            any = "file.l+i._ke.dir"
-
-            [ globalKey, ...subparts , lastpart ] = parts = any
-            .split( /\//g ).at(-1).split( /\./g )
-            .map (v) -> v.match(/\w+/g).join("_")
-
-            plen = parts.length
-            p = -1
-            o = null
-
-            since = []
-            sequence = []
-
-            while ++p < plen
-                part = parts[p]
-                isLast = p is plen - 1
-                isFirst = p < 1
-                since.push part
-
-                if !isFirst
-                    o.prev = 
-                    prev = o
-
-                o = {
-                    part, isLast, isFirst,
-                    key : any, 
-                    isCompleted : isLast
-                    since : since.join "."
-                    nextKey : parts[p+1]
-                }
-
-                n = (m, w = [], seqindex = sequence.length ) ->
-                    w.push m
-                    log "non member getter", [ w.join "." ]
-                    sequence[seqindex] = w.join "."
-
-                    new Proxy Function::,
-                        apply : ->
-                            warn "break chain, call"
-                            sequence[seqindex] = w.join "."
-                            n(k, w, seqindex)
-
-                        get : (r, k) ->
-
-                            if  typeof k is "symbol"
-                                warn "break chain symbol", [ w.join "." ]
-                                sequence[seqindex] = w.join "."
-                                return -> 1
-                            n(k, w, seqindex)                    
-
-                f = (j, seqreset, seqindex = sequence.length) -> ->
-                    if  seqreset
-                        clearTimeout self.t0
-                        self.t0 = setTimeout ->
-                            log sequence.slice()
-                            sequence.length = 0
-                        , 100
-
-                    log {k:j.part}, {j}
-
-                    if  j.isLast
-                        warn "complete chain", [ j.since ]
-                        sequence[seqindex] = j.since
-
-                    proto = Function::
-
-                    proxy = new Proxy proto,
-
-                        apply : ->
-                            warn "break chain, call"
-                            sequence.push "(#{arguments[2]})"
-
-                        get : (r, k) ->
-
-                            if  typeof k is "symbol"
-                                warn "break chain symbol", [j.since]
-                                sequence[seqindex] = j.since
-                                return -> 2
-
-                            if  Object.hasOwn j,  k
-                                return j[k]
-
-                            if  Object.hasOwn r,  k
-                                return r[k]
-
-                            w = []
-                            if !j.isCompleted
-                                w.push j.since
-
-                            n(k, w)
-
-                    proxy
-
-                if !isFirst
-                    Object.defineProperty prev, part, get : f(o)
-
-                if  isFirst
-                    Object.defineProperty __proto__, part, get : f(o, on)
-
-                log o
-
-
-            return
-
-            warn {
-                globalKey, lastpart
-            }, "subparts:", subparts
-
-            pxychaindone = new Proxy Function::, {
-                apply : ->
-                    log "chain done with fn"
-                    1
-
-                get   : ( fn, key ) ->
-                    log "chain done with get"
-                    
-                    if  typeof key is "symbol"
-                        log "                     -> symbol", key
-                        return -> 1
-
-                    log "                     -> other", key
-
-            }
-
-            pxyglobalKey =  new Proxy Function::, {
-                apply : ->
-                    debug "chain starts with fn", this, arguments
-                    1
-
-                get   : ( fn, key ) ->
-                    log "chain starts with get"
-                    
-                    if  typeof key is "symbol"
-                        log "                     -> symbol", key
-                        return -> 1
-
-                    log "                     -> other", key
-
-            }
-
-            warn "\npxychaindone:", pxychaindone, "\npxyglobalKey:", pxyglobalKey
-
-            Object.defineProperty __proto__, globalKey, get : -> pxyglobalKey
-
-            return 2
-
-            callwait = 0
-            sequence = []
-            commands = @commands
-            tempdefs = []
-
-            commands[ cmd ] =
-                { cmd, args, handler }
-
-            proxy    = ( key, kind, origin ) ->
-
-                construct       = -> log( key, 'pxy construct', {arguments}); Reflect.construct arguments...
-                defineProperty  = -> log( key, 'pxy defineProperty', {arguments}); Reflect.defineProperty arguments...
-                deleteProperty  = -> log( key, 'pxy deleteProperty', {arguments}); Reflect.deleteProperty arguments...
-                getPrototypeOf  = -> log( key, 'pxy getPrototypeOf', {arguments}); Reflect.getPrototypeOf arguments...
-                has             = -> log( key, 'pxy has', {arguments}); Reflect.has arguments...
-                isExtensible    = -> log( key, 'pxy isExtensible', {arguments}); Reflect.isExtensible arguments...
-                ownKeys         = -> log( key, 'pxy ownKeys', {arguments}); Reflect.ownKeys arguments...
-                set             = -> log( key, 'pxy set', {arguments}); Reflect.set arguments...
-                setPrototypeOf  = -> log( key, 'pxy setPrototypeOf', {arguments}); Reflect.setPrototypeOf arguments...
-                preventExtensions = -> log( key, 'pxy preventExtensions', {arguments}); Reflect.preventExtensions arguments...
-                getOwnPropertyDescriptor = -> log( key, 'pxy getOwnPropertyDescriptor', {arguments}); Reflect.getOwnPropertyDescriptor arguments...
-
-                apply           = ->
-                    @seqindex = -1 + sequence.push 0
-
-                    sequence[ @seqindex ] = {
-                        kind: "arguments",
-                        value: arguments[2],
-                        origin: key
-                    }
-
-                    return 1
-
-                get             = ->
-                    value = arguments[1]
-
-                    if  typeof value is "string"
-                        if  value.match /seqindex|key/
-                            return @[value]
-
-                    if  origin and origin.seqindex
-                        origin = sequence[origin.seqindex]
-
-                    seqindex = @seqindex =
-                        ( -1 + sequence.push 0 )
-
-                    if  arguments[1] is Symbol.toPrimitive
-                        value = @key
-
-                        sequence[ seqindex ] =
-                            { kind, origin, value }
-
-                        return -> 1
-    
-                    sequence[ seqindex ] =
-                        { kind, origin, value }
-
-                    1
-
-                new Proxy Function::, {
-                    key, apply, construct, defineProperty, deleteProperty, 
-                    get, getPrototypeOf, has, isExtensible, ownKeys, 
-                    set, setPrototypeOf, preventExtensions, getOwnPropertyDescriptor
-                }
-            
-            dirdef   = ( fsitem, parent, origin ) =>
-
-
-                dotparts = fsitem.name
-                .split( /\//g ).at(-1).split( /\./g )
-                .map (v) -> v.match(/\w+/g).join("_")
-
-                [ defname ] = dotparts.splice 0, 1
-
-                if  __proto__[defname]
-                    warn __proto__[defname]
-
-                if  tempdefs.includes defname
-                    error "already defined:", defname
-
-                    return
-
-                tempdefs.push defname                    
-
-                get  = =>
-                    log "defining sub items of", fsitem.name, { arguments }
-                    pxy = proxy defname, "fsitempart", origin
-
-                    if  fsitem.kind is "directory"
-                        for subitem in @ls fsitem.name
-                            dirdef subitem, fsitem, pxy
-
-                    pxy
+                    get    : ( f, key ) ->
+                        if  key is Symbol.toPrimitive
+                            return -> 1
                         
+                        _chain.push( as : "keyword", key, level )
+                        return crossProxy word, _chain, level + 1
+                }
+    
+            tempkeys = []
+            combargs = [ ...args ]
+    
+            for a, i in args then while i--
+                combargs.push a + args[i]
+                combargs.push args[i] + a
+    
+            for w in combargs when !Object.hasOwn window, w
+                Object.defineProperty window, (tempkeys[tempkeys.length] = w), {
+                    configurable : yes
+                    get : ((word)->->
+                        chain[chain.length] = {
+                            as : "argument",
+                            key : word,
+                        }
+                        crossProxy word, chain
+                    )(w)
+                }
+    
+            for i in shell.fsIndex when !Object.hasOwn window, (w = i.global)
+                Object.defineProperty window, (tempkeys[tempkeys.length] = w), {
+                    configurable : yes
+                    get : ((word)->->
+                        chain[chain.length] = {
+                            as : "fshandle",
+                            key : word,
+                            level : 1,
+                            subchain : subchain = []
+                        }
+                        crossProxy word, subchain
+                    )(w)
+                }
+    
+            requestIdleCallback -> queueMicrotask -> 
+                requestAnimationFrame -> tempkeys.map ( key ) ->
+                        Reflect.deleteProperty( window, key )
+    
+            chain
 
-                Object.defineProperty __proto__, defname,
-                { configurable : on, get }
+        updatePathIndex : ( dHandle, level = 0 ) ->
 
-            argdef   = ( arg ) =>
-                if  tempdefs.includes arg
-                    return
+            dHandle.path = await resolv dHandle
+            dHandle.level = level 
+            dHandle.global = dHandle.name
+            .split(/\.|(\w+)/gui).filter(Boolean).at 0
+    
+            if !@fsIndex.find (i) -> i.global is dHandle.global
+                if  dHandle.global and !Object.hasOwn window, dHandle.global
+                    @fsIndex.push dHandle if dHandle.name.length>1
+    
+            for iHandle in await ls dHandle
+    
+                iHandle.path = await resolv iHandle
+                iHandle.global = iHandle.name
+                .split(/\.|(\w+)/gui).filter(Boolean).at 0
+    
+                if !@fsIndex.find (i) -> i.global is iHandle.global
+                    if  iHandle.global and !Object.hasOwn window, iHandle.global
+                        @fsIndex.push iHandle if iHandle.name.length>1
+    
+                if  iHandle.kind is "directory"
+                    await @updatePathIndex iHandle, level + 1
+    
+            return @fsIndex
+        
+        handleArguments : ( handler, args = [] ) ->
 
-                tempdefs.push arg                    
+            setTimeout =>
+                for arg in args
+                    warn arg
+            , 100
 
-                get  = =>
-                    log "window getter called for ", arg, { arguments }
-                    proxy arg, "argument"
+            return args
 
-                Object.defineProperty __proto__, arg,
-                { configurable : on, get }
+        registerCommand : ( cmd, handler, args = [] ) ->
 
-            handle   = ->
-                if !sequence.length
-                    log "command executed", arguments[ 0 ]
-
-                    { cmd, args, handler } =
-                        arguments[ 0 ]
-
-                    args.forEach argdef.bind this
-
-                    for fsitem in @ls()
-                        dirdef fsitem, "/"
-
-                    clearTimeout callwait
-
-                    callwait = setTimeout ->
-                        debug sequence
-                        #todo sequence.length = 0
-                    , 40  
-                    
-                sequence.push { value: cmd, kind: "command" }
-                
-            Object.defineProperty __proto__, cmd,
-                get : handle.bind this, commands[cmd]
+            if  Object.hasOwn window, cmd
+                throw [ COMMAND_NAME_ALREADY_GLOBAL : cmd ]
+    
+            Object.defineProperty __proto__, cmd, get : -> 
+                shell.handleArguments(handler, shell.deployTempProxy(
+                    args, chain = [{ as : "command", key: cmd }]
+                ))
 
             emit "shellcommandregister", cmd
 
@@ -993,9 +706,6 @@ do ->
             dataView.setBigUint64 12, BigInt(estimate.quota), lendian
             dataView.setUint32 20, estimate.usage, lendian
                         
-        shell.registerCommand "ls", [ "l", "f" ], ( sequence ) ->
-            error [ ...sequence ]
-
 
     self.onclick = ->
 
@@ -1305,98 +1015,20 @@ do ->
     do init
 
 
+    
+
     # update shell's fsindex
     window.addEventListener "storagcwdupdate", ({ detail: handle }) ->
 
-        return
+        shell.updatePathIndex handle
 
-        dPath = await resolv handle
+        cmd = "ls"
+        args = ["l", "a", "h"]
+        handler = ( sequence ) ->
+            log "command executed:", sequence
 
-        if !shell.fsindex.includes dPath
-            shell.fsindex.push dPath, handle
-
-        for iHandle in await ls handle
-            iPath = await resolv iHandle
-
-            if !shell.fsindex.includes iPath
-                shell.fsindex.push iPath, iHandle
-
-        log "storagcwdupdate:", shell.fsindex.length
-
-        for v, i in shell.fsindex
-            continue if !i or i % 2
-
-            log "defining:", v
-            parts = v.split("/").filter(Boolean)
-            #log "-> parts:", parts
-
-            for p, j in parts
-                #log "---> defining:", p
-                words = p.split( /\.|\+/g ).filter(Boolean)
-                #log "----> words:", words
-
-                parent = null
-                for w, k in words 
-
-                    if !k
-                        #log "\n+++++> global word:", new RegExp w
-                        
-                        has = Object.hasOwn window, w
-                        #log "\t   hasown window:", has
-
-                        if !has
-                            ((o, w) -> Object.defineProperty( window, w, get : ->
-                                #log "getted:", w, o
-                                o
-                            ))({ paths: [], word: w }, w)
-
-                        if !window[w].paths.includes v
-                            window[w].paths.push v
-
-                        parent = window[w]
-                        continue
-                        
-                    continue
-                        
-
-                    if !has = Object.hasOwn parent, w
-
-                        pfix = "".padStart k * 2, " "
-                        log pfix + "  +++> inner get:", w
-                        
-                        log pfix + "  +++> has own parent:", has
-
-                        ((o, w, isLast) -> Object.defineProperty( parent, w, get : ->
-                            log "getted:", w, o, {isLast}
-
-                            pxy = ( o, v, isLast ) ->
-                                get : ->
-                                    if  isLast
-                                        warn "last item getter of:", o
-
-                                        if  o.paths.length is 1
-                                            warn " --> exact match of:", o.paths.at 0
-
-                                    if  arguments[1] is Symbol.toPrimitive
-                                        return -> 1
-        
-                                    Reflect.get arguments...
-
-                                apply : ->
-                                    Reflect.apply arguments...
-
-                            new Proxy o, pxy o, v, isLast
-
-                        ))({ paths : [], word: w }, w, k is words.length-1)
-
-                    if !parent[w].paths.includes v
-                        parent[w].paths.push v
-
-                    parent = parent[w]
-
-
-
-        shell.workingDir = handle
+        shell.registerCommand cmd, handler, args
+      
 
     # cleaning window object
     window.addEventListener "storageroothandle", ({ detail: fsroot }) ->
