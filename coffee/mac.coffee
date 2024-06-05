@@ -25,6 +25,9 @@ do ->
 
         deployTempProxy : ( args = [], chain = [] ) ->
 
+            if  self.clearTempDeploy
+                self.clearTempDeploy()
+                
             crossProxy = ( word, _chain = [], level = 0 ) ->
 
                 return new Proxy Function::, {
@@ -72,10 +75,15 @@ do ->
                         crossProxy word, subchain
                     )(w)
                 }
-    
+
+            self.clearTempDeploy = ->
+                self.clearTempDeploy = 0
+                for key in tempkeys
+                    Reflect.deleteProperty( window, key )
+                0
+                    
             requestIdleCallback -> queueMicrotask -> 
-                requestAnimationFrame -> tempkeys.map ( key ) ->
-                        Reflect.deleteProperty( window, key )
+                requestAnimationFrame self.clearTempDeploy
     
             chain
 

@@ -15,6 +15,9 @@
     fsIndex: [],
     deployTempProxy: function(args = [], chain = []) {
       var a, combargs, crossProxy, i, j, len, len1, len2, m, n, ref, tempkeys, w;
+      if (self.clearTempDeploy) {
+        self.clearTempDeploy();
+      }
       crossProxy = function(word, _chain = [], level = 0) {
         return new Proxy(Function.prototype, {
           apply: function(f, key, args) {
@@ -84,13 +87,18 @@
           });
         }
       }
+      self.clearTempDeploy = function() {
+        var key, len3, q;
+        self.clearTempDeploy = 0;
+        for (q = 0, len3 = tempkeys.length; q < len3; q++) {
+          key = tempkeys[q];
+          Reflect.deleteProperty(window, key);
+        }
+        return 0;
+      };
       requestIdleCallback(function() {
         return queueMicrotask(function() {
-          return requestAnimationFrame(function() {
-            return tempkeys.map(function(key) {
-              return Reflect.deleteProperty(window, key);
-            });
-          });
+          return requestAnimationFrame(self.clearTempDeploy);
         });
       });
       return chain;
