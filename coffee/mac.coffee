@@ -1,15 +1,20 @@
 do ->
     {Reflect, Object, Float32Array, Int32Array, DataView, Uint32Array, ArrayBuffer,
     Uint16Array, Uint32Array, dispatchEvent, addEventListener, Event, CustomEvent,
-    JSON, setTimeout, clearTimeout, requestIdleCallback, requestAnimationFrame,
+    JSON, clearTimeout, setInterval, clearInterval, 
+    setTimeout, queueMicrotask, requestIdleCallback, requestAnimationFrame,
     navigator, Proxy, Function, __proto__, FileSystemDirectoryHandle, Symbol, console,
     showDirectoryPicker, showOpenFilePicker, showSaveFilePicker, RegExp,
     Array, Number, String, Boolean, Math, Uint8ClampedArray, Int8Array, Uint8Array,
-    Int16Array, Float64Array, BigInt64Array, BigUint64Array, Atomics,
+    Int16Array, Float64Array, BigInt64Array, BigUint64Array, Atomics, 
     BigInt, FileSystemFileHandle, FileSystemHandle, parseInt, parseFloat} = window
 
     {log,warn,error,table,debug,info,delay,group,groupEnd} = console
+    {values,keys,assign,defineProperty, defineProperties, hasOwn} = Object
+    {call,apply,bind} = Object.getPrototypeOf(()=>{})
 
+    Object.defineProperties __proto__,
+        navigator       : value : navigator
 
     window.on2error =
     window.on2unhandledrejection = ->
@@ -17,102 +22,72 @@ do ->
         #error arguments...
         true
 
-    shell =
-        emit            : emit = ( type, detail ) ->
+    Object.defineProperties console, 
+
+        fsIndex         : value : new Array
+
+        tempkeys        : value : new Array
+
+        emit            : value : emit = ( type, detail ) ->
             window.dispatchEvent new CustomEvent type, { detail }; detail
 
-        fsIndex         : []
+    Object.defineProperties console, 
 
+        clearTempKeys   : value : ->
+            while key = @tempkeys.splice(-1).at(-1)
+                Reflect.deleteProperty window, key
 
-        FileSystemTouchable : class FileSystemTouchable extends Object
-            constructor : ->
-                Object.assign super(), arguments[0]
+        addTempKey      : value : ( key ) ->
+            @tempkeys[ @tempkeys.length ] = key
 
-            createDirectory : ->
-                @handle = await mkdir @name, @parent
-                await shell.updatePathIndex @parent
+        keyProxy        : value : ( word, _chain = [], level = 0 ) ->
+            new Proxy Function::, {
+                apply  : ( f, key, args ) ->
+                    _chain.push({as : "function", args: args})
+                    console.keyProxy word, _chain, level + 2
 
-            createFile : ->
-                @handle = await touch @name, @parent
-                await shell.updatePathIndex @parent
+                get    : ( f, key ) ->
+                    if  key is Symbol.toPrimitive
+                        return -> 1
+                    
+                    _chain.push({as : "keyword", key, level})
+                    console.keyProxy word, _chain, level + 1
+            }
 
-            Object.defineProperty this::, "kind", get : ->
-                if !@name.match /\./
-                    return "directory"                
-                return "file"                
+        deployTempProxy : value : ( args=[], chain=[] ) ->
 
-            Object.defineProperty this::, "touch", get : ->
-                if !@name.match /\./
-                    await @createDirectory()                
-                else await @createFile()
-                
-                return @handle 
-
-        deployTempProxy : ( args=[], chain=[] ) ->
-
-            if  self.clearTempDeploy
-                self.clearTempDeploy()
-                
-            crossProxy = ( word, _chain = [], level = 0 ) ->
-
-                return new Proxy Function::, {
-                    apply  : ( f, key, args ) ->
-                        _chain.push({as : "function", args: args})
-                        return crossProxy word, _chain, level + 2
-
-                    get    : ( f, key ) ->
-                        if  key is Symbol.toPrimitive
-                            return -> 1
-                        
-                        _chain.push({as : "keyword", key, level})
-                        return crossProxy word, _chain, level + 1
-                }
-    
-            tempkeys = []
-            combargs = [ ...args ]
+            @clearTempKeys()
     
             for a, i in args then while i--
-                combargs.push a + args[i]
-                combargs.push args[i] + a
+                continue if a.length-1
+                args.push a + args[i]
+                args.push args[i] + a
     
-            for w in combargs when !Object.hasOwn window, w
-                Object.defineProperty window, (tempkeys[tempkeys.length] = w), {
+            for w in args when !Object.hasOwn window, w
+                Object.defineProperty window, @addTempKey(w), {
                     configurable : yes
-                    get : ((word)->->
-                        chain[chain.length] = {
-                            as : "argument",
-                            key : word,
-                        }
-                        crossProxy word, chain
+                    get : ((key)->->
+                        chain.push { as : "argument", key }
+                        console.keyProxy key, chain
                     )(w)
                 }
     
-            for i in shell.fsIndex when !Object.hasOwn window, (w = i.global)
-                Object.defineProperty window, (tempkeys[tempkeys.length] = w), {
+            for i in console.fsIndex when !Object.hasOwn window, (w = i.global)
+                Object.defineProperty window, @addTempKey(w), {
                     configurable : yes
-                    get : ((word)->->
-                        chain[chain.length] = {
-                            as : "fshandle",
-                            key : word,
+                    get : ((key)->->
+                        chain.push {
+                            as : "fshandle", key,
                             level : 1,
                             subchain : (subchain = [])
                         }
-                        crossProxy word, subchain
+                        console.keyProxy key, subchain
                     )(w)
                 }
-
-            self.clearTempDeploy = ->
-                self.clearTempDeploy = 0
-                for key in tempkeys
-                    Reflect.deleteProperty( window, key )
-                0
-                    
-            requestIdleCallback -> queueMicrotask -> 
-                requestAnimationFrame self.clearTempDeploy
     
             chain
 
-        updatePathIndex : ( dHandle, level = 0 ) ->
+        updatePathIndex : value : ( dHandle, level = 0 ) ->
                     
             path = await resolv dHandle
             if !@fsIndex.find (i) -> i.path is path
@@ -140,9 +115,11 @@ do ->
     
             return dHandle
         
-        resolvArguments : ( handler, args = [] ) ->
+        dispatchCommand : value : ( handler, args = [] ) ->
 
             setTimeout =>
+
+                console.clearTempKeys()
 
                 sequence = []
                 dirchain = []
@@ -150,13 +127,7 @@ do ->
                 
                 for arg in args.slice()
 
-                    if  arg.as.match /command/
-                        sequence.push arg.key
-                        continue
-
-                    if  arg.as.match /argument/
-                        sequence.push "-" + arg.key
-                        continue
+                    continue if arg.as.match /command/
 
                     if !arg.as.match /fshandle/
                         i = 0
@@ -171,8 +142,28 @@ do ->
                         subchain = []
 
                         if i then sequence[i] = path : sequence[i]
-                        continue
                     
+                    if  arg.as.match /argument/
+                        sequence.push "-" + arg.key
+                        continue
+
+                    if  arg.as.match /function/
+                        i = 0
+
+                        if dirchain.length then i = sequence.push(
+                            "/" + dirchain.join "/"
+                        ) - 1
+                        dirchain = []
+
+                        if subchain.length then sequence[i] +=
+                            "." + subchain.join "."
+                        subchain = []
+
+                        if i then sequence[i] = path : sequence[i]
+
+                        sequence.push arg.args.at()
+                        continue
+                        
                     if  arg.as.match /fshandle/
 
                         if  subchain.length
@@ -209,8 +200,7 @@ do ->
                                 subchain = []
 
                                 if i then sequence[i] = path : sequence[i]
-                                sequence.push s.args
-                                continue
+                                sequence.push s.args.at()
 
                 i = 0
                 if dirchain.length then i = sequence.push(
@@ -226,40 +216,35 @@ do ->
 
                 for part, i in sequence when path = part.path
 
-                    if  fshandle = shell.fsIndex.find (h) -> h.path is path
+                    if  fshandle = console.fsIndex.find (h) -> h.path is path
                         sequence[i] = fshandle
 
                     parent = path
                     while parent = parent.split("/").slice(0, -1).join("/")
-                        if  fshandle = shell.fsIndex.find (h) -> h.path is parent
+                        if  fshandle = console.fsIndex.find (h) -> h.path is parent
                             sequence[i].parent = fshandle
                             break
 
-                    unless sequence[i] instanceof FileSystemHandle
-                        sequence[i] = new shell.FileSystemTouchable sequence[i]
+                    sequence[i] = sequence[i].path
 
-                    sequence[i].name = sequence[i].path
-                        .split("/").filter(Boolean).at(-1)
+                handler values sequence
 
-
-                log sequence
-
-                handler 1
-            , 100
+            , 40
 
             return args
 
-        registerCommand : ( cmd, handler, args = [] ) ->
+        registerCommand : value : ( cmd, handler, args = [] ) ->
 
-            if  Object.hasOwn window, cmd
+            if  typeof window[ cmd ] isnt "undefined"
                 throw [ COMMAND_NAME_ALREADY_GLOBAL : cmd ]
     
             Object.defineProperty __proto__, cmd, get : -> 
-                shell.resolvArguments(handler, shell.deployTempProxy(
+
+                console.dispatchCommand( handler, console.deployTempProxy(
                     args, chain = [{ as : "command", key: cmd }]
                 ))
 
-            emit "shellcommandregister", cmd
+            console.emit "consolecommandregister", cmd
 
 
     do  mouse = ->
@@ -842,7 +827,7 @@ do ->
             dataView.setUint32 20, estimate.usage, lendian
                         
 
-    self.onclick = ->
+    onclick = ->
 
         log handle = await pick( "dir" )
         log await ls handle
@@ -851,331 +836,43 @@ do ->
             await mv handle, currentDir
     
     
-    terminalify = ->
-
-        trapArguments = ( args, list ) ->
-
-            getter = ->
-                if  arguments[1] is Symbol.toPrimitive
-                    return -> trap.primitived++ ; 1
-
-                args.push arguments[1]
-                trap.proxied++
-
-                new Proxy {}, { get: getter }
-
-            parameters = {}
-            for parameter in list
-                parameters[ parameter ] =
-                    configurable: on, get : getter.bind null, null, parameter
-
-            for k of parameters
-                Object.defineProperty window, k, parameters[k]
-
-            queueMicrotask ->
-                for k of parameters
-                    Reflect.deleteProperty window, k
-
-            args
-
-
-        trap = []
-        trap.primitived = 0
-        trap.proxied = 0
-        a = 0
-        cmd = null
-        get = ->
-            if  this instanceof String
-                cmda = this + ""
-                [ cmd, ...args ] = cmda.split( " " )
-                trap = []
-                trap.primitived = 0
-                trap.proxied = 0
-                trapArguments trap, args.map (a) -> a.replace /\-/, ""
-
-            else
-
-                clearTimeout(a)
-
-                a = setTimeout( ->
-    
-                    ###
-                        b = trap.slice()
-        
-                        b.argc = trap.primitived-1
-                        b.extarg = trap.proxied - trap.primitived
-        
-                        t = b.slice().sort( (a,b) => (a.length < b.length) && 1 || -1 )
-                        j = 0
-        
-                        while b.extarg--
-                            bi = b.findIndex( (v) => v is t[j] )
-                            b[bi] = "/" + b[bi]
-                            j++
-        
-                        while b.argc--
-                            bi = b.findIndex( (v) => v is t[j] )
-                            b[bi] = "-" + b[bi]
-                            j++
-        
-                        o = []
-                        for k in b
-        
-                            if  k.startsWith "/"
-                                if !o.length
-                                    o.push k
-                                    continue
-        
-                                if  o[o.length-1].startsWith "-"
-                                    o.push k
-                                    continue
-        
-                                o[ o.length-1 ] =
-                                    (o[ o.length-1 ] + k).replace /\/\//g, "/"
-        
-                                continue
-        
-                            o.push k                    
-        
-                        log cmd, "get:", o
-                        log cmd, "get:", trap
-                    ###
-    
-                    window[cmd] = trap
-                , 30 )
-            
-            if  arguments[1] is Symbol.toPrimitive
-                return -> trap.primitived++ ; 1
-
-            if  arguments[1]
-                trap.push arguments[1]
-
-            trap.proxied++
-            new Proxy {
-                dhcp : 1
-            }, { get }
-
-        self.trap = trap
-
-        Object.defineProperties window,
-
-            rm :
-                get  : get.bind "rm -r -f"
-                set  : ( args ) ->
-                    
-                    recursive = args.includes "r"
-                    force = args.includes "f"
-                    fdname = args.filter(
-                        (a) -> !["r", "f"].includes a
-                    ).join "."
-
-                    await rm fdname, force, recursive
-
-            cd  :
-                set : ->
-                    log "cd.."
-
-                get : ->
-                    trapArguments args = [], "up"
-
-                    pxy = new Proxy {}, {
-                        get : ( o, key ) ->
-                            switch true
-                                when (key is Symbol.toPrimitive)
-                                    return -> args.push ".." ; 0
-                                when ("string" is typeof key)
-                                    args.push key ; 0
-                    }
-                    
-                    queueMicrotask ->
-
-                        if  -1 isnt up = args.indexOf "up"
-                            args.splice up, 1
-
-                        if  args[0] is ".."
-                            return warn /NOT_IMPLEMENTED_YET/
-
-                        await cd args[0]
-
-                    pxy
-
-            cat :
-                get  : get.bind "cat"
-                set  : ( args ) ->
-                    log await cat args.join "."
-
-            ls  : 
-                get  : get.bind "ls -l"
-                set  : ( args ) ->
-
-                    warn 3
-
-                    dir = args.filter(
-                        (a) -> !["l"].includes a
-                    ).join ""
-                    
-                    lines = []
-                    dirCount = 0
-                    fileCount = 0
-                    byteLength = 0
-
-                    for item in await ls dir
-
-                        if  "file" is item.kind
-                            {size, type, lastModifiedDate} =
-                                await read item
-
-                            _date =
-                                lastModifiedDate
-                                    .toDateString().split(" ")
-                                    .slice(1).slice(0,2)
-                                    .join(" ") + " " +
-                                lastModifiedDate
-                                    .toTimeString().substring(0,5)
-
-                            byteLength += size
-                            fileCount++
-
-                        else
-                            [size, type] = [0, 0]
-                            _date = "".padEnd 16, " "
-                            dirCount++
-
-                        if  "directory" is item.kind
-                            lines.push [ "dir", "\t", "\t", _date, " ", item.name ]
-                            continue
-
-                        if !size
-                            lines.push [ "file", "\t", 0, "\t\t", _date, " ", item.name ]
-                        else
-                            lines.push [ "file", "\t", size, "\t", _date, " ", item.name ]
-
-                    kB = (byteLength/1e3).toFixed(1) * 1
-
-                    console.group "path:", [ await resolv dir ]
-                    console.warn "total:", kB, "kBytes"
-                    lines.reverse().forEach (l) ->
-                        console.log l...
-                    console.groupEnd cwd
-
-            mv : 
-                get : ->
-                    istenenler = []
-                    level0 = []
-
-                    for indeks in self.indexler
-                        isim = indeks.split( /\/|\./, 2 )[1]
-                        if !level0.includes isim
-                            level0.push isim
-
-                    for tanim in level0
-                        Object.defineProperty( window, tanim, ( (isim)->
-                            configurable : on
-                            get : ->
-                                istenenler.push isim
-                                log "istendi:", isim, 0
-
-                                level1 = []
-                                self.indexler
-                                    .filter( (i) -> i.startsWith("/#{isim}") and (i isnt "/#{isim}"))
-                                    .map( (i) -> i.substring( "/#{isim}".length ))
-                                    .forEach (i) ->
-                                        isim1 = i.split( /\/|\./, 2 )[1]
-                                        if !level1.includes isim1
-                                            level1.push isim1
-        
-
-                                for tanim1 in level1
-                                    Object.defineProperty( window, tanim1, ( (isim1)->
-                                        configurable : on
-                                        get : ->
-                                            istenenler.push isim1
-                                            log "istendi:".padStart(10 + istenenler.length * 2, " "), isim1, 1
-
-
-                                            #? -----> level 2
-
-                                            level2 = []
-                                            self.indexler
-                                                .filter( (i) -> i.startsWith("/#{isim}") and i.includes(isim1) )
-                                                .map( (i) -> i.substring( "/#{isim + '/' + isim1}".length ) )
-                                                .forEach (i) ->
-                                                    isim2 = i.split( /\/|\./, 2 )[1]
-                                                    if !level2.includes isim2
-                                                        level2.push isim2 if isim2
-                    
-                                                level2
-            
-                                            for tanim2 in level2
-                                                Object.defineProperty( window, tanim2, ( (isim2)->
-                                                    configurable : on
-                                                    get : ->
-                                                        istenenler.push isim2
-                                                        log "istendi:".padStart(10 + istenenler.length * 2, " "), isim2, 2
-                                                        new Proxy {}, get : ->
-                                                            if typeof arguments[1] isnt "symbol"
-                                                                istenenler.push arguments[1]
-                                                                warn "  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]; 
-                                                            ->
-                                                )( tanim2 ))
-            
-
-                                            #? <----- level 2
-
-
-                                            new Proxy {}, get : ->
-                                                if typeof arguments[1] isnt "symbol"
-                                                    istenenler.push arguments[1]
-                                                    warn "  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]; 
-                                                ->
-
-                                    )( tanim1 ))
-
-
-                                new Proxy {}, get : ->
-                                    if typeof arguments[1] isnt "symbol"
-                                        istenenler.push arguments[1]
-                                        warn "  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]; 
-                                    ->
-
-                        )( tanim ))
-
-                    new Proxy {}, get : ->
-                        if typeof arguments[1] isnt "symbol"
-                            istenenler.push arguments[1]
-                            warn "  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]; 
-                        -> 
-
 
     do init
 
 
     
 
-    # update shell's fsindex
+    # update console's fsindex
     window.addEventListener "storagcwdupdate", ({ detail: handle }) ->
 
-        shell.updatePathIndex handle
+        console.updatePathIndex handle
 
-        cmd = "ls"
-        args = ["l", "a", "h"]
+        cmd     = "ls"
+        args    = ["l", "a", "h"]
         handler = ( sequence ) ->
-            log "command executed:", sequence
+            log "command executed ls:", sequence
 
-        shell.registerCommand cmd, handler, args
-      
+        console.registerCommand cmd, handler, args
+
+        cmd     = "mount"
+        args    = ["fs", "root"]
+        handler = ( sequence ) ->
+            log "command executed fs:", sequence
+
+        console.registerCommand cmd, handler, args
+
+
+        cmd     = "device"
+        args    = ["add"]
+        handler = ( sequence ) ->
+            log ["device"], " <-- ", sequence
+
+        console.registerCommand cmd, handler, args
 
     # cleaning window object
     window.addEventListener "storageroothandle", ({ detail: fsroot }) ->
 
-        shell.fsroot = fsroot
-
-        
-        return 1
-
-        setTimeout =>
-            await cd "lib"
-        , 2000
+        console.fsroot = fsroot
 
         d = Object.getOwnPropertyDescriptors
         p = Object.getPrototypeOf
@@ -1187,7 +884,7 @@ do ->
 
             return unless a
 
-            if /location|window|self|console/.test a.constructor.name or a.name
+            if /location|window|self|console|navigator/.test a.constructor.name or a.name
                 return
 
             try for _k, v of d _ = a.__proto__
@@ -1206,7 +903,7 @@ do ->
                 r.deleteProperty _, _k
                 
         if  window.chrome?
-            Object.defineProperty window, "chrome", value: "tru 💚 th"
+            Object.defineProperty    window, "chrome", value: "tru 💚 th"
             Object.defineProperty __proto__, "values", value: -> []
             Object.defineProperty __proto__, "debug", value: -> []
             Object.defineProperty __proto__, "undebug", value: -> []

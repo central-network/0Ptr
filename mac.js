@@ -1,72 +1,60 @@
 (function() {
-  var Array, ArrayBuffer, Atomics, BigInt, BigInt64Array, BigUint64Array, Boolean, CustomEvent, DataView, Event, FileSystemDirectoryHandle, FileSystemFileHandle, FileSystemHandle, FileSystemTouchable, Float32Array, Float64Array, Function, Int16Array, Int32Array, Int8Array, JSON, Math, Number, Object, Proxy, Reflect, RegExp, STATE_INIT, STATE_PERSISTED_HANDLE, STATE_ROOT_HANDLE, STATE_UNPERSISTED_HANDLE, STATUS_IDLE, STATUS_READING, STATUS_WRITING, String, Symbol, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, __proto__, addEventListener, askp, battery, cat, cd, clearTimeout, console, counters, create, currentDir, currentFile, dataArray, dataView, debug, delay, device, dir, dispatchEvent, emit, error, events, fs, group, groupEnd, handles, info, init, issame, keyboard, lendian, log, ls, mkdir, mouse, mv, mv_d2d, mv_f2d, mv_f2f, navigator, netlink, parent, parseFloat, parseInt, pick, queryp, quota, read, readed, remove, requestAnimationFrame, requestIdleCallback, resolv, rm, rmdir, root, setTimeout, setcwd, shell, showDirectoryPicker, showOpenFilePicker, showSaveFilePicker, state, status, table, terminalify, touch, usage, warn, write, written;
-  ({Reflect, Object, Float32Array, Int32Array, DataView, Uint32Array, ArrayBuffer, Uint16Array, Uint32Array, dispatchEvent, addEventListener, Event, CustomEvent, JSON, setTimeout, clearTimeout, requestIdleCallback, requestAnimationFrame, navigator, Proxy, Function, __proto__, FileSystemDirectoryHandle, Symbol, console, showDirectoryPicker, showOpenFilePicker, showSaveFilePicker, RegExp, Array, Number, String, Boolean, Math, Uint8ClampedArray, Int8Array, Uint8Array, Int16Array, Float64Array, BigInt64Array, BigUint64Array, Atomics, BigInt, FileSystemFileHandle, FileSystemHandle, parseInt, parseFloat} = window);
+  var Array, ArrayBuffer, Atomics, BigInt, BigInt64Array, BigUint64Array, Boolean, CustomEvent, DataView, Event, FileSystemDirectoryHandle, FileSystemFileHandle, FileSystemHandle, Float32Array, Float64Array, Function, Int16Array, Int32Array, Int8Array, JSON, Math, Number, Object, Proxy, Reflect, RegExp, STATE_INIT, STATE_PERSISTED_HANDLE, STATE_ROOT_HANDLE, STATE_UNPERSISTED_HANDLE, STATUS_IDLE, STATUS_READING, STATUS_WRITING, String, Symbol, Uint16Array, Uint32Array, Uint8Array, Uint8ClampedArray, __proto__, addEventListener, apply, askp, assign, battery, bind, call, cat, cd, clearInterval, clearTimeout, console, counters, create, currentDir, currentFile, dataArray, dataView, debug, defineProperties, defineProperty, delay, device, dir, dispatchEvent, emit, error, events, fs, group, groupEnd, handles, hasOwn, info, init, issame, keyboard, keys, lendian, log, ls, mkdir, mouse, mv, mv_d2d, mv_f2d, mv_f2f, navigator, netlink, onclick, parent, parseFloat, parseInt, pick, queryp, queueMicrotask, quota, read, readed, remove, requestAnimationFrame, requestIdleCallback, resolv, rm, rmdir, root, setInterval, setTimeout, setcwd, showDirectoryPicker, showOpenFilePicker, showSaveFilePicker, state, status, table, touch, usage, values, warn, write, written;
+  ({Reflect, Object, Float32Array, Int32Array, DataView, Uint32Array, ArrayBuffer, Uint16Array, Uint32Array, dispatchEvent, addEventListener, Event, CustomEvent, JSON, clearTimeout, setInterval, clearInterval, setTimeout, queueMicrotask, requestIdleCallback, requestAnimationFrame, navigator, Proxy, Function, __proto__, FileSystemDirectoryHandle, Symbol, console, showDirectoryPicker, showOpenFilePicker, showSaveFilePicker, RegExp, Array, Number, String, Boolean, Math, Uint8ClampedArray, Int8Array, Uint8Array, Int16Array, Float64Array, BigInt64Array, BigUint64Array, Atomics, BigInt, FileSystemFileHandle, FileSystemHandle, parseInt, parseFloat} = window);
   ({log, warn, error, table, debug, info, delay, group, groupEnd} = console);
+  ({values, keys, assign, defineProperty, defineProperties, hasOwn} = Object);
+  ({call, apply, bind} = Object.getPrototypeOf(() => {
+    return {};
+  }));
+  Object.defineProperties(__proto__, {
+    navigator: {
+      value: navigator
+    }
+  });
   window.on2error = window.on2unhandledrejection = function() {
     //document.body.innerHTML += JSON.stringify arguments
     //error arguments...
     return true;
   };
-  shell = {
-    emit: emit = function(type, detail) {
-      window.dispatchEvent(new CustomEvent(type, {detail}));
-      return detail;
+  Object.defineProperties(console, {
+    fsIndex: {
+      value: new Array
     },
-    fsIndex: [],
-    FileSystemTouchable: FileSystemTouchable = (function() {
-      class FileSystemTouchable extends Object {
-        constructor() {
-          Object.assign(super(), arguments[0]);
-        }
-
-        async createDirectory() {
-          this.handle = (await mkdir(this.name, this.parent));
-          return (await shell.updatePathIndex(this.parent));
-        }
-
-        async createFile() {
-          this.handle = (await touch(this.name, this.parent));
-          return (await shell.updatePathIndex(this.parent));
-        }
-
-      };
-
-      Object.defineProperty(FileSystemTouchable.prototype, "kind", {
-        get: function() {
-          if (!this.name.match(/\./)) {
-            return "directory";
-          }
-          return "file";
-        }
-      });
-
-      Object.defineProperty(FileSystemTouchable.prototype, "touch", {
-        get: async function() {
-          if (!this.name.match(/\./)) {
-            await this.createDirectory();
-          } else {
-            await this.createFile();
-          }
-          return this.handle;
-        }
-      });
-
-      return FileSystemTouchable;
-
-    }).call(this),
-    deployTempProxy: function(args = [], chain = []) {
-      var a, combargs, crossProxy, i, j, len, len1, len2, m, n, ref, tempkeys, w;
-      if (self.clearTempDeploy) {
-        self.clearTempDeploy();
+    tempkeys: {
+      value: new Array
+    },
+    emit: {
+      value: emit = function(type, detail) {
+        window.dispatchEvent(new CustomEvent(type, {detail}));
+        return detail;
       }
-      crossProxy = function(word, _chain = [], level = 0) {
+    }
+  });
+  Object.defineProperties(console, {
+    clearTempKeys: {
+      value: function() {
+        var key, results;
+        results = [];
+        while (key = this.tempkeys.splice(-1).at(-1)) {
+          results.push(Reflect.deleteProperty(window, key));
+        }
+        return results;
+      }
+    },
+    addTempKey: {
+      value: function(key) {
+        return this.tempkeys[this.tempkeys.length] = key;
+      }
+    },
+    keyProxy: {
+      value: function(word, _chain = [], level = 0) {
         return new Proxy(Function.prototype, {
           apply: function(f, key, args) {
             _chain.push({
               as: "function",
               args: args
             });
-            return crossProxy(word, _chain, level + 2);
+            return console.keyProxy(word, _chain, level + 2);
           },
           get: function(f, key) {
             if (key === Symbol.toPrimitive) {
@@ -79,137 +67,111 @@
               key,
               level
             });
-            return crossProxy(word, _chain, level + 1);
+            return console.keyProxy(word, _chain, level + 1);
           }
         });
-      };
-      tempkeys = [];
-      combargs = [...args];
-      for (i = j = 0, len = args.length; j < len; i = ++j) {
-        a = args[i];
-        while (i--) {
-          combargs.push(a + args[i]);
-          combargs.push(args[i] + a);
-        }
       }
-      for (m = 0, len1 = combargs.length; m < len1; m++) {
-        w = combargs[m];
-        if (!Object.hasOwn(window, w)) {
-          Object.defineProperty(window, (tempkeys[tempkeys.length] = w), {
-            configurable: true,
-            get: (function(word) {
-              return function() {
-                chain[chain.length] = {
-                  as: "argument",
-                  key: word
-                };
-                return crossProxy(word, chain);
-              };
-            })(w)
-          });
-        }
-      }
-      ref = shell.fsIndex;
-      for (n = 0, len2 = ref.length; n < len2; n++) {
-        i = ref[n];
-        if (!Object.hasOwn(window, (w = i.global))) {
-          Object.defineProperty(window, (tempkeys[tempkeys.length] = w), {
-            configurable: true,
-            get: (function(word) {
-              return function() {
-                var subchain;
-                chain[chain.length] = {
-                  as: "fshandle",
-                  key: word,
-                  level: 1,
-                  subchain: (subchain = [])
-                };
-                return crossProxy(word, subchain);
-              };
-            })(w)
-          });
-        }
-      }
-      self.clearTempDeploy = function() {
-        var key, len3, q;
-        self.clearTempDeploy = 0;
-        for (q = 0, len3 = tempkeys.length; q < len3; q++) {
-          key = tempkeys[q];
-          Reflect.deleteProperty(window, key);
-        }
-        return 0;
-      };
-      requestIdleCallback(function() {
-        return queueMicrotask(function() {
-          return requestAnimationFrame(self.clearTempDeploy);
-        });
-      });
-      return chain;
     },
-    updatePathIndex: async function(dHandle, level = 0) {
-      var iHandle, j, len, path, ref;
-      path = (await resolv(dHandle));
-      if (!this.fsIndex.find(function(i) {
-        return i.path === path;
-      })) {
-        this.fsIndex.push(dHandle);
-        dHandle.path = path;
-        dHandle.level = level;
-        dHandle.global = dHandle.name.split(/\.|(\w+)/gui).filter(Boolean).at(0);
+    deployTempProxy: {
+      value: function(args = [], chain = []) {
+        var a, i, j, l, len, len1, len2, m, ref, w;
+        this.clearTempKeys();
+        for (i = j = 0, len = args.length; j < len; i = ++j) {
+          a = args[i];
+          while (i--) {
+            if (a.length - 1) {
+              continue;
+            }
+            args.push(a + args[i]);
+            args.push(args[i] + a);
+          }
+        }
+        for (l = 0, len1 = args.length; l < len1; l++) {
+          w = args[l];
+          if (!Object.hasOwn(window, w)) {
+            Object.defineProperty(window, this.addTempKey(w), {
+              configurable: true,
+              get: (function(key) {
+                return function() {
+                  chain.push({
+                    as: "argument",
+                    key
+                  });
+                  return console.keyProxy(key, chain);
+                };
+              })(w)
+            });
+          }
+        }
+        ref = console.fsIndex;
+        for (m = 0, len2 = ref.length; m < len2; m++) {
+          i = ref[m];
+          if (!Object.hasOwn(window, (w = i.global))) {
+            Object.defineProperty(window, this.addTempKey(w), {
+              configurable: true,
+              get: (function(key) {
+                return function() {
+                  var subchain;
+                  chain.push({
+                    as: "fshandle",
+                    key,
+                    level: 1,
+                    subchain: (subchain = [])
+                  });
+                  return console.keyProxy(key, subchain);
+                };
+              })(w)
+            });
+          }
+        }
+        return chain;
       }
-      ref = (await ls(dHandle));
-      for (j = 0, len = ref.length; j < len; j++) {
-        iHandle = ref[j];
-        path = (await resolv(iHandle));
+    },
+    updatePathIndex: {
+      value: async function(dHandle, level = 0) {
+        var iHandle, j, len, path, ref;
+        path = (await resolv(dHandle));
         if (!this.fsIndex.find(function(i) {
           return i.path === path;
         })) {
-          this.fsIndex.push(iHandle);
-          iHandle.path = path;
-          iHandle.global = iHandle.name.split(/\.|(\w+)/gui).filter(Boolean).at(0);
+          this.fsIndex.push(dHandle);
+          dHandle.path = path;
+          dHandle.level = level;
+          dHandle.global = dHandle.name.split(/\.|(\w+)/gui).filter(Boolean).at(0);
         }
-        if (iHandle.kind === "directory") {
-          await this.updatePathIndex(iHandle, level + 1);
-        }
-      }
-      return dHandle;
-    },
-    resolvArguments: function(handler, args = []) {
-      setTimeout(() => {
-        var arg, dirchain, fshandle, i, j, len, len1, len2, m, n, parent, part, path, ref, ref1, s, sequence, subchain;
-        sequence = [];
-        dirchain = [];
-        subchain = [];
-        ref = args.slice();
+        ref = (await ls(dHandle));
         for (j = 0, len = ref.length; j < len; j++) {
-          arg = ref[j];
-          if (arg.as.match(/command/)) {
-            sequence.push(arg.key);
-            continue;
+          iHandle = ref[j];
+          path = (await resolv(iHandle));
+          if (!this.fsIndex.find(function(i) {
+            return i.path === path;
+          })) {
+            this.fsIndex.push(iHandle);
+            iHandle.path = path;
+            iHandle.global = iHandle.name.split(/\.|(\w+)/gui).filter(Boolean).at(0);
           }
-          if (arg.as.match(/argument/)) {
-            sequence.push("-" + arg.key);
-            continue;
+          if (iHandle.kind === "directory") {
+            await this.updatePathIndex(iHandle, level + 1);
           }
-          if (!arg.as.match(/fshandle/)) {
-            i = 0;
-            if (dirchain.length) {
-              i = sequence.push("/" + dirchain.join("/")) - 1;
+        }
+        return dHandle;
+      }
+    },
+    dispatchCommand: {
+      value: function(handler, args = []) {
+        setTimeout(() => {
+          var arg, dirchain, fshandle, i, j, l, len, len1, len2, m, parent, part, path, ref, ref1, s, sequence, subchain;
+          console.clearTempKeys();
+          sequence = [];
+          dirchain = [];
+          subchain = [];
+          ref = args.slice();
+          for (j = 0, len = ref.length; j < len; j++) {
+            arg = ref[j];
+            if (arg.as.match(/command/)) {
+              continue;
             }
-            dirchain = [];
-            if (subchain.length) {
-              sequence[i] += "." + subchain.join(".");
-            }
-            subchain = [];
-            if (i) {
-              sequence[i] = {
-                path: sequence[i]
-              };
-            }
-            continue;
-          }
-          if (arg.as.match(/fshandle/)) {
-            if (subchain.length) {
+            if (!arg.as.match(/fshandle/)) {
               i = 0;
               if (dirchain.length) {
                 i = sequence.push("/" + dirchain.join("/")) - 1;
@@ -225,14 +187,30 @@
                 };
               }
             }
-            dirchain.push(arg.key);
-            ref1 = arg.subchain;
-            for (m = 0, len1 = ref1.length; m < len1; m++) {
-              s = ref1[m];
-              if (s.as.match(/keyword/)) {
-                subchain.push(s.key);
+            if (arg.as.match(/argument/)) {
+              sequence.push("-" + arg.key);
+              continue;
+            }
+            if (arg.as.match(/function/)) {
+              i = 0;
+              if (dirchain.length) {
+                i = sequence.push("/" + dirchain.join("/")) - 1;
               }
-              if (s.as.match(/function/)) {
+              dirchain = [];
+              if (subchain.length) {
+                sequence[i] += "." + subchain.join(".");
+              }
+              subchain = [];
+              if (i) {
+                sequence[i] = {
+                  path: sequence[i]
+                };
+              }
+              sequence.push(arg.args.at());
+              continue;
+            }
+            if (arg.as.match(/fshandle/)) {
+              if (subchain.length) {
                 i = 0;
                 if (dirchain.length) {
                   i = sequence.push("/" + dirchain.join("/")) - 1;
@@ -247,77 +225,98 @@
                     path: sequence[i]
                   };
                 }
-                sequence.push(s.args);
-                continue;
+              }
+              dirchain.push(arg.key);
+              ref1 = arg.subchain;
+              for (l = 0, len1 = ref1.length; l < len1; l++) {
+                s = ref1[l];
+                if (s.as.match(/keyword/)) {
+                  subchain.push(s.key);
+                }
+                if (s.as.match(/function/)) {
+                  i = 0;
+                  if (dirchain.length) {
+                    i = sequence.push("/" + dirchain.join("/")) - 1;
+                  }
+                  dirchain = [];
+                  if (subchain.length) {
+                    sequence[i] += "." + subchain.join(".");
+                  }
+                  subchain = [];
+                  if (i) {
+                    sequence[i] = {
+                      path: sequence[i]
+                    };
+                  }
+                  sequence.push(s.args.at());
+                }
               }
             }
           }
-        }
-        i = 0;
-        if (dirchain.length) {
-          i = sequence.push("/" + dirchain.join("/")) - 1;
-        }
-        dirchain = [];
-        if (subchain.length) {
-          sequence[i] += "." + subchain.join(".");
-        }
-        subchain = [];
-        if (i) {
-          sequence[i] = {
-            path: sequence[i]
-          };
-        }
-        for (i = n = 0, len2 = sequence.length; n < len2; i = ++n) {
-          part = sequence[i];
-          if (!(path = part.path)) {
-            continue;
+          i = 0;
+          if (dirchain.length) {
+            i = sequence.push("/" + dirchain.join("/")) - 1;
           }
-          if (fshandle = shell.fsIndex.find(function(h) {
-            return h.path === path;
-          })) {
-            sequence[i] = fshandle;
+          dirchain = [];
+          if (subchain.length) {
+            sequence[i] += "." + subchain.join(".");
           }
-          parent = path;
-          while (parent = parent.split("/").slice(0, -1).join("/")) {
-            if (fshandle = shell.fsIndex.find(function(h) {
-              return h.path === parent;
+          subchain = [];
+          if (i) {
+            sequence[i] = {
+              path: sequence[i]
+            };
+          }
+          for (i = m = 0, len2 = sequence.length; m < len2; i = ++m) {
+            part = sequence[i];
+            if (!(path = part.path)) {
+              continue;
+            }
+            if (fshandle = console.fsIndex.find(function(h) {
+              return h.path === path;
             })) {
-              sequence[i].parent = fshandle;
-              break;
+              sequence[i] = fshandle;
             }
+            parent = path;
+            while (parent = parent.split("/").slice(0, -1).join("/")) {
+              if (fshandle = console.fsIndex.find(function(h) {
+                return h.path === parent;
+              })) {
+                sequence[i].parent = fshandle;
+                break;
+              }
+            }
+            sequence[i] = sequence[i].path;
           }
-          if (!(sequence[i] instanceof FileSystemHandle)) {
-            sequence[i] = new shell.FileSystemTouchable(sequence[i]);
-          }
-          sequence[i].name = sequence[i].path.split("/").filter(Boolean).at(-1);
-        }
-        log(sequence);
-        return handler(1);
-      }, 100);
-      return args;
-    },
-    registerCommand: function(cmd, handler, args = []) {
-      if (Object.hasOwn(window, cmd)) {
-        throw [
-          {
-            COMMAND_NAME_ALREADY_GLOBAL: cmd
-          }
-        ];
+          return handler(values(sequence));
+        }, 40);
+        return args;
       }
-      Object.defineProperty(__proto__, cmd, {
-        get: function() {
-          var chain;
-          return shell.resolvArguments(handler, shell.deployTempProxy(args, chain = [
+    },
+    registerCommand: {
+      value: function(cmd, handler, args = []) {
+        if (typeof window[cmd] !== "undefined") {
+          throw [
             {
-              as: "command",
-              key: cmd
+              COMMAND_NAME_ALREADY_GLOBAL: cmd
             }
-          ]));
+          ];
         }
-      });
-      return emit("shellcommandregister", cmd);
+        Object.defineProperty(__proto__, cmd, {
+          get: function() {
+            var chain;
+            return console.dispatchCommand(handler, console.deployTempProxy(args, chain = [
+              {
+                as: "command",
+                key: cmd
+              }
+            ]));
+          }
+        });
+        return console.emit("consolecommandregister", cmd);
+      }
     }
-  };
+  });
   (mouse = function() {
     var changeX, changeY, clientX, clientY, counters, dataView, device, e, iLast, j, lastEvent, len, lendian, offsets, onevent, positions, screenX, screenY;
     device = new ArrayBuffer(64);
@@ -346,7 +345,7 @@
     return clientY = dataView.getFloat32.bind(dataView, offsets += 4, lendian);
   })();
   (keyboard = function() {
-    var activeKey, altKey, counters, ctrlKey, dataView, device, eventType, iEventCount, iKeyDownCount, iKeyUpCount, keyArray, keys, lastChar, lastCode, lastEvent, lendian, metaKey, offset, offsetAltKey, offsetCharCode, offsetCtrlKey, offsetLastEvent, offsetLocation, offsetMetaKey, offsetRepeat, offsetShiftKey, shiftKey;
+    var activeKey, altKey, counters, ctrlKey, dataView, device, eventType, iEventCount, iKeyDownCount, iKeyUpCount, keyArray, lastChar, lastCode, lastEvent, lendian, metaKey, offset, offsetAltKey, offsetCharCode, offsetCtrlKey, offsetLastEvent, offsetLocation, offsetMetaKey, offsetRepeat, offsetShiftKey, shiftKey;
     device = new ArrayBuffer(144);
     counters = new Int32Array(device, 0, 3);
     dataView = new DataView(device);
@@ -891,7 +890,7 @@
       });
     } catch (error1) {}
   });
-  self.onclick = async function() {
+  onclick = async function() {
     var handle;
     log(handle = (await pick("dir")));
     log((await ls(handle)));
@@ -899,366 +898,39 @@
       return (await mv(handle, currentDir));
     }
   };
-  terminalify = function() {
-    var a, cmd, get, trap, trapArguments;
-    trapArguments = function(args, list) {
-      var getter, j, k, len, parameter, parameters;
-      getter = function() {
-        if (arguments[1] === Symbol.toPrimitive) {
-          return function() {
-            trap.primitived++;
-            return 1;
-          };
-        }
-        args.push(arguments[1]);
-        trap.proxied++;
-        return new Proxy({}, {
-          get: getter
-        });
-      };
-      parameters = {};
-      for (j = 0, len = list.length; j < len; j++) {
-        parameter = list[j];
-        parameters[parameter] = {
-          configurable: true,
-          get: getter.bind(null, null, parameter)
-        };
-      }
-      for (k in parameters) {
-        Object.defineProperty(window, k, parameters[k]);
-      }
-      queueMicrotask(function() {
-        var results;
-        results = [];
-        for (k in parameters) {
-          results.push(Reflect.deleteProperty(window, k));
-        }
-        return results;
-      });
-      return args;
-    };
-    trap = [];
-    trap.primitived = 0;
-    trap.proxied = 0;
-    a = 0;
-    cmd = null;
-    get = function() {
-      var args, cmda;
-      if (this instanceof String) {
-        cmda = this + "";
-        [cmd, ...args] = cmda.split(" ");
-        trap = [];
-        trap.primitived = 0;
-        trap.proxied = 0;
-        trapArguments(trap, args.map(function(a) {
-          return a.replace(/\-/, "");
-        }));
-      } else {
-        clearTimeout(a);
-        a = setTimeout(function() {
-          /*
-              b = trap.slice()
-
-              b.argc = trap.primitived-1
-              b.extarg = trap.proxied - trap.primitived
-
-              t = b.slice().sort( (a,b) => (a.length < b.length) && 1 || -1 )
-              j = 0
-
-              while b.extarg--
-                  bi = b.findIndex( (v) => v is t[j] )
-                  b[bi] = "/" + b[bi]
-                  j++
-
-              while b.argc--
-                  bi = b.findIndex( (v) => v is t[j] )
-                  b[bi] = "-" + b[bi]
-                  j++
-
-              o = []
-              for k in b
-
-                  if  k.startsWith "/"
-                      if !o.length
-                          o.push k
-                          continue
-
-                      if  o[o.length-1].startsWith "-"
-                          o.push k
-                          continue
-
-                      o[ o.length-1 ] =
-                          (o[ o.length-1 ] + k).replace /\/\//g, "/"
-
-                      continue
-
-                  o.push k                    
-
-              log cmd, "get:", o
-              log cmd, "get:", trap
-          */
-          return window[cmd] = trap;
-        }, 30);
-      }
-      if (arguments[1] === Symbol.toPrimitive) {
-        return function() {
-          trap.primitived++;
-          return 1;
-        };
-      }
-      if (arguments[1]) {
-        trap.push(arguments[1]);
-      }
-      trap.proxied++;
-      return new Proxy({
-        dhcp: 1
-      }, {get});
-    };
-    self.trap = trap;
-    return Object.defineProperties(window, {
-      rm: {
-        get: get.bind("rm -r -f"),
-        set: async function(args) {
-          var fdname, force, recursive;
-          recursive = args.includes("r");
-          force = args.includes("f");
-          fdname = args.filter(function(a) {
-            return !["r", "f"].includes(a);
-          }).join(".");
-          return (await rm(fdname, force, recursive));
-        }
-      },
-      cd: {
-        set: function() {
-          return log("cd..");
-        },
-        get: function() {
-          var args, pxy;
-          trapArguments(args = [], "up");
-          pxy = new Proxy({}, {
-            get: function(o, key) {
-              switch (true) {
-                case key === Symbol.toPrimitive:
-                  return function() {
-                    args.push("..");
-                    return 0;
-                  };
-                case "string" === typeof key:
-                  args.push(key);
-                  return 0;
-              }
-            }
-          });
-          queueMicrotask(async function() {
-            var up;
-            if (-1 !== (up = args.indexOf("up"))) {
-              args.splice(up, 1);
-            }
-            if (args[0] === "..") {
-              return warn(/NOT_IMPLEMENTED_YET/);
-            }
-            return (await cd(args[0]));
-          });
-          return pxy;
-        }
-      },
-      cat: {
-        get: get.bind("cat"),
-        set: async function(args) {
-          return log((await cat(args.join("."))));
-        }
-      },
-      ls: {
-        get: get.bind("ls -l"),
-        set: async function(args) {
-          var _date, byteLength, dirCount, fileCount, item, j, kB, lastModifiedDate, len, lines, ref, size, type;
-          warn(3);
-          dir = args.filter(function(a) {
-            return !["l"].includes(a);
-          }).join("");
-          lines = [];
-          dirCount = 0;
-          fileCount = 0;
-          byteLength = 0;
-          ref = (await ls(dir));
-          for (j = 0, len = ref.length; j < len; j++) {
-            item = ref[j];
-            if ("file" === item.kind) {
-              ({size, type, lastModifiedDate} = (await read(item)));
-              _date = lastModifiedDate.toDateString().split(" ").slice(1).slice(0, 2).join(" ") + " " + lastModifiedDate.toTimeString().substring(0, 5);
-              byteLength += size;
-              fileCount++;
-            } else {
-              [size, type] = [0, 0];
-              _date = "".padEnd(16, " ");
-              dirCount++;
-            }
-            if ("directory" === item.kind) {
-              lines.push(["dir", "\t", "\t", _date, " ", item.name]);
-              continue;
-            }
-            if (!size) {
-              lines.push(["file", "\t", 0, "\t\t", _date, " ", item.name]);
-            } else {
-              lines.push(["file", "\t", size, "\t", _date, " ", item.name]);
-            }
-          }
-          kB = (byteLength / 1e3).toFixed(1) * 1;
-          console.group("path:", [(await resolv(dir))]);
-          console.warn("total:", kB, "kBytes");
-          lines.reverse().forEach(function(l) {
-            return console.log(...l);
-          });
-          return console.groupEnd(cwd);
-        }
-      },
-      mv: {
-        get: function() {
-          var indeks, isim, istenenler, j, len, len1, level0, m, ref, tanim;
-          istenenler = [];
-          level0 = [];
-          ref = self.indexler;
-          for (j = 0, len = ref.length; j < len; j++) {
-            indeks = ref[j];
-            isim = indeks.split(/\/|\./, 2)[1];
-            if (!level0.includes(isim)) {
-              level0.push(isim);
-            }
-          }
-          for (m = 0, len1 = level0.length; m < len1; m++) {
-            tanim = level0[m];
-            Object.defineProperty(window, tanim, (function(isim) {
-              return {
-                configurable: true,
-                get: function() {
-                  var len2, level1, n, tanim1;
-                  istenenler.push(isim);
-                  log("istendi:", isim, 0);
-                  level1 = [];
-                  self.indexler.filter(function(i) {
-                    return i.startsWith(`/${isim}`) && (i !== `/${isim}`);
-                  }).map(function(i) {
-                    return i.substring(`/${isim}`.length);
-                  }).forEach(function(i) {
-                    var isim1;
-                    isim1 = i.split(/\/|\./, 2)[1];
-                    if (!level1.includes(isim1)) {
-                      return level1.push(isim1);
-                    }
-                  });
-                  for (n = 0, len2 = level1.length; n < len2; n++) {
-                    tanim1 = level1[n];
-                    Object.defineProperty(window, tanim1, (function(isim1) {
-                      return {
-                        configurable: true,
-                        get: function() {
-                          var len3, level2, q, tanim2;
-                          istenenler.push(isim1);
-                          log("istendi:".padStart(10 + istenenler.length * 2, " "), isim1, 1);
-                          //? -----> level 2
-                          level2 = [];
-                          self.indexler.filter(function(i) {
-                            return i.startsWith(`/${isim}`) && i.includes(isim1);
-                          }).map(function(i) {
-                            return i.substring(`/${isim + '/' + isim1}`.length);
-                          }).forEach(function(i) {
-                            var isim2;
-                            isim2 = i.split(/\/|\./, 2)[1];
-                            if (!level2.includes(isim2)) {
-                              if (isim2) {
-                                return level2.push(isim2);
-                              }
-                            }
-                          });
-                          level2;
-                          for (q = 0, len3 = level2.length; q < len3; q++) {
-                            tanim2 = level2[q];
-                            Object.defineProperty(window, tanim2, (function(isim2) {
-                              return {
-                                configurable: true,
-                                get: function() {
-                                  istenenler.push(isim2);
-                                  log("istendi:".padStart(10 + istenenler.length * 2, " "), isim2, 2);
-                                  return new Proxy({}, {
-                                    get: function() {
-                                      if (typeof arguments[1] !== "symbol") {
-                                        istenenler.push(arguments[1]);
-                                        warn("  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]);
-                                      }
-                                      return function() {};
-                                    }
-                                  });
-                                }
-                              };
-                            })(tanim2));
-                          }
-                          
-                          //? <----- level 2
-                          return new Proxy({}, {
-                            get: function() {
-                              if (typeof arguments[1] !== "symbol") {
-                                istenenler.push(arguments[1]);
-                                warn("  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]);
-                              }
-                              return function() {};
-                            }
-                          });
-                        }
-                      };
-                    })(tanim1));
-                  }
-                  return new Proxy({}, {
-                    get: function() {
-                      if (typeof arguments[1] !== "symbol") {
-                        istenenler.push(arguments[1]);
-                        warn("  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]);
-                      }
-                      return function() {};
-                    }
-                  });
-                }
-              };
-            })(tanim));
-          }
-          return new Proxy({}, {
-            get: function() {
-              if (typeof arguments[1] !== "symbol") {
-                istenenler.push(arguments[1]);
-                warn("  istendi:".padStart(10 + istenenler.length * 2 - 2, " "), arguments[1]);
-              }
-              return function() {};
-            }
-          });
-        }
-      }
-    });
-  };
   init();
   
-  // update shell's fsindex
+  // update console's fsindex
   window.addEventListener("storagcwdupdate", function({
       detail: handle
     }) {
     var args, cmd, handler;
-    shell.updatePathIndex(handle);
+    console.updatePathIndex(handle);
     cmd = "ls";
     args = ["l", "a", "h"];
     handler = function(sequence) {
-      return log("command executed:", sequence);
+      return log("command executed ls:", sequence);
     };
-    return shell.registerCommand(cmd, handler, args);
+    console.registerCommand(cmd, handler, args);
+    cmd = "mount";
+    args = ["fs", "root"];
+    handler = function(sequence) {
+      return log("command executed fs:", sequence);
+    };
+    console.registerCommand(cmd, handler, args);
+    cmd = "device";
+    args = ["add"];
+    handler = function(sequence) {
+      return log(["device"], " <-- ", sequence);
+    };
+    return console.registerCommand(cmd, handler, args);
   });
-  
   // cleaning window object
   window.addEventListener("storageroothandle", function({
       detail: fsroot
     }) {
     var clean, d, k, o, p, r;
-    shell.fsroot = fsroot;
-    return 1;
-    setTimeout(async() => {
-      return (await cd("lib"));
-    }, 2000);
+    console.fsroot = fsroot;
     d = Object.getOwnPropertyDescriptors;
     p = Object.getPrototypeOf;
     k = Object.keys;
@@ -1269,7 +941,7 @@
       if (!a) {
         return;
       }
-      if (/location|window|self|console/.test(a.constructor.name || a.name)) {
+      if (/location|window|self|console|navigator/.test(a.constructor.name || a.name)) {
         return;
       }
       try {
