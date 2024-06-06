@@ -1,26 +1,17 @@
 do ->
-    {Reflect, Object, Float32Array, Int32Array, DataView, Uint32Array, ArrayBuffer,
-    Uint16Array, Uint32Array, dispatchEvent, addEventListener, Event, CustomEvent,
-    JSON, clearTimeout, setInterval, clearInterval, 
-    setTimeout, queueMicrotask, requestIdleCallback, requestAnimationFrame,
-    navigator, Proxy, Function, __proto__, FileSystemDirectoryHandle, Symbol, console,
-    showDirectoryPicker, showOpenFilePicker, showSaveFilePicker, RegExp,
-    Array, Number, String, Boolean, Math, Uint8ClampedArray, Int8Array, Uint8Array,
-    Int16Array, Float64Array, BigInt64Array, BigUint64Array, Atomics, 
-    BigInt, FileSystemFileHandle, FileSystemHandle, parseInt, parseFloat} = window
+    DEBUG = 1
 
+    {navigator, console, Object, Reflect, performance} = window
+    {deleteProperty, apply} = Reflect
+    {values,keys,assign,defineProperty, defineProperties, hasOwn,
+    getOwnPropertyDescriptors:getOwn, getPrototypeOf: prototypeOf,
+    create: createObject, setPrototypeOf, isPrototypeOf, seal, isSealed,
+    getOwnPropertySymbols, preventExtensions, freeze, isFrozen, entries} = Object
     {log,warn,error,table,debug,info,delay,group,groupEnd} = console
-    {values,keys,assign,defineProperty, defineProperties, hasOwn} = Object
-    {call,apply,bind} = Object.getPrototypeOf(()=>{})
 
-    Object.defineProperties __proto__,
-        navigator       : value : navigator
+    pnow = -> parseFloat performance.now().toFixed(2)
 
-    window.on2error =
-    window.on2unhandledrejection = ->
-        #document.body.innerHTML += JSON.stringify arguments
-        #error arguments...
-        true
+
 
     Object.defineProperties console, 
 
@@ -124,6 +115,7 @@ do ->
                 sequence = []
                 dirchain = []
                 subchain = []
+                argindex = {}
                 
                 for arg in args.slice()
 
@@ -144,7 +136,8 @@ do ->
                         if i then sequence[i] = path : sequence[i]
                     
                     if  arg.as.match /argument/
-                        sequence.push "-" + arg.key
+                        argindex[arg.key] =
+                            sequence.push "-" + arg.key
                         continue
 
                     if  arg.as.match /function/
@@ -227,25 +220,99 @@ do ->
 
                     sequence[i] = sequence[i].path
 
-                handler values sequence
+                response = values sequence
+
+                for argument, argi of argindex then defineProperty(
+                     response, argument, value : response[argi]
+                )
+                
+                handler response
 
             , 40
 
-            return args
+            return handler
 
-        registerCommand : value : ( cmd, handler, args = [] ) ->
+        registerCommand : value : ( cmd, args = [], handler ) ->
 
             if  typeof window[ cmd ] isnt "undefined"
                 throw [ COMMAND_NAME_ALREADY_GLOBAL : cmd ]
     
-            Object.defineProperty __proto__, cmd, get : -> 
-
-                console.dispatchCommand( handler, console.deployTempProxy(
-                    args, chain = [{ as : "command", key: cmd }]
+            Object.defineProperty __proto__, cmd, get : ((fn, a, c)-> ->
+                console.dispatchCommand( fn, console.deployTempProxy(
+                    a, chain = [{ as : "command", key: c }]
                 ))
+            )(handler, args, cmd)
 
             console.emit "consolecommandregister", cmd
 
+    scope = []
+
+    scope.push class Core extends EventTarget
+
+    scope.push class DeviceManager extends Core
+
+        bound : []
+
+        listen : ( dev ) ->
+            2
+
+        bind : ( dev ) ->
+            @bound.push dev
+            dev.onbound this
+
+
+    scope.push class WindowPointerDevice extends DataView
+        constructor : -> super new ArrayBuffer 24
+
+        onbound : ( devman ) ->
+            log devman
+
+    if DEBUG then for proto in scope
+        for prop, {value} of getOwn proto::
+            if typeof value is "function" then ( ( method, handler, alias ) ->
+                Object.defineProperty this, method, value : ->
+                    debug alias, pnow(), method + "()", [ ...arguments ]
+                    apply handler, this, arguments
+            ).call proto::, prop, value, proto.name
+
+    scope.push $DEVICE = new DeviceManager window 
+
+    console.registerCommand "device", [ "bind", "list" ], ( args ) ->
+        if  hasOwn args, "bind"
+            $DEVICE.bind args.bind
+
+
+    # cleaning window object
+    window.addEventListener "DOMContentLoaded", -> requestIdleCallback ->
+        proto = prototypeOf window
+
+        for key, desc of getOwn window
+            if !key.startsWith "on"
+                if  desc.configurable and desc.value
+                    desc.enumerable = no
+                    defineProperty proto, key, desc 
+            deleteProperty window, key
+
+        if  typeof window.chrome isnt "undefined"
+            Object.defineProperty window, "chrome", value: "tru 💚 th"
+
+        "$ $0 $1 $2 $3 $4 $$ $_ $x clear copy debug dir dirxml 
+        getAccessibleName getAccessibleRole getEventListeners 
+        inspect keys monitor monitorEvents profile profileEnd 
+        queryObjects table undebug unmonitor unmonitorEvents 
+        values".split(/\s+|\n/g).forEach (key) ->
+            defineProperty proto, key, value: ->
+
+        window.dispatchEvent new Event "bootable"
+
+    
+    window.addEventListener "bootable", ->
+        log "booting.."
+
+        #* booooooting now :)
+        device -bind ( new WindowPointerDevice )
+    
+###
 
     do  mouse = ->
         device      = new ArrayBuffer 64
@@ -457,335 +524,335 @@ do ->
 
     do  fs = ->
 
-    device = new ArrayBuffer 4096 * 256 * 128 #128mb önbellek
+        device = new ArrayBuffer 4096 * 256 * 128 #128mb önbellek
 
-    counters    = new Int32Array device, 0, 10
-    dataArray   = new Uint8Array device, counters.byteLength 
-    dataView    = new DataView device 
-    lendian     = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
-    handles     = [,]
-    root        = null
-    currentDir  = null
-    currentFile = null
+        counters    = new Int32Array device, 0, 10
+        dataArray   = new Uint8Array device, counters.byteLength 
+        dataView    = new DataView device 
+        lendian     = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
+        handles     = [,]
+        root        = null
+        currentDir  = null
+        currentFile = null
 
-    quota       = ->
-        Number dataView.getBigUint64 12, lendian
-    usage       = dataView.getUint32.bind dataView, 20, lendian
-    written     = dataView.getUint32.bind dataView, 24, lendian
-    readed      = dataView.getUint32.bind dataView, 28, lendian
-    create      = dataView.getInt32.bind  dataView, 32, lendian
-    remove      = dataView.getInt32.bind  dataView, 36, lendian
+        quota       = ->
+            Number dataView.getBigUint64 12, lendian
+        usage       = dataView.getUint32.bind dataView, 20, lendian
+        written     = dataView.getUint32.bind dataView, 24, lendian
+        readed      = dataView.getUint32.bind dataView, 28, lendian
+        create      = dataView.getInt32.bind  dataView, 32, lendian
+        remove      = dataView.getInt32.bind  dataView, 36, lendian
 
-    state       = dataView.getUint8.bind dataView, 40
-    status      = dataView.getUint8.bind dataView, 41
+        state       = dataView.getUint8.bind dataView, 40
+        status      = dataView.getUint8.bind dataView, 41
 
-    STATE_INIT               = 0
-    STATE_ROOT_HANDLE        = 1
-    STATE_UNPERSISTED_HANDLE = 2
-    STATE_PERSISTED_HANDLE   = 3
+        STATE_INIT               = 0
+        STATE_ROOT_HANDLE        = 1
+        STATE_UNPERSISTED_HANDLE = 2
+        STATE_PERSISTED_HANDLE   = 3
 
-    STATUS_IDLE     = 0
-    STATUS_READING  = 1
-    STATUS_WRITING  = 2
+        STATUS_IDLE     = 0
+        STATUS_READING  = 1
+        STATUS_WRITING  = 2
 
-    events      = '
-    onstorageroothandle
-    onstoragepersisted
-    onstoragecreatedirectory
-    onstoragecreatefile
-    onstorageremovefile
-    onstoragcwdupdate
-    '.split( /\s+|\n/g )
+        events      = '
+        onstorageroothandle
+        onstoragepersisted
+        onstoragecreatedirectory
+        onstoragecreatefile
+        onstorageremovefile
+        onstoragcwdupdate
+        '.split( /\s+|\n/g )
 
-    init = ->
-        dataView.setUint8 40, STATE_INIT
-        try navigator.storage.getDirectory().then ( handle ) ->
+        init = ->
+            dataView.setUint8 40, STATE_INIT
+            try navigator.storage.getDirectory().then ( handle ) ->
+                if  handle instanceof FileSystemDirectoryHandle
+                    handles.push( root = handle )
+                    emit "storageroothandle", root
+
+        cd      = ( dirName, handle = currentDir ) ->
+            await setcwd currentDir =
+                await handle.getDirectoryHandle dirName
+
+        setcwd  = ( handle = currentDir ) ->
+            Object.defineProperty __proto__, "cwd",
+                writable: on
+                configurable: on
+                value : await resolv handle
+
+            emit "storagcwdupdate", handle
+
+            handle
+
+        mkdir   = ( dirName, target = currentDir ) ->
+            if  dir = await target.getDirectoryHandle( dirName, { create: true } )
+                emit "storagecreatedirectory", { dir }
+            dir
+
+        touch   = ( anyForD, target = currentDir ) ->
+
+            if  anyForD instanceof FileSystemFileHandle
+                return await touch anyForD.name, target
+
+            if  anyForD instanceof FileSystemDirectoryHandle
+                return await mkdir anyForD.name, target
+
+            if  typeof anyForD is "string"
+                handle = await target.getFileHandle(
+                    anyForD, { create: true }
+                )
+                emit "storagecreatefile", handle
+
+            handle
+
+        parent  = ( handle = currentDir ) ->
+            #todo
+            
+        rmdir   = ( dirName, recursive = no, handle = currentDir ) ->
+            if  recursive instanceof FileSystemHandle
+                recursive = !( handle = recursive )
+
+            await handle.removeEntry( dirName, { recursive } )
+            emit "storageremovedirectory", { dirName }
+
+        rm      = ( anyForD, force = no, recursive = no, handle = currentDir ) ->
+            if  force instanceof FileSystemHandle
+                force = recursive = !( handle = force )
+
+            if  recursive instanceof FileSystemHandle
+                recursive = !( handle = recursive )
+
+            if !item = ( await ls handle ).find (i) -> i.name is anyForD
+                return error "File or folder (#{anyForD}) is not in: #{cwd}"
+
+            if  item instanceof FileSystemDirectoryHandle
+                if !force then if ( await ls item ).length
+                    return error "Folder is not empty"
+
+            await handle.removeEntry( anyForD, { recursive } )
+
+            emit "storageremovefile", { anyForD }
+
+        ls      = ( handle ) ->
+            handle ||= currentDir
+
+            if  typeof handle is "string"
+                it = await currentDir.values()
+                while e = (await it.next()).value
+                    continue if e.name isnt handle
+                    handle = e ; break
+
+            if !handle instanceof FileSystemDirectoryHandle
+                return error "This is not a directory: ", handle
+
+            iterator = await handle.values()
+            items = []
+            
+            loop
+                item = await iterator.next()
+                break if item.done is true
+                items.push item.value
+            items
+        
+        dir     = ( handle ) ->
+            handle ||= currentDir
+
+            if  typeof handle is "string"
+                it = await currentDir.values()
+                while e = (await it.next()).value
+                    continue if e.name isnt handle
+                    handle = e ; break
+
+            if !handle instanceof FileSystemDirectoryHandle
+                return error "This is not a directory: ", handle
+
+            iterator = await handle.keys()
+            items = []
+            
+            loop
+                item = await iterator.next()
+                break if item.done is true
+                items.push item.value
+            items
+
+        resolv  = ( handle ) ->
+            handle ||= currentDir 
+
+            if  typeof handle is "string"
+                it = await currentDir.values()
+                while e = (await it.next()).value
+                    continue if e.name isnt handle
+                    handle = e ; break
+
+            return "/" + (
+                await root.resolve handle
+            ).join "/"
+
+        queryp  = ( handle, mode = "readwrite" ) ->
+            "granted" is await handle.queryPermission { mode }
+
+        askp    = ( handle, mode = "readwrite" ) ->
+            "granted" is await handle.requestPermission { mode }
+
+        issame  = ( handle, target ) ->
+            await target.isSameEntry handle
+
+        read    = ( file, handle = currentDir ) ->
+            if  file instanceof FileSystemFileHandle
+                { name : file } = ( fhandle = file )
+
+            else if  Array.isArray file
+                [ file , fhandle ] = ( file )
+
+            else if "string" is typeof file
+                for item in await ls handle
+                    if  item.name is file
+                        fhandle = item
+                        break
+
+            if !fhandle or !fhandle instanceof FileSystemFileHandle
+                return text : -> error "No such a file:", [ file ]
+                
+            await fhandle.getFile()
+
+        cat     = ( file, handle = currentDir ) ->
+            data = await read file, handle
+
+            dataView.setUint32( 28,
+                readed() + data.size, lendian
+            )
+
+            await data.text()
+
+        write   = ( data, writeableFHandle = currentFile ) ->
+            if  data instanceof FileSystemFileHandle
+                data = await read data
+
+            try
+                writableStream =
+                    # FileSystemWritableFileStream
+                    await writeableFHandle.createWritable()
+
+                await writableStream.write data
+                await writableStream.close()
+
+                dataView.setUint32(
+                    24, written() + data.size, lendian
+                )
+
+            catch e then error e, arguments...
+            finally return writeableFHandle
+
+        pick    = ( type = "directory" ) ->
+            return  if /dir/.test type
+                try await showDirectoryPicker()
+            else    if /file/.test type
+                try await showOpenFilePicker()
+            else    if /savefile/.test type
+                try await showSaveFilePicker()
+            else    throw /UNDEFINED_TYPE_PICK/
+
+        mv_f2f  = ( srcFHandle, dstFHandle, force = no ) ->
+            if !srcFHandle instanceof FileSystemFileHandle
+                throw /SRC_MUST_BE_FILE/
+
+            if !dstFHandle instanceof FileSystemFileHandle
+                throw /DST_MUST_BE_FILE/
+
+            if (await issame srcFHandle, dstFHandle)
+                throw /SRC_AND_DST_ISSAME/
+
+            if (await queryp dstFHandle) is no
+                throw /NO_PERMISSON_WRITE_TO_TARGET/
+
+            if (await queryp srcFHandle, "read") is no
+                throw /NO_PERMISSON_READ_TO_SOURCE/
+
+            await write srcFHandle, dstFHandle
+
+        mv_f2d  = ( srcFHandle, dstDHandle ) ->
+            if !srcFHandle instanceof FileSystemFileHandle
+                throw /SRC_MUST_BE_FILE/
+
+            if !dstDHandle instanceof FileSystemDirectoryHandle
+                throw /DST_MUST_BE_DIRECTORY/
+
+            if (await queryp dstDHandle) is no
+                throw /NO_PERMISSON_WRITE_TO_TARGET/
+
+            if (await queryp srcFHandle, "read") is no
+                throw /NO_PERMISSON_READ_TO_SOURCE/
+                
+            dstFHandle = await touch srcFHandle, dstDHandle 
+            await mv_f2f srcFHandle, dstFHandle
+
+        mv_d2d  = ( srcDHandle, dstDHandle ) ->
+            if !srcDHandle instanceof FileSystemDirectoryHandle
+                throw /SRC_MUST_BE_DIRECTORY/
+
+            if !dstDHandle instanceof FileSystemDirectoryHandle
+                throw /DST_MUST_BE_DIRECTORY/
+
+            if (await issame srcDHandle, dstDHandle)
+                throw /SRC_AND_DST_ISSAME/
+
+            d = await mkdir srcDHandle.name, dstDHandle
+
+            for fdHandle in await ls srcDHandle
+
+                if  fdHandle instanceof FileSystemFileHandle
+                    await mv_f2d fdHandle, d
+                    continue
+                
+                if  fdHandle instanceof FileSystemDirectoryHandle
+                    await mv_d2d fdHandle, d
+                    continue
+            1
+
+        mv      = ( handle, target = currentDir ) ->
+
+            if  target instanceof Array
+                target = target.find (i) ->
+                    i instanceof FileSystemHandle
+
+            if  typeof target is "string"
+                target = if target is "." then currentDir
+                else
+                    _ls = await ls currentDir
+                    _ls . find (fd) -> fd.name is target
+            
+            if !target instanceof FileSystemHandle
+                throw [ /TARGET_UNRESOLVED/, arguments... ]
+
+            if  handle instanceof FileSystemFileHandle
+
+                if  target instanceof FileSystemFileHandle
+                    return await mv_f2f handle, target
+
+                if  target instanceof FileSystemDirectoryHandle
+                    return await mv_f2d handle, target
+
             if  handle instanceof FileSystemDirectoryHandle
-                handles.push( root = handle )
-                emit "storageroothandle", root
 
-    cd      = ( dirName, handle = currentDir ) ->
-        await setcwd currentDir =
-            await handle.getDirectoryHandle dirName
+                if  target instanceof FileSystemFileHandle
+                    throw /NOT_POSSIBLE_WRITE_DIR_TO_FILE/
 
-    setcwd  = ( handle = currentDir ) ->
-        Object.defineProperty __proto__, "cwd",
-            writable: on
-            configurable: on
-            value : await resolv handle
+                if  target instanceof FileSystemDirectoryHandle
+                    return await mv_d2d handle, target
 
-        emit "storagcwdupdate", handle
+            if  handle instanceof Array
 
-        handle
+                await mv ihandle, target for ihandle in handle
 
-    mkdir   = ( dirName, target = currentDir ) ->
-        if  dir = await target.getDirectoryHandle( dirName, { create: true } )
-            emit "storagecreatedirectory", { dir }
-        dir
+            if  typeof handle is "string"
+                
+                handle = ( await ls currentDir
+                ).find (i) -> i.name is handle
+                return await mv handle, target
 
-    touch   = ( anyForD, target = currentDir ) ->
-
-        if  anyForD instanceof FileSystemFileHandle
-            return await touch anyForD.name, target
-
-        if  anyForD instanceof FileSystemDirectoryHandle
-            return await mkdir anyForD.name, target
-
-        if  typeof anyForD is "string"
-            handle = await target.getFileHandle(
-                anyForD, { create: true }
-            )
-            emit "storagecreatefile", handle
-
-        handle
-
-    parent  = ( handle = currentDir ) ->
-        #todo
-        
-    rmdir   = ( dirName, recursive = no, handle = currentDir ) ->
-        if  recursive instanceof FileSystemHandle
-            recursive = !( handle = recursive )
-
-        await handle.removeEntry( dirName, { recursive } )
-        emit "storageremovedirectory", { dirName }
-
-    rm      = ( anyForD, force = no, recursive = no, handle = currentDir ) ->
-        if  force instanceof FileSystemHandle
-            force = recursive = !( handle = force )
-
-        if  recursive instanceof FileSystemHandle
-            recursive = !( handle = recursive )
-
-        if !item = ( await ls handle ).find (i) -> i.name is anyForD
-            return error "File or folder (#{anyForD}) is not in: #{cwd}"
-
-        if  item instanceof FileSystemDirectoryHandle
-            if !force then if ( await ls item ).length
-                return error "Folder is not empty"
-
-        await handle.removeEntry( anyForD, { recursive } )
-
-        emit "storageremovefile", { anyForD }
-
-    ls      = ( handle ) ->
-        handle ||= currentDir
-
-        if  typeof handle is "string"
-            it = await currentDir.values()
-            while e = (await it.next()).value
-                continue if e.name isnt handle
-                handle = e ; break
-
-        if !handle instanceof FileSystemDirectoryHandle
-            return error "This is not a directory: ", handle
-
-        iterator = await handle.values()
-        items = []
-        
-        loop
-            item = await iterator.next()
-            break if item.done is true
-            items.push item.value
-        items
-    
-    dir     = ( handle ) ->
-        handle ||= currentDir
-
-        if  typeof handle is "string"
-            it = await currentDir.values()
-            while e = (await it.next()).value
-                continue if e.name isnt handle
-                handle = e ; break
-
-        if !handle instanceof FileSystemDirectoryHandle
-            return error "This is not a directory: ", handle
-
-        iterator = await handle.keys()
-        items = []
-        
-        loop
-            item = await iterator.next()
-            break if item.done is true
-            items.push item.value
-        items
-
-    resolv  = ( handle ) ->
-        handle ||= currentDir 
-
-        if  typeof handle is "string"
-            it = await currentDir.values()
-            while e = (await it.next()).value
-                continue if e.name isnt handle
-                handle = e ; break
-
-        return "/" + (
-            await root.resolve handle
-        ).join "/"
-
-    queryp  = ( handle, mode = "readwrite" ) ->
-        "granted" is await handle.queryPermission { mode }
-
-    askp    = ( handle, mode = "readwrite" ) ->
-        "granted" is await handle.requestPermission { mode }
-
-    issame  = ( handle, target ) ->
-        await target.isSameEntry handle
-
-    read    = ( file, handle = currentDir ) ->
-        if  file instanceof FileSystemFileHandle
-            { name : file } = ( fhandle = file )
-
-        else if  Array.isArray file
-            [ file , fhandle ] = ( file )
-
-        else if "string" is typeof file
-            for item in await ls handle
-                if  item.name is file
-                    fhandle = item
-                    break
-
-        if !fhandle or !fhandle instanceof FileSystemFileHandle
-            return text : -> error "No such a file:", [ file ]
-            
-        await fhandle.getFile()
-
-    cat     = ( file, handle = currentDir ) ->
-        data = await read file, handle
-
-        dataView.setUint32( 28,
-            readed() + data.size, lendian
-        )
-
-        await data.text()
-
-    write   = ( data, writeableFHandle = currentFile ) ->
-        if  data instanceof FileSystemFileHandle
-            data = await read data
-
-        try
-            writableStream =
-                # FileSystemWritableFileStream
-                await writeableFHandle.createWritable()
-
-            await writableStream.write data
-            await writableStream.close()
-
-            dataView.setUint32(
-                24, written() + data.size, lendian
-            )
-
-        catch e then error e, arguments...
-        finally return writeableFHandle
-
-    pick    = ( type = "directory" ) ->
-        return  if /dir/.test type
-            try await showDirectoryPicker()
-        else    if /file/.test type
-            try await showOpenFilePicker()
-        else    if /savefile/.test type
-            try await showSaveFilePicker()
-        else    throw /UNDEFINED_TYPE_PICK/
-
-    mv_f2f  = ( srcFHandle, dstFHandle, force = no ) ->
-        if !srcFHandle instanceof FileSystemFileHandle
-            throw /SRC_MUST_BE_FILE/
-
-        if !dstFHandle instanceof FileSystemFileHandle
-            throw /DST_MUST_BE_FILE/
-
-        if (await issame srcFHandle, dstFHandle)
-            throw /SRC_AND_DST_ISSAME/
-
-        if (await queryp dstFHandle) is no
-            throw /NO_PERMISSON_WRITE_TO_TARGET/
-
-        if (await queryp srcFHandle, "read") is no
-            throw /NO_PERMISSON_READ_TO_SOURCE/
-
-        await write srcFHandle, dstFHandle
-
-    mv_f2d  = ( srcFHandle, dstDHandle ) ->
-        if !srcFHandle instanceof FileSystemFileHandle
-            throw /SRC_MUST_BE_FILE/
-
-        if !dstDHandle instanceof FileSystemDirectoryHandle
-            throw /DST_MUST_BE_DIRECTORY/
-
-        if (await queryp dstDHandle) is no
-            throw /NO_PERMISSON_WRITE_TO_TARGET/
-
-        if (await queryp srcFHandle, "read") is no
-            throw /NO_PERMISSON_READ_TO_SOURCE/
-            
-        dstFHandle = await touch srcFHandle, dstDHandle 
-        await mv_f2f srcFHandle, dstFHandle
-
-    mv_d2d  = ( srcDHandle, dstDHandle ) ->
-        if !srcDHandle instanceof FileSystemDirectoryHandle
-            throw /SRC_MUST_BE_DIRECTORY/
-
-        if !dstDHandle instanceof FileSystemDirectoryHandle
-            throw /DST_MUST_BE_DIRECTORY/
-
-        if (await issame srcDHandle, dstDHandle)
-            throw /SRC_AND_DST_ISSAME/
-
-        d = await mkdir srcDHandle.name, dstDHandle
-
-        for fdHandle in await ls srcDHandle
-
-            if  fdHandle instanceof FileSystemFileHandle
-                await mv_f2d fdHandle, d
-                continue
-            
-            if  fdHandle instanceof FileSystemDirectoryHandle
-                await mv_d2d fdHandle, d
-                continue
-        1
-
-    mv      = ( handle, target = currentDir ) ->
-
-        if  target instanceof Array
-            target = target.find (i) ->
-                i instanceof FileSystemHandle
-
-        if  typeof target is "string"
-            target = if target is "." then currentDir
-            else
-                _ls = await ls currentDir
-                _ls . find (fd) -> fd.name is target
-        
-        if !target instanceof FileSystemHandle
-            throw [ /TARGET_UNRESOLVED/, arguments... ]
-
-        if  handle instanceof FileSystemFileHandle
-
-            if  target instanceof FileSystemFileHandle
-                return await mv_f2f handle, target
-
-            if  target instanceof FileSystemDirectoryHandle
-                return await mv_f2d handle, target
-
-        if  handle instanceof FileSystemDirectoryHandle
-
-            if  target instanceof FileSystemFileHandle
-                throw /NOT_POSSIBLE_WRITE_DIR_TO_FILE/
-
-            if  target instanceof FileSystemDirectoryHandle
-                return await mv_d2d handle, target
-
-        if  handle instanceof Array
-
-            await mv ihandle, target for ihandle in handle
-
-        if  typeof handle is "string"
-            
-            handle = ( await ls currentDir
-            ).find (i) -> i.name is handle
-            return await mv handle, target
-
-        throw [ /SOURCE_ARRAY_UNRESOLVED/, handle ]
-        await rmdir handle.name, target
+            throw [ /SOURCE_ARRAY_UNRESOLVED/, handle ]
+            await rmdir handle.name, target
 
 
     window.addEventListener "storagecreatedirectory", ({ detail }) ->
@@ -837,11 +904,6 @@ do ->
     
     
 
-    do init
-
-
-    
-
     # update console's fsindex
     window.addEventListener "storagcwdupdate", ({ detail: handle }) ->
 
@@ -869,60 +931,4 @@ do ->
 
         console.registerCommand cmd, handler, args
 
-    # cleaning window object
-    window.addEventListener "storageroothandle", ({ detail: fsroot }) ->
-
-        console.fsroot = fsroot
-
-        d = Object.getOwnPropertyDescriptors
-        p = Object.getPrototypeOf
-        k = Object.keys
-        o = Object
-        r = Reflect
-
-        clean = (a) ->
-
-            return unless a
-
-            if /location|window|self|console|navigator/.test a.constructor.name or a.name
-                return
-
-            try for _k, v of d _ = a.__proto__
-                r.deleteProperty _, _k
-
-            try for _k, v of d _ = p a.constructor
-                r.deleteProperty _, _k
-
-            try for _k, v of d _ = a.constructor
-                r.deleteProperty _, _k
-                
-            try for _k, v of d _ = p a
-                r.deleteProperty _, _k
-
-            try for _k, v of d _ = a
-                r.deleteProperty _, _k
-                
-        if  window.chrome?
-            Object.defineProperty    window, "chrome", value: "tru 💚 th"
-            Object.defineProperty __proto__, "values", value: -> []
-            Object.defineProperty __proto__, "debug", value: -> []
-            Object.defineProperty __proto__, "undebug", value: -> []
-            Object.defineProperty __proto__, "queryObjects", value: -> []
-
-            if  unmonitorEvents?
-                unmonitorEvents window
-
-        try clean window
-
-
-    do self.dbg = -> -> 
-        requestIdleCallback -> requestAnimationFrame ->
-            groupEnd group(
-                "fs:", "state:", state(),
-                "persisted:", state() >= STATE_PERSISTED_HANDLE,
-                "status:", status(),
-                "quota:", quota(),
-                "usage:", usage(),
-                "written:", written(),
-                "readed:", readed()
-            )
+###
