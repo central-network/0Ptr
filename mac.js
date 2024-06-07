@@ -1,5 +1,5 @@
 (function() {
-  var $DEVICE, Core, DEBUG, DeviceManager, Object, Reflect, WindowPointerDevice, apply, assign, console, createObject, debug, defineProperties, defineProperty, delay, deleteProperty, emit, entries, error, freeze, getOwn, getOwnPropertySymbols, group, groupEnd, hasOwn, info, isFrozen, isPrototypeOf, isSealed, keys, log, navigator, performance, pnow, preventExtensions, prop, proto, prototypeOf, scope, seal, setPrototypeOf, table, value, values, warn;
+  var $DEVICE, Core, DEBUG, DeviceManager, Object, Reflect, WindowPointerDevice, apply, assign, console, createObject, debug, defineProperties, defineProperty, delay, deleteProperty, emit, entries, error, freeze, getOwn, getOwnPropertySymbols, group, groupEnd, hasOwn, info, isFrozen, isPrototypeOf, isSealed, keys, log, navigator, performance, pnow, preventExtensions, prototypeOf, scope, seal, setPrototypeOf, table, values, warn;
   DEBUG = 1;
   ({navigator, console, Object, Reflect, performance} = window);
   ({deleteProperty, apply} = Reflect);
@@ -28,6 +28,9 @@
     return parseFloat(performance.now().toFixed(2));
   };
   Object.defineProperties(console, {
+    commands: {
+      value: new Object
+    },
     fsIndex: {
       value: new Array
     },
@@ -73,6 +76,16 @@
                 return 1;
               };
             }
+            if (key === "then") {
+              log({arguments});
+              return console.commands[word].resolve = function() {
+                if (!console.commands[word].request) {
+                  console.commands[word].request = arguments[0];
+                  return;
+                }
+                return console.commands[word].request();
+              };
+            }
             _chain.push({
               as: "keyword",
               key,
@@ -84,8 +97,9 @@
       }
     },
     deployTempProxy: {
-      value: function(args = [], chain = []) {
-        var a, i, j, k, l, len, len1, len2, ref, w;
+      value: function(key) {
+        var a, args, chain, i, j, k, l, len, len1, len2, ref, w;
+        ({args = [], chain = []} = this.commands[key]);
         this.clearTempKeys();
         for (i = j = 0, len = args.length; j < len; i = ++j) {
           a = args[i];
@@ -169,60 +183,23 @@
       }
     },
     dispatchCommand: {
-      value: function(handler, args = []) {
-        setTimeout(() => {
-          var arg, argi, argindex, argument, dirchain, fshandle, i, j, k, l, len, len1, len2, parent, part, path, ref, ref1, response, s, sequence, subchain;
-          console.clearTempKeys();
-          sequence = [];
-          dirchain = [];
-          subchain = [];
-          argindex = {};
-          ref = args.slice();
-          for (j = 0, len = ref.length; j < len; j++) {
-            arg = ref[j];
-            if (arg.as.match(/command/)) {
-              continue;
-            }
-            if (!arg.as.match(/fshandle/)) {
-              i = 0;
-              if (dirchain.length) {
-                i = sequence.push("/" + dirchain.join("/")) - 1;
+      value: function(key) {
+        return new Promise((done) => {
+          return setTimeout(async() => {
+            var arg, argi, argindex, argument, chain, dirchain, fshandle, handler, i, j, k, l, len, len1, len2, parent, part, path, ref, ref1, resolve, response, s, sequence, subchain;
+            ({handler, chain = [], resolve} = console.commands[key]);
+            console.clearTempKeys();
+            sequence = [];
+            dirchain = [];
+            subchain = [];
+            argindex = {};
+            ref = chain.slice();
+            for (j = 0, len = ref.length; j < len; j++) {
+              arg = ref[j];
+              if (arg.as.match(/command/)) {
+                continue;
               }
-              dirchain = [];
-              if (subchain.length) {
-                sequence[i] += "." + subchain.join(".");
-              }
-              subchain = [];
-              if (i) {
-                sequence[i] = {
-                  path: sequence[i]
-                };
-              }
-            }
-            if (arg.as.match(/argument/)) {
-              argindex[arg.key] = sequence.push("-" + arg.key);
-              continue;
-            }
-            if (arg.as.match(/function/)) {
-              i = 0;
-              if (dirchain.length) {
-                i = sequence.push("/" + dirchain.join("/")) - 1;
-              }
-              dirchain = [];
-              if (subchain.length) {
-                sequence[i] += "." + subchain.join(".");
-              }
-              subchain = [];
-              if (i) {
-                sequence[i] = {
-                  path: sequence[i]
-                };
-              }
-              sequence.push(arg.args.at());
-              continue;
-            }
-            if (arg.as.match(/fshandle/)) {
-              if (subchain.length) {
+              if (!arg.as.match(/fshandle/)) {
                 i = 0;
                 if (dirchain.length) {
                   i = sequence.push("/" + dirchain.join("/")) - 1;
@@ -238,14 +215,30 @@
                   };
                 }
               }
-              dirchain.push(arg.key);
-              ref1 = arg.subchain;
-              for (k = 0, len1 = ref1.length; k < len1; k++) {
-                s = ref1[k];
-                if (s.as.match(/keyword/)) {
-                  subchain.push(s.key);
+              if (arg.as.match(/argument/)) {
+                argindex[arg.key] = sequence.push("-" + arg.key);
+                continue;
+              }
+              if (arg.as.match(/function/)) {
+                i = 0;
+                if (dirchain.length) {
+                  i = sequence.push("/" + dirchain.join("/")) - 1;
                 }
-                if (s.as.match(/function/)) {
+                dirchain = [];
+                if (subchain.length) {
+                  sequence[i] += "." + subchain.join(".");
+                }
+                subchain = [];
+                if (i) {
+                  sequence[i] = {
+                    path: sequence[i]
+                  };
+                }
+                sequence.push(arg.args.at());
+                continue;
+              }
+              if (arg.as.match(/fshandle/)) {
+                if (subchain.length) {
                   i = 0;
                   if (dirchain.length) {
                     i = sequence.push("/" + dirchain.join("/")) - 1;
@@ -260,81 +253,112 @@
                       path: sequence[i]
                     };
                   }
-                  sequence.push(s.args.at());
+                }
+                dirchain.push(arg.key);
+                ref1 = arg.subchain;
+                for (k = 0, len1 = ref1.length; k < len1; k++) {
+                  s = ref1[k];
+                  if (s.as.match(/keyword/)) {
+                    subchain.push(s.key);
+                  }
+                  if (s.as.match(/function/)) {
+                    i = 0;
+                    if (dirchain.length) {
+                      i = sequence.push("/" + dirchain.join("/")) - 1;
+                    }
+                    dirchain = [];
+                    if (subchain.length) {
+                      sequence[i] += "." + subchain.join(".");
+                    }
+                    subchain = [];
+                    if (i) {
+                      sequence[i] = {
+                        path: sequence[i]
+                      };
+                    }
+                    sequence.push(s.args.at());
+                  }
                 }
               }
             }
-          }
-          i = 0;
-          if (dirchain.length) {
-            i = sequence.push("/" + dirchain.join("/")) - 1;
-          }
-          dirchain = [];
-          if (subchain.length) {
-            sequence[i] += "." + subchain.join(".");
-          }
-          subchain = [];
-          if (i) {
-            sequence[i] = {
-              path: sequence[i]
-            };
-          }
-          for (i = l = 0, len2 = sequence.length; l < len2; i = ++l) {
-            part = sequence[i];
-            if (!(path = part.path)) {
-              continue;
+            i = 0;
+            if (dirchain.length) {
+              i = sequence.push("/" + dirchain.join("/")) - 1;
             }
-            if (fshandle = console.fsIndex.find(function(h) {
-              return h.path === path;
-            })) {
-              sequence[i] = fshandle;
+            dirchain = [];
+            if (subchain.length) {
+              sequence[i] += "." + subchain.join(".");
             }
-            parent = path;
-            while (parent = parent.split("/").slice(0, -1).join("/")) {
-              if (fshandle = console.fsIndex.find(function(h) {
-                return h.path === parent;
-              })) {
-                sequence[i].parent = fshandle;
-                break;
+            subchain = [];
+            if (i) {
+              sequence[i] = {
+                path: sequence[i]
+              };
+            }
+            for (i = l = 0, len2 = sequence.length; l < len2; i = ++l) {
+              part = sequence[i];
+              if (!(path = part.path)) {
+                continue;
               }
+              if (fshandle = console.fsIndex.find(function(h) {
+                return h.path === path;
+              })) {
+                sequence[i] = fshandle;
+              }
+              parent = path;
+              while (parent = parent.split("/").slice(0, -1).join("/")) {
+                if (fshandle = console.fsIndex.find(function(h) {
+                  return h.path === parent;
+                })) {
+                  sequence[i].parent = fshandle;
+                  break;
+                }
+              }
+              sequence[i] = sequence[i].path;
             }
-            sequence[i] = sequence[i].path;
-          }
-          response = values(sequence);
-          for (argument in argindex) {
-            argi = argindex[argument];
-            defineProperty(response, argument, {
-              value: response[argi]
-            });
-          }
-          return handler(response);
-        }, 40);
-        return handler;
+            response = values(sequence);
+            for (argument in argindex) {
+              argi = argindex[argument];
+              defineProperty(response, argument, {
+                value: response[argi]
+              });
+            }
+            return (await handler(response, resolve || done));
+          }, 40);
+        });
       }
     },
     registerCommand: {
       value: function(cmd, args = [], handler) {
-        if (typeof window[cmd] !== "undefined") {
+        var g, getter;
+        if (typeof (g = this.commands[cmd]) !== "undefined") {
           throw [
             {
-              COMMAND_NAME_ALREADY_GLOBAL: cmd
+              COMMAND_NAME_ALREADY_INGLOBALS: g
             }
           ];
         }
-        Object.defineProperty(__proto__, cmd, {
-          get: (function(fn, a, c) {
-            return function() {
-              var chain;
-              return console.dispatchCommand(fn, console.deployTempProxy(a, chain = [
-                {
-                  as: "command",
-                  key: c
-                }
-              ]));
-            };
-          })(handler, args, cmd)
-        });
-        return console.emit("consolecommandregister", cmd);
+        this.commands[cmd] = {args, handler};
+        getter = function(key) {
+          return {
+            [key]: {
+              get: function() {
+                console.commands[key].request = console.commands[key].resolve = null;
+                console.commands[key].chain = [
+                  {
+                    as: "command",
+                    key
+                  }
+                ];
+                console.deployTempProxy(key);
+                console.dispatchCommand(key);
+                return console.keyProxy(key);
+              }
+            }
+          };
+        };
+        Object.defineProperties(__proto__, getter(cmd));
+        return emit("consolecommandregister", cmd);
       }
     }
   });
@@ -362,79 +386,83 @@
     }
 
     onbound(devman) {
-      return log(devman);
+      return log("binded to:", devman);
     }
 
-  }), (function() {
-    var j, len, results;
-    if (DEBUG) {
-      results = [];
-      for (j = 0, len = scope.length; j < len; j++) {
-        proto = scope[j];
-        results.push((function() {
-          var ref, results1;
-          ref = getOwn(proto.prototype);
-          results1 = [];
-          for (prop in ref) {
-            ({value} = ref[prop]);
-            if (typeof value === "function") {
-              results1.push((function(method, handler, alias) {
-                return Object.defineProperty(this, method, {
-                  value: function() {
-                    debug(alias, pnow(), method + "()", [...arguments]);
-                    return apply(handler, this, arguments);
-                  }
-                });
-              }).call(proto.prototype, prop, value, proto.name));
-            } else {
-              results1.push(void 0);
-            }
+  }), DEBUG ? (function() {
+    var j, len, prop, proto, results, value;
+    results = [];
+    for (j = 0, len = scope.length; j < len; j++) {
+      proto = scope[j];
+      results.push((function() {
+        var ref, results1;
+        ref = getOwn(proto.prototype);
+        results1 = [];
+        for (prop in ref) {
+          ({value} = ref[prop]);
+          if (typeof value !== "function") {
+            continue;
           }
-          return results1;
-        })());
-      }
-      return results;
+          if (prop === "constructor") {
+            continue;
+          }
+          results1.push((function(method, handler, alias) {
+            return Object.defineProperty(this, method, {
+              value: function() {
+                debug(alias, pnow(), method + "()", [...arguments]);
+                return apply(handler, this, arguments);
+              }
+            });
+          }).call(proto.prototype, prop, value, proto.name));
+        }
+        return results1;
+      })());
     }
-  })());
-  scope.push($DEVICE = new DeviceManager(window));
-  console.registerCommand("device", ["bind", "list"], function(args) {
+    return results;
+  })() : void 0);
+  scope.push($DEVICE = new DeviceManager);
+  console.registerCommand("device", ["bind", "list"], function(args, done) {
+    log("device call begin:", {arguments});
     if (hasOwn(args, "bind")) {
-      return $DEVICE.bind(args.bind);
+      $DEVICE.bind(args.bind);
     }
+    return setTimeout(() => {
+      return done("device call done job is completed", args.slice());
+    }, 2000);
   });
   // cleaning window object
   window.addEventListener("DOMContentLoaded", function() {
-    return requestIdleCallback(function() {
-      var desc, key, ref;
-      proto = prototypeOf(window);
-      ref = getOwn(window);
-      for (key in ref) {
-        desc = ref[key];
-        if (!key.startsWith("on")) {
-          if (desc.configurable && desc.value) {
-            desc.enumerable = false;
-            defineProperty(proto, key, desc);
-          }
+    var desc, key, proto, ref;
+    proto = prototypeOf(window);
+    ref = getOwn(window);
+    for (key in ref) {
+      desc = ref[key];
+      if (!key.startsWith("on")) {
+        if (desc.configurable && desc.value) {
+          desc.enumerable = false;
+          defineProperty(proto, key, desc);
         }
-        deleteProperty(window, key);
       }
-      if (typeof window.chrome !== "undefined") {
-        Object.defineProperty(window, "chrome", {
-          value: "tru 💚 th"
-        });
-      }
-      "$ $0 $1 $2 $3 $4 $$ $_ $x clear copy debug dir dirxml getAccessibleName getAccessibleRole getEventListeners inspect keys monitor monitorEvents profile profileEnd queryObjects table undebug unmonitor unmonitorEvents values".split(/\s+|\n/g).forEach(function(key) {
-        return defineProperty(proto, key, {
-          value: function() {}
-        });
+      deleteProperty(window, key);
+    }
+    if (typeof window.chrome !== "undefined") {
+      Object.defineProperty(window, "chrome", {
+        value: "tru 💚 th"
       });
-      return window.dispatchEvent(new Event("bootable"));
+    }
+    "$ $0 $1 $2 $3 $4 $$ $_ $x clear copy debug dir dirxml getAccessibleName getAccessibleRole getEventListeners inspect keys monitor monitorEvents profile profileEnd queryObjects table undebug unmonitor unmonitorEvents values".split(/\s+|\n/g).forEach(function(key) {
+      return defineProperty(proto, key, {
+        value: function() {}
+      });
     });
+    return window.dispatchEvent(new Event("consolebootready"));
   });
-  return window.addEventListener("bootable", function() {
+  return window.addEventListener("consolebootready", async function() {
     log("booting..");
     //* booooooting now :)
-    return device(-bind(new WindowPointerDevice));
+    await device(-bind(new WindowPointerDevice));
+    device(-bind(new WindowPointerDevice));
+    return warn("all jobs done");
   });
 })();
 

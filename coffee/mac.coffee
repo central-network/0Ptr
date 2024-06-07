@@ -15,6 +15,8 @@ do ->
 
     Object.defineProperties console, 
 
+        commands        : value : new Object
+
         fsIndex         : value : new Array
 
         tempkeys        : value : new Array
@@ -40,12 +42,24 @@ do ->
                 get    : ( f, key ) ->
                     if  key is Symbol.toPrimitive
                         return -> 1
+
+                    if  key is "then"
+                        log {arguments}
+                        return  console.commands[ word ].resolve = ->
+
+                            if !console.commands[ word ].request
+                                console.commands[ word ].request = arguments[0]
+                                return
+
+                            console.commands[ word ].request()
                     
                     _chain.push({as : "keyword", key, level})
                     console.keyProxy word, _chain, level + 1
             }
 
-        deployTempProxy : value : ( args=[], chain=[] ) ->
+        deployTempProxy : value : ( key ) ->
+
+            { args=[], chain=[] } = @commands[ key ]
 
             @clearTempKeys()
     
@@ -106,81 +120,63 @@ do ->
     
             return dHandle
         
-        dispatchCommand : value : ( handler, args = [] ) ->
+        dispatchCommand : value : ( key ) -> 
 
-            setTimeout =>
+            new Promise ( done ) => setTimeout =>
 
-                console.clearTempKeys()
+                    { handler, chain=[], resolve } =
+                        console.commands[ key ]
 
-                sequence = []
-                dirchain = []
-                subchain = []
-                argindex = {}
-                
-                for arg in args.slice()
+                    console.clearTempKeys()
 
-                    continue if arg.as.match /command/
-
-                    if !arg.as.match /fshandle/
-                        i = 0
-
-                        if dirchain.length then i = sequence.push(
-                            "/" + dirchain.join "/"
-                        ) - 1
-                        dirchain = []
-
-                        if subchain.length then sequence[i] +=
-                            "." + subchain.join "."
-                        subchain = []
-
-                        if i then sequence[i] = path : sequence[i]
+                    sequence = []
+                    dirchain = []
+                    subchain = []
+                    argindex = {}
                     
-                    if  arg.as.match /argument/
-                        argindex[arg.key] =
-                            sequence.push "-" + arg.key
-                        continue
+                    for arg in chain.slice()
 
-                    if  arg.as.match /function/
-                        i = 0
+                        continue if arg.as.match /command/
 
-                        if dirchain.length then i = sequence.push(
-                            "/" + dirchain.join "/"
-                        ) - 1
-                        dirchain = []
-
-                        if subchain.length then sequence[i] +=
-                            "." + subchain.join "."
-                        subchain = []
-
-                        if i then sequence[i] = path : sequence[i]
-
-                        sequence.push arg.args.at()
-                        continue
-                        
-                    if  arg.as.match /fshandle/
-
-                        if  subchain.length
+                        if !arg.as.match /fshandle/
                             i = 0
 
                             if dirchain.length then i = sequence.push(
                                 "/" + dirchain.join "/"
                             ) - 1
                             dirchain = []
-    
+
+                            if subchain.length then sequence[i] +=
+                                "." + subchain.join "."
+                            subchain = []
+
+                            if i then sequence[i] = path : sequence[i]
+                        
+                        if  arg.as.match /argument/
+                            argindex[arg.key] =
+                                sequence.push "-" + arg.key
+                            continue
+
+                        if  arg.as.match /function/
+                            i = 0
+
+                            if dirchain.length then i = sequence.push(
+                                "/" + dirchain.join "/"
+                            ) - 1
+                            dirchain = []
+
                             if subchain.length then sequence[i] +=
                                 "." + subchain.join "."
                             subchain = []
 
                             if i then sequence[i] = path : sequence[i]
 
-                        dirchain.push arg.key
+                            sequence.push arg.args.at()
+                            continue
+                            
+                        if  arg.as.match /fshandle/
 
-                        for s in arg.subchain
-
-                            if  s.as.match /keyword/
-                                subchain.push s.key
-
-                            if  s.as.match /function/
+                            if  subchain.length
                                 i = 0
 
                                 if dirchain.length then i = sequence.push(
@@ -193,57 +189,85 @@ do ->
                                 subchain = []
 
                                 if i then sequence[i] = path : sequence[i]
-                                sequence.push s.args.at()
 
-                i = 0
-                if dirchain.length then i = sequence.push(
-                    "/" + dirchain.join "/"
-                ) - 1
-                dirchain = []
+                            dirchain.push arg.key
 
-                if subchain.length then sequence[i] +=
-                    "." + subchain.join "."
-                subchain = []
+                            for s in arg.subchain
 
-                if i then sequence[i] = path : sequence[i]
+                                if  s.as.match /keyword/
+                                    subchain.push s.key
 
-                for part, i in sequence when path = part.path
+                                if  s.as.match /function/
+                                    i = 0
 
-                    if  fshandle = console.fsIndex.find (h) -> h.path is path
-                        sequence[i] = fshandle
+                                    if dirchain.length then i = sequence.push(
+                                        "/" + dirchain.join "/"
+                                    ) - 1
+                                    dirchain = []
+            
+                                    if subchain.length then sequence[i] +=
+                                        "." + subchain.join "."
+                                    subchain = []
 
-                    parent = path
-                    while parent = parent.split("/").slice(0, -1).join("/")
-                        if  fshandle = console.fsIndex.find (h) -> h.path is parent
-                            sequence[i].parent = fshandle
-                            break
+                                    if i then sequence[i] = path : sequence[i]
+                                    sequence.push s.args.at()
 
-                    sequence[i] = sequence[i].path
+                    i = 0
+                    if dirchain.length then i = sequence.push(
+                        "/" + dirchain.join "/"
+                    ) - 1
+                    dirchain = []
 
-                response = values sequence
+                    if subchain.length then sequence[i] +=
+                        "." + subchain.join "."
+                    subchain = []
 
-                for argument, argi of argindex then defineProperty(
-                     response, argument, value : response[argi]
-                )
-                
-                handler response
+                    if i then sequence[i] = path : sequence[i]
 
-            , 40
+                    for part, i in sequence when path = part.path
 
-            return handler
+                        if  fshandle = console.fsIndex.find (h) -> h.path is path
+                            sequence[i] = fshandle
+
+                        parent = path
+                        while parent = parent.split("/").slice(0, -1).join("/")
+                            if  fshandle = console.fsIndex.find (h) -> h.path is parent
+                                sequence[i].parent = fshandle
+                                break
+
+                        sequence[i] = sequence[i].path
+
+                    response = values sequence
+
+                    for argument, argi of argindex then defineProperty(
+                        response, argument, value : response[argi]
+                    )
+                    
+                    await handler response, resolve || done
+
+                , 40
 
         registerCommand : value : ( cmd, args = [], handler ) ->
 
-            if  typeof window[ cmd ] isnt "undefined"
-                throw [ COMMAND_NAME_ALREADY_GLOBAL : cmd ]
-    
-            Object.defineProperty __proto__, cmd, get : ((fn, a, c)-> ->
-                console.dispatchCommand( fn, console.deployTempProxy(
-                    a, chain = [{ as : "command", key: c }]
-                ))
-            )(handler, args, cmd)
+            if  typeof (g = @commands[cmd]) isnt "undefined"
+                throw [ COMMAND_NAME_ALREADY_INGLOBALS : g ]
 
-            console.emit "consolecommandregister", cmd
+            @commands[ cmd ] = { args, handler }
+
+            getter = ( key ) -> [key] : get : ->
+                console.commands[ key ].request =
+                console.commands[ key ].resolve = null
+                
+                console.commands[ key ].chain =
+                    [{ as : "command", key }]
+
+                console.deployTempProxy key
+                console.dispatchCommand key
+                return console.keyProxy key
+        
+            Object.defineProperties __proto__, getter cmd
+
+            emit "consolecommandregister", cmd
 
     scope = []
 
@@ -260,30 +284,42 @@ do ->
             @bound.push dev
             dev.onbound this
 
-
     scope.push class WindowPointerDevice extends DataView
         constructor : -> super new ArrayBuffer 24
 
-        onbound : ( devman ) ->
-            log devman
+        onbound     : ( devman ) ->
+            log "binded to:", devman
 
-    if DEBUG then for proto in scope
+    
+    
+    if DEBUG then do -> for proto in scope
+        
         for prop, {value} of getOwn proto::
-            if typeof value is "function" then ( ( method, handler, alias ) ->
+
+            continue if typeof value isnt "function"
+            continue if prop is "constructor"
+
+            (( method, handler, alias ) ->
                 Object.defineProperty this, method, value : ->
                     debug alias, pnow(), method + "()", [ ...arguments ]
                     apply handler, this, arguments
             ).call proto::, prop, value, proto.name
 
-    scope.push $DEVICE = new DeviceManager window 
+    scope.push $DEVICE = new DeviceManager 
 
-    console.registerCommand "device", [ "bind", "list" ], ( args ) ->
+    console.registerCommand "device", [ "bind", "list" ], ( args, done ) ->
+        log "device call begin:", { arguments }
+
         if  hasOwn args, "bind"
             $DEVICE.bind args.bind
 
+        setTimeout =>
+            done("device call done job is completed", args.slice())
+        , 2000
+
 
     # cleaning window object
-    window.addEventListener "DOMContentLoaded", -> requestIdleCallback ->
+    window.addEventListener "DOMContentLoaded", ->
         proto = prototypeOf window
 
         for key, desc of getOwn window
@@ -303,14 +339,17 @@ do ->
         values".split(/\s+|\n/g).forEach (key) ->
             defineProperty proto, key, value: ->
 
-        window.dispatchEvent new Event "bootable"
+        window.dispatchEvent new Event "consolebootready"
 
     
-    window.addEventListener "bootable", ->
+    window.addEventListener "consolebootready", ->
         log "booting.."
 
         #* booooooting now :)
+        await device -bind ( new WindowPointerDevice )
         device -bind ( new WindowPointerDevice )
+        warn "all jobs done"
+    
     
 ###
 
