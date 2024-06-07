@@ -44,7 +44,6 @@ do ->
                         return -> 1
 
                     if  key is "then"
-                        log {arguments}
                         return  console.commands[ word ].resolve = ->
 
                             if !console.commands[ word ].request
@@ -122,61 +121,85 @@ do ->
         
         dispatchCommand : value : ( key ) -> 
 
-            new Promise ( done ) => setTimeout =>
+            console.waitingCall = ->
+                console.waitingCall = 0
 
-                    { handler, chain=[], resolve } =
-                        console.commands[ key ]
+                done = console.lastDone
+                This = console.lastThis
 
-                    console.clearTempKeys()
+                { handler, chain=[], resolve } = This                    
 
-                    sequence = []
-                    dirchain = []
-                    subchain = []
-                    argindex = {}
+                console.clearTempKeys()
+
+                sequence = []
+                dirchain = []
+                subchain = []
+                argindex = {}
+                
+                for arg in chain.slice()
+
+                    continue if arg.as.match /command/
+
+                    if !arg.as.match /fshandle/
+                        i = 0
+
+                        if dirchain.length then i = sequence.push(
+                            "/" + dirchain.join "/"
+                        ) - 1
+                        dirchain = []
+
+                        if subchain.length then sequence[i] +=
+                            "." + subchain.join "."
+                        subchain = []
+
+                        if i then sequence[i] = path : sequence[i]
                     
-                    for arg in chain.slice()
+                    if  arg.as.match /argument/
+                        argindex[arg.key] =
+                            sequence.push "-" + arg.key
+                        continue
 
-                        continue if arg.as.match /command/
+                    if  arg.as.match /function/
+                        i = 0
 
-                        if !arg.as.match /fshandle/
-                            i = 0
+                        if dirchain.length then i = sequence.push(
+                            "/" + dirchain.join "/"
+                        ) - 1
+                        dirchain = []
 
-                            if dirchain.length then i = sequence.push(
-                                "/" + dirchain.join "/"
-                            ) - 1
-                            dirchain = []
+                        if subchain.length then sequence[i] +=
+                            "." + subchain.join "."
+                        subchain = []
 
-                            if subchain.length then sequence[i] +=
-                                "." + subchain.join "."
-                            subchain = []
+                        if i then sequence[i] = path : sequence[i]
 
-                            if i then sequence[i] = path : sequence[i]
+                        sequence.push arg.args...
+                        continue
                         
-                        if  arg.as.match /argument/
-                            argindex[arg.key] =
-                                sequence.push "-" + arg.key
-                            continue
+                    if  arg.as.match /fshandle/
 
-                        if  arg.as.match /function/
+                        if  subchain.length
                             i = 0
 
                             if dirchain.length then i = sequence.push(
                                 "/" + dirchain.join "/"
                             ) - 1
                             dirchain = []
-
+    
                             if subchain.length then sequence[i] +=
                                 "." + subchain.join "."
                             subchain = []
 
                             if i then sequence[i] = path : sequence[i]
 
-                            sequence.push arg.args.at()
-                            continue
-                            
-                        if  arg.as.match /fshandle/
+                        dirchain.push arg.key
 
-                            if  subchain.length
+                        for s in arg.subchain
+
+                            if  s.as.match /keyword/
+                                subchain.push s.key
+
+                            if  s.as.match /function/
                                 i = 0
 
                                 if dirchain.length then i = sequence.push(
@@ -189,72 +212,82 @@ do ->
                                 subchain = []
 
                                 if i then sequence[i] = path : sequence[i]
+                                sequence.push s.args...
 
-                            dirchain.push arg.key
+                i = 0
+                if dirchain.length then i = sequence.push(
+                    "/" + dirchain.join "/"
+                ) - 1
+                dirchain = []
 
-                            for s in arg.subchain
+                if subchain.length then sequence[i] +=
+                    "." + subchain.join "."
+                subchain = []
 
-                                if  s.as.match /keyword/
-                                    subchain.push s.key
+                if i then sequence[i] = path : sequence[i]
 
-                                if  s.as.match /function/
-                                    i = 0
+                for part, i in sequence when path = part.path
 
-                                    if dirchain.length then i = sequence.push(
-                                        "/" + dirchain.join "/"
-                                    ) - 1
-                                    dirchain = []
-            
-                                    if subchain.length then sequence[i] +=
-                                        "." + subchain.join "."
-                                    subchain = []
+                    if  fshandle = console.fsIndex.find (h) -> h.path is path
+                        sequence[i] = fshandle
 
-                                    if i then sequence[i] = path : sequence[i]
-                                    sequence.push s.args.at()
+                    parent = path
+                    while parent = parent.split("/").slice(0, -1).join("/")
+                        if  fshandle = console.fsIndex.find (h) -> h.path is parent
+                            sequence[i].parent = fshandle
+                            break
 
-                    i = 0
-                    if dirchain.length then i = sequence.push(
-                        "/" + dirchain.join "/"
-                    ) - 1
-                    dirchain = []
+                    sequence[i] = sequence[i].path
 
-                    if subchain.length then sequence[i] +=
-                        "." + subchain.join "."
-                    subchain = []
+                response = values sequence
 
-                    if i then sequence[i] = path : sequence[i]
-
-                    for part, i in sequence when path = part.path
-
-                        if  fshandle = console.fsIndex.find (h) -> h.path is path
-                            sequence[i] = fshandle
-
-                        parent = path
-                        while parent = parent.split("/").slice(0, -1).join("/")
-                            if  fshandle = console.fsIndex.find (h) -> h.path is parent
-                                sequence[i].parent = fshandle
-                                break
-
-                        sequence[i] = sequence[i].path
-
-                    response = values sequence
-
-                    for argument, argi of argindex then defineProperty(
-                        response, argument, value : response[argi]
-                    )
+                argc = Object.keys(argindex).length
+                
+                for argument, argi of argindex
+                    rargs = response.slice argi   
                     
-                    await handler response, resolve || done
+                    if  (rargs.length is 1) or (argi isnt argc)
+                        defineProperty(
+                            response, argument, value : response[argi]
+                        )
+                    else
+                        defineProperty(
+                            response, argument, value : rargs
+                        )
 
-                , 40
+                
+                for argument , binding of This.bound
+                    hasBound = binding
 
+                    for arg in argument.split " "
+                        continue if argindex[arg]
+                        hasBound = no
+                        break
+                    continue unless hasBound
+
+                    return await hasBound.call This, response, resolve || done
+
+                await handler.call This, response, resolve || done
+
+            @lastThis = console.commands[ key ]
+
+            new Promise ( done ) =>
+                @lastDone = done
+                @lastCall = setTimeout @waitingCall, 40
+        
         registerCommand : value : ( cmd, args = [], handler ) ->
 
             if  typeof (g = @commands[cmd]) isnt "undefined"
                 throw [ COMMAND_NAME_ALREADY_INGLOBALS : g ]
 
-            @commands[ cmd ] = { args, handler }
+            @commands[ cmd ] =
+                { cmd, args, handler, bound : [], _ : {} }
 
             getter = ( key ) -> [key] : get : ->
+                if  console.waitingCall
+                    clearTimeout console.lastCall
+                    console.waitingCall()
+
                 console.commands[ key ].request =
                 console.commands[ key ].resolve = null
                 
@@ -269,56 +302,215 @@ do ->
 
             emit "consolecommandregister", cmd
 
+        bindCommandArgs : value : ( cmd, key, handler ) ->
+
+            for arg in key.split " "
+                if !console.commands[cmd].args.includes arg
+                    console.commands[cmd].args.push arg
+                
+            if  handler
+                console.commands[cmd].bound[key] = handler
+
+            console.commands[cmd]
+
     scope = []
 
     scope.push class Core extends EventTarget
+        events : []
 
     scope.push class DeviceManager extends Core
 
         bound : []
 
-        listen : ( dev ) ->
-            2
+        @boot : ->
+            1
 
-        bind : ( dev ) ->
-            @bound.push dev
-            dev.onbound this
+    scope.push class PointerDevice extends DataView            
+        constructor : ->
+            super( new ArrayBuffer 64 )
 
-    scope.push class WindowPointerDevice extends DataView
-        constructor : -> super new ArrayBuffer 24
+        bind        : ->
+            device      = @buffer
+            counters    = new Int32Array device, 0, 10
+            positions   = new Float32Array device, 40, 6
+            lendian     = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
 
-        onbound     : ( devman ) ->
-            log "binded to:", devman
+            onevent = '
+            onpointerdown 
+            onpointermove 
+            onpointerup 
+            onpointercancel 
+            onpointerover 
+            onpointerout 
+            onpointerenter 
+            onpointerleave'.split( /\s+|\n/g )
+
+            for e, iLast in onevent then ( (evnt, i) ->
+
+                window.addEventListener evnt, ( t ) =>
+
+                    ++counters[counters[iLast] = i]
+
+                    positions.set( Float32Array.of(
+                        t.screenX - positions[2], 
+                        t.screenY - positions[3],
+                        t.screenX , t.screenY, 
+                        t.clientX , t.clientY, 
+                    ), 0 )
+
+                    t.preventDefault()
+                    
+            ).call( this, e.substring(2), onevent.indexOf e )
+
+            offsets = positions.byteOffset - 4
+
+            lastEvent = @getInt32.bind this, offsets, lendian
+            changeX = @getFloat32.bind this, offsets += 4, lendian
+            changeY = @getFloat32.bind this, offsets += 4, lendian
+            screenX = @getFloat32.bind this, offsets += 4, lendian
+            screenY = @getFloat32.bind this, offsets += 4, lendian
+            clientX = @getFloat32.bind this, offsets += 4, lendian
+            clientY = @getFloat32.bind this, offsets += 4, lendian
+
+    scope.push class KeyboardDevice extends DataView            
+        constructor : ->
+            super( new ArrayBuffer 144 )
+
+        bind : ->
+            device      = @buffer
+            counters    = new Int32Array device, 0, 3
+            keyArray    = new Uint8Array device, 144 - 120
+            lendian     = new Uint8Array( Uint16Array.of(1).buffer )[0] is 1
+
+            keys = '
+            IntlBackslash KeyA KeyS KeyD KeyF KeyH KeyG KeyZ KeyX KeyC KeyV KeyB KeyQ 
+            KeyW KeyE KeyR KeyY KeyT Digit1 Digit2 Digit3 Digit4 Digit6 Digit5 
+            Equal Digit9 Digit7 Minus Digit8 Digit0 BracketRight KeyO KeyU BracketLeft 
+            KeyI KeyP Enter KeyL KeyJ Quote KeyK Semicolon Backslash Comma Slash KeyN 
+            KeyM Period Tab Space Backquote Backspace NumpadEnter Escape 
+            MetaRight MetaLeft ShiftLeft CapsLock AltLeft ControlLeft ShiftRight AltRight ControlRight 
+            Fn F17 NumpadDecimal NumpadMultiply NumpadAdd NumLock VolumeUp VolumeDown VolumeMute 
+            NumpadDivide NumpadSubtract F18 F19 NumpadEqual Numpad0 Numpad1 Numpad2 Numpad3 
+            Numpad4 Numpad5 Numpad6 Numpad7 Numpad8 Numpad9 NumpadComma IntlYen IntlRo 
+            F20 F5 F6 F7 F3 F8 F9 F11 F13 F16 F14 F10 F12 F15 F4 F2 F1 Lang2 Lang1 ContextMenu 
+            Help Home PageUp Delete End PageDown ArrowLeft ArrowRight ArrowDown ArrowUp    
+            '.split(/\s+|\n/) #120
+
+            iKeyDownCount   = 0
+            iKeyUpCount     = 1
+            iEventCount     = 2
+
+            offset = (
+                counters.byteOffset +
+                counters.byteLength
+            )
+                
+            offsetCharCode  = offset++
+            offsetShiftKey  = offset++
+            offsetCtrlKey   = offset++
+            offsetAltKey    = offset++
+            offsetMetaKey   = offset++
+            offsetRepeat    = offset++
+            offsetLocation  = offset++
+            offsetLastEvent = offset++
+
+            window.addEventListener "keydown", (e) =>
+                counters[iEventCount]++
+                counters[iKeyDownCount]++
+
+                charCode = !e.key[1] and e.key.charCodeAt 0
+                @setUint16 offsetCharCode, charCode, lendian
+
+                @setUint8 offsetShiftKey , e.shiftKey
+                @setUint8 offsetCtrlKey  , e.ctrlKey
+                @setUint8 offsetAltKey   , e.altKey
+                @setUint8 offsetMetaKey  , e.metaKey
+                @setUint8 offsetRepeat   , e.repeat
+                @setUint8 offsetLocation , e.location
+                @setUint8 offsetLastEvent, 0
+
+                keyArray[ keys.indexOf e.code ] = 1
+                #e.preventDefault()
+
+            window.addEventListener "keyup", (e) =>
+                counters[iEventCount]++
+                counters[iKeyUpCount]++
+
+                @setUint8 offsetCharCode, 0, lendian
+
+                @setUint8 offsetShiftKey , e.shiftKey
+                @setUint8 offsetCtrlKey  , e.ctrlKey
+                @setUint8 offsetAltKey   , e.altKey
+                @setUint8 offsetMetaKey  , e.metaKey
+                @setUint8 offsetRepeat   , e.repeat
+                @setUint8 offsetLocation , e.location
+                @setUint8 offsetLastEvent, 1
+
+                keyArray[ keys.indexOf e.code ] = 0
+                #e.preventDefault()
+
+            lastEvent = @getUint8.bind this, offsetLastEvent
+            shiftKey  = @getUint8.bind this, offsetShiftKey
+            ctrlKey   = @getUint8.bind this, offsetCtrlKey
+            altKey    = @getUint8.bind this, offsetAltKey
+            metaKey   = @getUint8.bind this, offsetMetaKey
+            lastCode  = @getUint16.bind this, offsetCharCode, lendian
+            lastChar  = -> ( c = lastCode() ) and String.fromCharCode( c ) or ""
+            eventType = -> [ "keydown", "keyup" ][ lastEvent() ]
+            activeKey = -> keys[ keyArray.findIndex (v) -> v ] or 0
 
     
-    
-    if DEBUG then do -> for proto in scope
+    if DEBUG then do -> for proto, i in scope
+
+        rand = -> Math.trunc Math.random() * 255
+        fc = [ 38, 2, rand(), rand(), rand() ].join ";"
         
+        protoName = "\x1B[#{fc}m#{proto.name}\x1B[39m"
+        className = "\x1B[53m#{protoName}\x1B[55m"
+
         for prop, {value} of getOwn proto::
 
             continue if typeof value isnt "function"
-            continue if prop is "constructor"
+            continue if prop.match( /constructor/ )
 
             (( method, handler, alias ) ->
                 Object.defineProperty this, method, value : ->
                     debug alias, pnow(), method + "()", [ ...arguments ]
-                    apply handler, this, arguments
-            ).call proto::, prop, value, proto.name
+                    Reflect.apply handler, this, arguments
+            ).call proto::, prop, value, protoName
 
-    scope.push $DEVICE = new DeviceManager 
+        for prop, {value} of getOwn proto
 
-    console.registerCommand "device", [ "bind", "list" ], ( args, done ) ->
+            continue if typeof value isnt "function"
+
+            (( method, handler, alias ) ->
+                Object.defineProperty this, method, value : ->
+                    debug alias, pnow(), method + "()", [ ...arguments ]
+                    Reflect.apply handler, this, arguments
+            ).call proto, prop, value, className         
+
+    console.registerCommand "device", [ "bind", "list", "type" ], ( args, done ) ->
         log "device call begin:", { arguments }
 
-        if  hasOwn args, "bind"
-            $DEVICE.bind args.bind
+    console.bindCommandArgs "device", "list all", ( args, done ) ->
+        log "list all devices"
 
-        setTimeout =>
-            done("device call done job is completed", args.slice())
-        , 2000
+    console.bindCommandArgs "device", "driver", ( args, done ) ->
+
+        drivers = args.driver.slice i=0
+        count = drivers.length / 2
+
+        while i < count
+            
+            [ type, Driver ] = drivers.slice( i, i += 2 )
+
+            console.bindCommandArgs "device", "add #{type} bind", (->
+                ({ bind: [ global ] }) => new this().bind( global )
+            ).call( Driver )
+
+        done this
 
 
-    # cleaning window object
     window.addEventListener "DOMContentLoaded", ->
         proto = prototypeOf window
 
@@ -341,14 +533,15 @@ do ->
 
         window.dispatchEvent new Event "consolebootready"
 
-    
     window.addEventListener "consolebootready", ->
-        log "booting.."
+        DeviceManager.boot()
 
         #* booooooting now :)
-        await device -bind ( new WindowPointerDevice )
-        device -bind ( new WindowPointerDevice )
-        warn "all jobs done"
+        device -driver "pointer", PointerDevice
+        device -driver "keyboard", KeyboardDevice
+
+        device -add -pointer -bind window
+        device -add -keyboard -bind window
     
     
 ###

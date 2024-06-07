@@ -1,5 +1,5 @@
 (function() {
-  var $DEVICE, Core, DEBUG, DeviceManager, Object, Reflect, WindowPointerDevice, apply, assign, console, createObject, debug, defineProperties, defineProperty, delay, deleteProperty, emit, entries, error, freeze, getOwn, getOwnPropertySymbols, group, groupEnd, hasOwn, info, isFrozen, isPrototypeOf, isSealed, keys, log, navigator, performance, pnow, preventExtensions, prototypeOf, scope, seal, setPrototypeOf, table, values, warn;
+  var Core, DEBUG, DeviceManager, KeyboardDevice, Object, PointerDevice, Reflect, apply, assign, console, createObject, debug, defineProperties, defineProperty, delay, deleteProperty, emit, entries, error, freeze, getOwn, getOwnPropertySymbols, group, groupEnd, hasOwn, info, isFrozen, isPrototypeOf, isSealed, keys, log, navigator, performance, pnow, preventExtensions, prototypeOf, scope, seal, setPrototypeOf, table, values, warn;
   DEBUG = 1;
   ({navigator, console, Object, Reflect, performance} = window);
   ({deleteProperty, apply} = Reflect);
@@ -77,7 +77,6 @@
               };
             }
             if (key === "then") {
-              log({arguments});
               return console.commands[word].resolve = function() {
                 if (!console.commands[word].request) {
                   console.commands[word].request = arguments[0];
@@ -184,22 +183,63 @@
     },
     dispatchCommand: {
       value: function(key) {
-        return new Promise((done) => {
-          return setTimeout(async() => {
-            var arg, argi, argindex, argument, chain, dirchain, fshandle, handler, i, j, k, l, len, len1, len2, parent, part, path, ref, ref1, resolve, response, s, sequence, subchain;
-            ({handler, chain = [], resolve} = console.commands[key]);
-            console.clearTempKeys();
-            sequence = [];
-            dirchain = [];
-            subchain = [];
-            argindex = {};
-            ref = chain.slice();
-            for (j = 0, len = ref.length; j < len; j++) {
-              arg = ref[j];
-              if (arg.as.match(/command/)) {
-                continue;
+        console.waitingCall = async function() {
+          var This, arg, argc, argi, argindex, argument, binding, chain, dirchain, done, fshandle, handler, hasBound, i, j, k, l, len, len1, len2, len3, m, parent, part, path, rargs, ref, ref1, ref2, ref3, resolve, response, s, sequence, subchain;
+          console.waitingCall = 0;
+          done = console.lastDone;
+          This = console.lastThis;
+          ({handler, chain = [], resolve} = This);
+          console.clearTempKeys();
+          sequence = [];
+          dirchain = [];
+          subchain = [];
+          argindex = {};
+          ref = chain.slice();
+          for (j = 0, len = ref.length; j < len; j++) {
+            arg = ref[j];
+            if (arg.as.match(/command/)) {
+              continue;
+            }
+            if (!arg.as.match(/fshandle/)) {
+              i = 0;
+              if (dirchain.length) {
+                i = sequence.push("/" + dirchain.join("/")) - 1;
               }
-              if (!arg.as.match(/fshandle/)) {
+              dirchain = [];
+              if (subchain.length) {
+                sequence[i] += "." + subchain.join(".");
+              }
+              subchain = [];
+              if (i) {
+                sequence[i] = {
+                  path: sequence[i]
+                };
+              }
+            }
+            if (arg.as.match(/argument/)) {
+              argindex[arg.key] = sequence.push("-" + arg.key);
+              continue;
+            }
+            if (arg.as.match(/function/)) {
+              i = 0;
+              if (dirchain.length) {
+                i = sequence.push("/" + dirchain.join("/")) - 1;
+              }
+              dirchain = [];
+              if (subchain.length) {
+                sequence[i] += "." + subchain.join(".");
+              }
+              subchain = [];
+              if (i) {
+                sequence[i] = {
+                  path: sequence[i]
+                };
+              }
+              sequence.push(...arg.args);
+              continue;
+            }
+            if (arg.as.match(/fshandle/)) {
+              if (subchain.length) {
                 i = 0;
                 if (dirchain.length) {
                   i = sequence.push("/" + dirchain.join("/")) - 1;
@@ -215,30 +255,14 @@
                   };
                 }
               }
-              if (arg.as.match(/argument/)) {
-                argindex[arg.key] = sequence.push("-" + arg.key);
-                continue;
-              }
-              if (arg.as.match(/function/)) {
-                i = 0;
-                if (dirchain.length) {
-                  i = sequence.push("/" + dirchain.join("/")) - 1;
+              dirchain.push(arg.key);
+              ref1 = arg.subchain;
+              for (k = 0, len1 = ref1.length; k < len1; k++) {
+                s = ref1[k];
+                if (s.as.match(/keyword/)) {
+                  subchain.push(s.key);
                 }
-                dirchain = [];
-                if (subchain.length) {
-                  sequence[i] += "." + subchain.join(".");
-                }
-                subchain = [];
-                if (i) {
-                  sequence[i] = {
-                    path: sequence[i]
-                  };
-                }
-                sequence.push(arg.args.at());
-                continue;
-              }
-              if (arg.as.match(/fshandle/)) {
-                if (subchain.length) {
+                if (s.as.match(/function/)) {
                   i = 0;
                   if (dirchain.length) {
                     i = sequence.push("/" + dirchain.join("/")) - 1;
@@ -253,78 +277,85 @@
                       path: sequence[i]
                     };
                   }
-                }
-                dirchain.push(arg.key);
-                ref1 = arg.subchain;
-                for (k = 0, len1 = ref1.length; k < len1; k++) {
-                  s = ref1[k];
-                  if (s.as.match(/keyword/)) {
-                    subchain.push(s.key);
-                  }
-                  if (s.as.match(/function/)) {
-                    i = 0;
-                    if (dirchain.length) {
-                      i = sequence.push("/" + dirchain.join("/")) - 1;
-                    }
-                    dirchain = [];
-                    if (subchain.length) {
-                      sequence[i] += "." + subchain.join(".");
-                    }
-                    subchain = [];
-                    if (i) {
-                      sequence[i] = {
-                        path: sequence[i]
-                      };
-                    }
-                    sequence.push(s.args.at());
-                  }
+                  sequence.push(...s.args);
                 }
               }
             }
-            i = 0;
-            if (dirchain.length) {
-              i = sequence.push("/" + dirchain.join("/")) - 1;
+          }
+          i = 0;
+          if (dirchain.length) {
+            i = sequence.push("/" + dirchain.join("/")) - 1;
+          }
+          dirchain = [];
+          if (subchain.length) {
+            sequence[i] += "." + subchain.join(".");
+          }
+          subchain = [];
+          if (i) {
+            sequence[i] = {
+              path: sequence[i]
+            };
+          }
+          for (i = l = 0, len2 = sequence.length; l < len2; i = ++l) {
+            part = sequence[i];
+            if (!(path = part.path)) {
+              continue;
             }
-            dirchain = [];
-            if (subchain.length) {
-              sequence[i] += "." + subchain.join(".");
+            if (fshandle = console.fsIndex.find(function(h) {
+              return h.path === path;
+            })) {
+              sequence[i] = fshandle;
             }
-            subchain = [];
-            if (i) {
-              sequence[i] = {
-                path: sequence[i]
-              };
-            }
-            for (i = l = 0, len2 = sequence.length; l < len2; i = ++l) {
-              part = sequence[i];
-              if (!(path = part.path)) {
-                continue;
-              }
+            parent = path;
+            while (parent = parent.split("/").slice(0, -1).join("/")) {
               if (fshandle = console.fsIndex.find(function(h) {
-                return h.path === path;
+                return h.path === parent;
               })) {
-                sequence[i] = fshandle;
+                sequence[i].parent = fshandle;
+                break;
               }
-              parent = path;
-              while (parent = parent.split("/").slice(0, -1).join("/")) {
-                if (fshandle = console.fsIndex.find(function(h) {
-                  return h.path === parent;
-                })) {
-                  sequence[i].parent = fshandle;
-                  break;
-                }
-              }
-              sequence[i] = sequence[i].path;
             }
-            response = values(sequence);
-            for (argument in argindex) {
-              argi = argindex[argument];
+            sequence[i] = sequence[i].path;
+          }
+          response = values(sequence);
+          argc = Object.keys(argindex).length;
+          for (argument in argindex) {
+            argi = argindex[argument];
+            rargs = response.slice(argi);
+            if ((rargs.length === 1) || (argi !== argc)) {
               defineProperty(response, argument, {
                 value: response[argi]
               });
+            } else {
+              defineProperty(response, argument, {
+                value: rargs
+              });
             }
-            return (await handler(response, resolve || done));
-          }, 40);
+          }
+          ref2 = This.bound;
+          for (argument in ref2) {
+            binding = ref2[argument];
+            hasBound = binding;
+            ref3 = argument.split(" ");
+            for (m = 0, len3 = ref3.length; m < len3; m++) {
+              arg = ref3[m];
+              if (argindex[arg]) {
+                continue;
+              }
+              hasBound = false;
+              break;
+            }
+            if (!hasBound) {
+              continue;
+            }
+            return (await hasBound.call(This, response, resolve || done));
+          }
+          return (await handler.call(This, response, resolve || done));
+        };
+        this.lastThis = console.commands[key];
+        return new Promise((done) => {
+          this.lastDone = done;
+          return this.lastCall = setTimeout(this.waitingCall, 40);
         });
       }
     },
@@ -338,11 +369,21 @@
             }
           ];
         }
-        this.commands[cmd] = {args, handler};
+        this.commands[cmd] = {
+          cmd,
+          args,
+          handler,
+          bound: [],
+          _: {}
+        };
         getter = function(key) {
           return {
             [key]: {
               get: function() {
+                if (console.waitingCall) {
+                  clearTimeout(console.lastCall);
+                  console.waitingCall();
+                }
                 console.commands[key].request = console.commands[key].resolve = null;
                 console.commands[key].chain = [
                   {
@@ -360,18 +401,37 @@
         Object.defineProperties(__proto__, getter(cmd));
         return emit("consolecommandregister", cmd);
       }
+    },
+    bindCommandArgs: {
+      value: function(cmd, key, handler) {
+        var arg, j, len, ref;
+        ref = key.split(" ");
+        for (j = 0, len = ref.length; j < len; j++) {
+          arg = ref[j];
+          if (!console.commands[cmd].args.includes(arg)) {
+            console.commands[cmd].args.push(arg);
+          }
+        }
+        if (handler) {
+          console.commands[cmd].bound[key] = handler;
+        }
+        return console.commands[cmd];
+      }
     }
   });
   scope = [];
-  scope.push(Core = class Core extends EventTarget {}, scope.push(DeviceManager = (function() {
-    class DeviceManager extends Core {
-      listen(dev) {
-        return 2;
-      }
+  scope.push(Core = (function() {
+    class Core extends EventTarget {};
 
-      bind(dev) {
-        this.bound.push(dev);
-        return dev.onbound(this);
+    Core.prototype.events = [];
+
+    return Core;
+
+  }).call(this));
+  scope.push(DeviceManager = (function() {
+    class DeviceManager extends Core {
+      static boot() {
+        return 1;
       }
 
     };
@@ -380,57 +440,191 @@
 
     return DeviceManager;
 
-  }).call(this)), scope.push(WindowPointerDevice = class WindowPointerDevice extends DataView {
+  }).call(this));
+  scope.push(PointerDevice = class PointerDevice extends DataView {
     constructor() {
-      super(new ArrayBuffer(24));
+      super(new ArrayBuffer(64));
     }
 
-    onbound(devman) {
-      return log("binded to:", devman);
+    bind() {
+      var changeX, changeY, clientX, clientY, counters, device, e, iLast, j, lastEvent, len, lendian, offsets, onevent, positions, screenX, screenY;
+      device = this.buffer;
+      counters = new Int32Array(device, 0, 10);
+      positions = new Float32Array(device, 40, 6);
+      lendian = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
+      onevent = 'onpointerdown onpointermove onpointerup onpointercancel onpointerover onpointerout onpointerenter onpointerleave'.split(/\s+|\n/g);
+      for (iLast = j = 0, len = onevent.length; j < len; iLast = ++j) {
+        e = onevent[iLast];
+        (function(evnt, i) {
+          return window.addEventListener(evnt, (t) => {
+            ++counters[counters[iLast] = i];
+            positions.set(Float32Array.of(t.screenX - positions[2], t.screenY - positions[3], t.screenX, t.screenY, t.clientX, t.clientY), 0);
+            return t.preventDefault();
+          });
+        }).call(this, e.substring(2), onevent.indexOf(e));
+      }
+      offsets = positions.byteOffset - 4;
+      lastEvent = this.getInt32.bind(this, offsets, lendian);
+      changeX = this.getFloat32.bind(this, offsets += 4, lendian);
+      changeY = this.getFloat32.bind(this, offsets += 4, lendian);
+      screenX = this.getFloat32.bind(this, offsets += 4, lendian);
+      screenY = this.getFloat32.bind(this, offsets += 4, lendian);
+      clientX = this.getFloat32.bind(this, offsets += 4, lendian);
+      return clientY = this.getFloat32.bind(this, offsets += 4, lendian);
     }
 
-  }), DEBUG ? (function() {
-    var j, len, prop, proto, results, value;
-    results = [];
-    for (j = 0, len = scope.length; j < len; j++) {
-      proto = scope[j];
-      results.push((function() {
-        var ref, results1;
+  });
+  scope.push(KeyboardDevice = class KeyboardDevice extends DataView {
+    constructor() {
+      super(new ArrayBuffer(144));
+    }
+
+    bind() {
+      var activeKey, altKey, counters, ctrlKey, device, eventType, iEventCount, iKeyDownCount, iKeyUpCount, keyArray, lastChar, lastCode, lastEvent, lendian, metaKey, offset, offsetAltKey, offsetCharCode, offsetCtrlKey, offsetLastEvent, offsetLocation, offsetMetaKey, offsetRepeat, offsetShiftKey, shiftKey;
+      device = this.buffer;
+      counters = new Int32Array(device, 0, 3);
+      keyArray = new Uint8Array(device, 144 - 120);
+      lendian = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1;
+      keys = 'IntlBackslash KeyA KeyS KeyD KeyF KeyH KeyG KeyZ KeyX KeyC KeyV KeyB KeyQ KeyW KeyE KeyR KeyY KeyT Digit1 Digit2 Digit3 Digit4 Digit6 Digit5 Equal Digit9 Digit7 Minus Digit8 Digit0 BracketRight KeyO KeyU BracketLeft KeyI KeyP Enter KeyL KeyJ Quote KeyK Semicolon Backslash Comma Slash KeyN KeyM Period Tab Space Backquote Backspace NumpadEnter Escape MetaRight MetaLeft ShiftLeft CapsLock AltLeft ControlLeft ShiftRight AltRight ControlRight Fn F17 NumpadDecimal NumpadMultiply NumpadAdd NumLock VolumeUp VolumeDown VolumeMute NumpadDivide NumpadSubtract F18 F19 NumpadEqual Numpad0 Numpad1 Numpad2 Numpad3 Numpad4 Numpad5 Numpad6 Numpad7 Numpad8 Numpad9 NumpadComma IntlYen IntlRo F20 F5 F6 F7 F3 F8 F9 F11 F13 F16 F14 F10 F12 F15 F4 F2 F1 Lang2 Lang1 ContextMenu Help Home PageUp Delete End PageDown ArrowLeft ArrowRight ArrowDown ArrowUp'.split(/\s+|\n/); //120
+      iKeyDownCount = 0;
+      iKeyUpCount = 1;
+      iEventCount = 2;
+      offset = counters.byteOffset + counters.byteLength;
+      offsetCharCode = offset++;
+      offsetShiftKey = offset++;
+      offsetCtrlKey = offset++;
+      offsetAltKey = offset++;
+      offsetMetaKey = offset++;
+      offsetRepeat = offset++;
+      offsetLocation = offset++;
+      offsetLastEvent = offset++;
+      window.addEventListener("keydown", (e) => {
+        var charCode;
+        counters[iEventCount]++;
+        counters[iKeyDownCount]++;
+        charCode = !e.key[1] && e.key.charCodeAt(0);
+        this.setUint16(offsetCharCode, charCode, lendian);
+        this.setUint8(offsetShiftKey, e.shiftKey);
+        this.setUint8(offsetCtrlKey, e.ctrlKey);
+        this.setUint8(offsetAltKey, e.altKey);
+        this.setUint8(offsetMetaKey, e.metaKey);
+        this.setUint8(offsetRepeat, e.repeat);
+        this.setUint8(offsetLocation, e.location);
+        this.setUint8(offsetLastEvent, 0);
+        return keyArray[keys.indexOf(e.code)] = 1;
+      });
+      //e.preventDefault()
+      window.addEventListener("keyup", (e) => {
+        counters[iEventCount]++;
+        counters[iKeyUpCount]++;
+        this.setUint8(offsetCharCode, 0, lendian);
+        this.setUint8(offsetShiftKey, e.shiftKey);
+        this.setUint8(offsetCtrlKey, e.ctrlKey);
+        this.setUint8(offsetAltKey, e.altKey);
+        this.setUint8(offsetMetaKey, e.metaKey);
+        this.setUint8(offsetRepeat, e.repeat);
+        this.setUint8(offsetLocation, e.location);
+        this.setUint8(offsetLastEvent, 1);
+        return keyArray[keys.indexOf(e.code)] = 0;
+      });
+      //e.preventDefault()
+      lastEvent = this.getUint8.bind(this, offsetLastEvent);
+      shiftKey = this.getUint8.bind(this, offsetShiftKey);
+      ctrlKey = this.getUint8.bind(this, offsetCtrlKey);
+      altKey = this.getUint8.bind(this, offsetAltKey);
+      metaKey = this.getUint8.bind(this, offsetMetaKey);
+      lastCode = this.getUint16.bind(this, offsetCharCode, lendian);
+      lastChar = function() {
+        var c;
+        return (c = lastCode()) && String.fromCharCode(c) || "";
+      };
+      eventType = function() {
+        return ["keydown", "keyup"][lastEvent()];
+      };
+      return activeKey = function() {
+        return keys[keyArray.findIndex(function(v) {
+          return v;
+        })] || 0;
+      };
+    }
+
+  });
+  if (DEBUG) {
+    (function() {
+      var className, fc, i, j, len, prop, proto, protoName, rand, ref, results, value;
+      results = [];
+      for (i = j = 0, len = scope.length; j < len; i = ++j) {
+        proto = scope[i];
+        rand = function() {
+          return Math.trunc(Math.random() * 255);
+        };
+        fc = [38, 2, rand(), rand(), rand()].join(";");
+        protoName = `\x1B[${fc}m${proto.name}\x1B[39m`;
+        className = `\x1B[53m${protoName}\x1B[55m`;
         ref = getOwn(proto.prototype);
-        results1 = [];
         for (prop in ref) {
           ({value} = ref[prop]);
           if (typeof value !== "function") {
             continue;
           }
-          if (prop === "constructor") {
+          if (prop.match(/constructor/)) {
             continue;
           }
-          results1.push((function(method, handler, alias) {
+          (function(method, handler, alias) {
             return Object.defineProperty(this, method, {
               value: function() {
                 debug(alias, pnow(), method + "()", [...arguments]);
-                return apply(handler, this, arguments);
+                return Reflect.apply(handler, this, arguments);
               }
             });
-          }).call(proto.prototype, prop, value, proto.name));
+          }).call(proto.prototype, prop, value, protoName);
         }
-        return results1;
-      })());
-    }
-    return results;
-  })() : void 0);
-  scope.push($DEVICE = new DeviceManager);
-  console.registerCommand("device", ["bind", "list"], function(args, done) {
-    log("device call begin:", {arguments});
-    if (hasOwn(args, "bind")) {
-      $DEVICE.bind(args.bind);
-    }
-    return setTimeout(() => {
-      return done("device call done job is completed", args.slice());
-    }, 2000);
+        results.push((function() {
+          var ref1, results1;
+          ref1 = getOwn(proto);
+          results1 = [];
+          for (prop in ref1) {
+            ({value} = ref1[prop]);
+            if (typeof value !== "function") {
+              continue;
+            }
+            results1.push((function(method, handler, alias) {
+              return Object.defineProperty(this, method, {
+                value: function() {
+                  debug(alias, pnow(), method + "()", [...arguments]);
+                  return Reflect.apply(handler, this, arguments);
+                }
+              });
+            }).call(proto, prop, value, className));
+          }
+          return results1;
+        })());
+      }
+      return results;
+    })();
+  }
+  console.registerCommand("device", ["bind", "list", "type"], function(args, done) {
+    return log("device call begin:", {arguments});
   });
-  // cleaning window object
+  console.bindCommandArgs("device", "list all", function(args, done) {
+    return log("list all devices");
+  });
+  console.bindCommandArgs("device", "driver", function(args, done) {
+    var Driver, count, drivers, i, type;
+    drivers = args.driver.slice(i = 0);
+    count = drivers.length / 2;
+    while (i < count) {
+      [type, Driver] = drivers.slice(i, i += 2);
+      console.bindCommandArgs("device", `add ${type} bind`, (function() {
+        return ({
+            bind: [global]
+          }) => {
+          return new this().bind(global);
+        };
+      }).call(Driver));
+    }
+    return done(this);
+  });
   window.addEventListener("DOMContentLoaded", function() {
     var desc, key, proto, ref;
     proto = prototypeOf(window);
@@ -457,12 +651,13 @@
     });
     return window.dispatchEvent(new Event("consolebootready"));
   });
-  return window.addEventListener("consolebootready", async function() {
-    log("booting..");
+  return window.addEventListener("consolebootready", function() {
+    DeviceManager.boot();
     //* booooooting now :)
-    await device(-bind(new WindowPointerDevice));
-    device(-bind(new WindowPointerDevice));
-    return warn("all jobs done");
+    device(-driver("pointer", PointerDevice));
+    device(-driver("keyboard", KeyboardDevice));
+    device(-add(-pointer(-bind(window))));
+    return device(-add(-keyboard(-bind(window))));
   });
 })();
 
