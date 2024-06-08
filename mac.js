@@ -1,7 +1,7 @@
 (function() {
-  var Core, DEBUG, DeviceManager, KeyboardDevice, Object, PointerDevice, Reflect, apply, assign, console, createObject, debug, defineProperties, defineProperty, delay, deleteProperty, emit, entries, error, freeze, getOwn, getOwnPropertySymbols, group, groupEnd, hasOwn, info, isFrozen, isPrototypeOf, isSealed, keys, log, navigator, performance, pnow, preventExtensions, prototypeOf, scope, seal, setPrototypeOf, table, values, warn;
+  var Core, DEBUG, DeviceManager, KeyboardDevice, MemoryDevice, Object, PointerDevice, Reflect, apply, assign, classes, console, createObject, debug, defineProperties, defineProperty, delay, deleteProperty, emit, entries, error, freeze, getDesc, getOwn, getOwnPropertySymbols, group, groupEnd, hasOwn, info, isFrozen, isPrototypeOf, isSealed, keys, localStorage, log, logger, navigator, now, performance, pnow, preventExtensions, prototypeOf, seal, setPrototypeOf, table, values, warn;
   DEBUG = 1;
-  ({navigator, console, Object, Reflect, performance} = window);
+  ({navigator, console, Object, Reflect, performance, localStorage} = window);
   ({deleteProperty, apply} = Reflect);
   ({
     values,
@@ -10,6 +10,7 @@
     defineProperty,
     defineProperties,
     hasOwn,
+    getOwnPropertyDescriptor: getDesc,
     getOwnPropertyDescriptors: getOwn,
     getPrototypeOf: prototypeOf,
     create: createObject,
@@ -24,10 +25,81 @@
     entries
   } = Object);
   ({log, warn, error, table, debug, info, delay, group, groupEnd} = console);
-  pnow = function() {
-    return parseFloat(performance.now().toFixed(2));
+  now = function() {
+    return Date.now();
   };
+  pnow = function() {
+    return parseFloat(performance.now().toFixed(1));
+  };
+  logger = function() {
+    return document.body.appendChild(Object.assign(document.createElement("div"), {
+      className: "log",
+      innerHTML: [...arguments].map(function(i) {
+        var args, el, k, v;
+        if (i instanceof Object) {
+          args = false;
+          if (i.arguments) {
+            args = true;
+            i = i.arguments;
+          }
+          el = "";
+          for (k in i) {
+            v = i[k];
+            if (`${v}`.match(/\[/)) {
+              v = `[[${v.constructor.name}]]`;
+            }
+            if (isNaN(k)) {
+              el += k + " -> " + v + "<br>";
+            } else {
+              if (args === false) {
+                el += v + "<br>";
+              } else {
+                el += v + ", ";
+              }
+            }
+          }
+          if (args === true) {
+            el = el.substring(0, el.length - 2);
+          }
+          return el;
+        }
+        return i.toString();
+      }).map(function(innerHTML) {
+        return Object.assign(document.createElement("span"), {innerHTML}).outerHTML;
+      }).join("")
+    }));
+  };
+  window.addEventListener("DOMContentLoaded", function() {
+    var desc, key, proto, ref;
+    proto = prototypeOf(window);
+    ref = getOwn(window);
+    for (key in ref) {
+      desc = ref[key];
+      if (!key.startsWith("on")) {
+        if (desc.configurable && desc.value) {
+          desc.enumerable = false;
+          defineProperty(proto, key, desc);
+        }
+      }
+      deleteProperty(window, key);
+    }
+    if (typeof window.chrome !== "undefined") {
+      Object.defineProperty(window, "chrome", {
+        value: "tru 💚 th"
+      });
+    }
+    return "$ $0 $1 $2 $3 $4 $$ $_ $x clear copy debug dir dirxml getAccessibleName getAccessibleRole getEventListeners inspect keys monitor monitorEvents profile profileEnd queryObjects table undebug unmonitor unmonitorEvents values".split(/\s+|\n/g).forEach(function(key) {
+      return defineProperty(proto, key, {
+        value: function() {}
+      });
+    });
+  });
   Object.defineProperties(console, {
+    memory: {
+      value: new ArrayBuffer(0, {
+        maxByteLength: 1e7
+      })
+    },
     commands: {
       value: new Object
     },
@@ -45,6 +117,24 @@
     }
   });
   Object.defineProperties(console, {
+    resetColor: {
+      value: function(key) {
+        var results;
+        if (!key) {
+          results = [];
+          for (key in localStorage) {
+            if (key.startsWith("color")) {
+              results.push(console.resetColor(key));
+            } else {
+              results.push(void 0);
+            }
+          }
+          return results;
+        } else {
+          return localStorage.removeItem(`color(${key})`);
+        }
+      }
+    },
     clearTempKeys: {
       value: function() {
         var key, results;
@@ -64,6 +154,14 @@
       value: function(word, _chain = [], level = 0) {
         return new Proxy(Function.prototype, {
           apply: function(f, key, args) {
+            var arg, i, j, len;
+            for (i = j = 0, len = args.length; j < len; i = ++j) {
+              arg = args[i];
+              log(arg);
+              if (arg instanceof Proxy) {
+                args[i] = arg[Symbol.toStringTag];
+              }
+            }
             _chain.push({
               as: "function",
               args: args
@@ -74,6 +172,11 @@
             if (key === Symbol.toPrimitive) {
               return function() {
                 return 1;
+              };
+            }
+            if (key === Symbol.toStringTag) {
+              return function() {
+                return word;
               };
             }
             if (key === "then") {
@@ -97,7 +200,7 @@
     },
     deployTempProxy: {
       value: function(key) {
-        var a, args, chain, i, j, k, l, len, len1, len2, ref, w;
+        var a, args, chain, i, j, l, len, len1, len2, m, ref, w;
         ({args = [], chain = []} = this.commands[key]);
         this.clearTempKeys();
         for (i = j = 0, len = args.length; j < len; i = ++j) {
@@ -110,8 +213,8 @@
             args.push(args[i] + a);
           }
         }
-        for (k = 0, len1 = args.length; k < len1; k++) {
-          w = args[k];
+        for (l = 0, len1 = args.length; l < len1; l++) {
+          w = args[l];
           if (!Object.hasOwn(window, w)) {
             Object.defineProperty(window, this.addTempKey(w), {
               configurable: true,
@@ -128,8 +231,8 @@
           }
         }
         ref = console.fsIndex;
-        for (l = 0, len2 = ref.length; l < len2; l++) {
-          i = ref[l];
+        for (m = 0, len2 = ref.length; m < len2; m++) {
+          i = ref[m];
           if (!Object.hasOwn(window, (w = i.global))) {
             Object.defineProperty(window, this.addTempKey(w), {
               configurable: true,
@@ -184,7 +287,7 @@
     dispatchCommand: {
       value: function(key) {
         console.waitingCall = async function() {
-          var This, arg, argc, argi, argindex, argument, binding, chain, dirchain, done, fshandle, handler, hasBound, i, j, k, l, len, len1, len2, len3, m, parent, part, path, rargs, ref, ref1, ref2, ref3, resolve, response, s, sequence, subchain;
+          var This, arg, argc, argi, argindex, argument, binding, chain, dirchain, done, fshandle, handler, hasBound, i, j, l, len, len1, len2, len3, m, n, parent, part, path, rargs, ref, ref1, ref2, ref3, resolve, response, s, sequence, subchain;
           console.waitingCall = 0;
           done = console.lastDone;
           This = console.lastThis;
@@ -257,8 +360,8 @@
               }
               dirchain.push(arg.key);
               ref1 = arg.subchain;
-              for (k = 0, len1 = ref1.length; k < len1; k++) {
-                s = ref1[k];
+              for (l = 0, len1 = ref1.length; l < len1; l++) {
+                s = ref1[l];
                 if (s.as.match(/keyword/)) {
                   subchain.push(s.key);
                 }
@@ -296,7 +399,7 @@
               path: sequence[i]
             };
           }
-          for (i = l = 0, len2 = sequence.length; l < len2; i = ++l) {
+          for (i = m = 0, len2 = sequence.length; m < len2; i = ++m) {
             part = sequence[i];
             if (!(path = part.path)) {
               continue;
@@ -318,14 +421,23 @@
             sequence[i] = sequence[i].path;
           }
           response = values(sequence);
+          response = response.filter(function(i) {
+            return i !== -1;
+          });
           argc = Object.keys(argindex).length;
           for (argument in argindex) {
             argi = argindex[argument];
             rargs = response.slice(argi);
             if ((rargs.length === 1) || (argi !== argc)) {
-              defineProperty(response, argument, {
-                value: response[argi]
-              });
+              if (response[argi] && response[argi][0] === "-") {
+                defineProperty(response, argument, {
+                  value: true
+                });
+              } else {
+                defineProperty(response, argument, {
+                  value: response[argi]
+                });
+              }
             } else {
               defineProperty(response, argument, {
                 value: rargs
@@ -337,8 +449,8 @@
             binding = ref2[argument];
             hasBound = binding;
             ref3 = argument.split(" ");
-            for (m = 0, len3 = ref3.length; m < len3; m++) {
-              arg = ref3[m];
+            for (n = 0, len3 = ref3.length; n < len3; n++) {
+              arg = ref3[n];
               if (argindex[arg]) {
                 continue;
               }
@@ -368,6 +480,9 @@
               COMMAND_NAME_ALREADY_INGLOBALS: g
             }
           ];
+        }
+        if (typeof args === "string") {
+          args = args.split(" ");
         }
         this.commands[cmd] = {
           cmd,
@@ -405,6 +520,11 @@
     bindCommandArgs: {
       value: function(cmd, key, handler) {
         var arg, j, len, ref;
+        if (!console.commands[cmd]) {
+          console.registerCommand(cmd, [], function() {
+            return log("command executed", cmd);
+          });
+        }
         ref = key.split(" ");
         for (j = 0, len = ref.length; j < len; j++) {
           arg = ref[j];
@@ -419,8 +539,8 @@
       }
     }
   });
-  scope = [];
-  scope.push(Core = (function() {
+  classes = [];
+  classes.push(Core = (function() {
     class Core extends EventTarget {};
 
     Core.prototype.events = [];
@@ -428,10 +548,44 @@
     return Core;
 
   }).call(this));
-  scope.push(DeviceManager = (function() {
+  classes.push(DeviceManager = (function() {
     class DeviceManager extends Core {
-      static boot() {
-        return 1;
+      constructor(scope) {
+        super(scope.constructor.name).scope = scope;
+        this.registerCommands(scope.console);
+        this.debug("Device manager constructed", this);
+        emit("devicemanagerready", this);
+      }
+
+      registerCommands(scope) {
+        var This;
+        This = this;
+        scope.registerCommand("device", "list scope", (args, done) => {
+          if (!args.length) {
+            return done(this.information());
+          }
+        });
+        scope.bindCommandArgs("device", "add sensor driver events", (args, done) => {
+          return this.addSensorDevice(args.driver, args.events, args.scope);
+        });
+        return scope.bindCommandArgs("device", "add driver type", (args, done) => {
+          return this.addDeviceDriver(args.type, args.driver);
+        });
+      }
+
+      addDeviceDriver(type, driver) {
+        this.debug("type", type);
+        return this.debug("driver", driver);
+      }
+
+      addSensorDevice(driver, events, scope = this.scope) {
+        this.debug("driver:", driver.name);
+        this.debug("events:", events);
+        return this.debug("scope:", scope);
+      }
+
+      information() {
+        return this.log("Device manager running since:", new Date());
       }
 
     };
@@ -441,7 +595,7 @@
     return DeviceManager;
 
   }).call(this));
-  scope.push(PointerDevice = class PointerDevice extends DataView {
+  classes.push(MemoryDevice = class MemoryDevice extends DataView {}, classes.push(PointerDevice = class PointerDevice extends DataView {
     constructor() {
       super(new ArrayBuffer(64));
     }
@@ -473,8 +627,7 @@
       return clientY = this.getFloat32.bind(this, offsets += 4, lendian);
     }
 
-  });
-  scope.push(KeyboardDevice = class KeyboardDevice extends DataView {
+  }), classes.push(KeyboardDevice = class KeyboardDevice extends DataView {
     constructor() {
       super(new ArrayBuffer(144));
     }
@@ -548,119 +701,126 @@
       };
     }
 
-  });
-  if (DEBUG) {
-    (function() {
-      var className, fc, i, j, len, prop, proto, protoName, rand, ref, results, value;
-      results = [];
-      for (i = j = 0, len = scope.length; j < len; i = ++j) {
-        proto = scope[i];
+  }), DEBUG ? (function() {
+    var alias, className, cn, fc, i, j, len, prop, proto, protoName, rand, ref, ref1, results, value;
+    results = [];
+    for (i = j = 0, len = classes.length; j < len; i = ++j) {
+      proto = classes[i];
+      alias = proto.name;
+      if (!(fc = localStorage.getItem(cn = `color(${alias})`))) {
         rand = function() {
           return Math.trunc(Math.random() * 255);
         };
         fc = [38, 2, rand(), rand(), rand()].join(";");
-        protoName = `\x1B[${fc}m${proto.name}\x1B[39m`;
-        className = `\x1B[53m${protoName}\x1B[55m`;
-        ref = getOwn(proto.prototype);
-        for (prop in ref) {
-          ({value} = ref[prop]);
-          if (typeof value !== "function") {
-            continue;
-          }
-          if (prop.match(/constructor/)) {
-            continue;
-          }
-          (function(method, handler, alias) {
-            return Object.defineProperty(this, method, {
-              value: function() {
-                debug(alias, pnow(), method + "()", [...arguments]);
-                return Reflect.apply(handler, this, arguments);
-              }
-            });
-          }).call(proto.prototype, prop, value, protoName);
+        localStorage.setItem(cn, fc);
+      }
+      protoName = `\x1B[${fc}m${alias}::\x1B[39m`;
+      className = `\x1B[53m${protoName}\x1B[55m`;
+      ref = getOwn(proto.prototype);
+      for (prop in ref) {
+        ({value} = ref[prop]);
+        if (typeof value !== "function") {
+          continue;
         }
-        results.push((function() {
-          var ref1, results1;
-          ref1 = getOwn(proto);
-          results1 = [];
-          for (prop in ref1) {
-            ({value} = ref1[prop]);
-            if (typeof value !== "function") {
-              continue;
+        if (prop.match(/constructor/)) {
+          continue;
+        }
+        (function(method, handler, alias) {
+          return Object.defineProperty(this, method, {
+            value: function() {
+              logger(alias, pnow(), `${method}()`, {arguments});
+              return Reflect.apply(handler, this, arguments);
             }
-            results1.push((function(method, handler, alias) {
-              return Object.defineProperty(this, method, {
-                value: function() {
-                  debug(alias, pnow(), method + "()", [...arguments]);
-                  return Reflect.apply(handler, this, arguments);
-                }
-              });
-            }).call(proto, prop, value, className));
-          }
-          return results1;
-        })());
+          });
+        }).call(proto.prototype, prop, value, `${alias}::`);
       }
-      return results;
-    })();
-  }
-  console.registerCommand("device", ["bind", "list", "type"], function(args, done) {
-    return log("device call begin:", {arguments});
-  });
-  console.bindCommandArgs("device", "list all", function(args, done) {
-    return log("list all devices");
-  });
-  console.bindCommandArgs("device", "driver", function(args, done) {
-    var Driver, count, drivers, i, type;
-    drivers = args.driver.slice(i = 0);
-    count = drivers.length / 2;
-    while (i < count) {
-      [type, Driver] = drivers.slice(i, i += 2);
-      console.bindCommandArgs("device", `add ${type} bind`, (function() {
-        return ({
-            bind: [global]
-          }) => {
-          return new this().bind(global);
-        };
-      }).call(Driver));
-    }
-    return done(this);
-  });
-  window.addEventListener("DOMContentLoaded", function() {
-    var desc, key, proto, ref;
-    proto = prototypeOf(window);
-    ref = getOwn(window);
-    for (key in ref) {
-      desc = ref[key];
-      if (!key.startsWith("on")) {
-        if (desc.configurable && desc.value) {
-          desc.enumerable = false;
-          defineProperty(proto, key, desc);
+      ref1 = getOwn(proto);
+      for (prop in ref1) {
+        ({value} = ref1[prop]);
+        if (typeof value !== "function") {
+          continue;
         }
+        (function(method, handler, alias) {
+          return Object.defineProperty(this, method, {
+            value: function() {
+              logger(alias, pnow(), `${method}()`, {arguments});
+              return Reflect.apply(handler, this, arguments);
+            }
+          });
+        }).call(proto, prop, value, `${alias}`);
       }
-      deleteProperty(window, key);
+      results.push((function(className, protoName, alias) {
+        if (typeof this.log !== "undefined") {
+          return;
+        }
+        defineProperty(this.prototype, "log", {
+          value: function() {
+            return debug(protoName, pnow(), arguments[0].padEnd(40, " "), [...arguments].slice(1));
+          }
+        });
+        defineProperty(this, "log", {
+          value: function() {
+            return debug(className, pnow(), arguments[0].padEnd(40, " "), [...arguments].slice(1));
+          }
+        });
+        defineProperty(this.prototype, "debug", {
+          value: function() {
+            return logger(this.constructor.name + "::", pnow(), arguments[0].padEnd(40, " "), [...arguments].slice(1));
+          }
+        });
+        return defineProperty(this, "debug", {
+          value: function() {
+            return logger(this.constructor.name, pnow(), arguments[0].padEnd(40, " "), [...arguments].slice(1));
+          }
+        });
+      }).call(proto, className, protoName, alias));
     }
-    if (typeof window.chrome !== "undefined") {
-      Object.defineProperty(window, "chrome", {
-        value: "tru 💚 th"
-      });
-    }
-    "$ $0 $1 $2 $3 $4 $$ $_ $x clear copy debug dir dirxml getAccessibleName getAccessibleRole getEventListeners inspect keys monitor monitorEvents profile profileEnd queryObjects table undebug unmonitor unmonitorEvents values".split(/\s+|\n/g).forEach(function(key) {
-      return defineProperty(proto, key, {
-        value: function() {}
-      });
-    });
-    return window.dispatchEvent(new Event("consolebootready"));
+    return results;
+  })() : void 0);
+  window.addEventListener("DOMContentLoaded", function() {
+    return this.this = new DeviceManager(window);
   });
-  return window.addEventListener("consolebootready", function() {
-    DeviceManager.boot();
-    //* booooooting now :)
-    device(-driver("pointer", PointerDevice));
-    device(-driver("keyboard", KeyboardDevice));
-    device(-add(-pointer(-bind(window))));
-    return device(-add(-keyboard(-bind(window))));
+  return window.addEventListener("devicemanagerready", function({
+      detail: devman
+    }) {
+    return log(devman);
   });
 })();
 
+/*
+console.registerCommand "device", [ "bind", "list", "type" ], ( args, done ) ->
+log "device call begin:", { arguments }
+
+console.bindCommandArgs "device", "list all", ( args, done ) ->
+log "list all devices"
+
+console.bindCommandArgs "device", "driver", ( args, done ) ->
+
+drivers = args.driver.slice i=0
+count = drivers.length / 2
+
+while i < count
+
+[ type, Driver ] = drivers.slice( i, i += 2 )
+
+console.bindCommandArgs "device", "add #{type} bind", (->
+    ({ bind: global }) =>
+        new this().bind( global )
+).call( Driver )
+
+done this
+
+window.addEventListener "consolebootready", ->
+#* booooooting now :)
+
+device -driver "memory", MemoryDevice
+device -driver "pointer", PointerDevice
+device -driver "keyboard", KeyboardDevice
+
+device -add -pointer -bind window
+device -add -keyboard -bind window
+
+ */
 /*
 
     do  mouse = ->

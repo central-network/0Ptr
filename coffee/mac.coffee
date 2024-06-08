@@ -1,19 +1,74 @@
 do ->
     DEBUG = 1
 
-    {navigator, console, Object, Reflect, performance} = window
+    {navigator, console, Object, Reflect, performance, localStorage} = window
     {deleteProperty, apply} = Reflect
     {values,keys,assign,defineProperty, defineProperties, hasOwn,
+    getOwnPropertyDescriptor:getDesc,
     getOwnPropertyDescriptors:getOwn, getPrototypeOf: prototypeOf,
     create: createObject, setPrototypeOf, isPrototypeOf, seal, isSealed,
     getOwnPropertySymbols, preventExtensions, freeze, isFrozen, entries} = Object
     {log,warn,error,table,debug,info,delay,group,groupEnd} = console
 
-    pnow = -> parseFloat performance.now().toFixed(2)
+    now = -> Date.now()
+    pnow = -> parseFloat performance.now().toFixed(1)
+    logger = ->
+        document.body.appendChild(Object.assign(
+            document.createElement("div"), {
+                className : "log",
+                innerHTML : [ arguments... ].map((i) ->
+                    if  i instanceof Object
+                        args = off
+                        if i.arguments
+                            args = on
+                            i = i.arguments
+                        el = ""
+                        for k,v of i
+                            if "#{v}".match /\[/
+                                v = "[[#{v.constructor.name}]]"
+
+                            if isNaN k
+                                el += k + " -> " +  v + "<br>"
+                            else
+                                if args is off
+                                    el += v + "<br>"
+                                else
+                                    el += v + ", "
+
+                        if args is on
+                            el = el.substring(0, el.length-2)
+                        return el
+                    i.toString()
+                ).map( (innerHTML) -> Object.assign(
+                    document.createElement("span"), {innerHTML}
+                ).outerHTML).join("")
+            }
+        ))
 
 
+    window.addEventListener "DOMContentLoaded", ->
+        proto = prototypeOf window
+
+        for key, desc of getOwn window
+            if !key.startsWith "on"
+                if  desc.configurable and desc.value
+                    desc.enumerable = no
+                    defineProperty proto, key, desc 
+            deleteProperty window, key
+
+        if  typeof window.chrome isnt "undefined"
+            Object.defineProperty window, "chrome", value: "tru 💚 th"
+
+        "$ $0 $1 $2 $3 $4 $$ $_ $x clear copy debug dir dirxml 
+        getAccessibleName getAccessibleRole getEventListeners 
+        inspect keys monitor monitorEvents profile profileEnd 
+        queryObjects table undebug unmonitor unmonitorEvents 
+        values".split(/\s+|\n/g).forEach (key) ->
+            defineProperty proto, key, value: ->
 
     Object.defineProperties console, 
+
+        memory          : value : new ArrayBuffer 0, { maxByteLength : 1e7 }
 
         commands        : value : new Object
 
@@ -26,6 +81,12 @@ do ->
 
     Object.defineProperties console, 
 
+        resetColor      : value : ( key ) ->
+            if !key then for key of localStorage
+                if key.startsWith "color"
+                    console.resetColor key
+            else localStorage.removeItem "color(#{key})"
+
         clearTempKeys   : value : ->
             while key = @tempkeys.splice(-1).at(-1)
                 Reflect.deleteProperty window, key
@@ -36,12 +97,20 @@ do ->
         keyProxy        : value : ( word, _chain = [], level = 0 ) ->
             new Proxy Function::, {
                 apply  : ( f, key, args ) ->
+                    for arg, i in args
+                        log arg
+                        if  arg instanceof Proxy
+                            args[i] = arg[Symbol.toStringTag]
+
                     _chain.push({as : "function", args: args})
                     console.keyProxy word, _chain, level + 2
 
                 get    : ( f, key ) ->
                     if  key is Symbol.toPrimitive
                         return -> 1
+
+                    if  key is Symbol.toStringTag
+                        return -> word
 
                     if  key is "then"
                         return  console.commands[ word ].resolve = ->
@@ -240,6 +309,7 @@ do ->
                     sequence[i] = sequence[i].path
 
                 response = values sequence
+                response = response.filter (i) -> i isnt -1
 
                 argc = Object.keys(argindex).length
                 
@@ -247,9 +317,12 @@ do ->
                     rargs = response.slice argi   
                     
                     if  (rargs.length is 1) or (argi isnt argc)
-                        defineProperty(
-                            response, argument, value : response[argi]
-                        )
+                        if  response[argi] and response[argi][0] is "-"
+                            defineProperty response, argument, value : on
+                        else
+                            defineProperty(
+                                response, argument, value : response[argi]
+                            )
                     else
                         defineProperty(
                             response, argument, value : rargs
@@ -280,10 +353,13 @@ do ->
             if  typeof (g = @commands[cmd]) isnt "undefined"
                 throw [ COMMAND_NAME_ALREADY_INGLOBALS : g ]
 
+            if  typeof args is "string"
+                args = args.split " "
+
             @commands[ cmd ] =
                 { cmd, args, handler, bound : [], _ : {} }
 
-            getter = ( key ) -> [key] : get : ->
+            getter = ( key ) -> [ key ] : get : ->
                 if  console.waitingCall
                     clearTimeout console.lastCall
                     console.waitingCall()
@@ -304,6 +380,10 @@ do ->
 
         bindCommandArgs : value : ( cmd, key, handler ) ->
 
+            if !console.commands[cmd]
+                console.registerCommand cmd, [], ->
+                    log "command executed", cmd
+
             for arg in key.split " "
                 if !console.commands[cmd].args.includes arg
                     console.commands[cmd].args.push arg
@@ -313,19 +393,54 @@ do ->
 
             console.commands[cmd]
 
-    scope = []
+    classes = []
 
-    scope.push class Core extends EventTarget
+    classes.push class Core           extends EventTarget
         events : []
 
-    scope.push class DeviceManager extends Core
+    classes.push class DeviceManager  extends Core
 
         bound : []
 
-        @boot : ->
-            1
+        constructor : ( scope ) ->
+            super scope.constructor.name
+                .scope = scope
 
-    scope.push class PointerDevice extends DataView            
+            @registerCommands scope.console
+
+            @debug "Device manager constructed", this
+
+            emit "devicemanagerready", this
+
+        registerCommands : ( scope ) ->
+            This = this
+
+            scope.registerCommand "device", "list scope", ( args, done ) =>
+                if !args.length
+                    return done @information()
+
+            scope.bindCommandArgs "device", "add sensor driver events", ( args, done ) =>
+                @addSensorDevice args.driver, args.events, args.scope
+
+            scope.bindCommandArgs "device", "add driver type", ( args, done ) =>
+                @addDeviceDriver args.type, args.driver
+
+        addDeviceDriver   : ( type, driver ) ->
+            @debug "type", type
+            @debug "driver", driver
+
+        addSensorDevice   : ( driver, events, scope = @scope ) ->
+            @debug "driver:", driver.name
+            @debug "events:", events
+            @debug "scope:", scope
+
+        information : ->
+            @log "Device manager running since:", new Date()
+
+
+    classes.push class MemoryDevice   extends DataView
+        
+    classes.push class PointerDevice  extends DataView            
         constructor : ->
             super( new ArrayBuffer 64 )
 
@@ -372,7 +487,7 @@ do ->
             clientX = @getFloat32.bind this, offsets += 4, lendian
             clientY = @getFloat32.bind this, offsets += 4, lendian
 
-    scope.push class KeyboardDevice extends DataView            
+    classes.push class KeyboardDevice extends DataView            
         constructor : ->
             super( new ArrayBuffer 144 )
 
@@ -459,13 +574,16 @@ do ->
             eventType = -> [ "keydown", "keyup" ][ lastEvent() ]
             activeKey = -> keys[ keyArray.findIndex (v) -> v ] or 0
 
-    
-    if DEBUG then do -> for proto, i in scope
+    if  DEBUG then do -> for proto, i in classes
 
-        rand = -> Math.trunc Math.random() * 255
-        fc = [ 38, 2, rand(), rand(), rand() ].join ";"
+        alias = proto.name
+
+        if !fc = localStorage.getItem cn = "color(#{alias})"
+            rand = -> Math.trunc Math.random() * 255
+            fc = [ 38, 2, rand(), rand(), rand() ].join ";"
+            localStorage.setItem cn, fc
         
-        protoName = "\x1B[#{fc}m#{proto.name}\x1B[39m"
+        protoName = "\x1B[#{fc}m#{alias}::\x1B[39m"
         className = "\x1B[53m#{protoName}\x1B[55m"
 
         for prop, {value} of getOwn proto::
@@ -475,20 +593,45 @@ do ->
 
             (( method, handler, alias ) ->
                 Object.defineProperty this, method, value : ->
-                    debug alias, pnow(), method + "()", [ ...arguments ]
+                    logger alias, pnow(), "#{method}()", { arguments }
                     Reflect.apply handler, this, arguments
-            ).call proto::, prop, value, protoName
-
+            ).call proto::, prop, value, "#{alias}::"
+            
         for prop, {value} of getOwn proto
 
             continue if typeof value isnt "function"
 
             (( method, handler, alias ) ->
                 Object.defineProperty this, method, value : ->
-                    debug alias, pnow(), method + "()", [ ...arguments ]
+                    logger alias, pnow(), "#{method}()", { arguments }
                     Reflect.apply handler, this, arguments
-            ).call proto, prop, value, className         
+            ).call proto, prop, value, "#{alias}" 
 
+        (( className, protoName, alias ) ->
+            return if typeof @log isnt "undefined"
+
+            defineProperty this::, "log", value : ->
+                debug protoName, pnow(), arguments[0].padEnd(40, " "), [...arguments].slice(1)
+
+            defineProperty this, "log", value : ->
+                debug className, pnow(), arguments[0].padEnd(40, " "), [...arguments].slice(1)
+
+            defineProperty this::, "debug", value : ->
+                logger @constructor.name + "::", pnow(), arguments[0].padEnd(40, " "), [...arguments].slice(1)
+                
+            defineProperty this, "debug", value : ->
+                logger @constructor.name, pnow(), arguments[0].padEnd(40, " "), [...arguments].slice(1)
+                
+        ).call proto, className, protoName, alias
+
+    window.addEventListener "DOMContentLoaded", ->
+        @this = new DeviceManager( window )
+    
+    window.addEventListener "devicemanagerready", ({ detail: devman }) ->
+        log devman
+    
+
+    ###
     console.registerCommand "device", [ "bind", "list", "type" ], ( args, done ) ->
         log "device call begin:", { arguments }
 
@@ -505,45 +648,24 @@ do ->
             [ type, Driver ] = drivers.slice( i, i += 2 )
 
             console.bindCommandArgs "device", "add #{type} bind", (->
-                ({ bind: [ global ] }) => new this().bind( global )
+                ({ bind: global }) =>
+                    new this().bind( global )
             ).call( Driver )
 
         done this
 
-
-    window.addEventListener "DOMContentLoaded", ->
-        proto = prototypeOf window
-
-        for key, desc of getOwn window
-            if !key.startsWith "on"
-                if  desc.configurable and desc.value
-                    desc.enumerable = no
-                    defineProperty proto, key, desc 
-            deleteProperty window, key
-
-        if  typeof window.chrome isnt "undefined"
-            Object.defineProperty window, "chrome", value: "tru 💚 th"
-
-        "$ $0 $1 $2 $3 $4 $$ $_ $x clear copy debug dir dirxml 
-        getAccessibleName getAccessibleRole getEventListeners 
-        inspect keys monitor monitorEvents profile profileEnd 
-        queryObjects table undebug unmonitor unmonitorEvents 
-        values".split(/\s+|\n/g).forEach (key) ->
-            defineProperty proto, key, value: ->
-
-        window.dispatchEvent new Event "consolebootready"
-
     window.addEventListener "consolebootready", ->
-        DeviceManager.boot()
-
         #* booooooting now :)
+
+        device -driver "memory", MemoryDevice
         device -driver "pointer", PointerDevice
         device -driver "keyboard", KeyboardDevice
 
         device -add -pointer -bind window
         device -add -keyboard -bind window
-    
-    
+
+    ###
+
 ###
 
     do  mouse = ->
