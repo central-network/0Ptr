@@ -17,6 +17,10 @@ export var Database = (function() {
       return this.appendChild(tbli);
     }
 
+    createOperation() {
+      return Operation.from(...arguments);
+    }
+
   };
 
   Database.classPointer = OPTR.ClassPointer.from(Database);
@@ -55,6 +59,55 @@ export var Table = (function() {
 
 }).call(this);
 
+export var Operator = (function() {
+  class Operator extends OPTR.ObjectPointer {
+    static from(operator = "+") {
+      return Object.assign(this.new(), {
+        type: this.operators.indexOf(operator)
+      });
+    }
+
+    toPrimitive() {
+      return Operator.operators[this.type];
+    }
+
+  };
+
+  Operator.classPointer = OPTR.ClassPointer.from(Operator);
+
+  Operator.operators = [0, "+", "-", "*", "/", "%"];
+
+  Object.defineProperty(Operator.prototype, "operator", {
+    enumerable: true,
+    get: Operator.prototype.toPrimitive
+  });
+
+  Object.defineProperty(Operator.prototype, "children", {
+    enumerable: false,
+    value: []
+  });
+
+  return Operator;
+
+}).call(this);
+
+export var Operation = (function() {
+  class Operation extends OPTR.ObjectPointer {
+    static from(arg0, arg1, result, operator, begin = 0, count = 0, index = 0) {
+      var operation;
+      operator = Operator.from(operator);
+      operation = new Object({begin, count, index, arg0, arg1, result, operator});
+      return Object.assign(Operation.new(), operation);
+    }
+
+  };
+
+  Operation.classPointer = OPTR.ClassPointer.from(Operation);
+
+  return Operation;
+
+}).call(this);
+
 Database.defineProperty("buffer", {
   enumerable: true,
   get: function() {
@@ -74,11 +127,6 @@ Database.definePointer("bufferLength", {
   instanceOf: OPTR.Uint32Number
 });
 
-Table.definePointer("name", {
-  enumerable: true,
-  instanceOf: OPTR.StringPointer
-});
-
 Table.defineProperty("stride", {
   enumerable: true,
   get: function() {
@@ -94,14 +142,9 @@ Table.defineProperty("stride", {
   }
 });
 
-Column.definePointer("name", {
+Table.definePointer("name", {
   enumerable: true,
   instanceOf: OPTR.StringPointer
-});
-
-Column.definePointer("instanceOf", {
-  enumerable: true,
-  instanceOf: OPTR.ClassPointer
 });
 
 Column.definePointer("byteLength", {
@@ -112,4 +155,60 @@ Column.definePointer("byteLength", {
 Column.definePointer("offset", {
   enumerable: true,
   instanceOf: OPTR.Uint16Number
+});
+
+Column.definePointer("instanceOf", {
+  enumerable: true,
+  instanceOf: OPTR.ClassPointer
+});
+
+Column.definePointer("name", {
+  enumerable: true,
+  instanceOf: OPTR.StringPointer
+});
+
+Operation.definePointer("begin", {
+  byteLength: 4,
+  enumerable: true,
+  instanceOf: OPTR.Uint32AtomicNumber
+});
+
+Operation.definePointer("count", {
+  byteLength: 4,
+  enumerable: true,
+  instanceOf: OPTR.Uint32AtomicNumber
+});
+
+Operation.definePointer("index", {
+  byteLength: 4,
+  enumerable: true,
+  instanceOf: OPTR.Uint32AtomicNumber
+});
+
+Operation.definePointer("arg0", {
+  byteLength: 4,
+  enumerable: true,
+  instanceOf: OPTR.PointerLink
+});
+
+Operation.definePointer("arg1", {
+  byteLength: 4,
+  enumerable: true,
+  instanceOf: OPTR.PointerLink
+});
+
+Operation.definePointer("result", {
+  byteLength: 4,
+  enumerable: true,
+  instanceOf: OPTR.PointerLink
+});
+
+Operation.definePointer("operator", {
+  enumerable: true,
+  instanceOf: Operator
+});
+
+Operator.definePointer("type", {
+  enumerable: true,
+  instanceOf: OPTR.Uint8Number
 });

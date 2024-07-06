@@ -30,13 +30,20 @@
     let db = Database.create(100)
     let tbl = db.createTable("hesaplama")
 
-    tbl.createColumn( "arg0", OPTR.Uint32Number, 4 )
-    tbl.createColumn( "arg1", OPTR.Uint32Number, 4 )
-    tbl.createColumn( "resultCol", OPTR.Uint32Number, 4 )
+    let col0 = tbl.createColumn( "arg0", OPTR.Uint32Number, 4 )
+    let col1 = tbl.createColumn( "arg1", OPTR.Uint32Number, 4 )
+    let col2 = tbl.createColumn( "resultCol", OPTR.Uint32Number, 4 )
 
     log(db)
     log(tbl)
     log(tbl.children)
+    
+    let op0 = db.createOperation(
+        col0, col1, col2, "*"
+    )
+
+    warn(op0)
+
 </script>
 
 

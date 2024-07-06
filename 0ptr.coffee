@@ -9,6 +9,7 @@ scp = new Array undefined
 sab = new ArrayBuffer 4e5
 bvw = new DataView sab
 bu8 = new Uint8Array sab
+bu32 = new Uint32Array sab
 
 ALLOCALIGN_BYTELENGTH = +4
 PTRHEADERS_BYTELENGTH = -4
@@ -82,12 +83,10 @@ export class Pointer extends Number
 
     @setter     : ( propertyName, desc = {} ) ->
         byteOffset = desc.byteOffset
-        return ( value ) ->
-        
-            unless value instanceof Pointer
-                throw /PTRSET_ERR/
-            
-            @setInt32 byteOffset, value        
+        return ->
+            if  arguments[0] instanceof Pointer
+                return @setInt32 byteOffset, arguments[0]        
+            throw /PTRSET_ERR/
 
     buffer      : bvw.buffer
     
@@ -108,6 +107,19 @@ export class Pointer extends Number
     
     storeUint8  : ( byteOffset = 0, value = 0 ) ->
         Atomics.store bu8, getByteOffset(this) + byteOffset, value 
+
+    loadUint32  : ( byteOffset = 0 ) ->
+        Atomics.load bu32, (getByteOffset(this) + byteOffset)/4 
+    
+    storeUint32 : ( byteOffset = 0, value = 0 ) ->
+        index = (getByteOffset(this) + byteOffset)/4
+        if !Number.isInteger
+            throw /MODULUS_ERR/
+        Atomics.store bu32, index, value 
+
+    addUint32   : ( byteOffset = 0, value = 0 ) ->
+        index = (getByteOffset(this) + byteOffset)/4
+        Atomics.add bu32, index, value 
 
     getInt16    : ( byteOffset = 0 ) ->
         bvw.getInt16   getByteOffset(this) + byteOffset, iLE
@@ -384,6 +396,53 @@ export class Uint32Number           extends NumberPointer
         
     toPrimitive : ->
         return @getUint32 0
+
+export class Uint32AtomicNumber     extends NumberPointer
+
+    @byteLength : 4
+
+    @TypedArray : Uint32Array
+
+    @setter     : ( propertyName, desc = {} ) ->
+        byteOffset = desc.byteOffset
+        return ( value ) ->
+            unless value instanceof Uint32AtomicNumber
+                value = Uint32AtomicNumber.from value
+            @setUint32 byteOffset, value
+
+    set         : ( value = 0 ) ->
+        @store value
+        return this
+
+    store       : ( value = 0 ) ->
+        @storeUint32 0, value
+
+    add         : ( value = 0 ) ->
+        @addUint32 0, value
+        
+    toPrimitive : ->
+        @loadUint32 0
+
+export class PointerLink            extends Uint32Number
+
+    @getter     : ( propertyName, desc = {} ) ->
+        byteOffset = desc.byteOffset
+        return -> Pointer.of @getUint32 byteOffset
+
+    @setter     : ( propertyName, desc = {} ) ->
+        byteOffset = desc.byteOffset
+        return ( ptri ) ->
+            unless ptri instanceof PointerLink
+                ptri = PointerLink.from( ptri )
+
+            @setUint32 byteOffset, ptri
+
+    toPrimitive : ->
+        return Pointer.of @getUint32 0
+
+Object.defineProperty PointerLink::, "target",
+    enumerable: on
+    get : PointerLink::toPrimitive
 
 export class Int16Number            extends NumberPointer
 

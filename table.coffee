@@ -15,6 +15,8 @@ export class Database                   extends OPTR.ObjectPointer
         
         @appendChild tbli
 
+    createOperation : -> Operation.from arguments...
+
 export class Column                     extends OPTR.ObjectPointer
 
     @classPointer   : OPTR.ClassPointer.from this
@@ -32,6 +34,42 @@ export class Table                      extends OPTR.ObjectPointer
         
         @appendChild Object.assign Column.new(), column
 
+export class Operator                   extends OPTR.ObjectPointer
+
+    @classPointer   : OPTR.ClassPointer.from this
+
+    @operators      : [ 0, "+", "-", "*", "/", "%" ]
+
+    @from           : ( operator = "+" ) ->
+        Object.assign @new(), type : @operators.indexOf operator
+
+    toPrimitive     : ->
+        Operator.operators[ @type ]
+
+    Object.defineProperty this::, "operator",
+        enumerable: on
+        get : Operator::toPrimitive
+
+    Object.defineProperty this::, "children",
+        enumerable: off
+        value : []
+
+
+export class Operation                  extends OPTR.ObjectPointer
+
+    @classPointer   : OPTR.ClassPointer.from this
+
+    @from           : ( arg0, arg1, result, operator, begin = 0, count = 0, index = 0 ) ->
+
+        operator = Operator.from operator
+
+        operation = new Object {
+            begin, count, index,
+            arg0, arg1, result, operator
+        }
+        
+        Object.assign Operation.new(), operation
+
 
 Database.defineProperty "buffer",
     enumerable : on,
@@ -45,9 +83,6 @@ Database.definePointer "bufferLength",
     enumerable : on,
     instanceOf : OPTR.Uint32Number
 
-Table.definePointer "name",
-    enumerable : on,
-    instanceOf : OPTR.StringPointer
 
 Table.defineProperty "stride",
     enumerable : on,
@@ -56,13 +91,10 @@ Table.defineProperty "stride",
             blen += c.byteLength
         blen
 
-Column.definePointer "name",
+Table.definePointer "name",
     enumerable : on,
     instanceOf : OPTR.StringPointer
 
-Column.definePointer "instanceOf",
-    enumerable : on,
-    instanceOf : OPTR.ClassPointer
 
 Column.definePointer "byteLength",
     enumerable : on,
@@ -71,4 +103,54 @@ Column.definePointer "byteLength",
 Column.definePointer "offset",
     enumerable : on,
     instanceOf : OPTR.Uint16Number
+
+Column.definePointer "instanceOf",
+    enumerable : on,
+    instanceOf : OPTR.ClassPointer
+
+Column.definePointer "name",
+    enumerable : on,
+    instanceOf : OPTR.StringPointer
+
+
+Operation.definePointer "begin",
+    byteLength : 4
+    enumerable : on,
+    instanceOf : OPTR.Uint32AtomicNumber
+
+Operation.definePointer "count",
+    byteLength : 4
+    enumerable : on,
+    instanceOf : OPTR.Uint32AtomicNumber
+
+Operation.definePointer "index",
+    byteLength : 4
+    enumerable : on,
+    instanceOf : OPTR.Uint32AtomicNumber
+
+
+Operation.definePointer "arg0",
+    byteLength : 4
+    enumerable : on,
+    instanceOf : OPTR.PointerLink
+
+Operation.definePointer "arg1",
+    byteLength : 4
+    enumerable : on,
+    instanceOf : OPTR.PointerLink
+
+Operation.definePointer "result",
+    byteLength : 4
+    enumerable : on,
+    instanceOf : OPTR.PointerLink
+
+
+
+Operation.definePointer "operator",
+    enumerable : on,
+    instanceOf : Operator
+
+Operator.definePointer "type",
+    enumerable : on,
+    instanceOf : OPTR.Uint8Number
 

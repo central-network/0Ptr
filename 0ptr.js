@@ -1,4 +1,4 @@
-var ALLOCALIGN_BYTELENGTH, BYTEOFFSET_BYTELENGTH, BYTEOFFSET_BYTEOFFSET, BYTEOFFSET_CLASSINDEX, BYTEOFFSET_PARENTPTRI, BYTEOFFSET_RESVOFFSET, BYTEOFFSET_SCOPEINDEX, PTRHEADERS_BYTELENGTH, addByteLength, addRsvAsUint8, andRsvAsUint8, atomic, bu8, buf, bvw, byteToInteger, bytesToString, dvw, error, getByteLength, getByteOffset, getClassIndex, getParentPtri, getRsvAsInt16, getRsvAsInt32, getRsvAsUint8, getScopeIndex, hitRsvAsUint8, i32, iLE, integerToByte, log, malloc, offset, palloc, sab, scopei, scp, setByteLength, setByteOffset, setClassIndex, setParentPtri, setRsvAsInt16, setRsvAsInt32, setRsvAsUint8, setScopeIndex, stringToBytes, subRsvAsUint8, ui8, warn;
+var ALLOCALIGN_BYTELENGTH, BYTEOFFSET_BYTELENGTH, BYTEOFFSET_BYTEOFFSET, BYTEOFFSET_CLASSINDEX, BYTEOFFSET_PARENTPTRI, BYTEOFFSET_RESVOFFSET, BYTEOFFSET_SCOPEINDEX, PTRHEADERS_BYTELENGTH, addByteLength, addRsvAsUint8, andRsvAsUint8, atomic, bu32, bu8, buf, bvw, byteToInteger, bytesToString, dvw, error, getByteLength, getByteOffset, getClassIndex, getParentPtri, getRsvAsInt16, getRsvAsInt32, getRsvAsUint8, getScopeIndex, hitRsvAsUint8, i32, iLE, integerToByte, log, malloc, offset, palloc, sab, scopei, scp, setByteLength, setByteOffset, setClassIndex, setParentPtri, setRsvAsInt16, setRsvAsInt32, setRsvAsUint8, setScopeIndex, stringToBytes, subRsvAsUint8, ui8, warn;
 
 ({log, warn, error} = console);
 
@@ -19,6 +19,8 @@ sab = new ArrayBuffer(4e5);
 bvw = new DataView(sab);
 
 bu8 = new Uint8Array(sab);
+
+bu32 = new Uint32Array(sab);
 
 ALLOCALIGN_BYTELENGTH = +4;
 
@@ -179,11 +181,11 @@ export var Pointer = (function() {
     static setter(propertyName, desc = {}) {
       var byteOffset;
       byteOffset = desc.byteOffset;
-      return function(value) {
-        if (!(value instanceof Pointer)) {
-          throw /PTRSET_ERR/;
+      return function() {
+        if (arguments[0] instanceof Pointer) {
+          return this.setInt32(byteOffset, arguments[0]);
         }
-        return this.setInt32(byteOffset, value);
+        throw /PTRSET_ERR/;
       };
     }
 
@@ -214,6 +216,25 @@ export var Pointer = (function() {
 
     storeUint8(byteOffset = 0, value = 0) {
       return Atomics.store(bu8, getByteOffset(this) + byteOffset, value);
+    }
+
+    loadUint32(byteOffset = 0) {
+      return Atomics.load(bu32, (getByteOffset(this) + byteOffset) / 4);
+    }
+
+    storeUint32(byteOffset = 0, value = 0) {
+      var index;
+      index = (getByteOffset(this) + byteOffset) / 4;
+      if (!Number.isInteger) {
+        throw /MODULUS_ERR/;
+      }
+      return Atomics.store(bu32, index, value);
+    }
+
+    addUint32(byteOffset = 0, value = 0) {
+      var index;
+      index = (getByteOffset(this) + byteOffset) / 4;
+      return Atomics.add(bu32, index, value);
     }
 
     getInt16(byteOffset = 0) {
@@ -687,6 +708,77 @@ export var Uint32Number = (function() {
   return Uint32Number;
 
 }).call(this);
+
+export var Uint32AtomicNumber = (function() {
+  class Uint32AtomicNumber extends NumberPointer {
+    static setter(propertyName, desc = {}) {
+      var byteOffset;
+      byteOffset = desc.byteOffset;
+      return function(value) {
+        if (!(value instanceof Uint32AtomicNumber)) {
+          value = Uint32AtomicNumber.from(value);
+        }
+        return this.setUint32(byteOffset, value);
+      };
+    }
+
+    set(value = 0) {
+      this.store(value);
+      return this;
+    }
+
+    store(value = 0) {
+      return this.storeUint32(0, value);
+    }
+
+    add(value = 0) {
+      return this.addUint32(0, value);
+    }
+
+    toPrimitive() {
+      return this.loadUint32(0);
+    }
+
+  };
+
+  Uint32AtomicNumber.byteLength = 4;
+
+  Uint32AtomicNumber.TypedArray = Uint32Array;
+
+  return Uint32AtomicNumber;
+
+}).call(this);
+
+export var PointerLink = class PointerLink extends Uint32Number {
+  static getter(propertyName, desc = {}) {
+    var byteOffset;
+    byteOffset = desc.byteOffset;
+    return function() {
+      return Pointer.of(this.getUint32(byteOffset));
+    };
+  }
+
+  static setter(propertyName, desc = {}) {
+    var byteOffset;
+    byteOffset = desc.byteOffset;
+    return function(ptri) {
+      if (!(ptri instanceof PointerLink)) {
+        ptri = PointerLink.from(ptri);
+      }
+      return this.setUint32(byteOffset, ptri);
+    };
+  }
+
+  toPrimitive() {
+    return Pointer.of(this.getUint32(0));
+  }
+
+};
+
+Object.defineProperty(PointerLink.prototype, "target", {
+  enumerable: true,
+  get: PointerLink.prototype.toPrimitive
+});
 
 export var Int16Number = (function() {
   class Int16Number extends NumberPointer {
