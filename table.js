@@ -30,7 +30,19 @@ export var Database = (function() {
 }).call(this);
 
 export var Column = (function() {
-  class Column extends OPTR.ObjectPointer {};
+  class Column extends OPTR.ObjectPointer {
+    static from(options = {}) {
+      var key, ptrc, ptri, val;
+      ptri = this.new();
+      ptrc = this.classPointer;
+      for (key in options) {
+        val = options[key];
+        ptri[key] = ptrc.getProperty(key).from(val);
+      }
+      return ptri;
+    }
+
+  };
 
   Column.classPointer = OPTR.ClassPointer.from(Column);
 
@@ -41,14 +53,23 @@ export var Column = (function() {
 export var Table = (function() {
   class Table extends OPTR.ObjectPointer {
     createColumn(name, instanceOf, byteLength) {
-      var column;
-      column = new Object({
+      return this.appendChild(Column.from({
         name,
         instanceOf,
         byteLength,
-        offset: this.stride
-      });
-      return this.appendChild(Object.assign(Column.new(), column));
+        offset: this.updateStride()
+      }));
+    }
+
+    updateStride() {
+      var column, i, len, ref, stride;
+      stride = 0;
+      ref = this.children;
+      for (i = 0, len = ref.length; i < len; i++) {
+        column = ref[i];
+        stride += column.byteLength.toPrimitive();
+      }
+      return this.stride.set(stride).toPrimitive();
     }
 
   };
@@ -100,6 +121,18 @@ export var Operation = (function() {
       return Object.assign(Operation.new(), operation);
     }
 
+    toWorkerCode() {
+      var $offsetIn0, $offsetIn1, $offsetOut, $strideIn0, $strideIn1, $strideOut, operator;
+      operator = "/";
+      $strideIn0 = 12;
+      $strideIn1 = 0;
+      $strideOut = 4;
+      $offsetIn0 = 22;
+      $offsetIn1 = 10;
+      $offsetOut = 0;
+      return [";;operation", "", "let $isLittleEndian = 1;", "let $index = 0;", "let $count = 10000;", "", "let $arg0;", `let $offsetIn0 = ${$offsetIn0};`, `let $strideIn0 = ${$strideIn0};`, "let $tableOffsetIn0 = 24125;", "let $indexOffsetIn0 = $tableOffsetIn0 + $offsetIn0;", "", "let $arg1;", `let $offsetIn1 = ${$offsetIn1};`, `let $strideIn1 = ${$strideIn1};`, "let $tableOffsetIn0 = 2412;", "let $indexOffsetIn1 = $tableOffsetIn1 + $offsetIn1;", "", "let $result;", `let $offsetOut = ${$offsetOut};`, `let $strideOut = ${$strideOut};`, "let $tableOffsetOut = 2422154;", "let $indexOffsetOut = $tableOffsetOut + $offsetOut;", "", "$arg0 = view.getUint32( $indexOffsetIn0, $isLittleEndian ); ", "$arg1 = view.getUint32( $indexOffsetIn1, $isLittleEndian ); ", "", "while ( --$count )", "{", "   view.setUint32( ", "       $indexOffsetOut, ", `       ($arg0 ${operator} $arg1), `, "       $isLittleEndian", "   );", "", $strideIn0 && "   $arg0 = view.getUint32( $indexOffsetIn0, $isLittleEndian ); " || "", $strideIn1 && "   $arg1 = view.getUint32( $indexOffsetIn1, $isLittleEndian ); " || "", "", `   $indexOffsetOut += ${$strideOut};`, $strideIn0 && `   $indexOffsetIn0 += ${$strideIn0};` || "", $strideIn1 && `   $indexOffsetIn1 += ${$strideIn1};` || "", "}", "", ";;done", ""].join("\n\t");
+    }
+
   };
 
   Operation.classPointer = OPTR.ClassPointer.from(Operation);
@@ -110,7 +143,7 @@ export var Operation = (function() {
 
 Database.defineProperty("buffer", {
   enumerable: true,
-  get: function() {
+  getter: function() {
     return function() {
       return this.subarray();
     };
@@ -119,96 +152,96 @@ Database.defineProperty("buffer", {
 
 Database.definePointer("bufferOffset", {
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.Uint32Number
 });
 
 Database.definePointer("bufferLength", {
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.Uint32Number
 });
 
-Table.defineProperty("stride", {
+Table.definePointer("stride", {
   enumerable: true,
-  get: function() {
-    return function(blen = 0) {
-      var c, i, len, ref;
-      ref = this.children;
-      for (i = 0, len = ref.length; i < len; i++) {
-        c = ref[i];
-        blen += c.byteLength;
-      }
-      return blen;
-    };
-  }
+  isRequired: true,
+  instanceOf: OPTR.Uint16Number
 });
 
 Table.definePointer("name", {
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.StringPointer
 });
 
 Column.definePointer("byteLength", {
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.Uint16Number
 });
 
 Column.definePointer("offset", {
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.Uint16Number
 });
 
 Column.definePointer("instanceOf", {
   enumerable: true,
-  instanceOf: OPTR.ClassPointer
+  isRequired: true,
+  instanceOf: OPTR.ObjectPointer
 });
 
 Column.definePointer("name", {
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.StringPointer
 });
 
 Operation.definePointer("begin", {
-  byteLength: 4,
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.Uint32AtomicNumber
 });
 
 Operation.definePointer("count", {
-  byteLength: 4,
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.Uint32AtomicNumber
 });
 
 Operation.definePointer("index", {
-  byteLength: 4,
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.Uint32AtomicNumber
 });
 
 Operation.definePointer("arg0", {
-  byteLength: 4,
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.PointerLink
 });
 
 Operation.definePointer("arg1", {
-  byteLength: 4,
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.PointerLink
 });
 
 Operation.definePointer("result", {
-  byteLength: 4,
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.PointerLink
 });
 
 Operation.definePointer("operator", {
   enumerable: true,
+  isRequired: true,
   instanceOf: Operator
 });
 
 Operator.definePointer("type", {
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.Uint8Number
 });

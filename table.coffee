@@ -21,18 +21,33 @@ export class Column                     extends OPTR.ObjectPointer
 
     @classPointer   : OPTR.ClassPointer.from this
 
+    @from           : ( options = {} ) ->
+        ptri = @new()
+        ptrc = @classPointer
+
+        for key , val of options
+            ptri[ key ] = ptrc.getProperty(key).from(val)
+
+        ptri
+
 export class Table                      extends OPTR.ObjectPointer
 
     @classPointer   : OPTR.ClassPointer.from this
 
     createColumn    : ( name, instanceOf, byteLength ) ->
-
-        column = new Object {
-            name, instanceOf,
-            byteLength, offset : @stride
+        @appendChild Column.from {
+            name,
+            instanceOf, byteLength,
+            offset : @updateStride()
         }
-        
-        @appendChild Object.assign Column.new(), column
+
+    updateStride    : ->
+        stride = 0
+
+        for column in @children
+            stride += column.byteLength.toPrimitive()
+
+        @stride.set( stride ).toPrimitive()
 
 export class Operator                   extends OPTR.ObjectPointer
 
@@ -70,87 +85,154 @@ export class Operation                  extends OPTR.ObjectPointer
         
         Object.assign Operation.new(), operation
 
+    toWorkerCode          : ->
+        operator = "/";
+
+        $strideIn0 = 12;
+        
+        #todo if stride is 0 then it is constant
+        $strideIn1 = 0; #? multi -> single operation
+        $strideOut = 4;
+        
+        $offsetIn0 = 22;
+        $offsetIn1 = 10;
+        $offsetOut = 0;
+
+        [ ";;operation", "",
+            "let $isLittleEndian = 1;",
+            "let $index = 0;",
+            "let $count = 10000;",
+            "",
+            "let $arg0;",
+            "let $offsetIn0 = #{$offsetIn0};",
+            "let $strideIn0 = #{$strideIn0};",
+            "let $tableOffsetIn0 = 24125;",
+            "let $indexOffsetIn0 = $tableOffsetIn0 + $offsetIn0;",
+            "",
+            "let $arg1;",
+            "let $offsetIn1 = #{$offsetIn1};",
+            "let $strideIn1 = #{$strideIn1};",
+            "let $tableOffsetIn0 = 2412;",
+            "let $indexOffsetIn1 = $tableOffsetIn1 + $offsetIn1;",
+            "",
+            "let $result;",
+            "let $offsetOut = #{$offsetOut};",
+            "let $strideOut = #{$strideOut};",
+            "let $tableOffsetOut = 2422154;",
+            "let $indexOffsetOut = $tableOffsetOut + $offsetOut;",
+            "",
+
+            "$arg0 = view.getUint32( $indexOffsetIn0, $isLittleEndian ); ",
+            "$arg1 = view.getUint32( $indexOffsetIn1, $isLittleEndian ); ", 
+            "",
+            "while ( --$count )",
+            "{",
+            "   view.setUint32( ",
+            "       $indexOffsetOut, ",
+            "       ($arg0 #{operator} $arg1), ",
+            "       $isLittleEndian"
+            "   );", 
+            "",
+            ( $strideIn0 and "   $arg0 = view.getUint32( $indexOffsetIn0, $isLittleEndian ); " or ""),
+            ( $strideIn1 and "   $arg1 = view.getUint32( $indexOffsetIn1, $isLittleEndian ); " or ""),
+            "",
+            "   $indexOffsetOut += #{$strideOut};",
+            ($strideIn0 and "   $indexOffsetIn0 += #{$strideIn0};" or ""),
+            ($strideIn1 and "   $indexOffsetIn1 += #{$strideIn1};" or ""),
+            "}",
+            "",
+            ";;done",
+        "" ].join "\n\t"
+
 
 Database.defineProperty "buffer",
     enumerable : on,
-    get : -> -> @subarray()
+    getter : -> -> @subarray()
 
 Database.definePointer "bufferOffset",
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.Uint32Number
 
 Database.definePointer "bufferLength",
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.Uint32Number
 
 
-Table.defineProperty "stride",
+Table.definePointer "stride",
     enumerable : on,
-    get : -> ( blen = 0 ) ->
-        for c in @children
-            blen += c.byteLength
-        blen
+    isRequired : on,
+    instanceOf : OPTR.Uint16Number
 
 Table.definePointer "name",
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.StringPointer
+
 
 
 Column.definePointer "byteLength",
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.Uint16Number
 
 Column.definePointer "offset",
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.Uint16Number
 
 Column.definePointer "instanceOf",
     enumerable : on,
-    instanceOf : OPTR.ClassPointer
+    isRequired : on,
+    instanceOf : OPTR.ObjectPointer
 
 Column.definePointer "name",
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.StringPointer
 
 
 Operation.definePointer "begin",
-    byteLength : 4
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.Uint32AtomicNumber
 
 Operation.definePointer "count",
-    byteLength : 4
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.Uint32AtomicNumber
 
 Operation.definePointer "index",
-    byteLength : 4
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.Uint32AtomicNumber
 
 
 Operation.definePointer "arg0",
-    byteLength : 4
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.PointerLink
 
 Operation.definePointer "arg1",
-    byteLength : 4
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.PointerLink
 
 Operation.definePointer "result",
-    byteLength : 4
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.PointerLink
 
 
 
 Operation.definePointer "operator",
     enumerable : on,
+    isRequired : on,
     instanceOf : Operator
 
 Operator.definePointer "type",
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.Uint8Number
 

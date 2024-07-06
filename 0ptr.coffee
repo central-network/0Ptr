@@ -1,4 +1,4 @@
-{ log, warn, error } = console
+{ log, warn, error, debug } = console
 
 iLE = new Uint8Array( Uint32Array.of(1).buffer ).at 0
 buf = new ArrayBuffer 4e4
@@ -77,16 +77,6 @@ export class Pointer extends Number
     @definePointer : ->
         @classPointer.definePointer( arguments... )
 
-    @getter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> Pointer.of @getInt32 byteOffset
-
-    @setter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return ->
-            if  arguments[0] instanceof Pointer
-                return @setInt32 byteOffset, arguments[0]        
-            throw /PTRSET_ERR/
 
     buffer      : bvw.buffer
     
@@ -163,7 +153,7 @@ export class Pointer extends Number
                 return new scp[ classIndex ] ptri
             return 0
         return 0
-    
+
     @new        : ( byteLength ) ->
 
         if !byteLength
@@ -210,8 +200,6 @@ export class Pointer extends Number
         null
 
     resize      : ( byteLength = 0, dataBackup = on ) ->
-
-        throw "resize"
 
         TypedArray = this.constructor.TypedArray
         length = byteLength / TypedArray.BYTES_PER_ELEMENT
@@ -283,6 +271,32 @@ Object.defineProperty Pointer::, "{{Dump}}",
 
 export class TypedArrayPointer      extends Pointer
 
+    @from   : ( arrayLike ) ->
+
+        BYTES_PER_ELEMENT =
+            this.TypedArray.BYTES_PER_ELEMENT
+
+        if  Array.isArray arrayLike
+            length = arrayLike.length
+            byteLength = length * BYTES_PER_ELEMENT
+
+        if  ArrayBuffer.isView arrayLike
+            length = arrayLike.length
+            byteLength = arrayLike.byteLength
+
+            unless arrayLike instanceof @TypedArray
+                arrayLike = new @TypedArray(
+                    arrayLike.slice().buffer
+                ) 
+
+        if !isNaN arrayLike
+            length = arrayLike
+            arrayLike = []
+
+        ptri = @new byteLength
+        ptri . subarray().set arrayLike
+        ptri
+
     @getter : ( propertyName, desc = {} ) ->
         byteOffset = desc.byteOffset
         byteLength = desc.byteLength
@@ -332,7 +346,7 @@ export class Matrix4Pointer         extends Float32ArrayPointer
 export class NumberPointer          extends Pointer
 
     @from       : ( value = 0 ) ->
-        return @new().set value
+        @new( @byteLength ).set value * 1
 
 export class Float32Number          extends NumberPointer
 
@@ -340,13 +354,6 @@ export class Float32Number          extends NumberPointer
 
     @TypedArray : Float32Array
 
-    @getter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @getFloat32 byteOffset
-
-    @setter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @setFloat32 byteOffset, arguments[0]
 
     set         : ( value = 0 ) ->
         @setFloat32 0, value
@@ -361,14 +368,6 @@ export class Int32Number            extends NumberPointer
 
     @TypedArray : Int32Array
 
-    @getter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @getInt32 byteOffset
-
-    @setter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @setInt32 byteOffset, arguments[0]
-
     set         : ( value = 0 ) ->
         @setInt32 0, value
         return this
@@ -381,14 +380,6 @@ export class Uint32Number           extends NumberPointer
     @byteLength : 4
 
     @TypedArray : Uint32Array
-
-    @getter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @getUint32 byteOffset
-
-    @setter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @setUint32 byteOffset, arguments[0]
 
     set         : ( value = 0 ) ->
         @setUint32 0, value
@@ -403,13 +394,6 @@ export class Uint32AtomicNumber     extends NumberPointer
 
     @TypedArray : Uint32Array
 
-    @setter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return ( value ) ->
-            unless value instanceof Uint32AtomicNumber
-                value = Uint32AtomicNumber.from value
-            @setUint32 byteOffset, value
-
     set         : ( value = 0 ) ->
         @store value
         return this
@@ -423,40 +407,33 @@ export class Uint32AtomicNumber     extends NumberPointer
     toPrimitive : ->
         @loadUint32 0
 
-export class PointerLink            extends Uint32Number
+export class PointerLink            extends Pointer
 
-    @getter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> Pointer.of @getUint32 byteOffset
+    @TypedArray : Int32Array
 
-    @setter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return ( ptri ) ->
-            unless ptri instanceof PointerLink
-                ptri = PointerLink.from( ptri )
+    @byteLength : 4
 
-            @setUint32 byteOffset, ptri
+    @from       : ( ptri ) ->
+        unless ptri instanceof Pointer
+            throw [/LINKER/, arguments... ]
 
-    toPrimitive : ->
-        return Pointer.of @getUint32 0
+        @new().set( ptri )
 
-Object.defineProperty PointerLink::, "target",
-    enumerable: on
-    get : PointerLink::toPrimitive
+    toPrimitive : -> Pointer.of @getInt32 0
+
+    set         : -> @setInt32 0, arguments[0] ; this
+
+    from        : -> @toPrimitive().from
+
+    Object.defineProperty this::, "target",
+        enumerable  : on
+        get         : PointerLink::toPrimitive
 
 export class Int16Number            extends NumberPointer
 
     @byteLength : 2
 
     @TypedArray : Int16Array
-
-    @getter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @getInt16 byteOffset
-
-    @setter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @setInt16 byteOffset, arguments[0]
 
     set         : ( value = 0 ) ->
         @setInt16 0, value
@@ -471,14 +448,6 @@ export class Uint16Number           extends NumberPointer
 
     @TypedArray : Uint16Array
 
-    @getter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @getUint16 byteOffset
-
-    @setter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @setUint16 byteOffset, arguments[0]
-
     set         : ( value = 0 ) ->
         @setUint16 0, value
         return this
@@ -491,14 +460,6 @@ export class Uint8Number            extends NumberPointer
     @byteLength : 1
 
     @TypedArray : Uint8Array
-
-    @getter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @getUint8 byteOffset
-
-    @setter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @setUint8 byteOffset, arguments[0]
 
     set         : ( value = 0 ) ->
         @setUint8 0, value
@@ -513,14 +474,6 @@ export class Uint8AtomicNumber      extends NumberPointer
 
     @TypedArray : Uint8Array
 
-    @getter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @loadUint8 byteOffset
-
-    @setter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> @storeUint8 byteOffset, arguments[0]
-
     set         : ( value = 0 ) ->
         @storeUint8 0, value
         return this
@@ -528,15 +481,11 @@ export class Uint8AtomicNumber      extends NumberPointer
     toPrimitive : ->
         return @loadUint8 0
 
-export class BooleanAtomic          extends Uint8AtomicNumber
-    
-    @getter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> Boolean @loadUint8 byteOffset
+export class BooleanPointer         extends Uint8Number
 
-    @setter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> Boolean @storeUint8 byteOffset, arguments[0]
+    toPrimitive : -> Boolean super()
+
+export class BooleanAtomic          extends Uint8AtomicNumber
         
     toPrimitive : -> Boolean super()
 
@@ -544,44 +493,35 @@ export class StringPointer         extends Pointer
 
     @TypedArray : Uint8Array
 
-    @byteLength : 4
-
     @from : ( string = "" ) ->
-        byteArray = stringToBytes string
+        if  typeof string is "string"
+            data = stringToBytes "#{string}"
 
-        this
-            .new( byteArray.byteLength )
-            .set( byteArray )
+        else if string instanceof Uint8Array
+            data = string.slice()
+
+        else if string instanceof this
+            return string
+
+        ptri = this
+            .new( data.byteLength )
+            .set( data )
+
+        ptri
 
     toPrimitive : ->
         bytesToString @subarray().slice()
-        
-
-    @getter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> StringPointer.of @getInt32 byteOffset
-
-    @setter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return ( value = "" ) ->
-            if  typeof value is "string"
-                value = StringPointer.from value
-
-            unless value instanceof StringPointer
-                throw /STRSET_ERR/
-            
-            @setInt32 byteOffset, value      
-
 
     set         : ( value = "" ) ->
+        return this unless "#{value}".trim()
 
         if  typeof value is "string"
-            value = stringToBytes value
+            return @set stringToBytes "#{value}"
 
         unless value instanceof Uint8Array
             throw /ERRSTRSET/    
-
-        valueArray = this.subarray()
+        
+        valueArray = @subarray()
         thisLength = getByteLength this
         nextLength = value.byteLength
 
@@ -592,25 +532,25 @@ export class StringPointer         extends Pointer
                 valueArray.fill 0
             else
                 @resize( nextLength, null )
-                valueArray = @subarray()
+                valueArray = @subarray()    
 
         valueArray.set value
-        
-        return this
+
+        this
 
 export class ObjectPointer         extends Pointer  
 
-    @from       : ( object ) ->
-        ptri = @new().set( object )
-        ptri . onallocate()
-        ptri
+    @byteLength : 4
+
+    @from       : ( any ) ->
+        @new().set( any )
 
     toPrimitive : ->
         scp[ getScopeIndex this ]
 
     set         : ( object ) ->
-        if !isNaN object
-            object = scp[ object ]
+        unless isNaN object
+            throw /NAN_TOSCP/
 
         setScopeIndex scopei(object), this
 
@@ -626,28 +566,39 @@ Object.defineProperty ObjectPointer::, "parent",
     configurable: on
     get : -> Pointer.of getParentPtri this
 
-
 export class Property        extends Pointer
-    @byteLength : 20
+    @byteLength : 24
 
     @from : ( propertyName, desc = {} ) ->
-        { byteLength, byteOffset, length } = desc
+        { byteLength, byteOffset, isRequired } = desc
 
-        ptri = @new()
-        ptri . description  = desc
-        ptri . length       = Int32Number.from length
+        ptri = @new @byteLength
+
         ptri . byteLength   = Int32Number.from byteLength
         ptri . byteOffset   = Int32Number.from byteOffset
-        ptri . name         =  StringPointer.from propertyName
+        ptri . description  = ObjectPointer.from desc
+        ptri . isRequired   = BooleanPointer.from isRequired
+        ptri . name         = StringPointer.from propertyName
+
+        if  instanceOf = desc.instanceOf
+            ptri.instanceOf = ObjectPointer.from instanceOf
+
         ptri
+
+    from  : ->
+        unless @instanceOf.toPrimitive().from
+            throw [ /UNCONST/, @instanceOf ]
+
+        @instanceOf.toPrimitive().from( arguments... )
 
 export class ClassPointer    extends ObjectPointer
 
     @byteLength : 4
 
     @from : ( Class ) ->
+
         ptri = super Class
-        ptri . name = StringPointer.from Class.name
+        ptri.name = StringPointer.from Class.name
         proto = Object.getPrototypeOf Class
 
         if  proto isnt ObjectPointer
@@ -655,21 +606,14 @@ export class ClassPointer    extends ObjectPointer
 
         return ptri
 
-    @getter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return -> scp[ @getInt32 byteOffset ]
+    getProperty     : ( propertyName = "" ) ->
+        @find (i) -> i.name.toPrimitive() is propertyName
 
-    @setter     : ( propertyName, desc = {} ) ->
-        byteOffset = desc.byteOffset
-        return ( value ) ->
-            @setInt32 byteOffset, scopei(value)      
-
-
-    getAllocLength : ->
+    getAllocLength  : ->
         byteLength = 0
 
         for o in @filter (i) -> i instanceof Property
-            byteLength += o.byteLength.toPrimitive()
+            byteLength += 4
 
         if  parent = @parent
             byteLength += parent.getAllocLength()
@@ -680,31 +624,43 @@ export class ClassPointer    extends ObjectPointer
 
         desc.byteLength = Number desc.byteLength
         desc.byteOffset = @getAllocLength()
-        desc.length   ||= desc.byteLength
 
         @appendChild Property.from propertyName, desc  
-
-        desc.get   and= desc.get(  propertyName, desc )
-        desc.set   and= desc.set(  propertyName, desc )
-        desc.value and= desc.value(propertyName, desc )
-
-        Object.defineProperty @class::, propertyName, desc; this
+        Object.defineProperty @class::, propertyName, desc
+        
+        this
 
     definePointer : ( propertyName, desc = {} ) ->
 
-        desc.get ||= desc.instanceOf.getter
-        desc.set ||= desc.instanceOf.setter
+        byteOffset = @getAllocLength()
+        instanceOf = desc.instanceOf
+        byteLength = desc.byteLength 
+        isRequired = desc.isRequired
 
-        if  byteLength = desc.instanceOf.byteLength
-            desc.byteLength ||= byteLength
+        get = ->
+            if  ptri = @getInt32 byteOffset
+                return Pointer.of ptri
 
-        desc.length ||= ( desc.byteLength /
-            desc.instanceOf.TypedArray.BYTES_PER_ELEMENT ) 
+            if  isRequired and ptri = instanceOf.new()
+                @setInt32 byteOffset, ptri
+
+            ptri
+
+        set = ( value ) ->            
+            unless value instanceof instanceOf
+                value = instanceOf.from value
+            @setInt32 byteOffset, value
+
+        @appendChild Property.from propertyName, {
+            get, set, byteOffset, byteLength, 
+            isRequired, instanceOf
+        }  
+
+        Object.defineProperty @class::, propertyName, {
+            ...desc, get, set, 
+        }        
         
-        desc.byteLength ||= ( desc.length *
-            desc.instanceOf.TypedArray.BYTES_PER_ELEMENT )
-        
-        @defineProperty propertyName, desc
+        this
 
 Object.defineProperty ClassPointer::, "class",
     enumerable: on,
@@ -712,8 +668,8 @@ Object.defineProperty ClassPointer::, "class",
 
 Object.defineProperty ClassPointer::, "name",
     enumerable: on,
-    get : -> new StringPointer @getUint32 0
-    set : -> @setUint32 0, arguments[0]
+    get : -> new StringPointer @getInt32 0
+    set : -> @setInt32 0, arguments[0]
 
 Object.defineProperty ClassPointer::, "byteLength",
     enumerable: on,
@@ -721,23 +677,23 @@ Object.defineProperty ClassPointer::, "byteLength",
 
 Object.defineProperty Property::, "byteLength",
     enumerable: on,
-    get : -> new Int32Number @getUint32 0
-    set : -> @setUint32 0, arguments[0]
+    get : -> new Int32Number @getInt32 0
+    set : -> @setInt32 0, arguments[0]
 
 Object.defineProperty Property::, "byteOffset",
     enumerable: on,
-    get : -> new Int32Number @getUint32 4
-    set : -> @setUint32 4, arguments[0]
+    get : -> new Int32Number @getInt32 4
+    set : -> @setInt32 4, arguments[0]
 
-Object.defineProperty Property::, "length",
+Object.defineProperty Property::, "isRequired",
     enumerable: on,
-    get : -> new Int32Number @getUint32 8
-    set : -> @setUint32 8, arguments[0]
+    get : -> new BooleanPointer @getInt32 8
+    set : -> @setInt32 8, arguments[0]
 
 Object.defineProperty Property::, "description",
     enumerable: on,
-    get : -> scp[ @getUint32 12 ]
-    set : -> @setUint32 12, scopei arguments[0]
+    get : -> new ObjectPointer @getInt32 12
+    set : -> @setInt32 12, arguments[0]
 
 Object.defineProperty Property::, "parent",
     enumerable: on,
@@ -745,5 +701,11 @@ Object.defineProperty Property::, "parent",
 
 Object.defineProperty Property::, "name",
     enumerable: on,
-    get : -> new StringPointer @getUint32 16
-    set : -> @setUint32 16, arguments[0]
+    get : -> new StringPointer @getInt32 16
+    set : -> @setInt32 16, arguments[0]
+
+Object.defineProperty Property::, "instanceOf",
+    enumerable: on,
+    get : -> Pointer.of @getInt32 24
+    set : -> @setInt32 24, arguments[0]
+

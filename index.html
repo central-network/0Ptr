@@ -25,8 +25,6 @@
     ctx.parent.backgroundColor = [1, 1, 0, 1];
     ctx.pointSize = 12.4;
 
-    log(ctx.parent.constructor.classPointer )
-
     let db = Database.create(100)
     let tbl = db.createTable("hesaplama")
 
@@ -34,15 +32,14 @@
     let col1 = tbl.createColumn( "arg1", OPTR.Uint32Number, 4 )
     let col2 = tbl.createColumn( "resultCol", OPTR.Uint32Number, 4 )
 
-    log(db)
-    log(tbl)
-    log(tbl.children)
+    log(db, tbl)
     
     let op0 = db.createOperation(
         col0, col1, col2, "*"
     )
 
     warn(op0)
+    warn(op0.toWorkerCode())
 
 </script>
 

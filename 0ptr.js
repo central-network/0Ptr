@@ -1,6 +1,6 @@
-var ALLOCALIGN_BYTELENGTH, BYTEOFFSET_BYTELENGTH, BYTEOFFSET_BYTEOFFSET, BYTEOFFSET_CLASSINDEX, BYTEOFFSET_PARENTPTRI, BYTEOFFSET_RESVOFFSET, BYTEOFFSET_SCOPEINDEX, PTRHEADERS_BYTELENGTH, addByteLength, addRsvAsUint8, andRsvAsUint8, atomic, bu32, bu8, buf, bvw, byteToInteger, bytesToString, dvw, error, getByteLength, getByteOffset, getClassIndex, getParentPtri, getRsvAsInt16, getRsvAsInt32, getRsvAsUint8, getScopeIndex, hitRsvAsUint8, i32, iLE, integerToByte, log, malloc, offset, palloc, sab, scopei, scp, setByteLength, setByteOffset, setClassIndex, setParentPtri, setRsvAsInt16, setRsvAsInt32, setRsvAsUint8, setScopeIndex, stringToBytes, subRsvAsUint8, ui8, warn;
+var ALLOCALIGN_BYTELENGTH, BYTEOFFSET_BYTELENGTH, BYTEOFFSET_BYTEOFFSET, BYTEOFFSET_CLASSINDEX, BYTEOFFSET_PARENTPTRI, BYTEOFFSET_RESVOFFSET, BYTEOFFSET_SCOPEINDEX, PTRHEADERS_BYTELENGTH, addByteLength, addRsvAsUint8, andRsvAsUint8, atomic, bu32, bu8, buf, bvw, byteToInteger, bytesToString, debug, dvw, error, getByteLength, getByteOffset, getClassIndex, getParentPtri, getRsvAsInt16, getRsvAsInt32, getRsvAsUint8, getScopeIndex, hitRsvAsUint8, i32, iLE, integerToByte, log, malloc, offset, palloc, sab, scopei, scp, setByteLength, setByteOffset, setClassIndex, setParentPtri, setRsvAsInt16, setRsvAsInt32, setRsvAsUint8, setScopeIndex, stringToBytes, subRsvAsUint8, ui8, warn;
 
-({log, warn, error} = console);
+({log, warn, error, debug} = console);
 
 iLE = new Uint8Array(Uint32Array.of(1).buffer).at(0);
 
@@ -170,25 +170,6 @@ export var Pointer = (function() {
       return this.classPointer.definePointer(...arguments);
     }
 
-    static getter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return Pointer.of(this.getInt32(byteOffset));
-      };
-    }
-
-    static setter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        if (arguments[0] instanceof Pointer) {
-          return this.setInt32(byteOffset, arguments[0]);
-        }
-        throw /PTRSET_ERR/;
-      };
-    }
-
     constructor(ptri) {
       super(ptri).onconstruct();
     }
@@ -354,7 +335,6 @@ export var Pointer = (function() {
 
     resize(byteLength = 0, dataBackup = true) {
       var TypedArray, byteOffset, length, mod, subarray;
-      throw "resize";
       TypedArray = this.constructor.TypedArray;
       length = byteLength / TypedArray.BYTES_PER_ELEMENT;
       if (dataBackup) {
@@ -465,6 +445,29 @@ Object.defineProperty(Pointer.prototype, "{{Dump}}", {
 });
 
 export var TypedArrayPointer = class TypedArrayPointer extends Pointer {
+  static from(arrayLike) {
+    var BYTES_PER_ELEMENT, byteLength, length, ptri;
+    BYTES_PER_ELEMENT = this.TypedArray.BYTES_PER_ELEMENT;
+    if (Array.isArray(arrayLike)) {
+      length = arrayLike.length;
+      byteLength = length * BYTES_PER_ELEMENT;
+    }
+    if (ArrayBuffer.isView(arrayLike)) {
+      length = arrayLike.length;
+      byteLength = arrayLike.byteLength;
+      if (!(arrayLike instanceof this.TypedArray)) {
+        arrayLike = new this.TypedArray(arrayLike.slice().buffer);
+      }
+    }
+    if (!isNaN(arrayLike)) {
+      length = arrayLike;
+      arrayLike = [];
+    }
+    ptri = this.new(byteLength);
+    ptri.subarray().set(arrayLike);
+    return ptri;
+  }
+
   static getter(propertyName, desc = {}) {
     var TypedArray, byteLength, byteOffset;
     byteOffset = desc.byteOffset;
@@ -593,29 +596,13 @@ export var Matrix4Pointer = (function() {
 
 export var NumberPointer = class NumberPointer extends Pointer {
   static from(value = 0) {
-    return this.new().set(value);
+    return this.new(this.byteLength).set(value * 1);
   }
 
 };
 
 export var Float32Number = (function() {
   class Float32Number extends NumberPointer {
-    static getter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.getFloat32(byteOffset);
-      };
-    }
-
-    static setter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.setFloat32(byteOffset, arguments[0]);
-      };
-    }
-
     set(value = 0) {
       this.setFloat32(0, value);
       return this;
@@ -637,22 +624,6 @@ export var Float32Number = (function() {
 
 export var Int32Number = (function() {
   class Int32Number extends NumberPointer {
-    static getter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.getInt32(byteOffset);
-      };
-    }
-
-    static setter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.setInt32(byteOffset, arguments[0]);
-      };
-    }
-
     set(value = 0) {
       this.setInt32(0, value);
       return this;
@@ -674,22 +645,6 @@ export var Int32Number = (function() {
 
 export var Uint32Number = (function() {
   class Uint32Number extends NumberPointer {
-    static getter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.getUint32(byteOffset);
-      };
-    }
-
-    static setter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.setUint32(byteOffset, arguments[0]);
-      };
-    }
-
     set(value = 0) {
       this.setUint32(0, value);
       return this;
@@ -711,17 +666,6 @@ export var Uint32Number = (function() {
 
 export var Uint32AtomicNumber = (function() {
   class Uint32AtomicNumber extends NumberPointer {
-    static setter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function(value) {
-        if (!(value instanceof Uint32AtomicNumber)) {
-          value = Uint32AtomicNumber.from(value);
-        }
-        return this.setUint32(byteOffset, value);
-      };
-    }
-
     set(value = 0) {
       this.store(value);
       return this;
@@ -749,55 +693,45 @@ export var Uint32AtomicNumber = (function() {
 
 }).call(this);
 
-export var PointerLink = class PointerLink extends Uint32Number {
-  static getter(propertyName, desc = {}) {
-    var byteOffset;
-    byteOffset = desc.byteOffset;
-    return function() {
-      return Pointer.of(this.getUint32(byteOffset));
-    };
-  }
-
-  static setter(propertyName, desc = {}) {
-    var byteOffset;
-    byteOffset = desc.byteOffset;
-    return function(ptri) {
-      if (!(ptri instanceof PointerLink)) {
-        ptri = PointerLink.from(ptri);
+export var PointerLink = (function() {
+  class PointerLink extends Pointer {
+    static from(ptri) {
+      if (!(ptri instanceof Pointer)) {
+        throw [/LINKER/, ...arguments];
       }
-      return this.setUint32(byteOffset, ptri);
-    };
-  }
+      return this.new().set(ptri);
+    }
 
-  toPrimitive() {
-    return Pointer.of(this.getUint32(0));
-  }
+    toPrimitive() {
+      return Pointer.of(this.getInt32(0));
+    }
 
-};
+    set() {
+      this.setInt32(0, arguments[0]);
+      return this;
+    }
 
-Object.defineProperty(PointerLink.prototype, "target", {
-  enumerable: true,
-  get: PointerLink.prototype.toPrimitive
-});
+    from() {
+      return this.toPrimitive().from;
+    }
+
+  };
+
+  PointerLink.TypedArray = Int32Array;
+
+  PointerLink.byteLength = 4;
+
+  Object.defineProperty(PointerLink.prototype, "target", {
+    enumerable: true,
+    get: PointerLink.prototype.toPrimitive
+  });
+
+  return PointerLink;
+
+}).call(this);
 
 export var Int16Number = (function() {
   class Int16Number extends NumberPointer {
-    static getter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.getInt16(byteOffset);
-      };
-    }
-
-    static setter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.setInt16(byteOffset, arguments[0]);
-      };
-    }
-
     set(value = 0) {
       this.setInt16(0, value);
       return this;
@@ -819,22 +753,6 @@ export var Int16Number = (function() {
 
 export var Uint16Number = (function() {
   class Uint16Number extends NumberPointer {
-    static getter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.getUint16(byteOffset);
-      };
-    }
-
-    static setter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.setUint16(byteOffset, arguments[0]);
-      };
-    }
-
     set(value = 0) {
       this.setUint16(0, value);
       return this;
@@ -856,22 +774,6 @@ export var Uint16Number = (function() {
 
 export var Uint8Number = (function() {
   class Uint8Number extends NumberPointer {
-    static getter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.getUint8(byteOffset);
-      };
-    }
-
-    static setter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.setUint8(byteOffset, arguments[0]);
-      };
-    }
-
     set(value = 0) {
       this.setUint8(0, value);
       return this;
@@ -893,22 +795,6 @@ export var Uint8Number = (function() {
 
 export var Uint8AtomicNumber = (function() {
   class Uint8AtomicNumber extends NumberPointer {
-    static getter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.loadUint8(byteOffset);
-      };
-    }
-
-    static setter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return this.storeUint8(byteOffset, arguments[0]);
-      };
-    }
-
     set(value = 0) {
       this.storeUint8(0, value);
       return this;
@@ -928,23 +814,14 @@ export var Uint8AtomicNumber = (function() {
 
 }).call(this);
 
+export var BooleanPointer = class BooleanPointer extends Uint8Number {
+  toPrimitive() {
+    return Boolean(super.toPrimitive());
+  }
+
+};
+
 export var BooleanAtomic = class BooleanAtomic extends Uint8AtomicNumber {
-  static getter(propertyName, desc = {}) {
-    var byteOffset;
-    byteOffset = desc.byteOffset;
-    return function() {
-      return Boolean(this.loadUint8(byteOffset));
-    };
-  }
-
-  static setter(propertyName, desc = {}) {
-    var byteOffset;
-    byteOffset = desc.byteOffset;
-    return function() {
-      return Boolean(this.storeUint8(byteOffset, arguments[0]));
-    };
-  }
-
   toPrimitive() {
     return Boolean(super.toPrimitive());
   }
@@ -954,41 +831,29 @@ export var BooleanAtomic = class BooleanAtomic extends Uint8AtomicNumber {
 export var StringPointer = (function() {
   class StringPointer extends Pointer {
     static from(string = "") {
-      var byteArray;
-      byteArray = stringToBytes(string);
-      return this.new(byteArray.byteLength).set(byteArray);
+      var data, ptri;
+      if (typeof string === "string") {
+        data = stringToBytes(`${string}`);
+      } else if (string instanceof Uint8Array) {
+        data = string.slice();
+      } else if (string instanceof this) {
+        return string;
+      }
+      ptri = this.new(data.byteLength).set(data);
+      return ptri;
     }
 
     toPrimitive() {
       return bytesToString(this.subarray().slice());
     }
 
-    static getter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return StringPointer.of(this.getInt32(byteOffset));
-      };
-    }
-
-    static setter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function(value = "") {
-        if (typeof value === "string") {
-          value = StringPointer.from(value);
-        }
-        if (!(value instanceof StringPointer)) {
-          throw /STRSET_ERR/;
-        }
-        return this.setInt32(byteOffset, value);
-      };
-    }
-
     set(value = "") {
       var nextLength, thisLength, valueArray;
+      if (!`${value}`.trim()) {
+        return this;
+      }
       if (typeof value === "string") {
-        value = stringToBytes(value);
+        return this.set(stringToBytes(`${value}`));
       }
       if (!(value instanceof Uint8Array)) {
         throw /ERRSTRSET/;
@@ -1013,33 +878,35 @@ export var StringPointer = (function() {
 
   StringPointer.TypedArray = Uint8Array;
 
-  StringPointer.byteLength = 4;
-
   return StringPointer;
 
 }).call(this);
 
-export var ObjectPointer = class ObjectPointer extends Pointer {
-  static from(object) {
-    var ptri;
-    ptri = this.new().set(object);
-    ptri.onallocate();
-    return ptri;
-  }
-
-  toPrimitive() {
-    return scp[getScopeIndex(this)];
-  }
-
-  set(object) {
-    if (!isNaN(object)) {
-      object = scp[object];
+export var ObjectPointer = (function() {
+  class ObjectPointer extends Pointer {
+    static from(any) {
+      return this.new().set(any);
     }
-    setScopeIndex(scopei(object), this);
-    return this;
-  }
 
-};
+    toPrimitive() {
+      return scp[getScopeIndex(this)];
+    }
+
+    set(object) {
+      if (!isNaN(object)) {
+        throw /NAN_TOSCP/;
+      }
+      setScopeIndex(scopei(object), this);
+      return this;
+    }
+
+  };
+
+  ObjectPointer.byteLength = 4;
+
+  return ObjectPointer;
+
+}).call(this);
 
 Object.defineProperty(ObjectPointer.prototype, "children", {
   enumerable: true,
@@ -1058,20 +925,30 @@ Object.defineProperty(ObjectPointer.prototype, "parent", {
 export var Property = (function() {
   class Property extends Pointer {
     static from(propertyName, desc = {}) {
-      var byteLength, byteOffset, length, ptri;
-      ({byteLength, byteOffset, length} = desc);
-      ptri = this.new();
-      ptri.description = desc;
-      ptri.length = Int32Number.from(length);
+      var byteLength, byteOffset, instanceOf, isRequired, ptri;
+      ({byteLength, byteOffset, isRequired} = desc);
+      ptri = this.new(this.byteLength);
       ptri.byteLength = Int32Number.from(byteLength);
       ptri.byteOffset = Int32Number.from(byteOffset);
+      ptri.description = ObjectPointer.from(desc);
+      ptri.isRequired = BooleanPointer.from(isRequired);
       ptri.name = StringPointer.from(propertyName);
+      if (instanceOf = desc.instanceOf) {
+        ptri.instanceOf = ObjectPointer.from(instanceOf);
+      }
       return ptri;
+    }
+
+    from() {
+      if (!this.instanceOf.toPrimitive().from) {
+        throw [/UNCONST/, this.instanceOf];
+      }
+      return this.instanceOf.toPrimitive().from(...arguments);
     }
 
   };
 
-  Property.byteLength = 20;
+  Property.byteLength = 24;
 
   return Property;
 
@@ -1090,20 +967,10 @@ export var ClassPointer = (function() {
       return ptri;
     }
 
-    static getter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function() {
-        return scp[this.getInt32(byteOffset)];
-      };
-    }
-
-    static setter(propertyName, desc = {}) {
-      var byteOffset;
-      byteOffset = desc.byteOffset;
-      return function(value) {
-        return this.setInt32(byteOffset, scopei(value));
-      };
+    getProperty(propertyName = "") {
+      return this.find(function(i) {
+        return i.name.toPrimitive() === propertyName;
+      });
     }
 
     getAllocLength() {
@@ -1114,7 +981,7 @@ export var ClassPointer = (function() {
       });
       for (j = 0, len = ref.length; j < len; j++) {
         o = ref[j];
-        byteLength += o.byteLength.toPrimitive();
+        byteLength += 4;
       }
       if (parent = this.parent) {
         byteLength += parent.getAllocLength();
@@ -1125,25 +992,36 @@ export var ClassPointer = (function() {
     defineProperty(propertyName, desc = {}) {
       desc.byteLength = Number(desc.byteLength);
       desc.byteOffset = this.getAllocLength();
-      desc.length || (desc.length = desc.byteLength);
       this.appendChild(Property.from(propertyName, desc));
-      desc.get && (desc.get = desc.get(propertyName, desc));
-      desc.set && (desc.set = desc.set(propertyName, desc));
-      desc.value && (desc.value = desc.value(propertyName, desc));
       Object.defineProperty(this.class.prototype, propertyName, desc);
       return this;
     }
 
     definePointer(propertyName, desc = {}) {
-      var byteLength;
-      desc.get || (desc.get = desc.instanceOf.getter);
-      desc.set || (desc.set = desc.instanceOf.setter);
-      if (byteLength = desc.instanceOf.byteLength) {
-        desc.byteLength || (desc.byteLength = byteLength);
-      }
-      desc.length || (desc.length = desc.byteLength / desc.instanceOf.TypedArray.BYTES_PER_ELEMENT);
-      desc.byteLength || (desc.byteLength = desc.length * desc.instanceOf.TypedArray.BYTES_PER_ELEMENT);
-      return this.defineProperty(propertyName, desc);
+      var byteLength, byteOffset, get, instanceOf, isRequired, set;
+      byteOffset = this.getAllocLength();
+      instanceOf = desc.instanceOf;
+      byteLength = desc.byteLength;
+      isRequired = desc.isRequired;
+      get = function() {
+        var ptri;
+        if (ptri = this.getInt32(byteOffset)) {
+          return Pointer.of(ptri);
+        }
+        if (isRequired && (ptri = instanceOf.new())) {
+          this.setInt32(byteOffset, ptri);
+        }
+        return ptri;
+      };
+      set = function(value) {
+        if (!(value instanceof instanceOf)) {
+          value = instanceOf.from(value);
+        }
+        return this.setInt32(byteOffset, value);
+      };
+      this.appendChild(Property.from(propertyName, {get, set, byteOffset, byteLength, isRequired, instanceOf}));
+      Object.defineProperty(this.class.prototype, propertyName, {...desc, get, set});
+      return this;
     }
 
   };
@@ -1164,10 +1042,10 @@ Object.defineProperty(ClassPointer.prototype, "class", {
 Object.defineProperty(ClassPointer.prototype, "name", {
   enumerable: true,
   get: function() {
-    return new StringPointer(this.getUint32(0));
+    return new StringPointer(this.getInt32(0));
   },
   set: function() {
-    return this.setUint32(0, arguments[0]);
+    return this.setInt32(0, arguments[0]);
   }
 });
 
@@ -1181,40 +1059,40 @@ Object.defineProperty(ClassPointer.prototype, "byteLength", {
 Object.defineProperty(Property.prototype, "byteLength", {
   enumerable: true,
   get: function() {
-    return new Int32Number(this.getUint32(0));
+    return new Int32Number(this.getInt32(0));
   },
   set: function() {
-    return this.setUint32(0, arguments[0]);
+    return this.setInt32(0, arguments[0]);
   }
 });
 
 Object.defineProperty(Property.prototype, "byteOffset", {
   enumerable: true,
   get: function() {
-    return new Int32Number(this.getUint32(4));
+    return new Int32Number(this.getInt32(4));
   },
   set: function() {
-    return this.setUint32(4, arguments[0]);
+    return this.setInt32(4, arguments[0]);
   }
 });
 
-Object.defineProperty(Property.prototype, "length", {
+Object.defineProperty(Property.prototype, "isRequired", {
   enumerable: true,
   get: function() {
-    return new Int32Number(this.getUint32(8));
+    return new BooleanPointer(this.getInt32(8));
   },
   set: function() {
-    return this.setUint32(8, arguments[0]);
+    return this.setInt32(8, arguments[0]);
   }
 });
 
 Object.defineProperty(Property.prototype, "description", {
   enumerable: true,
   get: function() {
-    return scp[this.getUint32(12)];
+    return new ObjectPointer(this.getInt32(12));
   },
   set: function() {
-    return this.setUint32(12, scopei(arguments[0]));
+    return this.setInt32(12, arguments[0]);
   }
 });
 
@@ -1228,9 +1106,19 @@ Object.defineProperty(Property.prototype, "parent", {
 Object.defineProperty(Property.prototype, "name", {
   enumerable: true,
   get: function() {
-    return new StringPointer(this.getUint32(16));
+    return new StringPointer(this.getInt32(16));
   },
   set: function() {
-    return this.setUint32(16, arguments[0]);
+    return this.setInt32(16, arguments[0]);
+  }
+});
+
+Object.defineProperty(Property.prototype, "instanceOf", {
+  enumerable: true,
+  get: function() {
+    return Pointer.of(this.getInt32(24));
+  },
+  set: function() {
+    return this.setInt32(24, arguments[0]);
   }
 });

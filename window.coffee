@@ -89,23 +89,28 @@ Object.defineProperty HTMLDocument::        , "body",
 
 HTMLCanvasElement.definePointer "contextType",
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.Uint8Number 
 
 HTMLCanvasElement.definePointer "width",
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.Int16Number 
 
 HTMLCanvasElement.definePointer "height",
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.Int16Number 
 
 HTMLCanvasElement.definePointer "hasContext",
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.BooleanAtomic 
 
 HTMLCanvasElement.definePointer "backgroundColor",
     byteLength : 4
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.Uint8ArrayPointer 
 
 HTMLCanvasElement.defineProperty "context",
@@ -127,4 +132,5 @@ HTMLCanvasElement.defineProperty "context",
 
 CanvasContext.definePointer "pointSize",
     enumerable : on,
+    isRequired : on,
     instanceOf : OPTR.Float32Number 

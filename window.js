@@ -159,27 +159,32 @@ Object.defineProperty(HTMLDocument.prototype, "body", {
 
 HTMLCanvasElement.definePointer("contextType", {
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.Uint8Number
 });
 
 HTMLCanvasElement.definePointer("width", {
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.Int16Number
 });
 
 HTMLCanvasElement.definePointer("height", {
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.Int16Number
 });
 
 HTMLCanvasElement.definePointer("hasContext", {
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.BooleanAtomic
 });
 
 HTMLCanvasElement.definePointer("backgroundColor", {
   byteLength: 4,
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.Uint8ArrayPointer
 });
 
@@ -208,5 +213,6 @@ HTMLCanvasElement.defineProperty("context", {
 
 CanvasContext.definePointer("pointSize", {
   enumerable: true,
+  isRequired: true,
   instanceOf: OPTR.Float32Number
 });
