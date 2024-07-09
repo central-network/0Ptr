@@ -14,6 +14,7 @@ export class Database                   extends OPTR.ObjectPointer
         tablebinder : /left join|right join|join/gi
         pathbinder  : /\./gi
         textpart    : /\'|\"/g
+        pathpart    : /\`/g
         aliasparser : / as /gi
         rulebinder  : / or | and /gi
         nameparser  : /\,/
@@ -373,17 +374,6 @@ export class Database                   extends OPTR.ObjectPointer
             if -1 is i = item.findIndex (a) -> (a.value is str.value) and a.type is "alias"
                 i += item.push( str )
 
-            query = [
-                query.substring(0, str.start),
-                "$#{i}",
-                query.substring(str.end)
-            ].join("")
-
-
-        #todo bunu en son yap özgür, naber :) <3
-        for str in item.filter (i) -> i.type is "alias"
-            query = query.split("#{str.value}").join("$#{i}" )
-
         parts = []
 
         for match from query.matchAll Database.regExp.partparser    
@@ -421,9 +411,101 @@ export class Database                   extends OPTR.ObjectPointer
             { type: "part", value:text, start, end }  
         )
 
+
+
+        dbName = @name.toPrimitive()
+        targets = []
+
+        colpart = ""
+        srcpart = ""
+        compart = ""
+
+        for part from query.matchAll Database.regExp.querypart
+            switch part[0].trim()
+                when "from" then srcpart = query.substring part.index + part[0].length
+                when "where" then compart = query.substring part.index + part[0].length
+                when "select" then colpart = query.substring part.index + part[0].length
+                else throw /UNDEFINED_PARTERR/
+
+        tables = {}
+
+        colpart = colpart
+            .substring( 0, colpart.lastIndexOf "from" )
+            .split( /\,/g ).map( (p) -> p.trim() )
+
+        srcpart = srcpart
+            .substring( 0, srcpart.lastIndexOf "where" )
+            .split( /\,/g ).map( (p) -> p.trim() )
+
+        for src in srcpart
+            [ tblName, tAlias ] = src.split( /\s+|as/gi ).filter(Boolean)
+            srcName = tAlias || tblName
+
+            srcTable = @find( (t) -> t.name.eq tblName )
+            tables[ srcName ] = srcTable
+                
+
+
+        for coln in colpart
+            if !coln.startsWith "$"
+                cparse = coln.trim().split( /\s+| as |\`/gi ).filter(Boolean)
+                cpName = cparse.at(0)
+
+                colPath = cpName
+                    .split @constructor.regExp.perdefineds
+                    .filter Boolean
+                    .at(0)
+                    .split @constructor.regExp.partparser
+                    .filter Boolean
+                    .at(0)
+
+                domparts = colPath.split(".").reverse()
+                [ cpart, tblpart, dbpart ] = [ ...domparts ]
+
+                if  cparse.length > 1
+                    cAlias = cparse.at(-1)
+                else
+                    cAlias = cpart
+
+                if  dbpart
+                    throw /DBPARTIN_COLDEF/
+                    srccol = undefined
+                else if tblpart
+                    tbl = tables[tblpart] || @find (t) -> t.name.eq tblpart
+                    srccol = tbl.find (c) -> c.name.eq cpart
+
+                else for tn, t of tables
+                    break if srccol = t.find (c) -> c.name.eq cpart
+
+                targets.push {
+                    cAlias: cAlias
+                    tAlias: tblpart || tbl.name.toPrimitive()
+                    column: srccol
+                }
+            else
+                cparse = coln.trim().split( /\s+| as |\`/gi ).filter(Boolean)
+                iName = cparse.at(0)
+
+                if  cparse.length > 1
+                    cAlias = cparse.at(-1)
+                else
+                    cAlias = iName
+
+                targets.push {
+                    cAlias: cAlias
+                    column : cparse[0]
+                    ref : item[ cparse[0].substring 1 ]
+                }
+
+
+        warn targets
+
+
+            
         table item
         log "\n\n",query
         log "\n\n",parts
+
 
         1
 

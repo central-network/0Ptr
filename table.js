@@ -286,7 +286,7 @@ export var Database = (function() {
     }
 
     parse(query = "") {
-      var alsi, alss, i, index, isInteger, isNegative, item, j, k, l, len, len1, len2, len3, len4, m, match, num, nums, o, part, parts, prev, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, str, stri, strs, text, typedNumber, value;
+      var alsi, alss, cAlias, colPath, coln, colpart, compart, cpName, cparse, cpart, dbName, dbpart, domparts, i, iName, index, isInteger, isNegative, item, j, k, l, len, len1, len2, len3, len4, len5, m, match, num, nums, o, part, parts, prev, q, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, src, srcName, srcTable, srccol, srcpart, str, stri, strs, t, tAlias, tables, targets, tbl, tblName, tblpart, text, tn, typedNumber, value;
       nums = [];
       item = [];
       prev = 0;
@@ -416,19 +416,10 @@ export var Database = (function() {
         }))) {
           i += item.push(str);
         }
-        query = [query.substring(0, str.start), `$${i}`, query.substring(str.end)].join("");
-      }
-      ref6 = item.filter(function(i) {
-        return i.type === "alias";
-      });
-      //todo bunu en son yap özgür, naber :) <3
-      for (m = 0, len3 = ref6.length; m < len3; m++) {
-        str = ref6[m];
-        query = query.split(`${str.value}`).join(`$${i}`);
       }
       parts = [];
-      ref7 = query.matchAll(Database.regExp.partparser);
-      for (match of ref7) {
+      ref6 = query.matchAll(Database.regExp.partparser);
+      for (match of ref6) {
         if (match[0].match(Database.regExp.partopener)) {
           parts.push({
             start: match.index
@@ -441,8 +432,8 @@ export var Database = (function() {
           part.length = match.index - part.start;
         }
       }
-      for (o = 0, len4 = parts.length; o < len4; o++) {
-        part = parts[o];
+      for (m = 0, len3 = parts.length; m < len3; m++) {
+        part = parts[m];
         Object.defineProperties(part, {
           children: {
             value: []
@@ -489,6 +480,97 @@ export var Database = (function() {
           end
         };
       }));
+      dbName = this.name.toPrimitive();
+      targets = [];
+      colpart = "";
+      srcpart = "";
+      compart = "";
+      ref7 = query.matchAll(Database.regExp.querypart);
+      for (part of ref7) {
+        switch (part[0].trim()) {
+          case "from":
+            srcpart = query.substring(part.index + part[0].length);
+            break;
+          case "where":
+            compart = query.substring(part.index + part[0].length);
+            break;
+          case "select":
+            colpart = query.substring(part.index + part[0].length);
+            break;
+          default:
+            throw /UNDEFINED_PARTERR/;
+        }
+      }
+      tables = {};
+      colpart = colpart.substring(0, colpart.lastIndexOf("from")).split(/\,/g).map(function(p) {
+        return p.trim();
+      });
+      srcpart = srcpart.substring(0, srcpart.lastIndexOf("where")).split(/\,/g).map(function(p) {
+        return p.trim();
+      });
+      for (o = 0, len4 = srcpart.length; o < len4; o++) {
+        src = srcpart[o];
+        [tblName, tAlias] = src.split(/\s+|as/gi).filter(Boolean);
+        srcName = tAlias || tblName;
+        srcTable = this.find(function(t) {
+          return t.name.eq(tblName);
+        });
+        tables[srcName] = srcTable;
+      }
+      for (q = 0, len5 = colpart.length; q < len5; q++) {
+        coln = colpart[q];
+        if (!coln.startsWith("$")) {
+          cparse = coln.trim().split(/\s+| as |\`/gi).filter(Boolean);
+          cpName = cparse.at(0);
+          colPath = cpName.split(this.constructor.regExp.perdefineds).filter(Boolean).at(0).split(this.constructor.regExp.partparser).filter(Boolean).at(0);
+          domparts = colPath.split(".").reverse();
+          [cpart, tblpart, dbpart] = [...domparts];
+          if (cparse.length > 1) {
+            cAlias = cparse.at(-1);
+          } else {
+            cAlias = cpart;
+          }
+          if (dbpart) {
+            throw /DBPARTIN_COLDEF/;
+            srccol = void 0;
+          } else if (tblpart) {
+            tbl = tables[tblpart] || this.find(function(t) {
+              return t.name.eq(tblpart);
+            });
+            srccol = tbl.find(function(c) {
+              return c.name.eq(cpart);
+            });
+          } else {
+            for (tn in tables) {
+              t = tables[tn];
+              if (srccol = t.find(function(c) {
+                return c.name.eq(cpart);
+              })) {
+                break;
+              }
+            }
+          }
+          targets.push({
+            cAlias: cAlias,
+            tAlias: tblpart || tbl.name.toPrimitive(),
+            column: srccol
+          });
+        } else {
+          cparse = coln.trim().split(/\s+| as |\`/gi).filter(Boolean);
+          iName = cparse.at(0);
+          if (cparse.length > 1) {
+            cAlias = cparse.at(-1);
+          } else {
+            cAlias = iName;
+          }
+          targets.push({
+            cAlias: cAlias,
+            column: cparse[0],
+            ref: item[cparse[0].substring(1)]
+          });
+        }
+      }
+      warn(targets);
       table(item);
       log("\n\n", query);
       log("\n\n", parts);
@@ -507,6 +589,7 @@ export var Database = (function() {
     tablebinder: /left join|right join|join/gi,
     pathbinder: /\./gi,
     textpart: /\'|\"/g,
+    pathpart: /\`/g,
     aliasparser: / as /gi,
     rulebinder: / or | and /gi,
     nameparser: /\,/,

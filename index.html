@@ -90,7 +90,7 @@
         ]
     }))
 
-    ;( db.parse("select arg0, MAX(arg1) as lololo, 'test' as col2, DGR.id, HSP.arg1 as lololo from hesaplama HSP, sonuc, diger AS DGR where (arg0 > lololo) and (((arg0 + SUM((lololo) + 13123243) + (arg0 * -4 + 4215512)) - (arg1 - 5212) >= MAX(arg0)) or (SUM(arg0) = -1.2))") )
+    ;( db.parse("select `hesaplama.arg0`, MAX(HSP.arg1) as lololo, 'from' as col2, DGR.id, HSP.arg1 as lololo from hesaplama HSP, sonuc, diger AS DGR where (arg0 > lololo) and (((arg0 + SUM((lololo) + 13123243) + (arg0 * -4 + 4215512)) - (arg1 - 5212) >= MAX(arg0)) or (SUM(arg0) = -1.2))") )
 
     setTimeout(function (){
         return;

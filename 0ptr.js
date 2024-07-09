@@ -4,7 +4,7 @@ var ALLOCALIGN_BYTELENGTH, BYTEOFFSET_BYTELENGTH, BYTEOFFSET_BYTEOFFSET, BYTEOFF
 
 iLE = new Uint8Array(Uint32Array.of(1).buffer).at(0);
 
-buf = new ArrayBuffer(4e4);
+buf = new ArrayBuffer(4e6);
 
 dvw = new DataView(buf);
 
@@ -14,7 +14,7 @@ ui8 = new Uint8Array(buf);
 
 scp = new Array(void 0);
 
-sab = new ArrayBuffer(4e5);
+sab = new ArrayBuffer(4e6);
 
 bvw = new DataView(sab);
 
@@ -25,6 +25,23 @@ bu32 = new Uint32Array(sab);
 ALLOCALIGN_BYTELENGTH = +4;
 
 PTRHEADERS_BYTELENGTH = -4;
+
+Object.defineProperty(DataView.prototype, "isLittleEndian", {
+  value: Boolean(iLE)
+});
+
+Object.defineProperty(DataView.prototype, "set", {
+  value: function(alias = "Float32", offset = 0, value = 0) {
+    this["set" + alias](offset, value, iLE);
+    return value;
+  }
+});
+
+Object.defineProperty(DataView.prototype, "get", {
+  value: function(alias = "Float32", offset = 0, value = 0) {
+    return this["get" + alias](offset, iLE);
+  }
+});
 
 //? 0 <-- BYTEOFFSET_RESVOFFSET
 BYTEOFFSET_RESVOFFSET = PTRHEADERS_BYTELENGTH += 4;
@@ -302,16 +319,16 @@ export var Pointer = (function() {
     }
 
     filter(testFn) {
-      var childs, count, ptri, ptrj;
+      var childs, index, ptri, ptrj;
       childs = [];
-      count = 0;
+      index = 0;
       ptri = +this;
       ptrj = offset();
       while (ptrj -= PTRHEADERS_BYTELENGTH) {
         if (!(ptri - getParentPtri(ptrj))) {
           ptrj = Pointer.of(ptrj);
-          if (!testFn || testFn(ptrj, count)) {
-            childs[count++] = ptrj;
+          if (!testFn || testFn(ptrj, index)) {
+            childs[index++] = ptrj;
           }
         }
       }
@@ -319,13 +336,14 @@ export var Pointer = (function() {
     }
 
     find(testFn) {
-      var ptri, ptrj;
+      var index, ptri, ptrj;
       ptri = +this;
       ptrj = offset();
+      index = 0;
       while (ptrj -= PTRHEADERS_BYTELENGTH) {
         if (!(ptri - getParentPtri(ptrj))) {
           ptrj = Pointer.of(ptrj);
-          if (testFn(ptrj)) {
+          if (testFn(ptrj, index++)) {
             return ptrj;
           }
         }
@@ -368,12 +386,25 @@ export var Pointer = (function() {
       return new TypedArray(sab, byteOffset, length);
     }
 
+    dataView(byteOffset = 0, byteLength, TypedArray) {
+      byteOffset += getByteOffset(this);
+      byteLength || (byteLength = getByteLength(this));
+      return new DataView(sab, byteOffset, byteLength);
+    }
+
     toPrimitive() {
       return this.subarray();
     }
 
     toString() {
       return this.toPrimitive().toString();
+    }
+
+    eq(any) {
+      if (any instanceof Pointer) {
+        any = any.toPrimitive();
+      }
+      return this.toPrimitive() === any;
     }
 
   };
@@ -461,7 +492,8 @@ export var TypedArrayPointer = class TypedArrayPointer extends Pointer {
     }
     if (!isNaN(arrayLike)) {
       length = arrayLike;
-      arrayLike = [];
+      byteLength = length * BYTES_PER_ELEMENT;
+      arrayLike = new Array();
     }
     ptri = this.new(byteLength);
     ptri.subarray().set(arrayLike);
@@ -618,6 +650,8 @@ export var Float32Number = (function() {
 
   Float32Number.TypedArray = Float32Array;
 
+  Float32Number.alias = "Float32";
+
   return Float32Number;
 
 }).call(this);
@@ -704,6 +738,10 @@ export var PointerLink = (function() {
 
     toPrimitive() {
       return Pointer.of(this.getInt32(0));
+    }
+
+    getProperty() {
+      return this.target.getProperty(...arguments);
     }
 
     set() {
@@ -890,6 +928,10 @@ export var ObjectPointer = (function() {
 
     toPrimitive() {
       return scp[getScopeIndex(this)];
+    }
+
+    getProperty(propertyName = "") {
+      return this.toPrimitive()[propertyName];
     }
 
     set(object) {
