@@ -3,13 +3,13 @@
     canvas { outline: 1px dashed red; }
 </style>
 <script type="module">console.clear()</script>
-<script type="module" src="window.js"></script>
+<script type="module" src="window.min.js"></script>
 <script type="module">
-    import * as OPTR from "./0ptr.js";
-    import { Window } from "./window.js";
+    import * as OPTR from "./0ptr.min.js";
+    import { Window } from "./window.min.js";
     import { Database } from "./table.js";
 
-    let { log, warn, error } = console;
+    let { log, warn, error, table } = console;
 
     let win, ctx;
 
@@ -25,21 +25,82 @@
     ctx.parent.backgroundColor = [1, 1, 0, 1];
     ctx.pointSize = 12.4;
 
-    let db = Database.create(100)
-    let tbl = db.createTable("hesaplama")
+    let db = Database.create("calc")
+    let tbl0 = db.createTable("hesaplama", 1000)
+    let tbl1 = db.createTable("sonuc", 1000)
+    let tbl2 = db.createTable("diger", 100)
 
-    let col0 = tbl.createColumn( "arg0", OPTR.Uint32Number, 4 )
-    let col1 = tbl.createColumn( "arg1", OPTR.Uint32Number, 4 )
-    let col2 = tbl.createColumn( "resultCol", OPTR.Uint32Number, 4 )
+    let col1 = tbl0.createColumn( "arg1", OPTR.Float32Number, 4 )
+    let col0 = tbl0.createColumn( "arg0", OPTR.Float32Number, 4 )
+    let col2 = tbl0.createColumn( "resultCol", OPTR.Float32Number, 4 )
 
-    log(db, tbl)
+    let col3 = tbl1.createColumn( "id", OPTR.Uint32Number, 4 )
+    let col4 = tbl1.createColumn( "value", OPTR.Float32Number, 4 )
+    let col5 = tbl1.createColumn( "time", OPTR.Uint32Number, 4 )
+
+    let col6 = tbl2.createColumn( "id", OPTR.Uint16Number, 2 )
+
     
-    let op0 = db.createOperation(
-        col0, col1, col2, "*"
-    )
+    let i = 0
+    while (i++ < (1e2 * Math.random())  ) {
 
-    warn(op0)
-    warn(op0.toWorkerCode())
+        tbl0.insert({
+            arg0 : Math.random() * 10000,
+            arg1 : Math.random() * 10000
+        })
+
+        //log(tbl0.get(i-1))
+    }
+    
+    i = 0
+    while (i++ < (1e2 * Math.random())  ) {
+
+        tbl1.insert({
+            id : i-1,
+            value : Math.random() * 10000,
+            time : Math.floor(Date.now()/10000)
+        })
+
+        //log(tbl0.get(i-1))
+    }
+
+    let op0 = db.createOperation({
+        in0: col0, 
+        in1: col1, 
+        out: col2, 
+        operator: "+",
+        count: 12
+    });
+
+
+
+    log(db, op0)
+    warn(tbl0)
+    //warn(op0.toWorker())
+
+    table(1 || db.query({
+        //columns : "arg0, arg1 as lololo, DGR.id",
+        //tables : "hesaplama, sonuc, diger as DGR",
+        columns : "arg0, HSP.arg1 as lololo",
+        tables : "hesaplama HSP",
+        rules : [
+            "arg0 > lololo",
+            "(arg0 + SUM((lololo) + 1) + (arg0 + 1)) + 2 >= arg0",
+            "SUM(arg0) = 0",
+        ]
+    }))
+
+    ;( db.parse("select arg0, MAX(arg1) as lololo, 'test' as col2, DGR.id, HSP.arg1 as lololo from hesaplama HSP, sonuc, diger AS DGR where (arg0 > lololo) and (((arg0 + SUM((lololo) + 13123243) + (arg0 * -4 + 4215512)) - (arg1 - 5212) >= MAX(arg0)) or (SUM(arg0) = -1.2))") )
+
+    setTimeout(function (){
+        return;
+        i = 0
+        let res = []
+        while (i++ < 0 + 22) {
+            res.push(tbl0.get(i-1))
+        }
+        table(res)
+    }, 400)
 
 </script>
 

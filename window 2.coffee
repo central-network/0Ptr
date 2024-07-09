@@ -6,9 +6,9 @@ import {
     Uint8ArrayPointer,
     Int32ArrayPointer,
     ClassPointer
-} from "./0ptr.min.js"
+} from "./0ptr.js"
 
-import * as OPTR from "./0ptr.min.js"
+import * as OPTR from "./0ptr.js"
 
 { log, warn, error } = console
 
@@ -50,7 +50,7 @@ export class HTMLCanvasElement      extends HTMLElement
         if  @hasContext = Boolean context
             return @appendChild context
 
-        throw /CTXERR/
+        throw /CTXERR/ 
 
 export class CanvasContext          extends ObjectPointer
 

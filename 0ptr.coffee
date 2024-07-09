@@ -1,18 +1,33 @@
 { log, warn, error, debug } = console
 
 iLE = new Uint8Array( Uint32Array.of(1).buffer ).at 0
-buf = new ArrayBuffer 4e4
+buf = new ArrayBuffer 4e6
 dvw = new DataView buf
 i32 = new Int32Array buf
 ui8 = new Uint8Array buf
 scp = new Array undefined
-sab = new ArrayBuffer 4e5
+sab = new ArrayBuffer 4e6
 bvw = new DataView sab
 bu8 = new Uint8Array sab
 bu32 = new Uint32Array sab
 
 ALLOCALIGN_BYTELENGTH = +4
 PTRHEADERS_BYTELENGTH = -4
+
+Object.defineProperty DataView::, "isLittleEndian", {
+    value : Boolean iLE    
+}
+
+Object.defineProperty DataView::, "set", {
+    value : ( alias = "Float32", offset = 0, value = 0 ) ->
+        @[ "set" + alias ]( offset, value, iLE ) ; value    
+}
+
+Object.defineProperty DataView::, "get", {
+    value : ( alias = "Float32", offset = 0, value = 0 ) ->
+        @[ "get" + alias ]( offset, iLE )
+}
+
 
 #? 0 <-- BYTEOFFSET_RESVOFFSET
 BYTEOFFSET_RESVOFFSET = PTRHEADERS_BYTELENGTH += 4
@@ -176,26 +191,28 @@ export class Pointer extends Number
 
     filter      : ( testFn ) ->
         childs = []
-        count = 0
+        index = 0
         ptri = +this 
         ptrj = offset()
 
         while ptrj -= PTRHEADERS_BYTELENGTH
             unless ptri - getParentPtri ptrj
                 ptrj = Pointer.of ptrj
-                if !testFn or testFn( ptrj, count )
-                    childs[ count++ ] = ptrj
+                if !testFn or testFn( ptrj, index )
+                    childs[ index++ ] = ptrj
 
         childs
 
     find        : ( testFn ) ->
         ptri = +this 
         ptrj = offset()
+        index = 0
 
         while ptrj -= PTRHEADERS_BYTELENGTH
             unless ptri - getParentPtri ptrj
                 ptrj = Pointer.of ptrj
-                return ptrj if testFn( ptrj )
+                if  testFn( ptrj, index++ )
+                    return ptrj 
 
         null
 
@@ -234,9 +251,20 @@ export class Pointer extends Number
         length = byteLength / TypedArray.BYTES_PER_ELEMENT
         new TypedArray( sab, byteOffset, length )
 
+    dataView    : ( byteOffset = 0, byteLength, TypedArray ) ->
+        byteOffset  += getByteOffset( this )
+        byteLength ||= getByteLength( this )
+
+        new DataView( sab, byteOffset, byteLength )
+
     toPrimitive : -> @subarray()
 
     toString    : -> @toPrimitive().toString()  
+
+    eq          : ( any ) ->
+        if  any instanceof Pointer
+            any = any.toPrimitive()
+        @toPrimitive() is any
 
 Object.defineProperties Pointer::,
     hitRsvAsUint8 : value : hitRsvAsUint8
@@ -291,7 +319,8 @@ export class TypedArrayPointer      extends Pointer
 
         if !isNaN arrayLike
             length = arrayLike
-            arrayLike = []
+            byteLength = length * BYTES_PER_ELEMENT 
+            arrayLike = new Array()
 
         ptri = @new byteLength
         ptri . subarray().set arrayLike
@@ -353,7 +382,8 @@ export class Float32Number          extends NumberPointer
     @byteLength : 4 * 1
 
     @TypedArray : Float32Array
-
+    
+    @alias      : "Float32"       
 
     set         : ( value = 0 ) ->
         @setFloat32 0, value
@@ -420,6 +450,8 @@ export class PointerLink            extends Pointer
         @new().set( ptri )
 
     toPrimitive : -> Pointer.of @getInt32 0
+
+    getProperty : -> @target.getProperty arguments...
 
     set         : -> @setInt32 0, arguments[0] ; this
 
@@ -548,6 +580,9 @@ export class ObjectPointer         extends Pointer
     toPrimitive : ->
         scp[ getScopeIndex this ]
 
+    getProperty : ( propertyName = "" ) ->
+        @toPrimitive()[ propertyName ]
+
     set         : ( object ) ->
         unless isNaN object
             throw /NAN_TOSCP/
@@ -634,7 +669,7 @@ export class ClassPointer    extends ObjectPointer
 
         byteOffset = @getAllocLength()
         instanceOf = desc.instanceOf
-        byteLength = desc.byteLength 
+        byteLength = desc.byteLength
         isRequired = desc.isRequired
 
         get = ->

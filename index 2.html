@@ -1,0 +1,47 @@
+<style>
+    html, body { margin: 0; background: black; }
+    canvas { outline: 1px dashed red; }
+</style>
+<script type="module">console.clear()</script>
+<script type="module" src="window.js"></script>
+<script type="module">
+    import * as OPTR from "./0ptr.js";
+    import { Window } from "./window.js";
+    import { Database } from "./table.js";
+
+    let { log, warn, error } = console;
+
+    let win, ctx;
+
+    win = Window.from( window);
+
+    error( win)
+    ctx = win.createCanvas().getContext()
+    log(ctx.parent )
+
+    ctx.parent.width = innerWidth;
+    ctx.parent.height = innerHeight;
+    ctx.parent.counter += 1234;
+    ctx.parent.backgroundColor = [1, 1, 0, 1];
+    ctx.pointSize = 12.4;
+
+    let db = Database.create(100)
+    let tbl = db.createTable("hesaplama")
+
+    let col0 = tbl.createColumn( "arg0", OPTR.Uint32Number, 4 )
+    let col1 = tbl.createColumn( "arg1", OPTR.Uint32Number, 4 )
+    let col2 = tbl.createColumn( "resultCol", OPTR.Uint32Number, 4 )
+
+    log(db, tbl)
+    
+    let op0 = db.createOperation(
+        col0, col1, col2, "*"
+    )
+
+    warn(op0)
+    warn(op0.toWorkerCode())
+
+</script>
+
+
+
