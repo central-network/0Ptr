@@ -1,35 +1,27 @@
 var error, log, warn;
 
-import {
-  Pointer,
-  Int32Number,
-  StringPointer,
-  ObjectPointer,
-  Uint8ArrayPointer,
-  Int32ArrayPointer,
-  ClassPointer
-} from "./0ptr.min.js";
+import * as OPTR from "./0ptr.js";
 
-import * as OPTR from "./0ptr.min.js";
+export * from "./0ptr.js";
 
 ({log, warn, error} = console);
 
 export var Window = (function() {
-  class Window extends ObjectPointer {
+  class Window extends OPTR.ObjectPointer {
     createCanvas(append = true) {
       return this.document.createElement("canvas", append, HTMLCanvasElement);
     }
 
   };
 
-  Window.classPointer = ClassPointer.from(Window);
+  Window.classPointer = OPTR.ClassPointer.from(Window);
 
   return Window;
 
 }).call(this);
 
 export var HTMLElement = (function() {
-  class HTMLElement extends ObjectPointer {
+  class HTMLElement extends OPTR.ObjectPointer {
     appendChild(ptri, nodeAppend = true) {
       var primitive;
       primitive = ptri.toPrimitive();
@@ -41,7 +33,7 @@ export var HTMLElement = (function() {
 
   };
 
-  HTMLElement.classPointer = ClassPointer.from(HTMLElement);
+  HTMLElement.classPointer = OPTR.ClassPointer.from(HTMLElement);
 
   return HTMLElement;
 
@@ -77,16 +69,16 @@ export var HTMLCanvasElement = (function() {
 
   };
 
-  HTMLCanvasElement.classPointer = ClassPointer.from(HTMLCanvasElement);
+  HTMLCanvasElement.classPointer = OPTR.ClassPointer.from(HTMLCanvasElement);
 
   return HTMLCanvasElement;
 
 }).call(this);
 
 export var CanvasContext = (function() {
-  class CanvasContext extends ObjectPointer {};
+  class CanvasContext extends OPTR.ObjectPointer {};
 
-  CanvasContext.classPointer = ClassPointer.from(CanvasContext);
+  CanvasContext.classPointer = OPTR.ClassPointer.from(CanvasContext);
 
   return CanvasContext;
 
@@ -95,7 +87,7 @@ export var CanvasContext = (function() {
 export var WebGL2RenderingContext = (function() {
   class WebGL2RenderingContext extends CanvasContext {};
 
-  WebGL2RenderingContext.classPointer = ClassPointer.from(WebGL2RenderingContext);
+  WebGL2RenderingContext.classPointer = OPTR.ClassPointer.from(WebGL2RenderingContext);
 
   return WebGL2RenderingContext;
 
@@ -104,7 +96,7 @@ export var WebGL2RenderingContext = (function() {
 export var HTMLBodyElement = (function() {
   class HTMLBodyElement extends HTMLElement {};
 
-  HTMLBodyElement.classPointer = ClassPointer.from(HTMLBodyElement);
+  HTMLBodyElement.classPointer = OPTR.ClassPointer.from(HTMLBodyElement);
 
   return HTMLBodyElement;
 
@@ -123,7 +115,7 @@ export var HTMLDocument = (function() {
 
   };
 
-  HTMLDocument.classPointer = ClassPointer.from(HTMLDocument);
+  HTMLDocument.classPointer = OPTR.ClassPointer.from(HTMLDocument);
 
   return HTMLDocument;
 
@@ -197,7 +189,7 @@ HTMLCanvasElement.defineProperty("context", {
     return function() {
       var ptri;
       if (ptri = this.getUint32(byteOffset)) {
-        return Pointer.of(ptri);
+        return OPTR.Pointer.of(ptri);
       }
       return this[propertyName] = this.getContext(this.contextType);
     };

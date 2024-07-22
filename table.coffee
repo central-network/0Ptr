@@ -1,4 +1,5 @@
-import * as OPTR from "./0ptr.min.js"
+import * as OPTR from "./window.js"
+export * from "./window.js";
 
 { log, warn, error, table } = console
 
@@ -10,7 +11,7 @@ export class Database                   extends OPTR.ObjectPointer
 
     @regExp         :
         querybinder : /union /gi
-        querypart   : /select | from | where | group by | order by | limit/gi
+        queryType   : /select | from | where | group by | order by | limit/gi
         tablebinder : /left join|right join|join/gi
         pathbinder  : /\./gi
         textpart    : /\'|\"/g
@@ -18,13 +19,13 @@ export class Database                   extends OPTR.ObjectPointer
         aliasparser : / as /gi
         rulebinder  : / or | and /gi
         nameparser  : /\,/
-        comparator  : /\=|\!\=|\<|\>|\>\=|\<\=/g
+        comparision : /\=|\!\=|\<|\>|\>\=|\<\=/g
         mathbinder  : /\+|\-|\/|\*|\%/g
+        comparser   : /\+|\-|\/|\*|\%|\=|\!\=|\<\=|\>\=|\>|\<| and | or | is not | is | not /gi
         perdefineds : /SUM\(|AVG\(|MAX\(|MIN\(/gi
         partparser  : /\(|\)|\[|\]|\{|\}/g
         partopener  : /\(|\[|\{/g
         numbersplit : /\s+|\(|\)|\[|\]|\{|\}|\,/g
-
 
     @create         : ( name ) ->
         Object.assign @new(), { name }
@@ -90,7 +91,7 @@ export class Database                   extends OPTR.ObjectPointer
 
                 when 1 then tableAlias = matchs[0].name.toPrimitive()
                 when 0 then throw /TBLNOTFOUND_USEDCOLMNS/
-                else retunr throw /COLMNMATCHS_MULTITABLE/
+                else return throw /COLMNMATCHS_MULTITABLE/
 
             table = tables[ tableAlias ] || matchs.at(0)
 
@@ -153,7 +154,7 @@ export class Database                   extends OPTR.ObjectPointer
             return OPTR.Int32Number.from number
 
         getAny      = ( any ) ->
-            Comparator.fromMatch( any ) or
+            Comparision.fromMatch( any ) or
             Operator.fromMatch( any ) or 
             Mathematics.fromMatch( any ) or 
             getNumber( any ) or getColumn any
@@ -236,280 +237,524 @@ export class Database                   extends OPTR.ObjectPointer
         log contents
         ruleset
 
-    query           : ( options = {} ) ->
-        tables = @parseTables options
-        columns = @parseColumns options, tables
-        rules = @parseRules options, columns, tables
+    query           : ( sql ) ->
 
-        if  Object.keys(tables).length is 1
-            for columnAlias, column of columns
-                columns[ columnAlias.split(".")[1] ] = column
-                delete columns[ columnAlias ]
+        query = DBQuery.new()
+        query.sql = sql
+        query.db = this
+        query.parse()
 
-        results = []
-        index = 0
-        for tableAlias, table of tables
-            rows = table.count
-            i = 0
-
-            while i < rows
-                get = table.get i++
-                row = {}
-
-                for columnAlias, column of columns
-                    columnName = column.name.toPrimitive()
-                    row[ columnAlias ] = get[ columnName ]
-
-                for rule in rules
-                    for columnAlias, value of row
-                        #todo replace value with alias and filter
-                        1
-
-                results[index++] = row
-
-        results
-
-    parse           : ( query = "" ) ->
-        nums = []
-        item = [] 
-        prev = 0
-
-        for part from query.matchAll Database.regExp.numbersplit
-            index = part.index
-
-            if !prev
-                prev = index
-                continue
-
-            text = query.substring prev, index
-
-            if !isNaN(text) and text.match /\d/
-                value = text * 1
-                isInteger = Number.isInteger value
-                isNegative = value < 0
-                typedNumber =
-                    if !value then "NaN"
-
-                    else if !isInteger then switch 10 < text.indexOf "."
-                        when on then "Float64"
-                        when no then "Float32"
-
-                    else if !isNegative then switch true 
-                        when value <= 0xff then "Uint8"
-                        when value <= 0xffff then "Uint16"
-                        when value <= 0xffffffff then "Uint32"
-                        else "BigUint64"
-
-                    else switch true
-                        when Math.abs(value) <= 0xff/2 - 1 then "Int8"
-                        when Math.abs(value) <= 0xffff/2 - 1 then "Int16"
-                        when Math.abs(value) <= 0xffffffff/2 - 1 then "Int32"
-                        else "BigInt64"
-                
-                nums.push { start:prev, end:index, type:typedNumber, value }
-
-            prev = index+1
-
-        for num in nums.reverse()
-            query = [
-                query.substring(0, num.start),
-                "$", item.push(num)-1,
-                query.substring(num.end)
-            ].join("")
+        log query
 
 
-        prev = 0
-        strs = []
-        stri = 0
-        for part from query.matchAll Database.regExp.textpart
-
-            index = part.index
-            stri = stri + 1
-
-            if !prev
-                prev = index+1
-                continue
-            
-            unless stri % 2
-                text = query.substring prev, index
-                strs.push { start:prev-1, end:index+1, value:text, type:"string" }
-
-            prev = index+1
-
-        for str in strs.reverse()
-            query = [
-                query.substring(0, str.start),
-                "$", item.push(str)-1,
-                query.substring(str.end)
-            ].join("")
-
-
-
-        prev = 0
-        alss = []
-        alsi = 0
-
-        for part from query.matchAll Database.regExp.aliasparser
-
-            index = part.index
-            alsi = alsi + 1
-
-            if !prev
-                prev = index+4
-                continue
-            
-            unless alsi % 2
-                text = query.substring( prev, index ).split(/\s+|\,/).at(0)
-                alss.push { start:prev, end:prev + text.length, value:text, type: "alias" }
-
-            prev = index+4
-
-        if  part.index
-            text = query.substring( prev ).split(/\s+|\,/).at(0)
-            alss.push { start:prev, end:prev + text.length, value:text, type: "alias" }
-
-
-        for str in alss.reverse()
-
-            if -1 is i = item.findIndex (a) -> (a.value is str.value) and a.type is "alias"
-                i += item.push( str )
-
-        parts = []
-
-        for match from query.matchAll Database.regExp.partparser    
-            if  match[0].match Database.regExp.partopener
-                parts.push start: match.index
-            else 
-                part = parts.findLast( (p) -> p.start and !p.end )
-                part.end = match.index
-                part.length = match.index - part.start
-
-        for part in parts
-            Object.defineProperties part,
-                children : value : []
-                parents : value : []
-        
-        parts
-            .map (p0, i) ->
-                c = []
-                while (p1 = parts[i++]) then if (p1.start > p0.start)
-                    continue unless p1.end < p0.end
-                    (c[c.length] = p1).parents.push p0
-                if c.length then p0.children.push c...
-                p0
-
-            .map (p) ->
-                text = query.substring p.start+1, p.end
-                Object.assign p, { text }
-
-        item.push.apply item, parts.sort( (a, b) ->
-            if a.length < b.length then -2
-            else if a.children.length < b.children.length then -1
-            else 1 
-        ).filter( (p) -> !p.children.length
-        ).map( ({ text, start, end }) ->
-            { type: "part", value:text, start, end }  
-        )
-
-
-
+    getSourceRefs   : ->
+        sources = {}
         dbName = @name.toPrimitive()
-        targets = []
 
-        colpart = ""
-        srcpart = ""
-        compart = ""
-
-        for part from query.matchAll Database.regExp.querypart
-            switch part[0].trim()
-                when "from" then srcpart = query.substring part.index + part[0].length
-                when "where" then compart = query.substring part.index + part[0].length
-                when "select" then colpart = query.substring part.index + part[0].length
-                else throw /UNDEFINED_PARTERR/
-
-        tables = {}
-
-        colpart = colpart
-            .substring( 0, colpart.lastIndexOf "from" )
-            .split( /\,/g ).map( (p) -> p.trim() )
-
-        srcpart = srcpart
-            .substring( 0, srcpart.lastIndexOf "where" )
-            .split( /\,/g ).map( (p) -> p.trim() )
-
-        for src in srcpart
-            [ tblName, tAlias ] = src.split( /\s+|as/gi ).filter(Boolean)
-            srcName = tAlias || tblName
-
-            srcTable = @find( (t) -> t.name.eq tblName )
-            tables[ srcName ] = srcTable
-                
-
-
-        for coln in colpart
-            if !coln.startsWith "$"
-                cparse = coln.trim().split( /\s+| as |\`/gi ).filter(Boolean)
-                cpName = cparse.at(0)
-
-                colPath = cpName
-                    .split @constructor.regExp.perdefineds
-                    .filter Boolean
-                    .at(0)
-                    .split @constructor.regExp.partparser
-                    .filter Boolean
-                    .at(0)
-
-                domparts = colPath.split(".").reverse()
-                [ cpart, tblpart, dbpart ] = [ ...domparts ]
-
-                if  cparse.length > 1
-                    cAlias = cparse.at(-1)
-                else
-                    cAlias = cpart
-
-                if  dbpart
-                    throw /DBPARTIN_COLDEF/
-                    srccol = undefined
-                else if tblpart
-                    tbl = tables[tblpart] || @find (t) -> t.name.eq tblpart
-                    srccol = tbl.find (c) -> c.name.eq cpart
-
-                else for tn, t of tables
-                    break if srccol = t.find (c) -> c.name.eq cpart
-
-                targets.push {
-                    cAlias: cAlias
-                    tAlias: tblpart || tbl.name.toPrimitive()
-                    column: srccol
-                }
-            else
-                cparse = coln.trim().split( /\s+| as |\`/gi ).filter(Boolean)
-                iName = cparse.at(0)
-
-                if  cparse.length > 1
-                    cAlias = cparse.at(-1)
-                else
-                    cAlias = iName
-
-                targets.push {
-                    cAlias: cAlias
-                    column : cparse[0]
-                    ref : item[ cparse[0].substring 1 ]
-                }
-
-
-        warn targets
-
-
+        for tbl in @children
+            tblName = tbl.name.toPrimitive()
             
-        table item
-        log "\n\n",query
-        log "\n\n",parts
+            for col in tbl.children
+                colName = col.name.toPrimitive()
+
+                sources[ "#{dbName}.#{tblName}.#{colName}" ] =
+                sources[ "#{tblName}.#{colName}" ] = col
+
+                if sources[ colName ]
+                    delete sources[ colName ]
+                else sources[ colName ] = col
 
 
-        1
+            sources[ "#{dbName}.#{tblName}" ] = tbl
 
-         
+            if sources[ tblName ]
+                delete sources[ tblName ]
+            else sources[ tblName ] = tbl
+
+        sources
+
+
+export class DBQuery                    extends OPTR.ObjectPointer
+
+    @classPointer   : OPTR.ClassPointer.from this
+
+    parse           : ->
+        items = new Array
+        query = @sql.toPrimitive()
+        sources = @db.getSourceRefs()
+
+        repart = ( parted ) ->
+            
+            ctext = "(#{parted.trim()})"
+            parts = []
+
+            for part from ctext.matchAll /\(|\)|\[|\]|\{|\}|\`|\'|\"/g
+
+                [ match ] =
+                { index : start } = part
+                { length : index } = parts.filter (p) -> p.match is match 
+
+                parts[ parts.length ] = {
+                    match, start, index,
+                    parents: new Array
+                    children: new Array
+                }
+
+            closers = [ ")", "]", "}" ]
+            openers = [ "(", "[", "{", "'", "`", '"' ]
+
+            for closed in parts
+
+                { index , match: closer , start } = closed
+                ( opener = openers[ closers.indexOf closer ])
+
+                if !opener and !closers[ openers.indexOf closer ]
+                    opener = if index % 2 then closer
+                    else null
+
+                opened = parts
+                    .filter (p) -> p.match is opener
+                    .filter (p) -> p.start < start
+                    .filter (p) -> p.end is undefined
+                    .at -1
+
+                unless opened then continue
+
+                opened.end = closed.start
+                opened.text = ctext.substring opened.start, start+1
+                opened.length = start - opened.start
+                opened.isString = opener is closer
+
+                delete opened.index
+
+            for p0 in parts.filter (p) -> p.end
+                for p1 in parts when p1 isnt p0
+                    isAfter = p1.start > p0.start
+                    isEarly = p1.end < p0.end
+
+                    if  isAfter * isEarly
+                        p0.children.push p1
+                        p1.parents.push p0
+
+            childs = parts.filter (p) -> p.parents.length
+            childs . sort (a,b) -> a.text.length - b.text.length
+
+            for adopted in childs
+                adopted.parents.sort (a,b) -> a.text.length - b.text.length
+            
+            for p0 in childs then for parent in p0.parents
+                
+                if -1 is i = items.findIndex (p1) -> p1.text is p0.text
+                    { start, end, length } = p0
+                    item = {}
+
+                    if  p0.isString 
+                        text = p0.text.substring 1, p0.text.length-1
+                        item.ref = OPTR.StringPointer.from text 
+                        item.type = "text"
+                    
+                    item.text = p0.text
+                    item.type = item.type || "part"
+                    item.part = { start, end, length }
+
+                    i += items.push item
+                
+                parent.text =
+                    parent.text.split( p0.text ).join( "$part"+i )
+
+            p0text = parts[0].text
+            length = p0text.length - 2
+            result = p0text.substring 1, 1 + length
+
+            if  parts[0].children.length
+                return repart result
+            
+            result
+
+        partRawQuery = ->
+            rtext = repart query
+            items . map (item, i) -> Object.assign item,
+                text : item.text.substring 1, item.text.length-1
+                name : "$part#{i}"
+                item : new Object
+
+            for subs in items.filter (i) -> i.text.includes "$part"
+                for sub in subs.text.split( /\s/g ).filter (s) -> s.startsWith "$part"
+                    subs . item[ sub ] = items[ sub.replace "$part", "" ]
+
+            requery = "#{query}"
+
+            for label , ref of sources
+                continue if !requery.includes label
+                continue if  items.find (i) -> i.ref is ref
+
+                items.push {
+                    ref : ref, 
+                    type : "ref",
+                    text : label
+                    name : "$ref#{items.length}"
+                } 
+
+            for item0 in items.filter (i) -> !i.ref
+                for item1 in items.filter (i) -> i.ref
+
+                    text0 = item0.text
+                    text1 = item1.text
+
+                    if !text0.includes text1
+                        continue
+
+                    if  text0 is text1
+                        item0.to = item1
+                        continue
+
+                    item0.text = text0.split( text1 ).join item1.name
+                    item0.item[ item1.name ] = item1  
+
+            for item0 in items.filter (i) -> i.to
+                iname = item0.name
+                toref = item0.to
+                rname = toref.name
+
+                for item1 in items.filter (i) -> i.text.includes iname
+                    item1.text = item1.text
+                        .split iname
+                        .join rname
+                        
+                    item1.item[ rname ] = toref
+                    delete  item1.item[ iname ]
+
+                rtext = rtext
+                    .split iname
+                    .join rname
+
+            items = items.filter (i) -> !i.to
+
+            for item in items when rtext.includes itext = item.text
+                rtext = rtext.split( itext ).join( item.name ) 
+
+
+            pquery = " #{rtext} "
+            qbinds = "select|from|where|order by|limit".split "|"
+            qregex = new RegExp " #{qbinds.join( " | " )} ", "gi"
+            qparts = []
+
+            for qpart from pquery.matchAll qregex
+                [ qtype ] = qpart
+                { index: start, input } = qpart
+                { length: index } = qparts
+
+                text = input.substring start
+                type = qtype.trim()
+                end  = start + text.length
+
+                qparts[ index ] = {
+                    type, text, start, end
+                }
+
+                if  prev = qparts[ index-1 ]
+                    prev.end = start
+                    prev.text = qpart.input.substring prev.start, start
+
+            for qpart in qparts
+
+                { type, text } = qpart
+                [ start, end ] = [0,0]
+
+                while text . startsWith " "
+                    text = text.substring 1
+                    ++start
+
+                while text . endsWith " "
+                    text = text.substring 0, text.length-1
+                    end--
+
+                if  text . startsWith type
+                    text = text.substring(
+                        start += type.length
+                    )
+
+                qpart.text = text
+                qpart.start += start
+                qpart.end += end
+
+            qparts.at( -0 ).start--
+            qparts.at( -1 ).end--
+
+            for qpart in qparts
+                { start, end, text, type } = qpart
+
+                index = items.length
+                iname = [
+                    "$", {
+                        from    : "tables",
+                        where   : "matches",
+                        select  : "columns",
+                    }[ type ]
+                ].join ""
+
+                items[ index ] = {
+                    name: iname, text,
+                    type: "qpart"
+                    part: { start, end },
+                    item: {}
+                }
+
+                rtext = rtext.split( text ).join( iname )
+
+            for value in items then Object.defineProperty(
+                items , value.name , { value }
+            ) unless Object.hasOwn items, value.name
+
+            rtext
+
+        parseColumns = ->
+            coldefs = []
+            coltext = ",#{items.$columns.text},"
+            for cdef from coltext.matchAll /\,/g
+
+                start = cdef.index + 1
+                index = coldefs.length
+                
+                coldefs[ index ] = { start }
+
+                if  prev = coldefs[ index - 1 ]
+                    prev . end = start - 1
+
+            coldefs.splice -1
+
+            for cdef in coldefs
+
+                text = coltext.substring cdef.start, cdef.end
+
+                l = text.length
+                i = 0
+                j = l-1
+
+                i++ while !text[i].replace(",","").trim()
+                j-- while !text[j].replace(",","").trim()
+
+                cdef.text = text.substring i, j+1
+
+            iColumnsStart = items.$columns.part.start
+
+            for cdef in coldefs
+                cdef.start += iColumnsStart
+                cdef.end = cdef.start + cdef.text.length - 1
+            
+            for cdef in coldefs
+
+                cparse = cdef.text.split new RegExp " as ", "i"
+                colref = cparse.at(  0 )
+                calias = cparse.at( -1 ) 
+
+                unless ref = items[ colref ]
+                    throw /REFNOTFOUND/
+
+                if  colref isnt calias
+                    items.push ref = {
+                        ref: ref.ref,
+                        text: calias, 
+                        type: "alias"
+                        name: "$ref#{items.length}"
+                    }
+
+                    items.$columns.text = items.$columns.text
+                        .split( cdef.text ).join( ref.name )
+
+                cdef.ref = items.$columns.item[ ref.name ] = ref
+            items.$columns.subs = coldefs
+
+            for value in items then Object.defineProperty(
+                items , value.name , { value }
+            ) unless Object.hasOwn items, value.name
+
+        parseSources = ->
+
+            tbldefs = []
+            tbltext = ",#{items.$tables.text},"
+            for tdef from tbltext.matchAll /\,/g
+
+                start = tdef.index + 1
+                index = tbldefs.length
+                
+                tbldefs[ index ] = { start }
+
+                if  prev = tbldefs[ index - 1 ]
+                    prev . end = start - 1
+
+            tbldefs.splice -1
+
+            for tdef in tbldefs
+
+                text = tbltext.substring tdef.start, tdef.end
+
+                l = text.length
+                i = 0
+                j = l-1
+
+                i++ while !text[i].replace(",","").trim()
+                j-- while !text[j].replace(",","").trim()
+
+                tdef.text = text.substring i, j+1
+
+            for tdef in tbldefs
+                tdef.start += items.$tables.part.start
+                tdef.end = tdef.start + tdef.text.length - 1
+            
+            for tdef in tbldefs
+
+                tparse = tdef.text.split new RegExp " ", "i"
+                tblref = tparse.at(  0 )
+                talias = tparse.at( -1 ) 
+
+                unless ref = items[ tblref ]
+                    throw /REFNOTFOUND/
+
+                if  tblref isnt talias
+                    items.push ref = {
+                        ref: ref.ref,
+                        text: talias, 
+                        type: "alias"
+                        name: "$ref#{items.length}"
+                    }
+
+                    items.$tables.text = items.$tables.text
+                        .split( tdef.text ).join( ref.name )
+
+                tdef.ref = items.$tables.item[ ref.name ] = ref
+
+            items.$tables.subs = tbldefs
+
+            for value in items then Object.defineProperty(
+                items , value.name , { value }
+            ) unless Object.hasOwn items, value.name
+
+        parseMatches = ->
+
+            mamdefs = []
+            mattext = " and #{items.$matches.text} and "
+            for mdef from mattext.matchAll new RegExp( " and | or ", "gi" )
+
+                start = mdef.index + mdef[0].length
+                index = mamdefs.length
+                bound = mdef[0].trim()
+                
+                mamdefs[ index ] = { start, bound }
+
+                if  prev = mamdefs[ index - 1 ]
+                    prev . end = mdef.index
+
+            mamdefs.splice -1
+            delete mamdefs[0].bound
+
+            for mdef in mamdefs
+                text = mattext.substring mdef.start, mdef.end
+
+                l = text.length
+                i = 0
+                j = l-1
+
+                i++ while !text[i].trim()
+                j-- while !text[j].trim()
+
+                mdef.text = text.substring i, j+1
+
+            for mdef in mamdefs
+                mdef.start += items.$matches.part.start
+                mdef.end = mdef.start + mdef.text.length - 1
+            
+            for mdef, i in mamdefs when i > 0
+                mamdefs[i].required = yes
+                mamdefs[i-1].required = mdef.bound isnt "or"
+            
+            for mdef in mamdefs
+                matref = mdef.text
+
+                unless ref = items[ matref ]
+                    throw /REFNOTFOUND/
+                
+                items.$matches.item[ ref.name ] =
+                    mdef.ref = ref
+
+                for t, i of ref.item
+                    continue if i.type isnt "part"
+                    i.required = mdef.required
+                ref.required = mdef.required
+
+                delete mdef.required
+
+            items.$matches.subs = mamdefs
+
+            for value in items then Object.defineProperty(
+                items , value.name , { value }
+            ) unless Object.hasOwn items, value.name
+
+        resolveParts = ->
+            for part in items when part.type is "part"
+                
+                text    = part.text
+                subs    = text.split /\s+/g
+                arg0    = subs.at +0
+                arg1    = subs.at -1
+                op      = part.text
+                    .substring( arg0.length, text.length - arg1.length )
+                    .trim()
+                    .replace(/is not|not|\<\>/gi, "!=")
+                    .replace(/is/gi, "=")
+                    .replace(/and/gi, "&&")
+                    .replace(/or/gi, "||")
+
+                for arg, i in [ arg0, arg1 ]
+
+                    if  arg.startsWith "$"
+                        unless ref = part.item[ arg ] = items[ arg ]
+                            throw /ARGNTFOUND/
+
+                    else if !isNaN val = Number arg 
+                        numi = items.length
+                        nname = "$num#{numi}"
+
+                        ref =
+                            ref  : OPTR.NumberPointer.from val
+                            type : "number", name : nname
+
+                        part.item[ nname ] =
+                            items[ numi ] = ref
+
+                    if i is 0 then arg0 = ref
+                    if i is 1 then arg1 = ref
+
+
+                part.text = [ arg0.name, op, arg1.name ].join " "
+                part.operate = [ arg0.ref || arg0, op, arg1.ref || arg1 ]
+
+            0
+
+        rquery = partRawQuery()
+        
+        parseColumns()
+        parseSources()
+        parseMatches()
+        resolveParts()
+
+        @set items
+        @parsedql.set rquery
+
+        for item in items when ref = item.ref
+            unless ref.parent then this.appendChild ref
+            else @appendChild OPTR.PointerLink.from ref 
+
+        table items.slice 0
+        warn query 
+        warn rquery
+    
+export class DBQuerySource              extends OPTR.ObjectPointer
+
+    @classPointer   : OPTR.ClassPointer.from this
+
+    
+
 
 export class Column                     extends OPTR.ObjectPointer
 
@@ -571,7 +816,7 @@ export class Table                      extends OPTR.ObjectPointer
                 basedv.get alias, offset
 
         result
-
+    
     subdataview     : ( byteOffset = 0, byteLength ) ->
         byteLength ||= @byteLength - byteOffset
         @base.dataView( byteOffset, byteLength )
@@ -613,9 +858,30 @@ export class TypedAny                   extends OPTR.ObjectPointer
 
     @definitions    : [ NaN ]
 
-    @from           : ( any ) ->
-        if  1 > type = @definitions.indexOf any
-            throw /UNDEFINED_ANY/
+    @replaceWith    : []
+
+    @matchRegExp    : /$/gui
+
+    @from           : ( any, replaceWith = @replaceWith ) ->
+
+        if rl = replaceWith.length then while rl
+                replace = replaceWith[ --rl ]
+                search = replaceWith[ --rl ]
+                any = any.replace search, replace
+
+        if !any.match @matchRegExp
+            throw /NONMATCHED_REXP/
+
+        typeArray = this.definitions
+        typeCount = typeArray.length
+
+        while type = --typeCount
+            test = "\\#{typeArray[ type ]}"
+            rexp = new RegExp( test, "gi" )
+            break if rexp.test any
+
+        throw /TESTFAIL_ANY/ unless type
+        
         Object.assign @new(), { type }
 
     @fromMatch      : ( any ) ->
@@ -636,13 +902,19 @@ export class Mathematics                extends TypedAny
 
     @classPointer   : OPTR.ClassPointer.from this
 
-    @definitions    : [ NaN, "SUM", "AVG", "MED", "MAX", "MIN", "POW" ]
+    @matchRegExp    :  /\+\+|\-\-|\*\*|\/\/|\+|\-|\*|\//g 
 
-export class Comparator                 extends TypedAny
+    @definitions    : [ NaN, "+", "-", "*", "/", "%", "++", "--", "**", "//" ]
+
+export class Comparision                extends TypedAny
 
     @classPointer   : OPTR.ClassPointer.from this
 
-    @definitions    : [ NaN, "<", ">", "=", ">=", "<=", "!=", "<>" ]
+    @matchRegExp    :  /\ is not |\ not |\ is |\>\=|\<\=|\=\=|\!\=|\>|\<|\=/gi 
+
+    @replaceWith    : [ /is not/gi, "!=", /not/gi, "!=", /is/gi, "==", /\s/g, "" ]
+
+    @definitions    : [ NaN, ">=", "<=", "!=", "==", "<>", "<", ">", "=", "is not", "is", "not" ]
 
 export class Operator                   extends TypedAny
 
@@ -809,6 +1081,21 @@ Database.definePointer "name",
     enumerable : on,
     isRequired : on,
     instanceOf : OPTR.StringPointer
+
+DBQuery.definePointer "sql",
+    enumerable : on,
+    isRequired : on,
+    instanceOf : OPTR.StringPointer
+
+DBQuery.definePointer "parsedql",
+    enumerable : on,
+    isRequired : on,
+    instanceOf : OPTR.StringPointer
+
+DBQuery.definePointer "db",
+    enumerable : on,
+    isRequired : on,
+    instanceOf : Database
 
 Table.definePointer "base",
     enumerable : on,

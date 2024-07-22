@@ -1,33 +1,7 @@
 { log, warn, error, debug } = console
 
-iLE = new Uint8Array( Uint32Array.of(1).buffer ).at 0
-buf = new ArrayBuffer 4e6
-dvw = new DataView buf
-i32 = new Int32Array buf
-ui8 = new Uint8Array buf
-scp = new Array undefined
-sab = new ArrayBuffer 4e6
-bvw = new DataView sab
-bu8 = new Uint8Array sab
-bu32 = new Uint32Array sab
-
 ALLOCALIGN_BYTELENGTH = +4
 PTRHEADERS_BYTELENGTH = -4
-
-Object.defineProperty DataView::, "isLittleEndian", {
-    value : Boolean iLE    
-}
-
-Object.defineProperty DataView::, "set", {
-    value : ( alias = "Float32", offset = 0, value = 0 ) ->
-        @[ "set" + alias ]( offset, value, iLE ) ; value    
-}
-
-Object.defineProperty DataView::, "get", {
-    value : ( alias = "Float32", offset = 0, value = 0 ) ->
-        @[ "get" + alias ]( offset, iLE )
-}
-
 
 #? 0 <-- BYTEOFFSET_RESVOFFSET
 BYTEOFFSET_RESVOFFSET = PTRHEADERS_BYTELENGTH += 4
@@ -73,14 +47,19 @@ bytesToString = TextDecoder::decode.bind new TextDecoder
 integerToByte = ( ival ) -> new Uint8Array Int32Array.of( Number ival ).buffer
 byteToInteger = ( data ) -> new Int32Array( data.slice().buffer )[ 0 ]
 
-atomic = Int32Array.of PTRHEADERS_BYTELENGTH, PTRHEADERS_BYTELENGTH
+atomic[0] ||= PTRHEADERS_BYTELENGTH
+atomic[1] ||= PTRHEADERS_BYTELENGTH
+
 palloc = Atomics.add.bind Atomics, atomic, 0, PTRHEADERS_BYTELENGTH
 malloc = Atomics.add.bind Atomics, atomic, 1
 offset = Atomics.load.bind Atomics, atomic, 0
 
-scopei = ( any ) -> if -1 is (i = scp.indexOf(any)) then i += scp.push(any) else i ; i
+scopei = ( any ) ->
+    if -1 is (i = scp.indexOf(any))
+        i += scp.push(any)
+    i
 
-export class Pointer extends Number
+export class Pointer                extends Number
 
     @byteLength : 4
 
@@ -91,7 +70,6 @@ export class Pointer extends Number
 
     @definePointer : ->
         @classPointer.definePointer( arguments... )
-
 
     buffer      : bvw.buffer
     
@@ -106,6 +84,12 @@ export class Pointer extends Number
     
     setUint8    : ( byteOffset = 0, value = 0 ) ->
         bvw.setUint8   getByteOffset(this) + byteOffset, value; value
+
+    getInt8     : ( byteOffset = 0 ) ->
+        bvw.getInt8   getByteOffset(this) + byteOffset
+    
+    setInt8     : ( byteOffset = 0, value = 0 ) ->
+        bvw.setInt8   getByteOffset(this) + byteOffset, value; value
 
     loadUint8   : ( byteOffset = 0 ) ->
         Atomics.load bu8, getByteOffset(this) + byteOffset 
@@ -203,6 +187,10 @@ export class Pointer extends Number
 
         childs
 
+    includes    : ( ptri ) ->
+        Boolean @find ( ptrj ) -> !(ptrj - ptri)
+
+
     find        : ( testFn ) ->
         ptri = +this 
         ptrj = offset()
@@ -265,37 +253,6 @@ export class Pointer extends Number
         if  any instanceof Pointer
             any = any.toPrimitive()
         @toPrimitive() is any
-
-Object.defineProperties Pointer::,
-    hitRsvAsUint8 : value : hitRsvAsUint8
-    getRsvAsUint8 : value : getRsvAsUint8
-    setRsvAsUint8 : value : setRsvAsUint8
-    andRsvAsUint8 : value : andRsvAsUint8
-    subRsvAsUint8 : value : subRsvAsUint8
-    addRsvAsUint8 : value : addRsvAsUint8
-
-    getRsvAsInt32 : value : getRsvAsInt32
-    setRsvAsInt32 : value : setRsvAsInt32
-
-    getRsvAsInt16 : value : getRsvAsInt16
-    setRsvAsInt16 : value : setRsvAsInt16
-
-Object.defineProperty Pointer::, "#primitive", 
-    get : -> @toPrimitive()
-
-Object.defineProperty Pointer::, "{{Dump}}",
-    get : -> {
-        bufferData : @subarray()
-        byteLength : getByteLength this
-        byteOffset : getByteOffset this
-        classIndex : getClassIndex this
-        classProto : scp[ getClassIndex this ]
-        scopeIndex : getScopeIndex this
-        scopedItem : scp[ getScopeIndex this ]
-        ptriOffset : this * 1
-        headerData : new Int32Array buf, this, 6
-        TypedArray : @constructor.TypedArray.name
-    }
 
 export class TypedArrayPointer      extends Pointer
 
@@ -374,7 +331,29 @@ export class Matrix4Pointer         extends Float32ArrayPointer
 
 export class NumberPointer          extends Pointer
 
-    @from       : ( value = 0 ) ->
+    @from       : ( value = 0, ProtoPtr = this ) ->
+
+        if  ProtoPtr is NumberPointer
+        
+            unless value
+                return Uint8Number.new()
+
+            ProtoPtr =
+            if !Number.isSafeInteger value
+                 if Number.isInteger value then "BigInt64"
+                 else Float32Number
+            else if value < 0 and absv2 = value * -2
+                 if absv2 <= 0xff then Int8Number
+                 else if absv2 <= 0xffff then Int16Number
+                 else if absv2 <= 0xffffffff then Int32Number
+                 else if value = BigInt( value ) then "BigInt64"
+            else if value <= 0xff then Uint8Number
+            else if value <= 0xffff then Uint16Number
+            else if value <= 0xffffffff then Uint32Number
+            else if value = BigInt( value ) then "BigUint64"
+
+            return ProtoPtr.from value
+
         @new( @byteLength ).set value * 1
 
 export class Float32Number          extends NumberPointer
@@ -474,6 +453,19 @@ export class Int16Number            extends NumberPointer
     toPrimitive : ->
         return @getInt16 0
 
+export class Int8Number             extends NumberPointer
+
+    @byteLength : 1
+
+    @TypedArray : Int8Array
+
+    set         : ( value = 0 ) ->
+        @setInt8 0, value
+        return this
+        
+    toPrimitive : ->
+        return @getInt8 0
+
 export class Uint16Number           extends NumberPointer
 
     @byteLength : 2
@@ -521,7 +513,7 @@ export class BooleanAtomic          extends Uint8AtomicNumber
         
     toPrimitive : -> Boolean super()
 
-export class StringPointer         extends Pointer
+export class StringPointer          extends Pointer
 
     @TypedArray : Uint8Array
 
@@ -570,7 +562,7 @@ export class StringPointer         extends Pointer
 
         this
 
-export class ObjectPointer         extends Pointer  
+export class ObjectPointer          extends Pointer  
 
     @byteLength : 4
 
@@ -591,17 +583,7 @@ export class ObjectPointer         extends Pointer
 
         this
 
-Object.defineProperty ObjectPointer::, "children",
-    enumerable: on
-    configurable: on
-    get : Pointer::filter
-
-Object.defineProperty ObjectPointer::, "parent",
-    enumerable: on
-    configurable: on
-    get : -> Pointer.of getParentPtri this
-
-export class Property        extends Pointer
+export class Property               extends Pointer
     @byteLength : 24
 
     @from : ( propertyName, desc = {} ) ->
@@ -626,7 +608,7 @@ export class Property        extends Pointer
 
         @instanceOf.toPrimitive().from( arguments... )
 
-export class ClassPointer    extends ObjectPointer
+export class ClassPointer           extends ObjectPointer
 
     @byteLength : 4
 
@@ -681,7 +663,7 @@ export class ClassPointer    extends ObjectPointer
 
             ptri
 
-        set = ( value ) ->            
+        set = ( value ) ->          
             unless value instanceof instanceOf
                 value = instanceOf.from value
             @setInt32 byteOffset, value
@@ -696,6 +678,47 @@ export class ClassPointer    extends ObjectPointer
         }        
         
         this
+
+Object.defineProperties Pointer::,
+    hitRsvAsUint8 : value : hitRsvAsUint8
+    getRsvAsUint8 : value : getRsvAsUint8
+    setRsvAsUint8 : value : setRsvAsUint8
+    andRsvAsUint8 : value : andRsvAsUint8
+    subRsvAsUint8 : value : subRsvAsUint8
+    addRsvAsUint8 : value : addRsvAsUint8
+
+    getRsvAsInt32 : value : getRsvAsInt32
+    setRsvAsInt32 : value : setRsvAsInt32
+
+    getRsvAsInt16 : value : getRsvAsInt16
+    setRsvAsInt16 : value : setRsvAsInt16
+
+Object.defineProperty Pointer::, "#primitive", 
+    get : -> @toPrimitive()
+
+Object.defineProperty Pointer::, "{{Dump}}",
+    get : -> {
+        bufferData : @subarray()
+        byteLength : getByteLength this
+        byteOffset : getByteOffset this
+        classIndex : getClassIndex this
+        classProto : scp[ getClassIndex this ]
+        scopeIndex : getScopeIndex this
+        scopedItem : scp[ getScopeIndex this ]
+        ptriOffset : this * 1
+        headerData : new Int32Array buf, this, 6
+        TypedArray : @constructor.TypedArray.name
+    }
+
+Object.defineProperty ObjectPointer::, "children",
+    enumerable: on
+    configurable: on
+    get : Pointer::filter
+
+Object.defineProperty ObjectPointer::, "parent",
+    enumerable: on
+    configurable: on
+    get : -> Pointer.of getParentPtri this
 
 Object.defineProperty ClassPointer::, "class",
     enumerable: on,

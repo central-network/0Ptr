@@ -1,6 +1,8 @@
 var error, log, table, warn;
 
-import * as OPTR from "./0ptr.min.js";
+import * as OPTR from "./window.js";
+
+export * from "./window.js";
 
 ({log, warn, error, table} = console);
 
@@ -23,14 +25,14 @@ export var Database = (function() {
     }
 
     parseColumns({columns = "*"}, tables = {}) {
-      var alias, c, colName, columnName, columnNames, j, k, len, len1, matchs, ref, t, tAlias, tableAlias, tablesColumns;
+      var alias, c, colName, columnName, columnNames, k, len, len1, m, matchs, ref1, t, tAlias, tableAlias, tablesColumns;
       if (columns.match(/\*/)) {
         tablesColumns = [];
         for (tAlias in tables) {
           t = tables[tAlias];
-          ref = t.children;
-          for (j = 0, len = ref.length; j < len; j++) {
-            c = ref[j];
+          ref1 = t.children;
+          for (k = 0, len = ref1.length; k < len; k++) {
+            c = ref1[k];
             tablesColumns.push(`${tAlias}.${c.name.toPrimitive()}`);
           }
         }
@@ -45,8 +47,8 @@ export var Database = (function() {
       });
       columnNames = columnNames.filter(Boolean);
       columns = new Object;
-      for (k = 0, len1 = columnNames.length; k < len1; k++) {
-        columnName = columnNames[k];
+      for (m = 0, len1 = columnNames.length; m < len1; m++) {
+        columnName = columnNames[m];
         tableAlias = "";
         if (columnName.match(/\./)) {
           [tableAlias, colName] = columnName.split(/\./g).map(function(n) {
@@ -80,9 +82,7 @@ export var Database = (function() {
           case 0:
             throw /TBLNOTFOUND_USEDCOLMNS/;
           default:
-            retunr((function() {
-              throw /COLMNMATCHS_MULTITABLE/;
-            })());
+            throw /COLMNMATCHS_MULTITABLE/;
         }
         table = tables[tableAlias] || matchs.at(0);
         if (!(columns[`${tableAlias}.${alias}`] = table.children.find(function(c) {
@@ -95,7 +95,7 @@ export var Database = (function() {
     }
 
     parseTables({tables = ""}) {
-      var alias, dbName, j, len, tableName, tableNames;
+      var alias, dbName, k, len, tableName, tableNames;
       tableNames = tables.split(/\,/);
       tableNames = tableNames.map(function(t) {
         return t.trim();
@@ -105,8 +105,8 @@ export var Database = (function() {
         throw /FROMARG_REQUIRED/;
       }
       tables = new Object;
-      for (j = 0, len = tableNames.length; j < len; j++) {
-        tableName = tableNames[j];
+      for (k = 0, len = tableNames.length; k < len; k++) {
+        tableName = tableNames[k];
         [dbName, alias] = tableName.replace(/\s+|as/g, " ").split(/\s+/g);
         if (!alias) {
           alias = dbName;
@@ -122,7 +122,7 @@ export var Database = (function() {
     }
 
     parseRules({rules = []}, columns, tables) {
-      var alias, any, closed, contents, end, ends, getAny, getColumn, getNumber, i, index, j, k, l, len, len1, len2, len3, len4, len5, m, next, o, opened, p0, p1, part, part0, part1, parts, partsAll, partsSliced, prev, q, ref, ref1, ref2, rule, ruleindex, ruleset, start, starts;
+      var alias, any, closed, contents, end, ends, getAny, getColumn, getNumber, i, index, k, len, len1, len2, len3, len4, len5, m, next, o, opened, p0, p1, part, part0, part1, parts, partsAll, partsSliced, prev, q, r, ref1, ref2, ref3, rule, ruleindex, ruleset, start, starts, u;
       ruleset = new Array;
       contents = new Array;
       getColumn = function(any) {
@@ -156,9 +156,9 @@ export var Database = (function() {
         return OPTR.Int32Number.from(number);
       };
       getAny = function(any) {
-        return Comparator.fromMatch(any) || Operator.fromMatch(any) || Mathematics.fromMatch(any) || getNumber(any) || getColumn(any);
+        return Comparision.fromMatch(any) || Operator.fromMatch(any) || Mathematics.fromMatch(any) || getNumber(any) || getColumn(any);
       };
-      for (ruleindex = j = 0, len = rules.length; j < len; ruleindex = ++j) {
+      for (ruleindex = k = 0, len = rules.length; k < len; ruleindex = ++k) {
         rule = rules[ruleindex];
         rule = `(${rule})`;
         parts = [];
@@ -183,9 +183,9 @@ export var Database = (function() {
         if (starts.length - ends.length) {
           throw [/RULEERR_PARANTHESIS/, rule, starts, ends];
         }
-        ref = starts.reverse();
-        for (i = k = 0, len1 = ref.length; k < len1; i = ++k) {
-          start = ref[i];
+        ref1 = starts.reverse();
+        for (i = m = 0, len1 = ref1.length; m < len1; i = ++m) {
+          start = ref1[i];
           alias = "$part" + i;
           index = ends.findIndex(function(i) {
             return i > start;
@@ -204,11 +204,11 @@ export var Database = (function() {
         }
         partsSliced = parts.slice(0);
         partsAll = partsSliced.slice();
-        for (p0 = l = 0, len2 = partsSliced.length; l < len2; p0 = ++l) {
+        for (p0 = o = 0, len2 = partsSliced.length; o < len2; p0 = ++o) {
           part0 = partsSliced[p0];
-          ref1 = partsSliced.slice(p0);
-          for (p1 = m = 0, len3 = ref1.length; m < len3; p1 = ++m) {
-            part1 = ref1[p1];
+          ref2 = partsSliced.slice(p0);
+          for (p1 = q = 0, len3 = ref2.length; q < len3; p1 = ++q) {
+            part1 = ref2[p1];
             part1.subs || (part1.subs = []);
             if (part0.start > part1.start) {
               if (part0.end < part1.end) {
@@ -220,12 +220,12 @@ export var Database = (function() {
           }
         }
         parts = parts.at(-1).subs;
-        for (i = o = 0, len4 = partsAll.length; o < len4; i = ++o) {
+        for (i = r = 0, len4 = partsAll.length; r < len4; i = ++r) {
           part = partsAll[i];
           part.contents = [];
-          ref2 = part.text.split(/\s+|\(|\)/g).filter(Boolean);
-          for (q = 0, len5 = ref2.length; q < len5; q++) {
-            any = ref2[q];
+          ref3 = part.text.split(/\s+|\(|\)/g).filter(Boolean);
+          for (u = 0, len5 = ref3.length; u < len5; u++) {
+            any = ref3[u];
             part.contents.push(contents[contents.length] = {
               any: any,
               part: part,
@@ -245,336 +245,42 @@ export var Database = (function() {
       return ruleset;
     }
 
-    query(options = {}) {
-      var column, columnAlias, columnName, columns, get, i, index, j, len, results, row, rows, rule, rules, tableAlias, tables, value;
-      tables = this.parseTables(options);
-      columns = this.parseColumns(options, tables);
-      rules = this.parseRules(options, columns, tables);
-      if (Object.keys(tables).length === 1) {
-        for (columnAlias in columns) {
-          column = columns[columnAlias];
-          columns[columnAlias.split(".")[1]] = column;
-          delete columns[columnAlias];
-        }
-      }
-      results = [];
-      index = 0;
-      for (tableAlias in tables) {
-        table = tables[tableAlias];
-        rows = table.count;
-        i = 0;
-        while (i < rows) {
-          get = table.get(i++);
-          row = {};
-          for (columnAlias in columns) {
-            column = columns[columnAlias];
-            columnName = column.name.toPrimitive();
-            row[columnAlias] = get[columnName];
-          }
-          for (j = 0, len = rules.length; j < len; j++) {
-            rule = rules[j];
-            for (columnAlias in row) {
-              value = row[columnAlias];
-              //todo replace value with alias and filter
-              1;
-            }
-          }
-          results[index++] = row;
-        }
-      }
-      return results;
+    query(sql) {
+      var query;
+      query = DBQuery.new();
+      query.sql = sql;
+      query.db = this;
+      query.parse();
+      return log(query);
     }
 
-    parse(query = "") {
-      var alsi, alss, cAlias, colPath, coln, colpart, compart, cpName, cparse, cpart, dbName, dbpart, domparts, i, iName, index, isInteger, isNegative, item, j, k, l, len, len1, len2, len3, len4, len5, m, match, num, nums, o, part, parts, prev, q, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, src, srcName, srcTable, srccol, srcpart, str, stri, strs, t, tAlias, tables, targets, tbl, tblName, tblpart, text, tn, typedNumber, value;
-      nums = [];
-      item = [];
-      prev = 0;
-      ref = query.matchAll(Database.regExp.numbersplit);
-      for (part of ref) {
-        index = part.index;
-        if (!prev) {
-          prev = index;
-          continue;
-        }
-        text = query.substring(prev, index);
-        if (!isNaN(text) && text.match(/\d/)) {
-          value = text * 1;
-          isInteger = Number.isInteger(value);
-          isNegative = value < 0;
-          typedNumber = (function() {
-            if (!value) {
-              return "NaN";
-            } else if (!isInteger) {
-              switch (10 < text.indexOf(".")) {
-                case true:
-                  return "Float64";
-                case false:
-                  return "Float32";
-              }
-            } else if (!isNegative) {
-              switch (true) {
-                case value <= 0xff:
-                  return "Uint8";
-                case value <= 0xffff:
-                  return "Uint16";
-                case value <= 0xffffffff:
-                  return "Uint32";
-                default:
-                  return "BigUint64";
-              }
-            } else {
-              switch (true) {
-                case Math.abs(value) <= 0xff / 2 - 1:
-                  return "Int8";
-                case Math.abs(value) <= 0xffff / 2 - 1:
-                  return "Int16";
-                case Math.abs(value) <= 0xffffffff / 2 - 1:
-                  return "Int32";
-                default:
-                  return "BigInt64";
-              }
-            }
-          })();
-          nums.push({
-            start: prev,
-            end: index,
-            type: typedNumber,
-            value
-          });
-        }
-        prev = index + 1;
-      }
-      ref1 = nums.reverse();
-      for (j = 0, len = ref1.length; j < len; j++) {
-        num = ref1[j];
-        query = [query.substring(0, num.start), "$", item.push(num) - 1, query.substring(num.end)].join("");
-      }
-      prev = 0;
-      strs = [];
-      stri = 0;
-      ref2 = query.matchAll(Database.regExp.textpart);
-      for (part of ref2) {
-        index = part.index;
-        stri = stri + 1;
-        if (!prev) {
-          prev = index + 1;
-          continue;
-        }
-        if (!(stri % 2)) {
-          text = query.substring(prev, index);
-          strs.push({
-            start: prev - 1,
-            end: index + 1,
-            value: text,
-            type: "string"
-          });
-        }
-        prev = index + 1;
-      }
-      ref3 = strs.reverse();
-      for (k = 0, len1 = ref3.length; k < len1; k++) {
-        str = ref3[k];
-        query = [query.substring(0, str.start), "$", item.push(str) - 1, query.substring(str.end)].join("");
-      }
-      prev = 0;
-      alss = [];
-      alsi = 0;
-      ref4 = query.matchAll(Database.regExp.aliasparser);
-      for (part of ref4) {
-        index = part.index;
-        alsi = alsi + 1;
-        if (!prev) {
-          prev = index + 4;
-          continue;
-        }
-        if (!(alsi % 2)) {
-          text = query.substring(prev, index).split(/\s+|\,/).at(0);
-          alss.push({
-            start: prev,
-            end: prev + text.length,
-            value: text,
-            type: "alias"
-          });
-        }
-        prev = index + 4;
-      }
-      if (part.index) {
-        text = query.substring(prev).split(/\s+|\,/).at(0);
-        alss.push({
-          start: prev,
-          end: prev + text.length,
-          value: text,
-          type: "alias"
-        });
-      }
-      ref5 = alss.reverse();
-      for (l = 0, len2 = ref5.length; l < len2; l++) {
-        str = ref5[l];
-        if (-1 === (i = item.findIndex(function(a) {
-          return (a.value === str.value) && a.type === "alias";
-        }))) {
-          i += item.push(str);
-        }
-      }
-      parts = [];
-      ref6 = query.matchAll(Database.regExp.partparser);
-      for (match of ref6) {
-        if (match[0].match(Database.regExp.partopener)) {
-          parts.push({
-            start: match.index
-          });
-        } else {
-          part = parts.findLast(function(p) {
-            return p.start && !p.end;
-          });
-          part.end = match.index;
-          part.length = match.index - part.start;
-        }
-      }
-      for (m = 0, len3 = parts.length; m < len3; m++) {
-        part = parts[m];
-        Object.defineProperties(part, {
-          children: {
-            value: []
-          },
-          parents: {
-            value: []
-          }
-        });
-      }
-      parts.map(function(p0, i) {
-        var c, p1;
-        c = [];
-        while ((p1 = parts[i++])) {
-          if (p1.start > p0.start) {
-            if (!(p1.end < p0.end)) {
-              continue;
-            }
-            (c[c.length] = p1).parents.push(p0);
-          }
-        }
-        if (c.length) {
-          p0.children.push(...c);
-        }
-        return p0;
-      }).map(function(p) {
-        text = query.substring(p.start + 1, p.end);
-        return Object.assign(p, {text});
-      });
-      item.push.apply(item, parts.sort(function(a, b) {
-        if (a.length < b.length) {
-          return -2;
-        } else if (a.children.length < b.children.length) {
-          return -1;
-        } else {
-          return 1;
-        }
-      }).filter(function(p) {
-        return !p.children.length;
-      }).map(function({text, start, end}) {
-        return {
-          type: "part",
-          value: text,
-          start,
-          end
-        };
-      }));
+    getSourceRefs() {
+      var col, colName, dbName, k, len, len1, m, ref1, ref2, sources, tbl, tblName;
+      sources = {};
       dbName = this.name.toPrimitive();
-      targets = [];
-      colpart = "";
-      srcpart = "";
-      compart = "";
-      ref7 = query.matchAll(Database.regExp.querypart);
-      for (part of ref7) {
-        switch (part[0].trim()) {
-          case "from":
-            srcpart = query.substring(part.index + part[0].length);
-            break;
-          case "where":
-            compart = query.substring(part.index + part[0].length);
-            break;
-          case "select":
-            colpart = query.substring(part.index + part[0].length);
-            break;
-          default:
-            throw /UNDEFINED_PARTERR/;
+      ref1 = this.children;
+      for (k = 0, len = ref1.length; k < len; k++) {
+        tbl = ref1[k];
+        tblName = tbl.name.toPrimitive();
+        ref2 = tbl.children;
+        for (m = 0, len1 = ref2.length; m < len1; m++) {
+          col = ref2[m];
+          colName = col.name.toPrimitive();
+          sources[`${dbName}.${tblName}.${colName}`] = sources[`${tblName}.${colName}`] = col;
+          if (sources[colName]) {
+            delete sources[colName];
+          } else {
+            sources[colName] = col;
+          }
         }
-      }
-      tables = {};
-      colpart = colpart.substring(0, colpart.lastIndexOf("from")).split(/\,/g).map(function(p) {
-        return p.trim();
-      });
-      srcpart = srcpart.substring(0, srcpart.lastIndexOf("where")).split(/\,/g).map(function(p) {
-        return p.trim();
-      });
-      for (o = 0, len4 = srcpart.length; o < len4; o++) {
-        src = srcpart[o];
-        [tblName, tAlias] = src.split(/\s+|as/gi).filter(Boolean);
-        srcName = tAlias || tblName;
-        srcTable = this.find(function(t) {
-          return t.name.eq(tblName);
-        });
-        tables[srcName] = srcTable;
-      }
-      for (q = 0, len5 = colpart.length; q < len5; q++) {
-        coln = colpart[q];
-        if (!coln.startsWith("$")) {
-          cparse = coln.trim().split(/\s+| as |\`/gi).filter(Boolean);
-          cpName = cparse.at(0);
-          colPath = cpName.split(this.constructor.regExp.perdefineds).filter(Boolean).at(0).split(this.constructor.regExp.partparser).filter(Boolean).at(0);
-          domparts = colPath.split(".").reverse();
-          [cpart, tblpart, dbpart] = [...domparts];
-          if (cparse.length > 1) {
-            cAlias = cparse.at(-1);
-          } else {
-            cAlias = cpart;
-          }
-          if (dbpart) {
-            throw /DBPARTIN_COLDEF/;
-            srccol = void 0;
-          } else if (tblpart) {
-            tbl = tables[tblpart] || this.find(function(t) {
-              return t.name.eq(tblpart);
-            });
-            srccol = tbl.find(function(c) {
-              return c.name.eq(cpart);
-            });
-          } else {
-            for (tn in tables) {
-              t = tables[tn];
-              if (srccol = t.find(function(c) {
-                return c.name.eq(cpart);
-              })) {
-                break;
-              }
-            }
-          }
-          targets.push({
-            cAlias: cAlias,
-            tAlias: tblpart || tbl.name.toPrimitive(),
-            column: srccol
-          });
+        sources[`${dbName}.${tblName}`] = tbl;
+        if (sources[tblName]) {
+          delete sources[tblName];
         } else {
-          cparse = coln.trim().split(/\s+| as |\`/gi).filter(Boolean);
-          iName = cparse.at(0);
-          if (cparse.length > 1) {
-            cAlias = cparse.at(-1);
-          } else {
-            cAlias = iName;
-          }
-          targets.push({
-            cAlias: cAlias,
-            column: cparse[0],
-            ref: item[cparse[0].substring(1)]
-          });
+          sources[tblName] = tbl;
         }
       }
-      warn(targets);
-      table(item);
-      log("\n\n", query);
-      log("\n\n", parts);
-      return 1;
+      return sources;
     }
 
   };
@@ -585,7 +291,7 @@ export var Database = (function() {
 
   Database.regExp = {
     querybinder: /union /gi,
-    querypart: /select | from | where | group by | order by | limit/gi,
+    queryType: /select | from | where | group by | order by | limit/gi,
     tablebinder: /left join|right join|join/gi,
     pathbinder: /\./gi,
     textpart: /\'|\"/g,
@@ -593,8 +299,9 @@ export var Database = (function() {
     aliasparser: / as /gi,
     rulebinder: / or | and /gi,
     nameparser: /\,/,
-    comparator: /\=|\!\=|\<|\>|\>\=|\<\=/g,
+    comparision: /\=|\!\=|\<|\>|\>\=|\<\=/g,
     mathbinder: /\+|\-|\/|\*|\%/g,
+    comparser: /\+|\-|\/|\*|\%|\=|\!\=|\<\=|\>\=|\>|\<| and | or | is not | is | not /gi,
     perdefineds: /SUM\(|AVG\(|MAX\(|MIN\(/gi,
     partparser: /\(|\)|\[|\]|\{|\}/g,
     partopener: /\(|\[|\{/g,
@@ -602,6 +309,572 @@ export var Database = (function() {
   };
 
   return Database;
+
+}).call(this);
+
+export var DBQuery = (function() {
+  class DBQuery extends OPTR.ObjectPointer {
+    parse() {
+      var item, items, k, len, parseColumns, parseMatches, parseSources, partRawQuery, query, ref, repart, resolveParts, rquery, sources;
+      items = new Array;
+      query = this.sql.toPrimitive();
+      sources = this.db.getSourceRefs();
+      repart = function(parted) {
+        var adopted, childs, closed, closer, closers, ctext, end, i, index, isAfter, isEarly, item, k, len, len1, len2, len3, len4, len5, length, m, match, o, opened, opener, openers, p0, p0text, p1, parent, part, parts, q, r, ref1, ref2, ref3, result, start, text, u;
+        ctext = `(${parted.trim()})`;
+        parts = [];
+        ref1 = ctext.matchAll(/\(|\)|\[|\]|\{|\}|\`|\'|\"/g);
+        for (part of ref1) {
+          [match] = ({
+            index: start
+          } = part);
+          ({
+            length: index
+          } = parts.filter(function(p) {
+            return p.match === match;
+          }));
+          parts[parts.length] = {
+            match,
+            start,
+            index,
+            parents: new Array,
+            children: new Array
+          };
+        }
+        closers = [")", "]", "}"];
+        openers = ["(", "[", "{", "'", "`", '"'];
+        for (k = 0, len = parts.length; k < len; k++) {
+          closed = parts[k];
+          ({
+            index,
+            match: closer,
+            start
+          } = closed);
+          (opener = openers[closers.indexOf(closer)]);
+          if (!opener && !closers[openers.indexOf(closer)]) {
+            opener = index % 2 ? closer : null;
+          }
+          opened = parts.filter(function(p) {
+            return p.match === opener;
+          }).filter(function(p) {
+            return p.start < start;
+          }).filter(function(p) {
+            return p.end === void 0;
+          }).at(-1);
+          if (!opened) {
+            continue;
+          }
+          opened.end = closed.start;
+          opened.text = ctext.substring(opened.start, start + 1);
+          opened.length = start - opened.start;
+          opened.isString = opener === closer;
+          delete opened.index;
+        }
+        ref2 = parts.filter(function(p) {
+          return p.end;
+        });
+        for (m = 0, len1 = ref2.length; m < len1; m++) {
+          p0 = ref2[m];
+          for (o = 0, len2 = parts.length; o < len2; o++) {
+            p1 = parts[o];
+            if (!(p1 !== p0)) {
+              continue;
+            }
+            isAfter = p1.start > p0.start;
+            isEarly = p1.end < p0.end;
+            if (isAfter * isEarly) {
+              p0.children.push(p1);
+              p1.parents.push(p0);
+            }
+          }
+        }
+        childs = parts.filter(function(p) {
+          return p.parents.length;
+        });
+        childs.sort(function(a, b) {
+          return a.text.length - b.text.length;
+        });
+        for (q = 0, len3 = childs.length; q < len3; q++) {
+          adopted = childs[q];
+          adopted.parents.sort(function(a, b) {
+            return a.text.length - b.text.length;
+          });
+        }
+        for (r = 0, len4 = childs.length; r < len4; r++) {
+          p0 = childs[r];
+          ref3 = p0.parents;
+          for (u = 0, len5 = ref3.length; u < len5; u++) {
+            parent = ref3[u];
+            if (-1 === (i = items.findIndex(function(p1) {
+              return p1.text === p0.text;
+            }))) {
+              ({start, end, length} = p0);
+              item = {};
+              if (p0.isString) {
+                text = p0.text.substring(1, p0.text.length - 1);
+                item.ref = OPTR.StringPointer.from(text);
+                item.type = "text";
+              }
+              item.text = p0.text;
+              item.type = item.type || "part";
+              item.part = {start, end, length};
+              i += items.push(item);
+            }
+            parent.text = parent.text.split(p0.text).join("$part" + i);
+          }
+        }
+        p0text = parts[0].text;
+        length = p0text.length - 2;
+        result = p0text.substring(1, 1 + length);
+        if (parts[0].children.length) {
+          return repart(result);
+        }
+        return result;
+      };
+      partRawQuery = function() {
+        var end, iname, index, input, item, item0, item1, itext, k, label, len, len1, len2, len3, len4, len5, len6, len7, len8, len9, m, o, pquery, prev, q, qbinds, qpart, qparts, qregex, qtype, r, ref, ref1, ref2, ref3, ref4, ref5, ref6, ref7, requery, rname, rtext, start, sub, subs, text, text0, text1, toref, type, u, v, value, w, x, y;
+        rtext = repart(query);
+        items.map(function(item, i) {
+          return Object.assign(item, {
+            text: item.text.substring(1, item.text.length - 1),
+            name: `$part${i}`,
+            item: new Object
+          });
+        });
+        ref1 = items.filter(function(i) {
+          return i.text.includes("$part");
+        });
+        for (k = 0, len = ref1.length; k < len; k++) {
+          subs = ref1[k];
+          ref2 = subs.text.split(/\s/g).filter(function(s) {
+            return s.startsWith("$part");
+          });
+          for (m = 0, len1 = ref2.length; m < len1; m++) {
+            sub = ref2[m];
+            subs.item[sub] = items[sub.replace("$part", "")];
+          }
+        }
+        requery = `${query}`;
+        for (label in sources) {
+          ref = sources[label];
+          if (!requery.includes(label)) {
+            continue;
+          }
+          if (items.find(function(i) {
+            return i.ref === ref;
+          })) {
+            continue;
+          }
+          items.push({
+            ref: ref,
+            type: "ref",
+            text: label,
+            name: `$ref${items.length}`
+          });
+        }
+        ref3 = items.filter(function(i) {
+          return !i.ref;
+        });
+        for (o = 0, len2 = ref3.length; o < len2; o++) {
+          item0 = ref3[o];
+          ref4 = items.filter(function(i) {
+            return i.ref;
+          });
+          for (q = 0, len3 = ref4.length; q < len3; q++) {
+            item1 = ref4[q];
+            text0 = item0.text;
+            text1 = item1.text;
+            if (!text0.includes(text1)) {
+              continue;
+            }
+            if (text0 === text1) {
+              item0.to = item1;
+              continue;
+            }
+            item0.text = text0.split(text1).join(item1.name);
+            item0.item[item1.name] = item1;
+          }
+        }
+        ref5 = items.filter(function(i) {
+          return i.to;
+        });
+        for (r = 0, len4 = ref5.length; r < len4; r++) {
+          item0 = ref5[r];
+          iname = item0.name;
+          toref = item0.to;
+          rname = toref.name;
+          ref6 = items.filter(function(i) {
+            return i.text.includes(iname);
+          });
+          for (u = 0, len5 = ref6.length; u < len5; u++) {
+            item1 = ref6[u];
+            item1.text = item1.text.split(iname).join(rname);
+            item1.item[rname] = toref;
+            delete item1.item[iname];
+          }
+          rtext = rtext.split(iname).join(rname);
+        }
+        items = items.filter(function(i) {
+          return !i.to;
+        });
+        for (v = 0, len6 = items.length; v < len6; v++) {
+          item = items[v];
+          if (rtext.includes(itext = item.text)) {
+            rtext = rtext.split(itext).join(item.name);
+          }
+        }
+        pquery = ` ${rtext} `;
+        qbinds = "select|from|where|order by|limit".split("|");
+        qregex = new RegExp(` ${qbinds.join(" | ")} `, "gi");
+        qparts = [];
+        ref7 = pquery.matchAll(qregex);
+        for (qpart of ref7) {
+          [qtype] = qpart;
+          ({
+            index: start,
+            input
+          } = qpart);
+          ({
+            length: index
+          } = qparts);
+          text = input.substring(start);
+          type = qtype.trim();
+          end = start + text.length;
+          qparts[index] = {type, text, start, end};
+          if (prev = qparts[index - 1]) {
+            prev.end = start;
+            prev.text = qpart.input.substring(prev.start, start);
+          }
+        }
+        for (w = 0, len7 = qparts.length; w < len7; w++) {
+          qpart = qparts[w];
+          ({type, text} = qpart);
+          [start, end] = [0, 0];
+          while (text.startsWith(" ")) {
+            text = text.substring(1);
+            ++start;
+          }
+          while (text.endsWith(" ")) {
+            text = text.substring(0, text.length - 1);
+            end--;
+          }
+          if (text.startsWith(type)) {
+            text = text.substring(start += type.length);
+          }
+          qpart.text = text;
+          qpart.start += start;
+          qpart.end += end;
+        }
+        qparts.at(-0).start--;
+        qparts.at(-1).end--;
+        for (x = 0, len8 = qparts.length; x < len8; x++) {
+          qpart = qparts[x];
+          ({start, end, text, type} = qpart);
+          index = items.length;
+          iname = [
+            "$",
+            {
+              from: "tables",
+              where: "matches",
+              select: "columns"
+            }[type]
+          ].join("");
+          items[index] = {
+            name: iname,
+            text,
+            type: "qpart",
+            part: {start, end},
+            item: {}
+          };
+          rtext = rtext.split(text).join(iname);
+        }
+        for (y = 0, len9 = items.length; y < len9; y++) {
+          value = items[y];
+          if (!Object.hasOwn(items, value.name)) {
+            Object.defineProperty(items, value.name, {value});
+          }
+        }
+        return rtext;
+      };
+      parseColumns = function() {
+        var calias, cdef, coldefs, colref, coltext, cparse, i, iColumnsStart, index, j, k, l, len, len1, len2, len3, m, o, prev, q, ref, ref1, results, start, text, value;
+        coldefs = [];
+        coltext = `,${items.$columns.text},`;
+        ref1 = coltext.matchAll(/\,/g);
+        for (cdef of ref1) {
+          start = cdef.index + 1;
+          index = coldefs.length;
+          coldefs[index] = {start};
+          if (prev = coldefs[index - 1]) {
+            prev.end = start - 1;
+          }
+        }
+        coldefs.splice(-1);
+        for (k = 0, len = coldefs.length; k < len; k++) {
+          cdef = coldefs[k];
+          text = coltext.substring(cdef.start, cdef.end);
+          l = text.length;
+          i = 0;
+          j = l - 1;
+          while (!text[i].replace(",", "").trim()) {
+            i++;
+          }
+          while (!text[j].replace(",", "").trim()) {
+            j--;
+          }
+          cdef.text = text.substring(i, j + 1);
+        }
+        iColumnsStart = items.$columns.part.start;
+        for (m = 0, len1 = coldefs.length; m < len1; m++) {
+          cdef = coldefs[m];
+          cdef.start += iColumnsStart;
+          cdef.end = cdef.start + cdef.text.length - 1;
+        }
+        for (o = 0, len2 = coldefs.length; o < len2; o++) {
+          cdef = coldefs[o];
+          cparse = cdef.text.split(new RegExp(" as ", "i"));
+          colref = cparse.at(0);
+          calias = cparse.at(-1);
+          if (!(ref = items[colref])) {
+            throw /REFNOTFOUND/;
+          }
+          if (colref !== calias) {
+            items.push(ref = {
+              ref: ref.ref,
+              text: calias,
+              type: "alias",
+              name: `$ref${items.length}`
+            });
+            items.$columns.text = items.$columns.text.split(cdef.text).join(ref.name);
+          }
+          cdef.ref = items.$columns.item[ref.name] = ref;
+        }
+        items.$columns.subs = coldefs;
+        results = [];
+        for (q = 0, len3 = items.length; q < len3; q++) {
+          value = items[q];
+          if (!Object.hasOwn(items, value.name)) {
+            results.push(Object.defineProperty(items, value.name, {value}));
+          } else {
+            results.push(void 0);
+          }
+        }
+        return results;
+      };
+      parseSources = function() {
+        var i, index, j, k, l, len, len1, len2, len3, m, o, prev, q, ref, ref1, results, start, talias, tbldefs, tblref, tbltext, tdef, text, tparse, value;
+        tbldefs = [];
+        tbltext = `,${items.$tables.text},`;
+        ref1 = tbltext.matchAll(/\,/g);
+        for (tdef of ref1) {
+          start = tdef.index + 1;
+          index = tbldefs.length;
+          tbldefs[index] = {start};
+          if (prev = tbldefs[index - 1]) {
+            prev.end = start - 1;
+          }
+        }
+        tbldefs.splice(-1);
+        for (k = 0, len = tbldefs.length; k < len; k++) {
+          tdef = tbldefs[k];
+          text = tbltext.substring(tdef.start, tdef.end);
+          l = text.length;
+          i = 0;
+          j = l - 1;
+          while (!text[i].replace(",", "").trim()) {
+            i++;
+          }
+          while (!text[j].replace(",", "").trim()) {
+            j--;
+          }
+          tdef.text = text.substring(i, j + 1);
+        }
+        for (m = 0, len1 = tbldefs.length; m < len1; m++) {
+          tdef = tbldefs[m];
+          tdef.start += items.$tables.part.start;
+          tdef.end = tdef.start + tdef.text.length - 1;
+        }
+        for (o = 0, len2 = tbldefs.length; o < len2; o++) {
+          tdef = tbldefs[o];
+          tparse = tdef.text.split(new RegExp(" ", "i"));
+          tblref = tparse.at(0);
+          talias = tparse.at(-1);
+          if (!(ref = items[tblref])) {
+            throw /REFNOTFOUND/;
+          }
+          if (tblref !== talias) {
+            items.push(ref = {
+              ref: ref.ref,
+              text: talias,
+              type: "alias",
+              name: `$ref${items.length}`
+            });
+            items.$tables.text = items.$tables.text.split(tdef.text).join(ref.name);
+          }
+          tdef.ref = items.$tables.item[ref.name] = ref;
+        }
+        items.$tables.subs = tbldefs;
+        results = [];
+        for (q = 0, len3 = items.length; q < len3; q++) {
+          value = items[q];
+          if (!Object.hasOwn(items, value.name)) {
+            results.push(Object.defineProperty(items, value.name, {value}));
+          } else {
+            results.push(void 0);
+          }
+        }
+        return results;
+      };
+      parseMatches = function() {
+        var bound, i, index, j, k, l, len, len1, len2, len3, len4, m, mamdefs, matref, mattext, mdef, o, prev, q, r, ref, ref1, ref2, results, start, t, text, value;
+        mamdefs = [];
+        mattext = ` and ${items.$matches.text} and `;
+        ref1 = mattext.matchAll(new RegExp(" and | or ", "gi"));
+        for (mdef of ref1) {
+          start = mdef.index + mdef[0].length;
+          index = mamdefs.length;
+          bound = mdef[0].trim();
+          mamdefs[index] = {start, bound};
+          if (prev = mamdefs[index - 1]) {
+            prev.end = mdef.index;
+          }
+        }
+        mamdefs.splice(-1);
+        delete mamdefs[0].bound;
+        for (k = 0, len = mamdefs.length; k < len; k++) {
+          mdef = mamdefs[k];
+          text = mattext.substring(mdef.start, mdef.end);
+          l = text.length;
+          i = 0;
+          j = l - 1;
+          while (!text[i].trim()) {
+            i++;
+          }
+          while (!text[j].trim()) {
+            j--;
+          }
+          mdef.text = text.substring(i, j + 1);
+        }
+        for (m = 0, len1 = mamdefs.length; m < len1; m++) {
+          mdef = mamdefs[m];
+          mdef.start += items.$matches.part.start;
+          mdef.end = mdef.start + mdef.text.length - 1;
+        }
+        for (i = o = 0, len2 = mamdefs.length; o < len2; i = ++o) {
+          mdef = mamdefs[i];
+          if (!(i > 0)) {
+            continue;
+          }
+          mamdefs[i].required = true;
+          mamdefs[i - 1].required = mdef.bound !== "or";
+        }
+        for (q = 0, len3 = mamdefs.length; q < len3; q++) {
+          mdef = mamdefs[q];
+          matref = mdef.text;
+          if (!(ref = items[matref])) {
+            throw /REFNOTFOUND/;
+          }
+          items.$matches.item[ref.name] = mdef.ref = ref;
+          ref2 = ref.item;
+          for (t in ref2) {
+            i = ref2[t];
+            if (i.type !== "part") {
+              continue;
+            }
+            i.required = mdef.required;
+          }
+          ref.required = mdef.required;
+          delete mdef.required;
+        }
+        items.$matches.subs = mamdefs;
+        results = [];
+        for (r = 0, len4 = items.length; r < len4; r++) {
+          value = items[r];
+          if (!Object.hasOwn(items, value.name)) {
+            results.push(Object.defineProperty(items, value.name, {value}));
+          } else {
+            results.push(void 0);
+          }
+        }
+        return results;
+      };
+      resolveParts = function() {
+        var arg, arg0, arg1, i, k, len, len1, m, nname, numi, op, part, ref, ref1, subs, text, val;
+        for (k = 0, len = items.length; k < len; k++) {
+          part = items[k];
+          if (!(part.type === "part")) {
+            continue;
+          }
+          text = part.text;
+          subs = text.split(/\s+/g);
+          arg0 = subs.at(+0);
+          arg1 = subs.at(-1);
+          op = part.text.substring(arg0.length, text.length - arg1.length).trim().replace(/is not|not|\<\>/gi, "!=").replace(/is/gi, "=").replace(/and/gi, "&&").replace(/or/gi, "||");
+          ref1 = [arg0, arg1];
+          for (i = m = 0, len1 = ref1.length; m < len1; i = ++m) {
+            arg = ref1[i];
+            if (arg.startsWith("$")) {
+              if (!(ref = part.item[arg] = items[arg])) {
+                throw /ARGNTFOUND/;
+              }
+            } else if (!isNaN(val = Number(arg))) {
+              numi = items.length;
+              nname = `$num${numi}`;
+              ref = {
+                ref: OPTR.NumberPointer.from(val),
+                type: "number",
+                name: nname
+              };
+              part.item[nname] = items[numi] = ref;
+            }
+            if (i === 0) {
+              arg0 = ref;
+            }
+            if (i === 1) {
+              arg1 = ref;
+            }
+          }
+          part.text = [arg0.name, op, arg1.name].join(" ");
+          part.operate = [arg0.ref || arg0, op, arg1.ref || arg1];
+        }
+        return 0;
+      };
+      rquery = partRawQuery();
+      parseColumns();
+      parseSources();
+      parseMatches();
+      resolveParts();
+      this.set(items);
+      this.parsedql.set(rquery);
+      for (k = 0, len = items.length; k < len; k++) {
+        item = items[k];
+        if (ref = item.ref) {
+          if (!ref.parent) {
+            this.appendChild(ref);
+          } else {
+            this.appendChild(OPTR.PointerLink.from(ref));
+          }
+        }
+      }
+      table(items.slice(0));
+      warn(query);
+      return warn(rquery);
+    }
+
+  };
+
+  DBQuery.classPointer = OPTR.ClassPointer.from(DBQuery);
+
+  return DBQuery;
+
+}).call(this);
+
+export var DBQuerySource = (function() {
+  class DBQuerySource extends OPTR.ObjectPointer {};
+
+  DBQuerySource.classPointer = OPTR.ClassPointer.from(DBQuerySource);
+
+  return DBQuerySource;
 
 }).call(this);
 
@@ -663,7 +936,7 @@ export var Table = (function() {
     }
 
     get(index = 0) {
-      var alias, basedv, byteLength, byteOffset, col, j, len, offset, ref, result;
+      var alias, basedv, byteLength, byteOffset, col, k, len, offset, ref1, result;
       byteLength = this.stride.toPrimitive();
       byteOffset = byteLength * index;
       basedv = this.base.dataView(byteOffset, byteLength);
@@ -678,9 +951,9 @@ export var Table = (function() {
           value: byteLength
         }
       });
-      ref = this.children;
-      for (j = 0, len = ref.length; j < len; j++) {
-        col = ref[j];
+      ref1 = this.children;
+      for (k = 0, len = ref1.length; k < len; k++) {
+        col = ref1[k];
         alias = col.instanceOf.getProperty("alias");
         offset = col.offset.toPrimitive();
         result[col.name.toPrimitive()] = basedv.get(alias, offset);
@@ -704,13 +977,13 @@ export var Table = (function() {
     }
 
     insert(values = {}) {
-      var alias, basedv, col, j, key, len, offset, ref, stride, value;
+      var alias, basedv, col, k, key, len, offset, ref1, stride, value;
       stride = this.stride.toPrimitive();
       offset = this.offset.add(stride);
       basedv = this.base.dataView(offset, stride);
-      ref = Object.keys(values);
-      for (j = 0, len = ref.length; j < len; j++) {
-        key = ref[j];
+      ref1 = Object.keys(values);
+      for (k = 0, len = ref1.length; k < len; k++) {
+        key = ref1[k];
         col = this.getColumn(key);
         value = values[key];
         alias = col.instanceOf.getProperty("alias");
@@ -741,10 +1014,29 @@ export var Table = (function() {
 
 export var TypedAny = (function() {
   class TypedAny extends OPTR.ObjectPointer {
-    static from(any) {
-      var type;
-      if (1 > (type = this.definitions.indexOf(any))) {
-        throw /UNDEFINED_ANY/;
+    static from(any, replaceWith = this.replaceWith) {
+      var replace, rexp, rl, search, test, type, typeArray, typeCount;
+      if (rl = replaceWith.length) {
+        while (rl) {
+          replace = replaceWith[--rl];
+          search = replaceWith[--rl];
+          any = any.replace(search, replace);
+        }
+      }
+      if (!any.match(this.matchRegExp)) {
+        throw /NONMATCHED_REXP/;
+      }
+      typeArray = this.definitions;
+      typeCount = typeArray.length;
+      while (type = --typeCount) {
+        test = `\\${typeArray[type]}`;
+        rexp = new RegExp(test, "gi");
+        if (rexp.test(any)) {
+          break;
+        }
+      }
+      if (!type) {
+        throw /TESTFAIL_ANY/;
       }
       return Object.assign(this.new(), {type});
     }
@@ -765,6 +1057,10 @@ export var TypedAny = (function() {
   TypedAny.classPointer = OPTR.ClassPointer.from(TypedAny);
 
   TypedAny.definitions = [0/0];
+
+  TypedAny.replaceWith = [];
+
+  TypedAny.matchRegExp = /$/gui;
 
   Object.defineProperty(TypedAny.prototype, "children", {
     enumerable: false,
@@ -787,20 +1083,26 @@ export var Mathematics = (function() {
 
   Mathematics.classPointer = OPTR.ClassPointer.from(Mathematics);
 
-  Mathematics.definitions = [0/0, "SUM", "AVG", "MED", "MAX", "MIN", "POW"];
+  Mathematics.matchRegExp = /\+\+|\-\-|\*\*|\/\/|\+|\-|\*|\//g;
+
+  Mathematics.definitions = [0/0, "+", "-", "*", "/", "%", "++", "--", "**", "//"];
 
   return Mathematics;
 
 }).call(this);
 
-export var Comparator = (function() {
-  class Comparator extends TypedAny {};
+export var Comparision = (function() {
+  class Comparision extends TypedAny {};
 
-  Comparator.classPointer = OPTR.ClassPointer.from(Comparator);
+  Comparision.classPointer = OPTR.ClassPointer.from(Comparision);
 
-  Comparator.definitions = [0/0, "<", ">", "=", ">=", "<=", "!=", "<>"];
+  Comparision.matchRegExp = /\ is not |\ not |\ is |\>\=|\<\=|\=\=|\!\=|\>|\<|\=/gi;
 
-  return Comparator;
+  Comparision.replaceWith = [/is not/gi, "!=", /not/gi, "!=", /is/gi, "==", /\s/g, ""];
+
+  Comparision.definitions = [0/0, ">=", "<=", "!=", "==", "<>", "<", ">", "=", "is not", "is", "not"];
+
+  return Comparision;
 
 }).call(this);
 
@@ -924,6 +1226,24 @@ Database.definePointer("name", {
   enumerable: true,
   isRequired: true,
   instanceOf: OPTR.StringPointer
+});
+
+DBQuery.definePointer("sql", {
+  enumerable: true,
+  isRequired: true,
+  instanceOf: OPTR.StringPointer
+});
+
+DBQuery.definePointer("parsedql", {
+  enumerable: true,
+  isRequired: true,
+  instanceOf: OPTR.StringPointer
+});
+
+DBQuery.definePointer("db", {
+  enumerable: true,
+  isRequired: true,
+  instanceOf: Database
 });
 
 Table.definePointer("base", {

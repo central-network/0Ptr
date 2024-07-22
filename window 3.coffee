@@ -1,18 +1,27 @@
+import {
+    Pointer,
+    Int32Number,
+    StringPointer,
+    ObjectPointer,
+    Uint8ArrayPointer,
+    Int32ArrayPointer,
+    ClassPointer
+} from "./0ptr.js"
+
 import * as OPTR from "./0ptr.js"
-export * from "./0ptr.js"
 
 { log, warn, error } = console
 
-export class Window                 extends OPTR.ObjectPointer
+export class Window                 extends ObjectPointer
 
-    @classPointer   : OPTR.ClassPointer.from this
+    @classPointer   : ClassPointer.from this
 
     createCanvas    : ( append = on ) ->
         @document.createElement( "canvas", append, HTMLCanvasElement )
 
-export class HTMLElement            extends OPTR.ObjectPointer
+export class HTMLElement            extends ObjectPointer
 
-    @classPointer   : OPTR.ClassPointer.from this
+    @classPointer   : ClassPointer.from this
 
     appendChild     : ( ptri, nodeAppend = on ) ->
         primitive = ptri.toPrimitive()
@@ -22,7 +31,7 @@ export class HTMLElement            extends OPTR.ObjectPointer
 
 export class HTMLCanvasElement      extends HTMLElement
 
-    @classPointer   : OPTR.ClassPointer.from this
+    @classPointer   : ClassPointer.from this
 
     getContext      : ( type = this.contextType ) ->
         type = [ "webgl2", "webgpu", "webnn" ][ type ]
@@ -41,23 +50,23 @@ export class HTMLCanvasElement      extends HTMLElement
         if  @hasContext = Boolean context
             return @appendChild context
 
-        throw /CTXERR/
+        throw /CTXERR/ 
 
-export class CanvasContext          extends OPTR.ObjectPointer
+export class CanvasContext          extends ObjectPointer
 
-    @classPointer : OPTR.ClassPointer.from this
+    @classPointer : ClassPointer.from this
 
 export class WebGL2RenderingContext extends CanvasContext
 
-    @classPointer : OPTR.ClassPointer.from this
+    @classPointer : ClassPointer.from this
 
 export class HTMLBodyElement        extends HTMLElement
 
-    @classPointer : OPTR.ClassPointer.from this
+    @classPointer : ClassPointer.from this
 
 export class HTMLDocument           extends HTMLElement
 
-    @classPointer : OPTR.ClassPointer.from this
+    @classPointer : ClassPointer.from this
     
     createElement : ( tagName, append = on, Proto = HTMLElement ) ->
         ptri = Proto.from @toPrimitive().createElement( tagName )
@@ -111,7 +120,7 @@ HTMLCanvasElement.defineProperty "context",
         byteOffset = desc.byteOffset
         return ->
             if  ptri = @getUint32 byteOffset
-                return OPTR.Pointer.of ptri
+                return Pointer.of ptri
 
             @[  propertyName  ] =
                 this.getContext @contextType

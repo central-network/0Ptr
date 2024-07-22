@@ -1,47 +1,10 @@
-var ALLOCALIGN_BYTELENGTH, BYTEOFFSET_BYTELENGTH, BYTEOFFSET_BYTEOFFSET, BYTEOFFSET_CLASSINDEX, BYTEOFFSET_PARENTPTRI, BYTEOFFSET_RESVOFFSET, BYTEOFFSET_SCOPEINDEX, PTRHEADERS_BYTELENGTH, addByteLength, addRsvAsUint8, andRsvAsUint8, atomic, bu32, bu8, buf, bvw, byteToInteger, bytesToString, debug, dvw, error, getByteLength, getByteOffset, getClassIndex, getParentPtri, getRsvAsInt16, getRsvAsInt32, getRsvAsUint8, getScopeIndex, hitRsvAsUint8, i32, iLE, integerToByte, log, malloc, offset, palloc, sab, scopei, scp, setByteLength, setByteOffset, setClassIndex, setParentPtri, setRsvAsInt16, setRsvAsInt32, setRsvAsUint8, setScopeIndex, stringToBytes, subRsvAsUint8, ui8, warn;
+var ALLOCALIGN_BYTELENGTH, BYTEOFFSET_BYTELENGTH, BYTEOFFSET_BYTEOFFSET, BYTEOFFSET_CLASSINDEX, BYTEOFFSET_PARENTPTRI, BYTEOFFSET_RESVOFFSET, BYTEOFFSET_SCOPEINDEX, PTRHEADERS_BYTELENGTH, addByteLength, addRsvAsUint8, andRsvAsUint8, byteToInteger, bytesToString, debug, error, getByteLength, getByteOffset, getClassIndex, getParentPtri, getRsvAsInt16, getRsvAsInt32, getRsvAsUint8, getScopeIndex, hitRsvAsUint8, integerToByte, log, malloc, offset, palloc, scopei, setByteLength, setByteOffset, setClassIndex, setParentPtri, setRsvAsInt16, setRsvAsInt32, setRsvAsUint8, setScopeIndex, stringToBytes, subRsvAsUint8, warn;
 
 ({log, warn, error, debug} = console);
-
-iLE = new Uint8Array(Uint32Array.of(1).buffer).at(0);
-
-buf = new ArrayBuffer(4e6);
-
-dvw = new DataView(buf);
-
-i32 = new Int32Array(buf);
-
-ui8 = new Uint8Array(buf);
-
-scp = new Array(void 0);
-
-sab = new ArrayBuffer(4e6);
-
-bvw = new DataView(sab);
-
-bu8 = new Uint8Array(sab);
-
-bu32 = new Uint32Array(sab);
 
 ALLOCALIGN_BYTELENGTH = +4;
 
 PTRHEADERS_BYTELENGTH = -4;
-
-Object.defineProperty(DataView.prototype, "isLittleEndian", {
-  value: Boolean(iLE)
-});
-
-Object.defineProperty(DataView.prototype, "set", {
-  value: function(alias = "Float32", offset = 0, value = 0) {
-    this["set" + alias](offset, value, iLE);
-    return value;
-  }
-});
-
-Object.defineProperty(DataView.prototype, "get", {
-  value: function(alias = "Float32", offset = 0, value = 0) {
-    return this["get" + alias](offset, iLE);
-  }
-});
 
 //? 0 <-- BYTEOFFSET_RESVOFFSET
 BYTEOFFSET_RESVOFFSET = PTRHEADERS_BYTELENGTH += 4;
@@ -159,7 +122,9 @@ byteToInteger = function(data) {
   return new Int32Array(data.slice().buffer)[0];
 };
 
-atomic = Int32Array.of(PTRHEADERS_BYTELENGTH, PTRHEADERS_BYTELENGTH);
+atomic[0] || (atomic[0] = PTRHEADERS_BYTELENGTH);
+
+atomic[1] || (atomic[1] = PTRHEADERS_BYTELENGTH);
 
 palloc = Atomics.add.bind(Atomics, atomic, 0, PTRHEADERS_BYTELENGTH);
 
@@ -170,11 +135,9 @@ offset = Atomics.load.bind(Atomics, atomic, 0);
 scopei = function(any) {
   var i;
   if (-1 === (i = scp.indexOf(any))) {
-    return i += scp.push(any);
-  } else {
-    i;
-    return i;
+    i += scp.push(any);
   }
+  return i;
 };
 
 export var Pointer = (function() {
@@ -205,6 +168,15 @@ export var Pointer = (function() {
 
     setUint8(byteOffset = 0, value = 0) {
       bvw.setUint8(getByteOffset(this) + byteOffset, value);
+      return value;
+    }
+
+    getInt8(byteOffset = 0) {
+      return bvw.getInt8(getByteOffset(this) + byteOffset);
+    }
+
+    setInt8(byteOffset = 0, value = 0) {
+      bvw.setInt8(getByteOffset(this) + byteOffset, value);
       return value;
     }
 
@@ -335,6 +307,12 @@ export var Pointer = (function() {
       return childs;
     }
 
+    includes(ptri) {
+      return Boolean(this.find(function(ptrj) {
+        return !(ptrj - ptri);
+      }));
+    }
+
     find(testFn) {
       var index, ptri, ptrj;
       ptri = +this;
@@ -418,62 +396,6 @@ export var Pointer = (function() {
   return Pointer;
 
 }).call(this);
-
-Object.defineProperties(Pointer.prototype, {
-  hitRsvAsUint8: {
-    value: hitRsvAsUint8
-  },
-  getRsvAsUint8: {
-    value: getRsvAsUint8
-  },
-  setRsvAsUint8: {
-    value: setRsvAsUint8
-  },
-  andRsvAsUint8: {
-    value: andRsvAsUint8
-  },
-  subRsvAsUint8: {
-    value: subRsvAsUint8
-  },
-  addRsvAsUint8: {
-    value: addRsvAsUint8
-  },
-  getRsvAsInt32: {
-    value: getRsvAsInt32
-  },
-  setRsvAsInt32: {
-    value: setRsvAsInt32
-  },
-  getRsvAsInt16: {
-    value: getRsvAsInt16
-  },
-  setRsvAsInt16: {
-    value: setRsvAsInt16
-  }
-});
-
-Object.defineProperty(Pointer.prototype, "#primitive", {
-  get: function() {
-    return this.toPrimitive();
-  }
-});
-
-Object.defineProperty(Pointer.prototype, "{{Dump}}", {
-  get: function() {
-    return {
-      bufferData: this.subarray(),
-      byteLength: getByteLength(this),
-      byteOffset: getByteOffset(this),
-      classIndex: getClassIndex(this),
-      classProto: scp[getClassIndex(this)],
-      scopeIndex: getScopeIndex(this),
-      scopedItem: scp[getScopeIndex(this)],
-      ptriOffset: this * 1,
-      headerData: new Int32Array(buf, this, 6),
-      TypedArray: this.constructor.TypedArray.name
-    };
-  }
-});
 
 export var TypedArrayPointer = class TypedArrayPointer extends Pointer {
   static from(arrayLike) {
@@ -627,7 +549,15 @@ export var Matrix4Pointer = (function() {
 }).call(this);
 
 export var NumberPointer = class NumberPointer extends Pointer {
-  static from(value = 0) {
+  static from(value = 0, ProtoPtr = this) {
+    var absv2;
+    if (ProtoPtr === NumberPointer) {
+      if (!value) {
+        return Uint8Number.new();
+      }
+      ProtoPtr = !Number.isSafeInteger(value) ? Number.isInteger(value) ? "BigInt64" : Float32Number : value < 0 && (absv2 = value * -2) ? absv2 <= 0xff ? Int8Number : absv2 <= 0xffff ? Int16Number : absv2 <= 0xffffffff ? Int32Number : (value = BigInt(value)) ? "BigInt64" : void 0 : value <= 0xff ? Uint8Number : value <= 0xffff ? Uint16Number : value <= 0xffffffff ? Uint32Number : (value = BigInt(value)) ? "BigUint64" : void 0;
+      return ProtoPtr.from(value);
+    }
     return this.new(this.byteLength).set(value * 1);
   }
 
@@ -786,6 +716,27 @@ export var Int16Number = (function() {
   Int16Number.TypedArray = Int16Array;
 
   return Int16Number;
+
+}).call(this);
+
+export var Int8Number = (function() {
+  class Int8Number extends NumberPointer {
+    set(value = 0) {
+      this.setInt8(0, value);
+      return this;
+    }
+
+    toPrimitive() {
+      return this.getInt8(0);
+    }
+
+  };
+
+  Int8Number.byteLength = 1;
+
+  Int8Number.TypedArray = Int8Array;
+
+  return Int8Number;
 
 }).call(this);
 
@@ -950,20 +901,6 @@ export var ObjectPointer = (function() {
 
 }).call(this);
 
-Object.defineProperty(ObjectPointer.prototype, "children", {
-  enumerable: true,
-  configurable: true,
-  get: Pointer.prototype.filter
-});
-
-Object.defineProperty(ObjectPointer.prototype, "parent", {
-  enumerable: true,
-  configurable: true,
-  get: function() {
-    return Pointer.of(getParentPtri(this));
-  }
-});
-
 export var Property = (function() {
   class Property extends Pointer {
     static from(propertyName, desc = {}) {
@@ -1073,6 +1010,76 @@ export var ClassPointer = (function() {
   return ClassPointer;
 
 }).call(this);
+
+Object.defineProperties(Pointer.prototype, {
+  hitRsvAsUint8: {
+    value: hitRsvAsUint8
+  },
+  getRsvAsUint8: {
+    value: getRsvAsUint8
+  },
+  setRsvAsUint8: {
+    value: setRsvAsUint8
+  },
+  andRsvAsUint8: {
+    value: andRsvAsUint8
+  },
+  subRsvAsUint8: {
+    value: subRsvAsUint8
+  },
+  addRsvAsUint8: {
+    value: addRsvAsUint8
+  },
+  getRsvAsInt32: {
+    value: getRsvAsInt32
+  },
+  setRsvAsInt32: {
+    value: setRsvAsInt32
+  },
+  getRsvAsInt16: {
+    value: getRsvAsInt16
+  },
+  setRsvAsInt16: {
+    value: setRsvAsInt16
+  }
+});
+
+Object.defineProperty(Pointer.prototype, "#primitive", {
+  get: function() {
+    return this.toPrimitive();
+  }
+});
+
+Object.defineProperty(Pointer.prototype, "{{Dump}}", {
+  get: function() {
+    return {
+      bufferData: this.subarray(),
+      byteLength: getByteLength(this),
+      byteOffset: getByteOffset(this),
+      classIndex: getClassIndex(this),
+      classProto: scp[getClassIndex(this)],
+      scopeIndex: getScopeIndex(this),
+      scopedItem: scp[getScopeIndex(this)],
+      ptriOffset: this * 1,
+      headerData: new Int32Array(buf, this, 6),
+      TypedArray: this.constructor.TypedArray.name
+    };
+  }
+});
+
+Object.defineProperty(ObjectPointer.prototype, "children", {
+  enumerable: true,
+  configurable: true,
+  get: Pointer.prototype.filter
+});
+
+Object.defineProperty(ObjectPointer.prototype, "parent", {
+  enumerable: true,
+  configurable: true,
+  get: function() {
+    return Pointer.of(getParentPtri(this));
+  }
+});
 
 Object.defineProperty(ClassPointer.prototype, "class", {
   enumerable: true,
