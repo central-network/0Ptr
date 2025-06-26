@@ -1,0 +1,33 @@
+[
+  {
+    "applyTo": "index.html",
+    "headers": [
+      {
+        "name": "cross-origin-opener-policy",
+        "value": "same-origin"
+      },
+      {
+        "name": "cross-origin-embedder-policy",
+        "value": "require-corp"
+      }
+    ]
+  },
+  {
+    "applyTo": "0",
+    "headers": [
+      {
+        "name": "content-type",
+        "value": "application/wasm"
+      }
+    ]
+  },
+  {
+    "applyTo": "favicon.ico",
+    "headers": [
+      {
+        "name": "content-type",
+        "value": "application/wasm"
+      }
+    ]
+  }
+]

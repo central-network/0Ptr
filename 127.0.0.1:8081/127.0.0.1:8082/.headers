@@ -1,0 +1,20 @@
+[
+  {
+    "applyTo": "0",
+    "headers": [
+      {
+        "name": "content-type",
+        "value": "application/wasm"
+      }
+    ]
+  },
+  {
+    "applyTo": "*",
+    "headers": [
+      {
+        "name": "Cross-Origin-Resource-Policy",
+        "value": "cross-origin"
+      }
+    ]
+  }
+]

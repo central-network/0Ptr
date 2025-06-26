@@ -1,0 +1,20 @@
+[
+  {
+    "applyTo": "*",
+    "headers": [
+      {
+        "name": "Cross-Origin-Opener-Policy",
+        "value": "same-origin"
+      }
+    ]
+  },
+  {
+    "applyTo": "*",
+    "headers": [
+      {
+        "name": "Cross-Origin-Embedder-Policy",
+        "value": "require-corp"
+      }
+    ]
+  }
+]
