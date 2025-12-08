@@ -59,29 +59,6 @@ scopei = ( any ) ->
         i += scp.push(any)
     i
 
-self.dump = ->
-    childs = []
-    index = 0
-    ptri = +this 
-    ptrj = offset()
-    dumps = []
-
-    while ptrj -= PTRHEADERS_BYTELENGTH
-        ptrj = Pointer.of ptrj
-        if ptrj instanceof PointerLink
-            ptrj = ptrj.target
-        childs[ index++ ] = ptrj
-        dmp = {
-            name : ptrj.constructor.name
-            ...ptrj["{{Dump}}"]
-        }
-        
-        dumps.push dmp
-
-
-    table dumps
-    childs
-
 export class Pointer                extends Number
 
     @byteLength : 4
@@ -271,8 +248,6 @@ export class Pointer                extends Number
     toPrimitive : -> @subarray()
 
     toString    : -> @toPrimitive().toString()  
-    
-    getParent    : -> Pointer.of getParentPtri this
 
     eq          : ( any ) ->
         if  any instanceof Pointer
@@ -356,33 +331,30 @@ export class Matrix4Pointer         extends Float32ArrayPointer
 
 export class NumberPointer          extends Pointer
 
-    toNumber    : -> @toPrimitive()
-
     @from       : ( value = 0, ProtoPtr = this ) ->
 
         if  ProtoPtr is NumberPointer
         
-            if !number = value * 1
+            unless value
                 return Uint8Number.new()
 
             ProtoPtr =
-            if !Number.isSafeInteger number
-                 if Number.isInteger number then "BigInt64"
+            if !Number.isSafeInteger value
+                 if Number.isInteger value then "BigInt64"
                  else Float32Number
-            else if number < 0 and absval = number * -2
-                 if absval <= 0xff then Int8Number
-                 else if absval <= 0xffff then Int16Number
-                 else if absval <= 0xffffffff then Int32Number
-                 else if number = BigInt( number ) then "BigInt64"
-            else if number <= 0xff then Uint8Number
-            else if number <= 0xffff then Uint16Number
-            else if number <= 0xffffffff then Uint32Number
-            else if number = BigInt( number ) then "BigUint64"
+            else if value < 0 and absv2 = value * -2
+                 if absv2 <= 0xff then Int8Number
+                 else if absv2 <= 0xffff then Int16Number
+                 else if absv2 <= 0xffffffff then Int32Number
+                 else if value = BigInt( value ) then "BigInt64"
+            else if value <= 0xff then Uint8Number
+            else if value <= 0xffff then Uint16Number
+            else if value <= 0xffffffff then Uint32Number
+            else if value = BigInt( value ) then "BigUint64"
 
-            return ProtoPtr.from number
+            return ProtoPtr.from value
 
         @new( @byteLength ).set value * 1
-
 
 export class Float32Number          extends NumberPointer
 
@@ -590,13 +562,6 @@ export class StringPointer          extends Pointer
 
         this
 
-export class LinkedStringPointer    extends StringPointer
-    Object.defineProperty this::, "target",
-        enumerable: on
-        get : -> Pointer.of getScopeIndex this 
-        set : -> setScopeIndex arguments[0], this 
-
-
 export class ObjectPointer          extends Pointer  
 
     @byteLength : 4
@@ -650,9 +615,8 @@ export class ClassPointer           extends ObjectPointer
     @from : ( Class ) ->
 
         ptri = super Class
-        
-        proto = Object.getPrototypeOf Class
         ptri.name = StringPointer.from Class.name
+        proto = Object.getPrototypeOf Class
 
         if  proto isnt ObjectPointer
             proto.classPointer.appendChild ptri
@@ -662,7 +626,8 @@ export class ClassPointer           extends ObjectPointer
     getProperty     : ( propertyName = "" ) ->
         @find (i) -> i.name.toPrimitive() is propertyName
 
-    getAllocLength  : ( byteLength = 0 ) ->
+    getAllocLength  : ->
+        byteLength = 0
 
         for o in @filter (i) -> i instanceof Property
             byteLength += 4
@@ -746,11 +711,6 @@ Object.defineProperty Pointer::, "{{Dump}}",
     }
 
 Object.defineProperty ObjectPointer::, "children",
-    enumerable: on
-    configurable: on
-    get : Pointer::filter
-
-Object.defineProperty LinkedStringPointer::, "children",
     enumerable: on
     configurable: on
     get : Pointer::filter
