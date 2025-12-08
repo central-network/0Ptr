@@ -1,0 +1,16 @@
+{
+    "compileOnSave": true,
+    "compilerOptions": {
+      "noImplicitAny": false,
+      "noEmitOnError": true,
+      "removeComments": false,
+      "sourceMap": false,
+      "outDir": "wats/"
+    },
+    "include": [
+      "wasm.ts"
+    ],
+    "exclude": [
+      "node_modules"
+    ]
+  }

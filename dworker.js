@@ -1,1 +1,0 @@
-onmessage = console.log
