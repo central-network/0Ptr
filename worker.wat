@@ -1,15 +1,33 @@
 (module
-    (import "self" "memory" (memory 1 65535 shared))
-
-    (global $worker_index mut i32)
+    (import "self" "index" (global $WORKER_INDEX i32))
+    (include "worker_headers.wat")
 
     (start $main
-        (global.set $worker_index (i32.atomic.rmw.add i32(44) i32(1)))
-
-        (warn<ref.i32> text('hi from worker') global($worker_index))    
+        (call $new_thread)
+        (call $set_start_epoch)    
+        (call $init_worker)    
+        (warn<ref.i32> text('hi from worker') global($WORKER_OFFSET))    
+        (call $event_loop)
     )
 
-    (func $notify_window
-    
+    (func $init_worker
+        (call $self.Reflect.deleteProperty<ref.ref> self text('onmessage'))
+        (call $self.Reflect.deleteProperty<ref.ref> self text('memory'))
+        (call $self.Reflect.deleteProperty<ref.ref> self text('index'))
+        (call $self.Reflect.deleteProperty<ref.ref> self text('wasm'))
+    )
+
+    (func $event_loop
+        (loop $events
+
+        )
+    )
+
+    (func $set_start_epoch
+        (i32.atomic.store offset=4104 (global.get $WORKER_OFFSET) (call $now))
+    )
+
+    (func $get_start_epoch (result i32)
+        (i32.atomic.load offset=4104 (global.get $WORKER_OFFSET))
     )
 )

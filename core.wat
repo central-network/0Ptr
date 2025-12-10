@@ -1,187 +1,138 @@
 (module
-    (memory 1 10)
+    (memory 1)
+    (export "memory" (memory 0))
 
-    (global $imports new Object)
-    (global $buffer mut extern)
-    (global $memoryView mut extern)
+    (include "memory_manager.wat")
+    (include "event_manager.wat")
+    (include "worker_manager.wat")
+    (include "chain_manager.wat")
 
-    (global $self.navigator.deviceMemory i32)
-    (global $self.navigator.hardwareConcurrency i32)
+    (global $OFFSET_MEMORY_MANAGER  i32 (i32.const    8))
+    (global $OFFSET_EVENT_MANAGER   i32 (i32.const 1024))
+    (global $OFFSET_WORKER_MANAGER  i32 (i32.const 2048))
+    (global $OFFSET_CHAIN_MANAGER   i32 (i32.const 4096))
+    (global $LENGTH_PREALLOC        i32 (i32.const 8192))
+    
+    (global $OFFSET_MALLOC_LENGTH   i32 i32(4))
+    (global $LENGTH_MALLOC_HEADER   i32 i32(8))
+
+    (data (i32.const 5) "\20")
 
     (start $main
-        (call $prepare_imports)
-        (call $window<ref> global($imports))
-    )   
-
-    (func $prepare_imports
-        (local $options ref)
-        (local $memory ref)
-        (local $module ref)
-        (local $postData ref)
-        (local $workerURL ref)
-        (local $memoryView ref)
-        (local $i i32)
-
-        (local.set $options (new $self.Object<>ref))
-        (local.set $module (new $self.Uint8Array<ref>ref
-            (new $self.SharedArrayBuffer<i32>ref
-                global($worker/length)
-            )
-        ))
-
-        (call $self.Reflect.set<ref.ref.i32> local($options) text('initial') i32(10))
-        (call $self.Reflect.set<ref.ref.i32> local($options) text('maximum') i32(65535))
-        (call $self.Reflect.set<ref.ref.i32> local($options) text('shared')  true)
-        
-
-        (local.set $i global($worker/length))
-
-        (memory.init $worker/buffer i32(0) i32(0) local($i))
-
-        (loop $clone
-            (local.set $i local($i)--)
-            
-            (call $self.Reflect.set<ref.i32.i32>
-                local($module) local($i) (i32.load local($i))
-            )
-
-            (br_if $clone local($i))
-        )
-
-        (memory.fill i32(0) i32(0) global($worker/length))
-
-        (data.drop $worker/buffer)
-
-        (local.set $workerURL
-            (call $self.URL.createObjectURL<ref>ref
-                (new $self.Blob<ref>ref
-                    (new $self.Array<ref>ref
-                        text('onmessage = e => Object.assign(self, e.data).WebAssembly.instantiate(wasm,self)')
-                    )
-                )
-            )
-        )
-
-        (local.set $memory      (new $self.WebAssembly.Memory<ref>ref local($options)))
-        (local.set $postData    (new $self.Object<>ref))
- 
-        (global.set $buffer     (local.get $memory).buffer)
-        (global.set $memoryView (new $self.Int32Array<ref>ref global($buffer)))
-
-        (call $self.Reflect.set<ref.ref.ref> 
-            local($postData) text('wasm') local($module)
-        )
-
-        (call $self.Reflect.set<ref.ref.ref> 
-            local($postData) text('memory') local($memory)
-        )
-
-        (call $self.Reflect.set<ref.ref.ref> 
-            global($imports) text('postData') local($postData)
-        )
-
-        (call $self.Reflect.set<ref.ref.ref> 
-            global($imports) text('memory') local($memory) 
-        )
-
-        (call $self.Reflect.set<ref.ref.ref> 
-            global($imports) text('workerURL') local($workerURL)
-        )
-
-        (call $self.Reflect.set<ref.ref.ref> 
-            global($imports) text('memoryView') global($memoryView)
-        )
-
-        (call $self.Reflect.set<ref.i32.i32> global($memoryView) i32(0) i32(0))
-        (call $self.Reflect.set<ref.i32.i32> global($memoryView) i32(1) i32(65536))
-        (call $self.Reflect.set<ref.i32.i32> global($memoryView) i32(2) (i32.mul (i32.const 10) (i32.const 65536)))
-        (call $self.Reflect.set<ref.i32.i32> global($memoryView) i32(3) (i32.mul (i32.const 65535) (i32.const 65536)))
-    )
-
-    (data $window "wasm://window.wat")
-
-    (compile $worker "worker.wat" 
-        (data $worker/buffer)
-        (global $worker/length)
-    )
-
-    (func $add (export "add"))
-    (func $mul (export "mul"))
-
-    (func $new 
-        (export "new")
-        (param $TypedArray ref)
-        (param $length i32)
-        (result ref)
-
-        (call $self.Reflect.construct<ref.ref>ref
-            local($TypedArray)
-            (call $self.Array.of<ref.i32.i32>ref
-                (global.get $buffer) 
-                (call $malloc
-                    (local.get $TypedArray)
-                    (local.get $length)
-                ) 
-                (local.get $length)
-            )
-        )
+        (call $new_memory_manager)
+        (call $new_event_manager)
     )
 
     (func $malloc
-        (param $TypedArray ref)
-        (param $length i32)
+        (param $byteLength i32)
         (result i32)
         (local $bufferSize i32)
-        (local $byteLength i32)
         (local $byteOffset i32)
-        (local $headersByteOffset i32)
+        (local $byteFinish i32)
+        (local $maxByteLength i32)
+        (local $alignBytes i32)
+        (local $offset i32)
 
-        (local.set $byteLength 
-            (i32.mul 
-                local($length) 
-                local($TypedArray).BYTES_PER_ELEMENT
+        (local.set $offset
+            (i32.atomic.rmw.add 
+                (global.get $OFFSET_MALLOC_LENGTH) 
+                (global.get $LENGTH_MALLOC_HEADER)
             )
         )
 
-        (local.set $bufferSize 
-            (i32.add 
-                local($byteLength) 
-                (i32.const 32)
+        (if (local.tee $alignBytes
+                (i32.rem_u
+                    (local.get $byteLength)
+                    (global.get $ALGIN_BYTELENGTH)
+                )
             )
-        )
-
-        (if (i32.rem_u local($bufferSize) (i32.const 16))
             (then
-                (local.set $bufferSize
-                    (i32.add 
-                        (local.get $bufferSize)
-                        (i32.sub
-                            (i32.const 16)
-                            (i32.rem_u local($bufferSize) (i32.const 16))
-                        )
+                (local.set $alignBytes
+                    (i32.sub
+                        (global.get $ALGIN_BYTELENGTH)
+                        (local.get $alignBytes)
                     )
                 )
             )
         )
 
-        (local.set $headersByteOffset
-            (call $self.Atomics.add<ref.i32.i32>i32
-                global($memoryView) i32(1) local($bufferSize)
-            )
-        )
-
-        (log<i32.i32>
-            local($bufferSize)
-                (local.get $headersByteOffset)
-        )
-
-        (local.set $byteOffset
+        (local.set $bufferSize
             (i32.add
-                (local.get $headersByteOffset)
-                (i32.const 32)
+                (local.get $byteLength)
+                (local.get $alignBytes)
             )
         )
 
-        (local.get $byteOffset)
+        (if (i32.eqz
+                (local.tee $byteOffset
+                    (call $memory_manager.new_buffer_offset<i32>i32
+                        (local.get $bufferSize)
+                    )
+                )
+            )
+            (then (unreachable))
+        )
+
+        (call $set_byteoffset<i32.i32> (local.get $offset) (local.get $byteOffset))
+        (call $set_bytelength<i32.i32> (local.get $offset) (local.get $byteLength))
+
+        (local.get $offset)
     )
-)
+    
+    (func $set_byteoffset<i32.i32>
+        (param $offset i32)
+        (param $byteOffset i32)
+        (i32.atomic.store offset=0 (local.get $offset) (local.get $byteOffset))
+    )
+
+    (func $set_bytelength<i32.i32>
+        (param $offset i32)
+        (param $byteLength i32)
+        (i32.atomic.store offset=4 (local.get $offset) (local.get $byteLength))
+    )
+
+    (func $get_buffercopy<i32>ref
+        (export "get_buffercopy")
+        (param $offset i32)
+        (result externref)
+        (local $view externref)
+        (local $buffer externref)
+
+        (local.set $view
+            (new $self.Uint8Array<ref.i32.i32>ref
+                (global.get $buffer)
+                (call $get_byteoffset<i32>i32 (local.get $offset))
+                (call $get_bytelength<i32>i32 (local.get $offset))
+            )    
+        )
+
+        (local.set $view
+            (apply $self.Uint8Array:slice<>ref
+                (local.get $view) (param)
+            )
+        )
+
+        (local.set $buffer
+            (apply $self.TypedArray:buffer/get<>ref
+                (local.get $view) (param)
+            )
+        )
+
+        (local.get $buffer)
+    )
+
+    (func $get_byteoffset<i32>i32
+        (export "get_byteoffset")
+        (param $offset i32)
+        (result $byteOffset i32)
+        (i32.atomic.load offset=0 (local.get $offset))
+    )
+
+    (func $get_bytelength<i32>i32
+        (export "get_bytelength")
+        (param $offset i32)
+        (result $byteLength i32)
+        (i32.atomic.load offset=4 (local.get $offset))
+    )
+
+)   
