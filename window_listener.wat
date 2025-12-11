@@ -3,7 +3,6 @@
     (global $OFFSET_WINDOW_LISTENER mut i32)
     (global $LENGTH_WINDOW_LISTENER i32 i32(64))
 
-
     (global $self.window                        externref)
     (global $self.document                      externref)
     (global $self.navigator.wakeLock            externref)
@@ -52,12 +51,6 @@
             )
         )
 
-        (call $window_listener.listen_closing_events<>)
-        (call $window_listener.listen_visibility_change<>)
-        (call $window_listener.listen_focus_events<>)
-        (call $window_listener.listen_page_state_changes<>)
-        (call $window_listener.listen_pointer_condition<>)
-
         (global.get $OFFSET_WINDOW_LISTENER)
     )
 
@@ -67,6 +60,14 @@
         (table.grow $window_listener.listeners_for_each_cycle<fun>
             (local.get 0) (i32.const 1)
         )
+    )
+
+    (func $window_listener.listen_local_global_this<>
+        (call $window_listener.listen_closing_events<>)
+        (call $window_listener.listen_visibility_change<>)
+        (call $window_listener.listen_focus_events<>)
+        (call $window_listener.listen_page_state_changes<>)
+        (call $window_listener.listen_pointer_condition<>)
     )
 
     (func $window_listener.add_listener_for_each_tick<fun>i32
@@ -209,14 +210,22 @@
         (call $window_listener.new_visibility_state<i32> (global.get $VISIBILITY_STATE_VISIBLE))
         (call $window_listener.set_visibility_state_visible<>)
         (call $window_listener.handle_cycle_type_rendering<>)
-        (log<ref> text('visibility is visible now'))
+
+        (call $event_manager.emit<i32.i32>
+            (global.get $EVENT_TYPE.ON_VISIBILTY_VISIBLE)
+            (global.get $OFFSET_WINDOW_LISTENER)
+        )
     )
 
     (func $window_listener.handle_visibility_hidden<>
         (call $window_listener.new_visibility_state<i32> (global.get $VISIBILITY_STATE_HIDDEN))
         (call $window_listener.set_visibility_state_hidden<>)
         (call $window_listener.handle_cycle_type_next_tick<>)
-        (log<ref> text('visibility is hidden now'))
+        
+        (call $event_manager.emit<i32.i32>
+            (global.get $EVENT_TYPE.ON_VISIBILTY_HIDDEN)
+            (global.get $OFFSET_WINDOW_LISTENER)
+        )
     )
 
     (func $window_listener.handle_visibility_prerender<>
@@ -445,7 +454,7 @@
         )
     )
 
-    (func $window_listener.call_listeners_for_each_tick<>
+    (func $window_listener.call_listeners_for_each_tick<>    
         (local $index i32)
         
         (local.set $index 
@@ -523,6 +532,7 @@
                     )
                     (then
                         (call $window_listener.call_listeners_for_each_minute<>)
+
                         (global.set $window_listener.second_counter 
                             (i32.const 0)
                         )
@@ -577,17 +587,18 @@
         (local $last_epoch i32)
         (local $elapsed_time i32)
 
-        (local.set $epoch_now (call $self.performance.now<>i32))
-        (local.set $last_epoch (call $window_listener.get_cycle_last_epoch<>i32))
-        (local.set $elapsed_time (i32.sub (local.get $epoch_now) (local.get $last_epoch)))
+        (local.set $epoch_now       (call $self.performance.now<>i32))
+        (local.set $last_epoch      (call $window_listener.get_cycle_last_epoch<>i32))
+        (local.set $elapsed_time    (i32.sub (local.get $epoch_now) (local.get $last_epoch)))
 
         (if (i32.ge_u (local.get $elapsed_time) (i32.const 1000))
             (then                
+                (call $window_listener.call_listeners_for_each_second<>)
+
                 (call $window_listener.set_cycle_cps<i32>
                     (call $window_listener.get_cycle_count<>i32)
                 )
-
-                (call $window_listener.call_listeners_for_each_second<>)
+                
                 (call $window_listener.set_cycle_count<i32> (i32.const 0))
                 (call $window_listener.set_cycle_last_epoch<i32> (local.get $epoch_now))
             )
@@ -597,12 +608,18 @@
 
         (global.get $CYCLE_TYPE_RENDERING)
         (if (i32.eq (local.get $cycle_type))
-            (then (call $window_listener.call_listeners_for_each_frame<>) return)
+            (then 
+                (call $window_listener.call_listeners_for_each_frame<>) 
+                (return)
+            )
         )
 
         (global.get $CYCLE_TYPE_NEXT_TICK)
         (if (i32.eq (local.get $cycle_type))
-            (then (call $window_listener.call_listeners_for_each_tick<>) return)
+            (then 
+                (call $window_listener.call_listeners_for_each_tick<>) 
+                (return)
+            )
         )
     )
 
@@ -686,35 +703,35 @@
 
     (func $window_listener.new_cycle_type<i32>              (param i32) (i32.store  offset=16 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
     (func $window_listener.set_cycle_type<i32>              (param i32) (i32.store8 offset=16 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
-    (func $window_listener.set_cycle_is_next_tick<i32>       (param i32) (i32.store8 offset=17 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
-    (func $window_listener.set_cycle_is_rendering<i32>       (param i32) (i32.store8 offset=18 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
-    (func $window_listener.set_cycle_is_timeout<i32>         (param i32) (i32.store8 offset=19 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
+    (func $window_listener.set_cycle_is_next_tick<i32>      (param i32) (i32.store8 offset=17 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
+    (func $window_listener.set_cycle_is_rendering<i32>      (param i32) (i32.store8 offset=18 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
+    (func $window_listener.set_cycle_is_timeout<i32>        (param i32) (i32.store8 offset=19 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
     (func $window_listener.get_cycle_type<>i32              (result i32) (i32.load8_u offset=16 (global.get $OFFSET_WINDOW_LISTENER)))
-    (func $window_listener.get_cycle_is_next_tick<>i32       (result i32) (i32.load8_u offset=17 (global.get $OFFSET_WINDOW_LISTENER)))
-    (func $window_listener.get_cycle_is_rendering<>i32       (result i32) (i32.load8_u offset=18 (global.get $OFFSET_WINDOW_LISTENER)))
-    (func $window_listener.get_cycle_is_timeout<>i32         (result i32) (i32.load8_u offset=19 (global.get $OFFSET_WINDOW_LISTENER)))
+    (func $window_listener.get_cycle_is_next_tick<>i32      (result i32) (i32.load8_u offset=17 (global.get $OFFSET_WINDOW_LISTENER)))
+    (func $window_listener.get_cycle_is_rendering<>i32      (result i32) (i32.load8_u offset=18 (global.get $OFFSET_WINDOW_LISTENER)))
+    (func $window_listener.get_cycle_is_timeout<>i32        (result i32) (i32.load8_u offset=19 (global.get $OFFSET_WINDOW_LISTENER)))
     (func $window_listener.set_cycle_type_next_tick<>       (i32.store8 offset=17 (global.get $OFFSET_WINDOW_LISTENER) (i32.const 1)))
     (func $window_listener.set_cycle_type_rendering<>       (i32.store8 offset=18 (global.get $OFFSET_WINDOW_LISTENER) (i32.const 1)))
     (func $window_listener.set_cycle_type_timeout<>         (i32.store8 offset=19 (global.get $OFFSET_WINDOW_LISTENER) (i32.const 1)))
 
-    (func $window_listener.get_cycle_last_rendering_id<>i32  (result i32) (i32.load offset=20 (global.get $OFFSET_WINDOW_LISTENER)))
-    (func $window_listener.get_cycle_last_next_tick_id<>i32  (result i32) (i32.load offset=24 (global.get $OFFSET_WINDOW_LISTENER)))
-    (func $window_listener.get_cycle_last_epoch<>i32         (result i32) (i32.load offset=28 (global.get $OFFSET_WINDOW_LISTENER)))
+    (func $window_listener.get_cycle_last_rendering_id<>i32 (result i32) (i32.load offset=20 (global.get $OFFSET_WINDOW_LISTENER)))
+    (func $window_listener.get_cycle_last_next_tick_id<>i32 (result i32) (i32.load offset=24 (global.get $OFFSET_WINDOW_LISTENER)))
+    (func $window_listener.get_cycle_last_epoch<>i32        (result i32) (i32.load offset=28 (global.get $OFFSET_WINDOW_LISTENER)))
 
-    (func $window_listener.set_cycle_last_rendering_id<i32>  (param i32) (i32.store offset=20 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
-    (func $window_listener.set_cycle_last_next_tick_id<i32>  (param i32) (i32.store offset=24 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
-    (func $window_listener.set_cycle_last_epoch<i32>         (param i32) (i32.store offset=28 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
-    (func $window_listener.set_cycle_last_epoch_pnow<>       (call $window_listener.set_cycle_last_epoch<i32> (call $self.performance.now<>i32)))
- 
-    (func $window_listener.get_cycle_frame_count<>i32        (result i32) (i32.load offset=32 (global.get $OFFSET_WINDOW_LISTENER)))
-    (func $window_listener.get_cycle_tick_count<>i32         (result i32) (i32.load offset=36 (global.get $OFFSET_WINDOW_LISTENER)))
-    (func $window_listener.get_cycle_count<>i32              (result i32) (i32.load offset=40 (global.get $OFFSET_WINDOW_LISTENER)))
-    (func $window_listener.get_cycle_cps<>i32                (result i32) (i32.load offset=44 (global.get $OFFSET_WINDOW_LISTENER)))
+    (func $window_listener.set_cycle_last_rendering_id<i32> (param i32) (i32.store offset=20 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
+    (func $window_listener.set_cycle_last_next_tick_id<i32> (param i32) (i32.store offset=24 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
+    (func $window_listener.set_cycle_last_epoch<i32>        (param i32) (i32.store offset=28 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
+    (func $window_listener.set_cycle_last_epoch_pnow<>      (call $window_listener.set_cycle_last_epoch<i32> (call $self.performance.now<>i32)))
 
-    (func $window_listener.set_cycle_frame_count<i32>        (param i32) (i32.store offset=32 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
-    (func $window_listener.set_cycle_tick_count<i32>         (param i32) (i32.store offset=36 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
-    (func $window_listener.set_cycle_count<i32>              (param i32) (i32.store offset=40 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
-    (func $window_listener.set_cycle_cps<i32>                (param i32) (i32.store offset=44 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
+    (func $window_listener.get_cycle_frame_count<>i32       (result i32) (i32.load offset=32 (global.get $OFFSET_WINDOW_LISTENER)))
+    (func $window_listener.get_cycle_tick_count<>i32        (result i32) (i32.load offset=36 (global.get $OFFSET_WINDOW_LISTENER)))
+    (func $window_listener.get_cycle_count<>i32             (result i32) (i32.load offset=40 (global.get $OFFSET_WINDOW_LISTENER)))
+    (func $window_listener.get_cycle_cps<>i32               (result i32) (i32.load offset=44 (global.get $OFFSET_WINDOW_LISTENER)))
+
+    (func $window_listener.set_cycle_frame_count<i32>       (param i32) (i32.store offset=32 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
+    (func $window_listener.set_cycle_tick_count<i32>        (param i32) (i32.store offset=36 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
+    (func $window_listener.set_cycle_count<i32>             (param i32) (i32.store offset=40 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
+    (func $window_listener.set_cycle_cps<i32>               (param i32) (i32.store offset=44 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
 
     (func $window_listener.add_rendering_cycle<> 
         (v128.store offset=32 (global.get $OFFSET_WINDOW_LISTENER) 
@@ -728,3 +745,5 @@
         )
     )
 
+    (func $window_listener.get_last_visibility_event_ptr<>i32  (result i32) (i32.load offset=48 (global.get $OFFSET_WINDOW_LISTENER)))
+    (func $window_listener.set_last_visibility_event_ptr<i32>  (param i32) (i32.store offset=48 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
