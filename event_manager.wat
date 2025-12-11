@@ -12,9 +12,9 @@
 
     (table $event_manager.listener_handlers<fun> 1 65535 funcref)
 
-    (global $EVENT_TYPE.ON_EVERY_SECOND i32 i32(2))
-    (global $EVENT_TYPE.ON_VISIBILTY_VISIBLE i32 i32(3))
-    (global $EVENT_TYPE.ON_VISIBILTY_HIDDEN i32 i32(4))
+    (global $EVENT_TYPE.ON_EVERY_SECOND         i32 i32(2))
+    (global $EVENT_TYPE.ON_VISIBILTY_VISIBLE    i32 i32(3))
+    (global $EVENT_TYPE.ON_VISIBILTY_HIDDEN     i32 i32(4))
 
     (func $new_event_manager
         (result $this* i32)
@@ -67,17 +67,24 @@
                     )
                 )
                 (then
-                    (local.set $event_type
-                        (call $event_queue.get_event_type<i32>i32
-                            (local.get $queue_offset)
+                    (if (local.tee $event_type
+                            ;; could be registering at the moment
+                            (call $event_queue.get_event_type<i32>i32
+                                (local.get $queue_offset)
+                            )
                         )
-                    )
-
-                    (call $event_manager.dispatch_event<i32.i32>
-                        (call $event_queue.get_event_type<i32>i32 
-                            (local.get $queue_offset)
+                        (then
+                            (call $event_manager.dispatch<i32.i32>
+                                (local.get $event_type)
+                                (local.get $event_ptr)
+                            )
                         )
-                        (local.get $event_ptr)
+                        (else
+                            (call $event_queue.set_event_offset<i32.i32>
+                                (local.get $queue_offset)
+                                (local.get $event_ptr)
+                            )
+                        )
                     )
                 ) 
             )
@@ -110,7 +117,7 @@
         (local.set $queue_offset (global.get $OFFSET_EVENT_EMITS_QUEUE))
         (local.set $queue_length (global.get $MAX_EVENT_EMIT_PER_CYLCE))
 
-        (loop $for_each_queued_emit
+        (loop $for_each_queue_slot
 
             (if (call $event_queue.try_write_emitted<i32.i32>i32
                     (local.get $queue_offset) 
@@ -129,7 +136,7 @@
                 (i32.add (local.get $queue_offset) (global.get $BYTES_PER_EMITTED_EVENTS))
             )
 
-            (br_if $for_each_queued_emit 
+            (br_if $for_each_queue_slot 
                 (local.tee $queue_length
                     (i32.sub 
                         (local.get $queue_length) 
@@ -162,7 +169,7 @@
         (local.get $listener_offset)
     )
 
-    (func $event_manager.dispatch_event<i32.i32>
+    (func $event_manager.dispatch<i32.i32>
         (param $event_type i32)
         (param $event_ptr* i32)
 

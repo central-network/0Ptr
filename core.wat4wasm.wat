@@ -486,20 +486,20 @@
         (global.get $OFFSET_WINDOW_LISTENER)
     )
 
+    (func $window_listener.bind_local_global_this<>
+        (call $window_listener.listen_closing_events<>)
+        (call $window_listener.listen_visibility_change<>)
+        (call $window_listener.listen_focus_events<>)
+        (call $window_listener.listen_page_state_changes<>)
+        (call $window_listener.listen_pointer_condition<>)
+    )
+
     (func $window_listener.add_listener_for_each_cycle<fun>i32
         (param $handler funcref)
         (result i32)
         (table.grow $window_listener.listeners_for_each_cycle<fun>
             (local.get 0) (i32.const 1)
         )
-    )
-
-    (func $window_listener.listen_local_global_this<>
-        (call $window_listener.listen_closing_events<>)
-        (call $window_listener.listen_visibility_change<>)
-        (call $window_listener.listen_focus_events<>)
-        (call $window_listener.listen_page_state_changes<>)
-        (call $window_listener.listen_pointer_condition<>)
     )
 
     (func $window_listener.add_listener_for_each_tick<fun>i32
@@ -1216,9 +1216,9 @@
 
     (table $event_manager.listener_handlers<fun> 1 65535 funcref)
 
-    (global $EVENT_TYPE.ON_EVERY_SECOND i32 (i32.const 2))
-    (global $EVENT_TYPE.ON_VISIBILTY_VISIBLE i32 (i32.const 3))
-    (global $EVENT_TYPE.ON_VISIBILTY_HIDDEN i32 (i32.const 4))
+    (global $EVENT_TYPE.ON_EVERY_SECOND         i32 (i32.const 2))
+    (global $EVENT_TYPE.ON_VISIBILTY_VISIBLE    i32 (i32.const 3))
+    (global $EVENT_TYPE.ON_VISIBILTY_HIDDEN     i32 (i32.const 4))
 
     (func $new_event_manager
         (result i32)
@@ -1271,17 +1271,24 @@
                     )
                 )
                 (then
-                    (local.set $event_type
-                        (call $event_queue.get_event_type<i32>i32
-                            (local.get $queue_offset)
+                    (if (local.tee $event_type
+                            ;; could be registering at the moment
+                            (call $event_queue.get_event_type<i32>i32
+                                (local.get $queue_offset)
+                            )
                         )
-                    )
-
-                    (call $event_manager.dispatch_event<i32.i32>
-                        (call $event_queue.get_event_type<i32>i32 
-                            (local.get $queue_offset)
+                        (then
+                            (call $event_manager.dispatch<i32.i32>
+                                (local.get $event_type)
+                                (local.get $event_ptr)
+                            )
                         )
-                        (local.get $event_ptr)
+                        (else
+                            (call $event_queue.set_event_offset<i32.i32>
+                                (local.get $queue_offset)
+                                (local.get $event_ptr)
+                            )
+                        )
                     )
                 ) 
             )
@@ -1314,7 +1321,7 @@
         (local.set $queue_offset (global.get $OFFSET_EVENT_EMITS_QUEUE))
         (local.set $queue_length (global.get $MAX_EVENT_EMIT_PER_CYLCE))
 
-        (loop $for_each_queued_emit
+        (loop $for_each_queue_slot
 
             (if (call $event_queue.try_write_emitted<i32.i32>i32
                     (local.get $queue_offset) 
@@ -1333,7 +1340,7 @@
                 (i32.add (local.get $queue_offset) (global.get $BYTES_PER_EMITTED_EVENTS))
             )
 
-            (br_if $for_each_queued_emit 
+            (br_if $for_each_queue_slot 
                 (local.tee $queue_length
                     (i32.sub 
                         (local.get $queue_length) 
@@ -1366,7 +1373,7 @@
         (local.get $listener_offset)
     )
 
-    (func $event_manager.dispatch_event<i32.i32>
+    (func $event_manager.dispatch<i32.i32>
         (param $event_type i32)
         (param $event_ptr* i32)
 
@@ -1543,14 +1550,14 @@
         (call $event_handlers.set_on_visibility_visibile_ptr<i32>
             (call $event_manager.listen<i32.fun>i32
                 (global.get $EVENT_TYPE.ON_VISIBILTY_VISIBLE) 
-                (ref.func $event_handler.on_visibility_visible<i32>)
+                (ref.func $event_handlers.on_visibility_visible<i32>)
             )
         )
 
         (call $event_handlers.set_on_visibility_hidden_ptr<i32>
             (call $event_manager.listen<i32.fun>i32
                 (global.get $EVENT_TYPE.ON_VISIBILTY_HIDDEN) 
-                (ref.func $event_handler.on_visibility_hidden<i32>)
+                (ref.func $event_handlers.on_visibility_hidden<i32>)
             )
         )
 
@@ -1560,15 +1567,15 @@
             )
         )
 
-        (call $window_listener.listen_local_global_this<>)
+        (call $window_listener.bind_local_global_this<>)
     )
 
-    (func $event_handler.on_visibility_visible<i32>
+    (func $event_handlers.on_visibility_visible<i32>
         (param $event* i32)
         (call $self.console.warn<ref.i32> (table.get $extern (i32.const 41)) (local.get $event*))
     )
 
-    (func $event_handler.on_visibility_hidden<i32>
+    (func $event_handlers.on_visibility_hidden<i32>
         (param $event* i32)
         (call $self.console.warn<ref.i32> (table.get $extern (i32.const 42)) (local.get $event*))
     )
@@ -1995,7 +2002,7 @@
 	(global $self.performance (mut externref) ref.null extern)
 	(global $self.performance.now (mut externref) ref.null extern)
 
-	(elem $wat4wasm/refs funcref (ref.func $window_listener.handle_pointer_over<>) (ref.func $window_listener.handle_pointer_out<>) (ref.func $window_listener.handle_visibility_change<>) (ref.func $window_listener.handle_focus_focused<>) (ref.func $window_listener.handle_focus_blurred<>) (ref.func $window_listener.handle_page_show<>) (ref.func $window_listener.handle_page_hide<>) (ref.func $window_listener.handle_page_swap<>) (ref.func $window_listener.handle_page_reveal<>) (ref.func $window_listener.handle_unload_before<>) (ref.func $window_listener.handle_unload_closed<>) (ref.func $window_listener.listen_next_tick_cycle<ref>) (ref.func $window_listener.listen_rendering_cycle<i32>) (ref.func $event_handler.on_visibility_visible<i32>) (ref.func $event_handler.on_visibility_hidden<i32>) (ref.func $event_manager.event_loop<>))
+	(elem $wat4wasm/refs funcref (ref.func $window_listener.handle_pointer_over<>) (ref.func $window_listener.handle_pointer_out<>) (ref.func $window_listener.handle_visibility_change<>) (ref.func $window_listener.handle_focus_focused<>) (ref.func $window_listener.handle_focus_blurred<>) (ref.func $window_listener.handle_page_show<>) (ref.func $window_listener.handle_page_hide<>) (ref.func $window_listener.handle_page_swap<>) (ref.func $window_listener.handle_page_reveal<>) (ref.func $window_listener.handle_unload_before<>) (ref.func $window_listener.handle_unload_closed<>) (ref.func $window_listener.listen_next_tick_cycle<ref>) (ref.func $window_listener.listen_rendering_cycle<i32>) (ref.func $event_handlers.on_visibility_visible<i32>) (ref.func $event_handlers.on_visibility_hidden<i32>) (ref.func $event_manager.event_loop<>))
 
     (table $extern 76 76 externref)
 

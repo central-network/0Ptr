@@ -54,20 +54,20 @@
         (global.get $OFFSET_WINDOW_LISTENER)
     )
 
+    (func $window_listener.bind_local_global_this<>
+        (call $window_listener.listen_closing_events<>)
+        (call $window_listener.listen_visibility_change<>)
+        (call $window_listener.listen_focus_events<>)
+        (call $window_listener.listen_page_state_changes<>)
+        (call $window_listener.listen_pointer_condition<>)
+    )
+
     (func $window_listener.add_listener_for_each_cycle<fun>i32
         (param $handler funcref)
         (result i32)
         (table.grow $window_listener.listeners_for_each_cycle<fun>
             (local.get 0) (i32.const 1)
         )
-    )
-
-    (func $window_listener.listen_local_global_this<>
-        (call $window_listener.listen_closing_events<>)
-        (call $window_listener.listen_visibility_change<>)
-        (call $window_listener.listen_focus_events<>)
-        (call $window_listener.listen_page_state_changes<>)
-        (call $window_listener.listen_pointer_condition<>)
     )
 
     (func $window_listener.add_listener_for_each_tick<fun>i32

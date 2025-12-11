@@ -13,14 +13,14 @@
         (call $event_handlers.set_on_visibility_visibile_ptr<i32>
             (call $event_manager.listen<i32.fun>i32
                 (global.get $EVENT_TYPE.ON_VISIBILTY_VISIBLE) 
-                (ref.func $event_handler.on_visibility_visible<i32>)
+                (ref.func $event_handlers.on_visibility_visible<i32>)
             )
         )
 
         (call $event_handlers.set_on_visibility_hidden_ptr<i32>
             (call $event_manager.listen<i32.fun>i32
                 (global.get $EVENT_TYPE.ON_VISIBILTY_HIDDEN) 
-                (ref.func $event_handler.on_visibility_hidden<i32>)
+                (ref.func $event_handlers.on_visibility_hidden<i32>)
             )
         )
 
@@ -30,15 +30,15 @@
             )
         )
 
-        (call $window_listener.listen_local_global_this<>)
+        (call $window_listener.bind_local_global_this<>)
     )
 
-    (func $event_handler.on_visibility_visible<i32>
+    (func $event_handlers.on_visibility_visible<i32>
         (param $event* i32)
         (warn<ref.i32> text('on visible from event manager. event offset:') local($event*))
     )
 
-    (func $event_handler.on_visibility_hidden<i32>
+    (func $event_handlers.on_visibility_hidden<i32>
         (param $event* i32)
         (warn<ref.i32> text('on hidden from event manager. event offset:') local($event*))
     )
