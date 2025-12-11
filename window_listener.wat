@@ -118,10 +118,8 @@
                 func($window_listener.handle_pointer_over<>)
             )
         )
-    )
 
-    (func $window_listener.handle_pointer_out<>
-        (apply $self.EventTarget:removeEventListener<ref.fun> 
+        (apply $self.EventTarget:addEventListener<ref.fun> 
             (global.get $self.window)
             (param 
                 text('pointerout') 
@@ -132,32 +130,43 @@
         (apply $self.EventTarget:addEventListener<ref.fun> 
             (global.get $self.window)
             (param 
-                text('pointerover') 
-                func($window_listener.handle_pointer_over<>)
+                text('pointermove') 
+                func($window_listener.handle_pointer_move<ref>)
             )
         )
-
-        (log<ref> text('onpointerout'))
     )
 
-    (func $window_listener.handle_pointer_over<>
-        (apply $self.EventTarget:removeEventListener<ref.fun> 
-            (global.get $self.window)
-            (param 
-                text('pointerover') 
-                func($window_listener.handle_pointer_over<>)
+    (func $window_listener.handle_pointer_out<>)
+    (func $window_listener.handle_pointer_over<>)
+
+    (func $window_listener.handle_pointer_move<ref>
+        (param $event <Event>)
+        (local $event_ptr i32)
+
+        (local.set $event_ptr
+            (call $event_manager.alloc_event_slot<i32>i32
+                (global.get $EVENT_TYPE.ON_POINTER_MOVE)
             )
         )
 
-        (apply $self.EventTarget:addEventListener<ref.fun> 
-            (global.get $self.window)
-            (param 
-                text('pointerout') 
-                func($window_listener.handle_pointer_out<>)
-            )
+        (call $pointer_event.set_epoch<i32.f32>
+            (local.get $event_ptr) 
+            (call $self.performance.now<>f32)
         )
 
-        (log<ref> text('onpointerover'))
+        (call $pointer_event.set_client_x<i32.f32>
+            (local.get $event_ptr) 
+            (apply $self.MouseEvent:clientX/get<>f32 (local.get $event) (param))
+        )
+
+        (call $pointer_event.set_client_y<i32.f32>
+            (local.get $event_ptr) 
+            (apply $self.MouseEvent:clientY/get<>f32 (local.get $event) (param))
+        )
+
+        (call $event_manager.emit<i32> 
+            (local.get $event_ptr)
+        )
     )
 
 
@@ -207,24 +216,48 @@
     )
 
     (func $window_listener.handle_visibility_visible<>
+        (local $event_ptr i32)
+
         (call $window_listener.new_visibility_state<i32> (global.get $VISIBILITY_STATE_VISIBLE))
         (call $window_listener.set_visibility_state_visible<>)
         (call $window_listener.handle_cycle_type_rendering<>)
 
-        (call $event_manager.emit<i32.i32>
-            (global.get $EVENT_TYPE.ON_VISIBILTY_VISIBLE)
-            (global.get $OFFSET_WINDOW_LISTENER)
+        (local.set $event_ptr
+            (call $event_manager.alloc_event_slot<i32>i32
+                (global.get $EVENT_TYPE.ON_VISIBILTY_VISIBLE)
+            )
+        )
+
+        (call $visibility_event.set_epoch<i32.f32>
+            (local.get $event_ptr) 
+            (call $self.performance.now<>f32)
+        )
+
+        (call $event_manager.emit<i32> 
+            (local.get $event_ptr)
         )
     )
 
     (func $window_listener.handle_visibility_hidden<>
+        (local $event_ptr i32)
+
         (call $window_listener.new_visibility_state<i32> (global.get $VISIBILITY_STATE_HIDDEN))
         (call $window_listener.set_visibility_state_hidden<>)
         (call $window_listener.handle_cycle_type_next_tick<>)
+
+        (local.set $event_ptr
+            (call $event_manager.alloc_event_slot<i32>i32
+                (global.get $EVENT_TYPE.ON_VISIBILTY_VISIBLE)
+            )
+        )
+
+        (call $visibility_event.set_epoch<i32.f32>
+            (local.get $event_ptr) 
+            (call $self.performance.now<>f32)
+        )
         
-        (call $event_manager.emit<i32.i32>
-            (global.get $EVENT_TYPE.ON_VISIBILTY_HIDDEN)
-            (global.get $OFFSET_WINDOW_LISTENER)
+        (call $event_manager.emit<i32>
+            (local.get $event_ptr) 
         )
     )
 

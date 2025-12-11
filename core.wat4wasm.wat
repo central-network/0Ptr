@@ -26,6 +26,7 @@
 	(import "console" "log" (func $self.console.log<ref> (param externref)))
 	(import "Array" "of" (func $self.Array.of<ref.i32.i32>ref (param externref i32 i32) (result externref)))
 	(import "Array" "of" (func $self.Array.of<ref.fun>ref (param externref funcref) (result externref)))
+	(import "Reflect" "apply" (func $self.Reflect.apply<refx3>f32 (param externref externref externref) (result f32)))
 	(import "console" "warn" (func $self.console.warn<ref> (param externref)))
 	(import "self" "cancelAnimationFrame" (func $self.cancelAnimationFrame<i32> (param i32)))
 	(import "self" "cancelIdleCallback" (func $self.cancelIdleCallback<i32> (param i32)))
@@ -551,11 +552,9 @@
                 (ref.func $window_listener.handle_pointer_over<>)
             )
         )
-    )
 
-    (func $window_listener.handle_pointer_out<>
         (call $self.Reflect.apply<refx3> 
-            (global.get $self.EventTarget:removeEventListener) 
+            (global.get $self.EventTarget:addEventListener) 
             (global.get $self.window)
             (call $self.Array.of<ref.fun>ref 
                 (table.get $extern (i32.const 13)) 
@@ -567,34 +566,46 @@
             (global.get $self.EventTarget:addEventListener) 
             (global.get $self.window)
             (call $self.Array.of<ref.fun>ref 
-                (table.get $extern (i32.const 12)) 
-                (ref.func $window_listener.handle_pointer_over<>)
+                (table.get $extern (i32.const 14)) 
+                (ref.func $window_listener.handle_pointer_move<ref>)
             )
         )
-
-        (call $self.console.log<ref> (table.get $extern (i32.const 14)))
     )
 
-    (func $window_listener.handle_pointer_over<>
-        (call $self.Reflect.apply<refx3> 
-            (global.get $self.EventTarget:removeEventListener) 
-            (global.get $self.window)
-            (call $self.Array.of<ref.fun>ref 
-                (table.get $extern (i32.const 12)) 
-                (ref.func $window_listener.handle_pointer_over<>)
+    (func $window_listener.handle_pointer_out<>)
+    (func $window_listener.handle_pointer_over<>)
+
+    (func $window_listener.handle_pointer_move<ref>
+        (param $event externref )
+        (local $event_ptr i32)
+
+        (local.set $event_ptr
+            (call $event_manager.alloc_event_slot<i32>i32
+                (global.get $EVENT_TYPE.ON_POINTER_MOVE)
             )
         )
 
-        (call $self.Reflect.apply<refx3> 
-            (global.get $self.EventTarget:addEventListener) 
-            (global.get $self.window)
-            (call $self.Array.of<ref.fun>ref 
-                (table.get $extern (i32.const 13)) 
-                (ref.func $window_listener.handle_pointer_out<>)
-            )
+        (call $pointer_event.set_epoch<i32.f32>
+            (local.get $event_ptr) 
+            (call $self.Reflect.apply<refx3>f32 
+            (global.get $self.performance.now) (global.get $self.performance) (call $self.Array.of<>ref))
         )
 
-        (call $self.console.log<ref> (table.get $extern (i32.const 15)))
+        (call $pointer_event.set_client_x<i32.f32>
+            (local.get $event_ptr) 
+            (call $self.Reflect.apply<refx3>f32 
+            (global.get $self.MouseEvent:clientX/get) (local.get $event) (call $self.Array.of<>ref))
+        )
+
+        (call $pointer_event.set_client_y<i32.f32>
+            (local.get $event_ptr) 
+            (call $self.Reflect.apply<refx3>f32 
+            (global.get $self.MouseEvent:clientY/get) (local.get $event) (call $self.Array.of<>ref))
+        )
+
+        (call $event_manager.emit<i32> 
+            (local.get $event_ptr)
+        )
     )
 
 
@@ -606,7 +617,7 @@
         (call $self.Reflect.apply<refx3> 
             (global.get $self.EventTarget:addEventListener) 
             (global.get $self.document) 
-            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 16)) (ref.func $window_listener.handle_visibility_change<>))
+            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 15)) (ref.func $window_listener.handle_visibility_change<>))
         )
     )    
 
@@ -647,31 +658,57 @@
     )
 
     (func $window_listener.handle_visibility_visible<>
+        (local $event_ptr i32)
+
         (call $window_listener.new_visibility_state<i32> (global.get $VISIBILITY_STATE_VISIBLE))
         (call $window_listener.set_visibility_state_visible<>)
         (call $window_listener.handle_cycle_type_rendering<>)
 
-        (call $event_manager.emit<i32.i32>
-            (global.get $EVENT_TYPE.ON_VISIBILTY_VISIBLE)
-            (global.get $OFFSET_WINDOW_LISTENER)
+        (local.set $event_ptr
+            (call $event_manager.alloc_event_slot<i32>i32
+                (global.get $EVENT_TYPE.ON_VISIBILTY_VISIBLE)
+            )
+        )
+
+        (call $visibility_event.set_epoch<i32.f32>
+            (local.get $event_ptr) 
+            (call $self.Reflect.apply<refx3>f32 
+            (global.get $self.performance.now) (global.get $self.performance) (call $self.Array.of<>ref))
+        )
+
+        (call $event_manager.emit<i32> 
+            (local.get $event_ptr)
         )
     )
 
     (func $window_listener.handle_visibility_hidden<>
+        (local $event_ptr i32)
+
         (call $window_listener.new_visibility_state<i32> (global.get $VISIBILITY_STATE_HIDDEN))
         (call $window_listener.set_visibility_state_hidden<>)
         (call $window_listener.handle_cycle_type_next_tick<>)
+
+        (local.set $event_ptr
+            (call $event_manager.alloc_event_slot<i32>i32
+                (global.get $EVENT_TYPE.ON_VISIBILTY_VISIBLE)
+            )
+        )
+
+        (call $visibility_event.set_epoch<i32.f32>
+            (local.get $event_ptr) 
+            (call $self.Reflect.apply<refx3>f32 
+            (global.get $self.performance.now) (global.get $self.performance) (call $self.Array.of<>ref))
+        )
         
-        (call $event_manager.emit<i32.i32>
-            (global.get $EVENT_TYPE.ON_VISIBILTY_HIDDEN)
-            (global.get $OFFSET_WINDOW_LISTENER)
+        (call $event_manager.emit<i32>
+            (local.get $event_ptr) 
         )
     )
 
     (func $window_listener.handle_visibility_prerender<>
         (call $window_listener.new_visibility_state<i32> (global.get $VISIBILITY_STATE_PRERENDER))
         (call $window_listener.set_visibility_state_prerender<>)
-        (call $self.console.log<ref> (table.get $extern (i32.const 17)))
+        (call $self.console.log<ref> (table.get $extern (i32.const 16)))
     )
 
 
@@ -702,32 +739,32 @@
         (call $self.Reflect.apply<refx3> 
             (global.get $self.EventTarget:addEventListener) 
             (global.get $self.window) 
-            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 18)) (ref.func $window_listener.handle_focus_focused<>))
+            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 17)) (ref.func $window_listener.handle_focus_focused<>))
         )
 
         (call $self.Reflect.apply<refx3> 
             (global.get $self.EventTarget:addEventListener) 
             (global.get $self.window) 
-            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 19)) (ref.func $window_listener.handle_focus_blurred<>))
+            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 18)) (ref.func $window_listener.handle_focus_blurred<>))
         )
     )
 
     (func $window_listener.handle_focus_blurred<>
         (call $window_listener.new_focus_state<i32> (global.get $FOCUS_STATE_BLURRED))
         (call $window_listener.set_focus_state_blurred<>)
-        (call $self.console.log<ref> (table.get $extern (i32.const 20)))
+        (call $self.console.log<ref> (table.get $extern (i32.const 19)))
     )
 
     (func $window_listener.handle_focus_focused<>
         (call $window_listener.new_focus_state<i32> (global.get $FOCUS_STATE_FOCUSED))
         (call $window_listener.set_focus_state_focused<>)
-        (call $self.console.log<ref> (table.get $extern (i32.const 21)))
+        (call $self.console.log<ref> (table.get $extern (i32.const 20)))
     )
 
     (func $window_listener.handle_focus_preactive<>
         (call $window_listener.new_focus_state<i32> (global.get $FOCUS_STATE_PREACTIVE))
         (call $window_listener.set_focus_state_preactive<>)
-        (call $self.console.log<ref> (table.get $extern (i32.const 22)))
+        (call $self.console.log<ref> (table.get $extern (i32.const 21)))
     )
 
     (func $window_listener.new_focus_state<i32>               (param i32) (i32.store  offset=4 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
@@ -758,25 +795,25 @@
         (call $self.Reflect.apply<refx3> 
             (global.get $self.EventTarget:addEventListener) 
             (global.get $self.window) 
-            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 23)) (ref.func $window_listener.handle_page_show<>))
+            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 22)) (ref.func $window_listener.handle_page_show<>))
         )
 
         (call $self.Reflect.apply<refx3> 
             (global.get $self.EventTarget:addEventListener) 
             (global.get $self.window) 
-            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 24)) (ref.func $window_listener.handle_page_hide<>))
+            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 23)) (ref.func $window_listener.handle_page_hide<>))
         )
 
         (call $self.Reflect.apply<refx3> 
             (global.get $self.EventTarget:addEventListener) 
             (global.get $self.window) 
-            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 25)) (ref.func $window_listener.handle_page_swap<>))
+            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 24)) (ref.func $window_listener.handle_page_swap<>))
         )
 
         (call $self.Reflect.apply<refx3> 
             (global.get $self.EventTarget:addEventListener) 
             (global.get $self.window) 
-            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 26)) (ref.func $window_listener.handle_page_reveal<>))
+            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 25)) (ref.func $window_listener.handle_page_reveal<>))
         )
     )
 
@@ -802,26 +839,26 @@
         (call $window_listener.new_page_state<i32> (global.get $PAGE_STATE_SHOWN))
         (call $window_listener.set_page_state_event<i32> (global.get $PAGE_EVENT_SHOW))
         (call $window_listener.set_page_state_shown<>)
-        (call $self.console.log<ref> (table.get $extern (i32.const 27)))
+        (call $self.console.log<ref> (table.get $extern (i32.const 26)))
     )
 
     (func $window_listener.handle_page_hide<>
         (call $window_listener.new_page_state<i32> (global.get $PAGE_STATE_HIDED))
         (call $window_listener.set_page_state_event<i32> (global.get $PAGE_EVENT_HIDE))
         (call $window_listener.set_page_state_hided<>)
-        (call $self.console.log<ref> (table.get $extern (i32.const 28)))
+        (call $self.console.log<ref> (table.get $extern (i32.const 27)))
     )
 
     (func $window_listener.handle_page_swap<>
         (call $window_listener.set_page_state_event<i32> (global.get $PAGE_EVENT_SWAP))
         (call $window_listener.handle_page_state_change<>)
-        (call $self.console.warn<ref> (table.get $extern (i32.const 29)))
+        (call $self.console.warn<ref> (table.get $extern (i32.const 28)))
     )
 
     (func $window_listener.handle_page_reveal<>
         (call $window_listener.set_page_state_event<i32> (global.get $PAGE_EVENT_REVEAL))
         (call $window_listener.handle_page_state_change<>)
-        (call $self.console.warn<ref> (table.get $extern (i32.const 30)))
+        (call $self.console.warn<ref> (table.get $extern (i32.const 29)))
     )
 
     (func $window_listener.new_page_state<i32>                (param i32) (i32.store  offset=8  (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
@@ -842,13 +879,13 @@
         (call $self.Reflect.apply<refx3> 
             (global.get $self.EventTarget:addEventListener) 
             (global.get $self.window) 
-            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 31)) (ref.func $window_listener.handle_unload_before<>))
+            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 30)) (ref.func $window_listener.handle_unload_before<>))
         )
 
         (call $self.Reflect.apply<refx3> 
             (global.get $self.EventTarget:addEventListener) 
             (global.get $self.window) 
-            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 32)) (ref.func $window_listener.handle_unload_closed<>))
+            (call $self.Array.of<ref.fun>ref (table.get $extern (i32.const 31)) (ref.func $window_listener.handle_unload_closed<>))
         )
 
         (call $window_listener.handle_unload_waiting<>)
@@ -857,19 +894,19 @@
     (func $window_listener.handle_unload_waiting<>
         (call $window_listener.new_unload_state<i32> (global.get $UNLOAD_STATE_WAITING))
         (call $window_listener.set_unload_state_waiting<>)
-        (call $self.console.log<ref> (table.get $extern (i32.const 33)))
+        (call $self.console.log<ref> (table.get $extern (i32.const 32)))
     )
 
     (func $window_listener.handle_unload_before<>
         (call $window_listener.new_unload_state<i32> (global.get $UNLOAD_STATE_BEFORE))
         (call $window_listener.set_unload_state_before<>)
-        (call $self.console.log<ref> (table.get $extern (i32.const 34)))
+        (call $self.console.log<ref> (table.get $extern (i32.const 33)))
     )
 
     (func $window_listener.handle_unload_closed<>
         (call $window_listener.new_unload_state<i32> (global.get $UNLOAD_STATE_CLOSED))
         (call $window_listener.set_unload_state_closed<>)
-        (call $self.console.log<ref> (table.get $extern (i32.const 35)))
+        (call $self.console.log<ref> (table.get $extern (i32.const 34)))
     )
 
     (func $window_listener.new_unload_state<i32>              (param i32) (i32.store  offset=12 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
@@ -1146,11 +1183,11 @@
 
     (func $window_listener.dump_cycle_stats<> (export "dumpcycle")
         (call $self.console.warn<ref.ref.i32.ref.i32.ref.i32.ref.i32> 
-            (table.get $extern (i32.const 36))
-            (table.get $extern (i32.const 37)) (call $window_listener.get_cycle_frame_count<>i32)
-            (table.get $extern (i32.const 38)) (call $window_listener.get_cycle_tick_count<>i32)
-            (table.get $extern (i32.const 39)) (call $window_listener.get_cycle_count<>i32)
-            (table.get $extern (i32.const 40)) (call $window_listener.get_cycle_cps<>i32)
+            (table.get $extern (i32.const 35))
+            (table.get $extern (i32.const 36)) (call $window_listener.get_cycle_frame_count<>i32)
+            (table.get $extern (i32.const 37)) (call $window_listener.get_cycle_tick_count<>i32)
+            (table.get $extern (i32.const 38)) (call $window_listener.get_cycle_count<>i32)
+            (table.get $extern (i32.const 39)) (call $window_listener.get_cycle_cps<>i32)
         )
     )
 
@@ -1203,22 +1240,36 @@
     (func $window_listener.set_last_visibility_event_ptr<i32>  (param i32) (i32.store offset=48 (global.get $OFFSET_WINDOW_LISTENER) (local.get 0)))
     
 	(; externref  ;)
-	(global $OFFSET_EVENT_MANAGER       (mut i32) (i32.const 0))
-    (global $LENGTH_EVENT_MANAGER       i32 (i32.const 16))
+	(table $event_manager.listener_handlers<fun> 1 65535 funcref)
 
-    (global $OFFSET_EVENT_LISTENERS     (mut i32) (i32.const 0))
-    (global $BYTES_PER_EVENT_LISTENER   i32 (i32.const 32))
-    (global $MAX_EVENT_LISTENER_COUNT   i32 (i32.const 256))
+    (global $OFFSET_EVENT_MANAGER               (mut i32) (i32.const 0))
+    (global $LENGTH_EVENT_MANAGER               i32 (i32.const 64))
 
-    (global $OFFSET_EVENT_EMITS_QUEUE   (mut i32) (i32.const 0))
-    (global $BYTES_PER_EMITTED_EVENTS   i32 (i32.const 8))
-    (global $MAX_EVENT_EMIT_PER_CYLCE   i32 (i32.const 256))
+    (global $OFFSET_EVENT_LISTENERS             (mut i32) (i32.const 0))
+    (global $BYTES_PER_EVENT_LISTENER           i32 (i32.const 32))
+    (global $MAX_EVENT_LISTENER_COUNT           i32 (i32.const 256))
 
-    (table $event_manager.listener_handlers<fun> 1 65535 funcref)
+    (global $OFFSET_EVENT_EMITS_QUEUE           (mut i32) (i32.const 0))
+    (global $BYTES_PER_EMITTED_EVENTS           i32 (i32.const 8))
+    (global $MAX_EVENT_EMIT_PER_CYLCE           i32 (i32.const 256))
+
+    (global $OFFSET_EVENT_SLOTS                 (mut i32) (i32.const 0))
+    (global $LENGTH_EVENT_SLOTS                 i32 (i32.const 64000))  ;; 64 * 1000
+    (global $BYTES_PER_EVENT_SLOT               i32 (i32.const 64))
+    (global $MAX_EVENT_SLOTS_COUNT              i32 (i32.const 1000))
 
     (global $EVENT_TYPE.ON_EVERY_SECOND         i32 (i32.const 2))
     (global $EVENT_TYPE.ON_VISIBILTY_VISIBLE    i32 (i32.const 3))
     (global $EVENT_TYPE.ON_VISIBILTY_HIDDEN     i32 (i32.const 4))
+    (global $EVENT_TYPE.ON_POINTER_MOVE         i32 (i32.const 5))
+
+    (global $OFFSET_EVENT_HEADER_POINTER_EPOCH    i32 (i32.const 4))
+    (global $OFFSET_EVENT_HEADER_POINTER_CLIENT_X i32 (i32.const 8))
+    (global $OFFSET_EVENT_HEADER_POINTER_CLIENT_Y i32 (i32.const 12))
+
+    (global $OFFSET_EVENT_HEADER_VISIBILTY_EPOCH i32 (i32.const 4))
+    (global $OFFSET_EVENT_HEADER_VISIBILTY_OTHER i32 (i32.const 8))
+
 
     (func $new_event_manager
         (result i32)
@@ -1247,11 +1298,36 @@
             )
         )
 
+        (global.set $OFFSET_EVENT_SLOTS
+            (call $memory_manager.malloc_internal<i32>i32 
+                (global.get $LENGTH_EVENT_SLOTS)
+            )
+        )
+
+        (call $event_manager.reset_event_slots<>)
+        (call $event_manager.reset_listener_slots<>)
+
+        (global.get $OFFSET_EVENT_MANAGER)
+    )
+
+    (func $event_manager.reset_event_slots<>
+        (call $event_manager.set_event_slot_length<i32>
+            (global.get $OFFSET_EVENT_SLOTS)
+        )
+
+        (call $event_manager.set_event_slot_count<i32>
+            (i32.const 0)
+        )
+    )
+
+    (func $event_manager.reset_listener_slots<>
         (call $event_manager.set_listener_length<i32>
             (global.get $OFFSET_EVENT_LISTENERS)
         )
 
-        (global.get $OFFSET_EVENT_MANAGER)
+        (call $event_manager.set_listener_count<i32>
+            (i32.const 0)
+        )
     )
 
     (func $event_manager.event_loop<>
@@ -1311,8 +1387,7 @@
         )
     )
 
-    (func $event_manager.emit<i32.i32>
-        (param $event_type i32)
+    (func $event_manager.emit<i32>
         (param $event_ptr i32)
 
         (local $queue_offset i32)
@@ -1330,7 +1405,7 @@
                 (then
                     (call $event_queue.set_event_type<i32.i32> 
                         (local.get $queue_offset) 
-                        (local.get $event_type)
+                        (call $event.get_type<i32>i32 (local.get $event_ptr))
                     )
                     (return)
                 ) 
@@ -1365,6 +1440,18 @@
         (local.set $handler_index   (table.grow $event_manager.listener_handlers<fun> (local.get $event_handler) (i32.const 1)))
         (local.set $listener_index  (call $event_manager.new_listener_index<>i32))
         (local.set $listener_offset (call $event_manager.new_listener_offset<>i32))
+
+        (if (i32.eq (local.get $listener_index) (global.get $MAX_EVENT_LISTENER_COUNT))
+            (then
+                (call $event_manager.reset_listener_slots<>)
+                (return 
+                    (call $event_manager.listen<i32.fun>i32 
+                        (local.get $event_type) 
+                        (local.get $event_handler)
+                    )
+                )
+            )
+        )
 
         (call $event_listener.set_listener_index<i32.i32>   (local.get $listener_offset) (local.get $listener_index))
         (call $event_listener.set_event_type<i32.i32>       (local.get $listener_offset) (local.get $event_type))
@@ -1449,6 +1536,36 @@
         )
     )
 
+    (func $event_manager.alloc_event_slot<i32>i32
+        (param $event_type i32)
+        (result i32)
+        (local $slot_offset i32)
+        
+        (if (i32.eq 
+                (call $event_manager.new_event_slot_index<>i32)
+                (global.get $MAX_EVENT_SLOTS_COUNT)
+            )
+            (then
+                (call $event_manager.reset_event_slots<>)
+                (return 
+                    (call $event_manager.alloc_event_slot<i32>i32 
+                        (local.get $event_type)
+                    )
+                )
+            )
+        )
+
+        (local.set $slot_offset 
+            (call $event_manager.new_event_slot_offset<>i32)
+        )
+        
+        (call $event.set_type<i32.i32> 
+            (local.get $slot_offset) (local.get $event_type)
+        )
+
+        (local.get $slot_offset)
+    )
+
     (func $event_manager.handle_for_each_tick<>
     )
 
@@ -1472,7 +1589,34 @@
     (func $event_manager.add_queued_event_emits<>i32    (result i32) (i32.atomic.rmw.add offset=16 (global.get $OFFSET_EVENT_MANAGER) (i32.const 1)))
     (func $event_manager.get_queued_event_emits<>i32    (result i32) (i32.load offset=16 (global.get $OFFSET_EVENT_MANAGER)))
     (func $event_manager.set_queued_event_emits<i32>    (param i32) (i32.store offset=16 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
-    (func $event_manager.sub_queued_event_emits<>i32    (result i32) (i32.atomic.rmw.sub offset=16 (global.get $OFFSET_EVENT_MANAGER) (i32.const 1)))
+
+    (func $event_manager.new_event_slot_offset<>i32     (result i32) (i32.atomic.rmw.add offset=20 (global.get $OFFSET_EVENT_MANAGER) (global.get $BYTES_PER_EVENT_SLOT)))
+    (func $event_manager.get_event_slot_length<>i32     (result i32) (i32.load offset=20 (global.get $OFFSET_EVENT_MANAGER)))
+    (func $event_manager.set_event_slot_length<i32>     (param i32) (i32.store offset=20 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
+
+    (func $event_manager.new_event_slot_index<>i32      (result i32) (i32.atomic.rmw.add offset=24 (global.get $OFFSET_EVENT_MANAGER) (i32.const 1)))
+    (func $event_manager.get_event_slot_count<>i32      (result i32) (i32.load offset=24 (global.get $OFFSET_EVENT_MANAGER)))
+    (func $event_manager.set_event_slot_count<i32>      (param i32) (i32.store offset=24 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
+
+    (func $event.get_type<i32>i32                       (param i32) (result i32) (i32.load offset=0 (local.get 0)))
+    (func $event.set_type<i32.i32>                      (param i32 i32) (i32.store offset=0 (local.get 0) (local.get 1)))
+
+    (func $event.get_header<i32>i32                     (param i32) (result i32) (i32.load offset=0 (local.get 0)))
+    (func $event.set_header<i32.i32>                    (param i32 i32) (i32.store offset=0 (local.get 0) (local.get 1)))
+    (func $event.get_header<i32>f32                     (param i32) (result f32) (f32.load offset=0 (local.get 0)))
+    (func $event.set_header<i32.f32>                    (param i32 f32) (f32.store offset=0 (local.get 0) (local.get 1)))
+
+    (func $visibility_event.get_epoch<i32>f32           (param i32) (result f32) (call $event.get_header<i32>f32 (i32.add (global.get $OFFSET_EVENT_HEADER_VISIBILTY_EPOCH) (local.get 0))))
+    (func $visibility_event.set_epoch<i32.f32>          (param i32 f32) (call $event.set_header<i32.f32> (i32.add (global.get $OFFSET_EVENT_HEADER_VISIBILTY_EPOCH) (local.get 0)) (local.get 1)))
+
+    (func $pointer_event.get_epoch<i32>f32              (param i32) (result f32) (call $event.get_header<i32>f32 (i32.add (global.get $OFFSET_EVENT_HEADER_POINTER_EPOCH) (local.get 0))))
+    (func $pointer_event.set_epoch<i32.f32>             (param i32 f32) (call $event.set_header<i32.f32> (i32.add (global.get $OFFSET_EVENT_HEADER_POINTER_EPOCH) (local.get 0)) (local.get 1)))
+
+    (func $pointer_event.get_client_x<i32>f32           (param i32) (result f32) (call $event.get_header<i32>f32 (i32.add (global.get $OFFSET_EVENT_HEADER_POINTER_CLIENT_X) (local.get 0))))
+    (func $pointer_event.set_client_x<i32.f32>          (param i32 f32) (call $event.set_header<i32.f32> (i32.add (global.get $OFFSET_EVENT_HEADER_POINTER_CLIENT_X) (local.get 0)) (local.get 1)))
+
+    (func $pointer_event.get_client_y<i32>f32           (param i32) (result f32) (call $event.get_header<i32>f32 (i32.add (global.get $OFFSET_EVENT_HEADER_POINTER_CLIENT_Y) (local.get 0))))
+    (func $pointer_event.set_client_y<i32.f32>          (param i32 f32) (call $event.set_header<i32.f32> (i32.add (global.get $OFFSET_EVENT_HEADER_POINTER_CLIENT_Y) (local.get 0)) (local.get 1)))
 
     (func $event_queue.get_event_type<i32>i32           (param i32) (result i32) (i32.load offset=0 (local.get 0)))
     (func $event_queue.set_event_type<i32.i32>          (param i32 i32) (i32.store offset=0 (local.get 0) (local.get 1)))
@@ -1561,6 +1705,13 @@
             )
         )
 
+        (call $event_handlers.set_on_pointer_move_ptr<i32>
+            (call $event_manager.listen<i32.fun>i32
+                (global.get $EVENT_TYPE.ON_POINTER_MOVE) 
+                (ref.func $event_handlers.on_pointer_move<i32>)
+            )
+        )
+
         (call $event_handlers.set_event_loop_listener_ptr<i32>
             (call $window_listener.add_listener_for_each_cycle<fun>i32
                 (ref.func $event_manager.event_loop<>)
@@ -1572,13 +1723,21 @@
 
     (func $event_handlers.on_visibility_visible<i32>
         (param $event* i32)
-        (call $self.console.warn<ref.i32> (table.get $extern (i32.const 41)) (local.get $event*))
+        (call $self.console.warn<ref.i32> (table.get $extern (i32.const 40)) (local.get $event*))
     )
 
     (func $event_handlers.on_visibility_hidden<i32>
         (param $event* i32)
+        (call $self.console.warn<ref.i32> (table.get $extern (i32.const 41)) (local.get $event*))
+    )
+
+    (func $event_handlers.on_pointer_move<i32>
+        (param $event* i32)
         (call $self.console.warn<ref.i32> (table.get $extern (i32.const 42)) (local.get $event*))
     )
+
+    (func $event_handlers.get_event_loop_listener_ptr<>i32      (result i32) (i32.load offset=0 (global.get $OFFSET_EVENT_MANAGER)))
+    (func $event_handlers.set_event_loop_listener_ptr<i32>      (param i32) (i32.store offset=0 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
 
     (func $event_handlers.get_on_visibility_visibile_ptr<>i32   (result i32) (i32.load offset=4 (global.get $OFFSET_EVENT_MANAGER)))
     (func $event_handlers.set_on_visibility_visibile_ptr<i32>   (param i32) (i32.store offset=4 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
@@ -1586,8 +1745,8 @@
     (func $event_handlers.get_on_visibility_hidden_ptr<>i32     (result i32) (i32.load offset=8 (global.get $OFFSET_EVENT_MANAGER)))
     (func $event_handlers.set_on_visibility_hidden_ptr<i32>     (param i32) (i32.store offset=8 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
 
-    (func $event_handlers.get_event_loop_listener_ptr<>i32      (result i32) (i32.load offset=12 (global.get $OFFSET_EVENT_MANAGER)))
-    (func $event_handlers.set_event_loop_listener_ptr<i32>      (param i32) (i32.store offset=12 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
+    (func $event_handlers.get_on_pointer_move_ptr<>i32          (result i32) (i32.load offset=12 (global.get $OFFSET_EVENT_MANAGER)))
+    (func $event_handlers.set_on_pointer_move_ptr<i32>          (param i32) (i32.store offset=12 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
 
     (data (i32.const 4) "\10")
 
@@ -1610,68 +1769,70 @@
 		(table.set $extern (i32.const 11) (call $wat4wasm/text (i32.const 524) (i32.const 92)))
 		(table.set $extern (i32.const 12) (call $wat4wasm/text (i32.const 616) (i32.const 44)))
 		(table.set $extern (i32.const 13) (call $wat4wasm/text (i32.const 660) (i32.const 40)))
-		(table.set $extern (i32.const 14) (call $wat4wasm/text (i32.const 700) (i32.const 48)))
-		(table.set $extern (i32.const 15) (call $wat4wasm/text (i32.const 748) (i32.const 52)))
-		(table.set $extern (i32.const 16) (call $wat4wasm/text (i32.const 800) (i32.const 64)))
-		(table.set $extern (i32.const 17) (call $wat4wasm/text (i32.const 864) (i32.const 112)))
-		(table.set $extern (i32.const 18) (call $wat4wasm/text (i32.const 976) (i32.const 20)))
-		(table.set $extern (i32.const 19) (call $wat4wasm/text (i32.const 996) (i32.const 16)))
-		(table.set $extern (i32.const 20) (call $wat4wasm/text (i32.const 1012) (i32.const 100)))
-		(table.set $extern (i32.const 21) (call $wat4wasm/text (i32.const 1112) (i32.const 100)))
-		(table.set $extern (i32.const 22) (call $wat4wasm/text (i32.const 1212) (i32.const 112)))
-		(table.set $extern (i32.const 23) (call $wat4wasm/text (i32.const 1324) (i32.const 32)))
-		(table.set $extern (i32.const 24) (call $wat4wasm/text (i32.const 1356) (i32.const 32)))
-		(table.set $extern (i32.const 25) (call $wat4wasm/text (i32.const 1388) (i32.const 32)))
-		(table.set $extern (i32.const 26) (call $wat4wasm/text (i32.const 1420) (i32.const 40)))
-		(table.set $extern (i32.const 27) (call $wat4wasm/text (i32.const 1460) (i32.const 72)))
-		(table.set $extern (i32.const 28) (call $wat4wasm/text (i32.const 1532) (i32.const 72)))
-		(table.set $extern (i32.const 29) (call $wat4wasm/text (i32.const 1604) (i32.const 80)))
-		(table.set $extern (i32.const 30) (call $wat4wasm/text (i32.const 1684) (i32.const 88)))
-		(table.set $extern (i32.const 31) (call $wat4wasm/text (i32.const 1772) (i32.const 48)))
-		(table.set $extern (i32.const 32) (call $wat4wasm/text (i32.const 1820) (i32.const 24)))
-		(table.set $extern (i32.const 33) (call $wat4wasm/text (i32.const 1844) (i32.const 92)))
-		(table.set $extern (i32.const 34) (call $wat4wasm/text (i32.const 1936) (i32.const 116)))
-		(table.set $extern (i32.const 35) (call $wat4wasm/text (i32.const 2052) (i32.const 104)))
-		(table.set $extern (i32.const 36) (call $wat4wasm/text (i32.const 2156) (i32.const 108)))
-		(table.set $extern (i32.const 37) (call $wat4wasm/text (i32.const 2264) (i32.const 64)))
-		(table.set $extern (i32.const 38) (call $wat4wasm/text (i32.const 2328) (i32.const 64)))
-		(table.set $extern (i32.const 39) (call $wat4wasm/text (i32.const 2392) (i32.const 72)))
-		(table.set $extern (i32.const 40) (call $wat4wasm/text (i32.const 2464) (i32.const 72)))
-		(table.set $extern (i32.const 41) (call $wat4wasm/text (i32.const 2536) (i32.const 176)))
-		(table.set $extern (i32.const 42) (call $wat4wasm/text (i32.const 2712) (i32.const 172)))
-		(table.set $extern (i32.const 43) (call $wat4wasm/text (i32.const 2884) (i32.const 36)))
-		(table.set $extern (i32.const 44) (call $wat4wasm/text (i32.const 2920) (i32.const 48)))
-		(table.set $extern (i32.const 45) (call $wat4wasm/text (i32.const 2968) (i32.const 24)))
-		(table.set $extern (i32.const 46) (call $wat4wasm/text (i32.const 2992) (i32.const 32)))
-		(table.set $extern (i32.const 47) (call $wat4wasm/text (i32.const 3024) (i32.const 32)))
-		(table.set $extern (i32.const 48) (call $wat4wasm/text (i32.const 3056) (i32.const 56)))
-		(table.set $extern (i32.const 49) (call $wat4wasm/text (i32.const 3112) (i32.const 32)))
-		(table.set $extern (i32.const 50) (call $wat4wasm/text (i32.const 3144) (i32.const 64)))
-		(table.set $extern (i32.const 51) (call $wat4wasm/text (i32.const 3208) (i32.const 56)))
-		(table.set $extern (i32.const 52) (call $wat4wasm/text (i32.const 3264) (i32.const 48)))
-		(table.set $extern (i32.const 53) (call $wat4wasm/text (i32.const 3312) (i32.const 36)))
-		(table.set $extern (i32.const 54) (call $wat4wasm/text (i32.const 3348) (i32.const 16)))
-		(table.set $extern (i32.const 55) (call $wat4wasm/text (i32.const 3364) (i32.const 12)))
-		(table.set $extern (i32.const 56) (call $wat4wasm/text (i32.const 3376) (i32.const 24)))
-		(table.set $extern (i32.const 57) (call $wat4wasm/text (i32.const 3400) (i32.const 44)))
-		(table.set $extern (i32.const 58) (call $wat4wasm/text (i32.const 3444) (i32.const 24)))
-		(table.set $extern (i32.const 59) (call $wat4wasm/text (i32.const 3468) (i32.const 40)))
-		(table.set $extern (i32.const 60) (call $wat4wasm/text (i32.const 3508) (i32.const 16)))
-		(table.set $extern (i32.const 61) (call $wat4wasm/text (i32.const 3524) (i32.const 20)))
-		(table.set $extern (i32.const 62) (call $wat4wasm/text (i32.const 3544) (i32.const 16)))
-		(table.set $extern (i32.const 63) (call $wat4wasm/text (i32.const 3560) (i32.const 20)))
-		(table.set $extern (i32.const 64) (call $wat4wasm/text (i32.const 3580) (i32.const 36)))
-		(table.set $extern (i32.const 65) (call $wat4wasm/text (i32.const 3616) (i32.const 44)))
-		(table.set $extern (i32.const 66) (call $wat4wasm/text (i32.const 3660) (i32.const 64)))
-		(table.set $extern (i32.const 67) (call $wat4wasm/text (i32.const 3724) (i32.const 76)))
-		(table.set $extern (i32.const 68) (call $wat4wasm/text (i32.const 3800) (i32.const 32)))
-		(table.set $extern (i32.const 69) (call $wat4wasm/text (i32.const 3832) (i32.const 60)))
-		(table.set $extern (i32.const 70) (call $wat4wasm/text (i32.const 3892) (i32.const 24)))
-		(table.set $extern (i32.const 71) (call $wat4wasm/text (i32.const 3916) (i32.const 40)))
-		(table.set $extern (i32.const 72) (call $wat4wasm/text (i32.const 3956) (i32.const 32)))
-		(table.set $extern (i32.const 73) (call $wat4wasm/text (i32.const 3988) (i32.const 24)))
-		(table.set $extern (i32.const 74) (call $wat4wasm/text (i32.const 4012) (i32.const 44)))
-		(table.set $extern (i32.const 75) (call $wat4wasm/text (i32.const 4056) (i32.const 12)))
+		(table.set $extern (i32.const 14) (call $wat4wasm/text (i32.const 700) (i32.const 44)))
+		(table.set $extern (i32.const 15) (call $wat4wasm/text (i32.const 744) (i32.const 64)))
+		(table.set $extern (i32.const 16) (call $wat4wasm/text (i32.const 808) (i32.const 112)))
+		(table.set $extern (i32.const 17) (call $wat4wasm/text (i32.const 920) (i32.const 20)))
+		(table.set $extern (i32.const 18) (call $wat4wasm/text (i32.const 940) (i32.const 16)))
+		(table.set $extern (i32.const 19) (call $wat4wasm/text (i32.const 956) (i32.const 100)))
+		(table.set $extern (i32.const 20) (call $wat4wasm/text (i32.const 1056) (i32.const 100)))
+		(table.set $extern (i32.const 21) (call $wat4wasm/text (i32.const 1156) (i32.const 112)))
+		(table.set $extern (i32.const 22) (call $wat4wasm/text (i32.const 1268) (i32.const 32)))
+		(table.set $extern (i32.const 23) (call $wat4wasm/text (i32.const 1300) (i32.const 32)))
+		(table.set $extern (i32.const 24) (call $wat4wasm/text (i32.const 1332) (i32.const 32)))
+		(table.set $extern (i32.const 25) (call $wat4wasm/text (i32.const 1364) (i32.const 40)))
+		(table.set $extern (i32.const 26) (call $wat4wasm/text (i32.const 1404) (i32.const 72)))
+		(table.set $extern (i32.const 27) (call $wat4wasm/text (i32.const 1476) (i32.const 72)))
+		(table.set $extern (i32.const 28) (call $wat4wasm/text (i32.const 1548) (i32.const 80)))
+		(table.set $extern (i32.const 29) (call $wat4wasm/text (i32.const 1628) (i32.const 88)))
+		(table.set $extern (i32.const 30) (call $wat4wasm/text (i32.const 1716) (i32.const 48)))
+		(table.set $extern (i32.const 31) (call $wat4wasm/text (i32.const 1764) (i32.const 24)))
+		(table.set $extern (i32.const 32) (call $wat4wasm/text (i32.const 1788) (i32.const 92)))
+		(table.set $extern (i32.const 33) (call $wat4wasm/text (i32.const 1880) (i32.const 116)))
+		(table.set $extern (i32.const 34) (call $wat4wasm/text (i32.const 1996) (i32.const 104)))
+		(table.set $extern (i32.const 35) (call $wat4wasm/text (i32.const 2100) (i32.const 108)))
+		(table.set $extern (i32.const 36) (call $wat4wasm/text (i32.const 2208) (i32.const 64)))
+		(table.set $extern (i32.const 37) (call $wat4wasm/text (i32.const 2272) (i32.const 64)))
+		(table.set $extern (i32.const 38) (call $wat4wasm/text (i32.const 2336) (i32.const 72)))
+		(table.set $extern (i32.const 39) (call $wat4wasm/text (i32.const 2408) (i32.const 72)))
+		(table.set $extern (i32.const 40) (call $wat4wasm/text (i32.const 2480) (i32.const 176)))
+		(table.set $extern (i32.const 41) (call $wat4wasm/text (i32.const 2656) (i32.const 172)))
+		(table.set $extern (i32.const 42) (call $wat4wasm/text (i32.const 2828) (i32.const 196)))
+		(table.set $extern (i32.const 43) (call $wat4wasm/text (i32.const 3024) (i32.const 36)))
+		(table.set $extern (i32.const 44) (call $wat4wasm/text (i32.const 3060) (i32.const 48)))
+		(table.set $extern (i32.const 45) (call $wat4wasm/text (i32.const 3108) (i32.const 24)))
+		(table.set $extern (i32.const 46) (call $wat4wasm/text (i32.const 3132) (i32.const 32)))
+		(table.set $extern (i32.const 47) (call $wat4wasm/text (i32.const 3164) (i32.const 32)))
+		(table.set $extern (i32.const 48) (call $wat4wasm/text (i32.const 3196) (i32.const 56)))
+		(table.set $extern (i32.const 49) (call $wat4wasm/text (i32.const 3252) (i32.const 32)))
+		(table.set $extern (i32.const 50) (call $wat4wasm/text (i32.const 3284) (i32.const 64)))
+		(table.set $extern (i32.const 51) (call $wat4wasm/text (i32.const 3348) (i32.const 56)))
+		(table.set $extern (i32.const 52) (call $wat4wasm/text (i32.const 3404) (i32.const 48)))
+		(table.set $extern (i32.const 53) (call $wat4wasm/text (i32.const 3452) (i32.const 36)))
+		(table.set $extern (i32.const 54) (call $wat4wasm/text (i32.const 3488) (i32.const 16)))
+		(table.set $extern (i32.const 55) (call $wat4wasm/text (i32.const 3504) (i32.const 12)))
+		(table.set $extern (i32.const 56) (call $wat4wasm/text (i32.const 3516) (i32.const 24)))
+		(table.set $extern (i32.const 57) (call $wat4wasm/text (i32.const 3540) (i32.const 44)))
+		(table.set $extern (i32.const 58) (call $wat4wasm/text (i32.const 3584) (i32.const 24)))
+		(table.set $extern (i32.const 59) (call $wat4wasm/text (i32.const 3608) (i32.const 40)))
+		(table.set $extern (i32.const 60) (call $wat4wasm/text (i32.const 3648) (i32.const 16)))
+		(table.set $extern (i32.const 61) (call $wat4wasm/text (i32.const 3664) (i32.const 20)))
+		(table.set $extern (i32.const 62) (call $wat4wasm/text (i32.const 3684) (i32.const 16)))
+		(table.set $extern (i32.const 63) (call $wat4wasm/text (i32.const 3700) (i32.const 20)))
+		(table.set $extern (i32.const 64) (call $wat4wasm/text (i32.const 3720) (i32.const 36)))
+		(table.set $extern (i32.const 65) (call $wat4wasm/text (i32.const 3756) (i32.const 44)))
+		(table.set $extern (i32.const 66) (call $wat4wasm/text (i32.const 3800) (i32.const 64)))
+		(table.set $extern (i32.const 67) (call $wat4wasm/text (i32.const 3864) (i32.const 44)))
+		(table.set $extern (i32.const 68) (call $wat4wasm/text (i32.const 3908) (i32.const 12)))
+		(table.set $extern (i32.const 69) (call $wat4wasm/text (i32.const 3920) (i32.const 40)))
+		(table.set $extern (i32.const 70) (call $wat4wasm/text (i32.const 3960) (i32.const 28)))
+		(table.set $extern (i32.const 71) (call $wat4wasm/text (i32.const 3988) (i32.const 28)))
+		(table.set $extern (i32.const 72) (call $wat4wasm/text (i32.const 4016) (i32.const 32)))
+		(table.set $extern (i32.const 73) (call $wat4wasm/text (i32.const 4048) (i32.const 60)))
+		(table.set $extern (i32.const 74) (call $wat4wasm/text (i32.const 4108) (i32.const 24)))
+		(table.set $extern (i32.const 75) (call $wat4wasm/text (i32.const 4132) (i32.const 40)))
+		(table.set $extern (i32.const 76) (call $wat4wasm/text (i32.const 4172) (i32.const 32)))
+		(table.set $extern (i32.const 77) (call $wat4wasm/text (i32.const 4204) (i32.const 24)))
 
 
 
@@ -1882,16 +2043,52 @@
             )
         )
         
-        (global.set $self.EventTarget:removeEventListener
+        (global.set $self.performance
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (global.get $wat4wasm/self)
+                (table.get $extern (i32.const 67)) 
+            )
+        )
+        
+        (global.set $self.performance.now
             (call $wat4wasm/Reflect.get<refx2>ref
                 (call $wat4wasm/Reflect.get<refx2>ref 
+                        (global.get $wat4wasm/self) 
+                        (table.get $extern (i32.const 67)) 
+                    )
+                (table.get $extern (i32.const 68)) 
+            )
+        )
+        
+        (global.set $self.MouseEvent:clientX/get
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (call $wat4wasm/Reflect.getOwnPropertyDescriptor<refx2>ref
+                    (call $wat4wasm/Reflect.get<refx2>ref 
                             (call $wat4wasm/Reflect.get<refx2>ref 
                                 (global.get $wat4wasm/self) 
-                                (table.get $extern (i32.const 65)) 
+                                (table.get $extern (i32.const 69)) 
                             ) 
                             (table.get $extern (i32.const 53)) 
                         )
-                (table.get $extern (i32.const 67)) 
+                    (table.get $extern (i32.const 70)) 
+                )
+                (table.get $extern (i32.const 55)) 
+            )
+        )
+        
+        (global.set $self.MouseEvent:clientY/get
+            (call $wat4wasm/Reflect.get<refx2>ref
+                (call $wat4wasm/Reflect.getOwnPropertyDescriptor<refx2>ref
+                    (call $wat4wasm/Reflect.get<refx2>ref 
+                            (call $wat4wasm/Reflect.get<refx2>ref 
+                                (global.get $wat4wasm/self) 
+                                (table.get $extern (i32.const 69)) 
+                            ) 
+                            (table.get $extern (i32.const 53)) 
+                        )
+                    (table.get $extern (i32.const 71)) 
+                )
+                (table.get $extern (i32.const 55)) 
             )
         )
         
@@ -1901,11 +2098,11 @@
                     (call $wat4wasm/Reflect.get<refx2>ref 
                             (call $wat4wasm/Reflect.get<refx2>ref 
                                 (global.get $wat4wasm/self) 
-                                (table.get $extern (i32.const 68)) 
+                                (table.get $extern (i32.const 72)) 
                             ) 
                             (table.get $extern (i32.const 53)) 
                         )
-                    (table.get $extern (i32.const 69)) 
+                    (table.get $extern (i32.const 73)) 
                 )
                 (table.get $extern (i32.const 55)) 
             )
@@ -1916,11 +2113,11 @@
                 (call $wat4wasm/Reflect.get<refx2>ref 
                             (call $wat4wasm/Reflect.get<refx2>ref 
                                 (global.get $wat4wasm/self) 
-                                (table.get $extern (i32.const 70)) 
+                                (table.get $extern (i32.const 74)) 
                             ) 
                             (table.get $extern (i32.const 53)) 
                         )
-                (table.get $extern (i32.const 71)) 
+                (table.get $extern (i32.const 75)) 
             )
         )
         
@@ -1929,11 +2126,11 @@
                 (call $wat4wasm/Reflect.get<refx2>ref 
                             (call $wat4wasm/Reflect.get<refx2>ref 
                                 (global.get $wat4wasm/self) 
-                                (table.get $extern (i32.const 68)) 
+                                (table.get $extern (i32.const 72)) 
                             ) 
                             (table.get $extern (i32.const 53)) 
                         )
-                (table.get $extern (i32.const 72)) 
+                (table.get $extern (i32.const 76)) 
             )
         )
         
@@ -1943,30 +2140,13 @@
                     (call $wat4wasm/Reflect.get<refx2>ref 
                             (call $wat4wasm/Reflect.get<refx2>ref 
                                 (global.get $wat4wasm/self) 
-                                (table.get $extern (i32.const 68)) 
+                                (table.get $extern (i32.const 72)) 
                             ) 
                             (table.get $extern (i32.const 53)) 
                         )
-                    (table.get $extern (i32.const 73)) 
+                    (table.get $extern (i32.const 77)) 
                 )
                 (table.get $extern (i32.const 55)) 
-            )
-        )
-        
-        (global.set $self.performance
-            (call $wat4wasm/Reflect.get<refx2>ref
-                (global.get $wat4wasm/self)
-                (table.get $extern (i32.const 74)) 
-            )
-        )
-        
-        (global.set $self.performance.now
-            (call $wat4wasm/Reflect.get<refx2>ref
-                (call $wat4wasm/Reflect.get<refx2>ref 
-                        (global.get $wat4wasm/self) 
-                        (table.get $extern (i32.const 74)) 
-                    )
-                (table.get $extern (i32.const 75)) 
             )
         )
         
@@ -1994,17 +2174,18 @@
 	(global $self.Uint8Array.__proto__.prototype (mut externref) ref.null extern)
 	(global $self.Uint8Array.__proto__.prototype.buffer/get (mut externref) ref.null extern)
 	(global $self.EventTarget:addEventListener (mut externref) ref.null extern)
-	(global $self.EventTarget:removeEventListener (mut externref) ref.null extern)
+	(global $self.performance (mut externref) ref.null extern)
+	(global $self.performance.now (mut externref) ref.null extern)
+	(global $self.MouseEvent:clientX/get (mut externref) ref.null extern)
+	(global $self.MouseEvent:clientY/get (mut externref) ref.null extern)
 	(global $self.Document:visibilityState/get (mut externref) ref.null extern)
 	(global $self.String:charCodeAt (mut externref) ref.null extern)
 	(global $self.Document:hasFocus (mut externref) ref.null extern)
 	(global $self.Document:hidden/get (mut externref) ref.null extern)
-	(global $self.performance (mut externref) ref.null extern)
-	(global $self.performance.now (mut externref) ref.null extern)
 
-	(elem $wat4wasm/refs funcref (ref.func $window_listener.handle_pointer_over<>) (ref.func $window_listener.handle_pointer_out<>) (ref.func $window_listener.handle_visibility_change<>) (ref.func $window_listener.handle_focus_focused<>) (ref.func $window_listener.handle_focus_blurred<>) (ref.func $window_listener.handle_page_show<>) (ref.func $window_listener.handle_page_hide<>) (ref.func $window_listener.handle_page_swap<>) (ref.func $window_listener.handle_page_reveal<>) (ref.func $window_listener.handle_unload_before<>) (ref.func $window_listener.handle_unload_closed<>) (ref.func $window_listener.listen_next_tick_cycle<ref>) (ref.func $window_listener.listen_rendering_cycle<i32>) (ref.func $event_handlers.on_visibility_visible<i32>) (ref.func $event_handlers.on_visibility_hidden<i32>) (ref.func $event_manager.event_loop<>))
+	(elem $wat4wasm/refs funcref (ref.func $window_listener.handle_pointer_over<>) (ref.func $window_listener.handle_pointer_out<>) (ref.func $window_listener.handle_pointer_move<ref>) (ref.func $window_listener.handle_visibility_change<>) (ref.func $window_listener.handle_focus_focused<>) (ref.func $window_listener.handle_focus_blurred<>) (ref.func $window_listener.handle_page_show<>) (ref.func $window_listener.handle_page_hide<>) (ref.func $window_listener.handle_page_swap<>) (ref.func $window_listener.handle_page_reveal<>) (ref.func $window_listener.handle_unload_before<>) (ref.func $window_listener.handle_unload_closed<>) (ref.func $window_listener.listen_next_tick_cycle<ref>) (ref.func $window_listener.listen_rendering_cycle<i32>) (ref.func $event_handlers.on_visibility_visible<i32>) (ref.func $event_handlers.on_visibility_hidden<i32>) (ref.func $event_handlers.on_pointer_move<i32>) (ref.func $event_manager.event_loop<>))
 
-    (table $extern 76 76 externref)
+    (table $extern 78 78 externref)
 
     (func $wat4wasm/text 
         (param $offset i32)
@@ -2061,5 +2242,5 @@
         )
     )
 
-    (data $wat4wasm/text "\00\00\da\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\d2\42\00\00\dc\42\00\00\d2\42\00\00\e8\42\00\00\d2\42\00\00\c2\42\00\00\d8\42\00\00\da\42\00\00\c2\42\00\00\f0\42\00\00\d2\42\00\00\da\42\00\00\ea\42\00\00\da\42\00\00\e6\42\00\00\d0\42\00\00\c2\42\00\00\e4\42\00\00\ca\42\00\00\c8\42\00\00\c4\42\00\00\ea\42\00\00\cc\42\00\00\cc\42\00\00\ca\42\00\00\e4\42\00\00\c4\42\00\00\f2\42\00\00\e8\42\00\00\ca\42\00\00\98\42\00\00\ca\42\00\00\dc\42\00\00\ce\42\00\00\e8\42\00\00\d0\42\00\00\c4\42\00\00\ea\42\00\00\cc\42\00\00\cc\42\00\00\ca\42\00\00\e4\42\00\00\be\42\00\00\da\42\00\00\c2\42\00\00\f0\42\00\00\be\42\00\00\c4\42\00\00\f2\42\00\00\e8\42\00\00\ca\42\00\00\d8\42\00\00\ca\42\00\00\dc\42\00\00\ce\42\00\00\e8\42\00\00\d0\42\00\00\da\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\be\42\00\00\da\42\00\00\c2\42\00\00\f0\42\00\00\be\42\00\00\c4\42\00\00\f2\42\00\00\e8\42\00\00\ca\42\00\00\d8\42\00\00\ca\42\00\00\dc\42\00\00\ce\42\00\00\e8\42\00\00\d0\42\00\00\c8\42\00\00\ca\42\00\00\ec\42\00\00\d2\42\00\00\c6\42\00\00\ca\42\00\00\be\42\00\00\da\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\be\42\00\00\c4\42\00\00\f2\42\00\00\e8\42\00\00\ca\42\00\00\d8\42\00\00\ca\42\00\00\dc\42\00\00\ce\42\00\00\e8\42\00\00\d0\42\00\00\da\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\be\42\00\00\c6\42\00\00\ea\42\00\00\e4\42\00\00\e4\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\be\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\d2\42\00\00\f4\42\00\00\ca\42\00\00\da\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\be\42\00\00\da\42\00\00\c2\42\00\00\f0\42\00\00\d2\42\00\00\da\42\00\00\ea\42\00\00\da\42\00\00\be\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\d2\42\00\00\f4\42\00\00\ca\42\00\00\e0\42\00\00\de\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\de\42\00\00\ec\42\00\00\ca\42\00\00\e4\42\00\00\e0\42\00\00\de\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\de\42\00\00\ea\42\00\00\e8\42\00\00\de\42\00\00\dc\42\00\00\e0\42\00\00\de\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\de\42\00\00\ea\42\00\00\e8\42\00\00\de\42\00\00\dc\42\00\00\e0\42\00\00\de\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\de\42\00\00\ec\42\00\00\ca\42\00\00\e4\42\00\00\ec\42\00\00\d2\42\00\00\e6\42\00\00\d2\42\00\00\c4\42\00\00\d2\42\00\00\d8\42\00\00\d2\42\00\00\e8\42\00\00\f2\42\00\00\c6\42\00\00\d0\42\00\00\c2\42\00\00\dc\42\00\00\ce\42\00\00\ca\42\00\00\ec\42\00\00\d2\42\00\00\e6\42\00\00\d2\42\00\00\c4\42\00\00\d2\42\00\00\d8\42\00\00\d2\42\00\00\e8\42\00\00\f2\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\e0\42\00\00\e4\42\00\00\ca\42\00\00\34\42\00\00\e4\42\00\00\ca\42\00\00\dc\42\00\00\c8\42\00\00\ca\42\00\00\e4\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\cc\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\e6\42\00\00\c4\42\00\00\d8\42\00\00\ea\42\00\00\e4\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\cc\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\e6\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\c4\42\00\00\d8\42\00\00\ea\42\00\00\e4\42\00\00\e4\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\cc\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\e6\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\cc\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\e6\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\cc\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\e6\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\e0\42\00\00\e4\42\00\00\ca\42\00\00\34\42\00\00\c2\42\00\00\c6\42\00\00\e8\42\00\00\d2\42\00\00\ec\42\00\00\ca\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\d0\42\00\00\de\42\00\00\ee\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\d0\42\00\00\d2\42\00\00\c8\42\00\00\ca\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\ee\42\00\00\c2\42\00\00\e0\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e4\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\c2\42\00\00\d8\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\d0\42\00\00\c2\42\00\00\e6\42\00\00\00\42\00\00\e6\42\00\00\d0\42\00\00\de\42\00\00\ee\42\00\00\dc\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\d0\42\00\00\c2\42\00\00\e6\42\00\00\00\42\00\00\d0\42\00\00\d2\42\00\00\c8\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\d0\42\00\00\d2\42\00\00\c8\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\ee\42\00\00\d2\42\00\00\e8\42\00\00\d0\42\00\00\00\42\00\00\e6\42\00\00\ee\42\00\00\c2\42\00\00\e0\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\e6\42\00\00\d0\42\00\00\de\42\00\00\ee\42\00\00\dc\42\00\00\00\42\00\00\ee\42\00\00\d2\42\00\00\e8\42\00\00\d0\42\00\00\00\42\00\00\e4\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\c2\42\00\00\d8\42\00\00\c4\42\00\00\ca\42\00\00\cc\42\00\00\de\42\00\00\e4\42\00\00\ca\42\00\00\ea\42\00\00\dc\42\00\00\d8\42\00\00\de\42\00\00\c2\42\00\00\c8\42\00\00\ea\42\00\00\dc\42\00\00\d8\42\00\00\de\42\00\00\c2\42\00\00\c8\42\00\00\ea\42\00\00\dc\42\00\00\d8\42\00\00\de\42\00\00\c2\42\00\00\c8\42\00\00\00\42\00\00\e6\42\00\00\e8\42\00\00\c2\42\00\00\e8\42\00\00\ca\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\ee\42\00\00\c2\42\00\00\d2\42\00\00\e8\42\00\00\d2\42\00\00\dc\42\00\00\ce\42\00\00\ea\42\00\00\dc\42\00\00\d8\42\00\00\de\42\00\00\c2\42\00\00\c8\42\00\00\00\42\00\00\e6\42\00\00\e8\42\00\00\c2\42\00\00\e8\42\00\00\ca\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\c4\42\00\00\ca\42\00\00\cc\42\00\00\de\42\00\00\e4\42\00\00\ca\42\00\00\00\42\00\00\ea\42\00\00\dc\42\00\00\d8\42\00\00\de\42\00\00\c2\42\00\00\c8\42\00\00\ea\42\00\00\dc\42\00\00\d8\42\00\00\de\42\00\00\c2\42\00\00\c8\42\00\00\00\42\00\00\e6\42\00\00\e8\42\00\00\c2\42\00\00\e8\42\00\00\ca\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\c6\42\00\00\d8\42\00\00\de\42\00\00\e6\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\c6\42\00\00\f2\42\00\00\c6\42\00\00\d8\42\00\00\ca\42\00\00\00\42\00\00\e6\42\00\00\ee\42\00\00\d2\42\00\00\e8\42\00\00\c6\42\00\00\d0\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\e8\42\00\00\de\42\00\00\00\42\00\00\dc\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\e8\42\00\00\d2\42\00\00\c6\42\00\00\d6\42\00\00\e4\42\00\00\ca\42\00\00\dc\42\00\00\c8\42\00\00\ca\42\00\00\e4\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\cc\42\00\00\e4\42\00\00\c2\42\00\00\da\42\00\00\ca\42\00\00\e6\42\00\00\68\42\00\00\c6\42\00\00\c2\42\00\00\d8\42\00\00\d8\42\00\00\c4\42\00\00\c2\42\00\00\c6\42\00\00\d6\42\00\00\00\42\00\00\c6\42\00\00\f2\42\00\00\c6\42\00\00\d8\42\00\00\ca\42\00\00\e6\42\00\00\68\42\00\00\e8\42\00\00\de\42\00\00\e8\42\00\00\c2\42\00\00\d8\42\00\00\00\42\00\00\c6\42\00\00\f2\42\00\00\c6\42\00\00\d8\42\00\00\ca\42\00\00\00\42\00\00\c6\42\00\00\de\42\00\00\ea\42\00\00\dc\42\00\00\e8\42\00\00\68\42\00\00\c6\42\00\00\f2\42\00\00\c6\42\00\00\d8\42\00\00\ca\42\00\00\e6\42\00\00\00\42\00\00\e0\42\00\00\ca\42\00\00\e4\42\00\00\00\42\00\00\e6\42\00\00\ca\42\00\00\c6\42\00\00\de\42\00\00\dc\42\00\00\c8\42\00\00\68\42\00\00\de\42\00\00\dc\42\00\00\00\42\00\00\ec\42\00\00\d2\42\00\00\e6\42\00\00\d2\42\00\00\c4\42\00\00\d8\42\00\00\ca\42\00\00\00\42\00\00\cc\42\00\00\e4\42\00\00\de\42\00\00\da\42\00\00\00\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\00\42\00\00\da\42\00\00\c2\42\00\00\dc\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e4\42\00\00\38\42\00\00\00\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\00\42\00\00\de\42\00\00\cc\42\00\00\cc\42\00\00\e6\42\00\00\ca\42\00\00\e8\42\00\00\68\42\00\00\de\42\00\00\dc\42\00\00\00\42\00\00\d0\42\00\00\d2\42\00\00\c8\42\00\00\c8\42\00\00\ca\42\00\00\dc\42\00\00\00\42\00\00\cc\42\00\00\e4\42\00\00\de\42\00\00\da\42\00\00\00\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\00\42\00\00\da\42\00\00\c2\42\00\00\dc\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e4\42\00\00\38\42\00\00\00\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\00\42\00\00\de\42\00\00\cc\42\00\00\cc\42\00\00\e6\42\00\00\ca\42\00\00\e8\42\00\00\68\42\00\00\dc\42\00\00\c2\42\00\00\ec\42\00\00\d2\42\00\00\ce\42\00\00\c2\42\00\00\e8\42\00\00\de\42\00\00\e4\42\00\00\c8\42\00\00\ca\42\00\00\ec\42\00\00\d2\42\00\00\c6\42\00\00\ca\42\00\00\9a\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\ee\42\00\00\d2\42\00\00\dc\42\00\00\c8\42\00\00\de\42\00\00\ee\42\00\00\c8\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\da\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\ee\42\00\00\c2\42\00\00\d6\42\00\00\ca\42\00\00\98\42\00\00\de\42\00\00\c6\42\00\00\d6\42\00\00\ea\42\00\00\e6\42\00\00\ca\42\00\00\e4\42\00\00\82\42\00\00\c6\42\00\00\e8\42\00\00\d2\42\00\00\ec\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\ae\42\00\00\c2\42\00\00\d6\42\00\00\ca\42\00\00\98\42\00\00\de\42\00\00\c6\42\00\00\d6\42\00\00\ae\42\00\00\c2\42\00\00\d6\42\00\00\ca\42\00\00\98\42\00\00\de\42\00\00\c6\42\00\00\d6\42\00\00\a6\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\d2\42\00\00\dc\42\00\00\ca\42\00\00\d8\42\00\00\aa\42\00\00\e6\42\00\00\ca\42\00\00\e4\42\00\00\82\42\00\00\c6\42\00\00\e8\42\00\00\d2\42\00\00\ec\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\9a\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\e0\42\00\00\e4\42\00\00\de\42\00\00\e8\42\00\00\de\42\00\00\e8\42\00\00\f2\42\00\00\e0\42\00\00\ca\42\00\00\c8\42\00\00\c2\42\00\00\e8\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\9e\42\00\00\c4\42\00\00\d4\42\00\00\ca\42\00\00\c6\42\00\00\e8\42\00\00\ae\42\00\00\ca\42\00\00\c4\42\00\00\82\42\00\00\e6\42\00\00\e6\42\00\00\ca\42\00\00\da\42\00\00\c4\42\00\00\d8\42\00\00\f2\42\00\00\9a\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\aa\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\60\42\00\00\82\42\00\00\e4\42\00\00\e4\42\00\00\c2\42\00\00\f2\42\00\00\ce\42\00\00\e4\42\00\00\de\42\00\00\ee\42\00\00\82\42\00\00\e4\42\00\00\e4\42\00\00\c2\42\00\00\f2\42\00\00\e0\42\00\00\ea\42\00\00\e6\42\00\00\d0\42\00\00\e6\42\00\00\d8\42\00\00\d2\42\00\00\c6\42\00\00\ca\42\00\00\be\42\00\00\be\42\00\00\e0\42\00\00\e4\42\00\00\de\42\00\00\e8\42\00\00\de\42\00\00\be\42\00\00\be\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\a8\42\00\00\c2\42\00\00\e4\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\c2\42\00\00\c8\42\00\00\c8\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\98\42\00\00\d2\42\00\00\e6\42\00\00\e8\42\00\00\ca\42\00\00\dc\42\00\00\ca\42\00\00\e4\42\00\00\e4\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\ec\42\00\00\ca\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\98\42\00\00\d2\42\00\00\e6\42\00\00\e8\42\00\00\ca\42\00\00\dc\42\00\00\ca\42\00\00\e4\42\00\00\88\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\da\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\ec\42\00\00\d2\42\00\00\e6\42\00\00\d2\42\00\00\c4\42\00\00\d2\42\00\00\d8\42\00\00\d2\42\00\00\e8\42\00\00\f2\42\00\00\a6\42\00\00\e8\42\00\00\c2\42\00\00\e8\42\00\00\ca\42\00\00\a6\42\00\00\e8\42\00\00\e4\42\00\00\d2\42\00\00\dc\42\00\00\ce\42\00\00\c6\42\00\00\d0\42\00\00\c2\42\00\00\e4\42\00\00\86\42\00\00\de\42\00\00\c8\42\00\00\ca\42\00\00\82\42\00\00\e8\42\00\00\d0\42\00\00\c2\42\00\00\e6\42\00\00\8c\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\e6\42\00\00\d0\42\00\00\d2\42\00\00\c8\42\00\00\c8\42\00\00\ca\42\00\00\dc\42\00\00\e0\42\00\00\ca\42\00\00\e4\42\00\00\cc\42\00\00\de\42\00\00\e4\42\00\00\da\42\00\00\c2\42\00\00\dc\42\00\00\c6\42\00\00\ca\42\00\00\dc\42\00\00\de\42\00\00\ee\42")
+    (data $wat4wasm/text "\00\00\da\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\d2\42\00\00\dc\42\00\00\d2\42\00\00\e8\42\00\00\d2\42\00\00\c2\42\00\00\d8\42\00\00\da\42\00\00\c2\42\00\00\f0\42\00\00\d2\42\00\00\da\42\00\00\ea\42\00\00\da\42\00\00\e6\42\00\00\d0\42\00\00\c2\42\00\00\e4\42\00\00\ca\42\00\00\c8\42\00\00\c4\42\00\00\ea\42\00\00\cc\42\00\00\cc\42\00\00\ca\42\00\00\e4\42\00\00\c4\42\00\00\f2\42\00\00\e8\42\00\00\ca\42\00\00\98\42\00\00\ca\42\00\00\dc\42\00\00\ce\42\00\00\e8\42\00\00\d0\42\00\00\c4\42\00\00\ea\42\00\00\cc\42\00\00\cc\42\00\00\ca\42\00\00\e4\42\00\00\be\42\00\00\da\42\00\00\c2\42\00\00\f0\42\00\00\be\42\00\00\c4\42\00\00\f2\42\00\00\e8\42\00\00\ca\42\00\00\d8\42\00\00\ca\42\00\00\dc\42\00\00\ce\42\00\00\e8\42\00\00\d0\42\00\00\da\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\be\42\00\00\da\42\00\00\c2\42\00\00\f0\42\00\00\be\42\00\00\c4\42\00\00\f2\42\00\00\e8\42\00\00\ca\42\00\00\d8\42\00\00\ca\42\00\00\dc\42\00\00\ce\42\00\00\e8\42\00\00\d0\42\00\00\c8\42\00\00\ca\42\00\00\ec\42\00\00\d2\42\00\00\c6\42\00\00\ca\42\00\00\be\42\00\00\da\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\be\42\00\00\c4\42\00\00\f2\42\00\00\e8\42\00\00\ca\42\00\00\d8\42\00\00\ca\42\00\00\dc\42\00\00\ce\42\00\00\e8\42\00\00\d0\42\00\00\da\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\be\42\00\00\c6\42\00\00\ea\42\00\00\e4\42\00\00\e4\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\be\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\d2\42\00\00\f4\42\00\00\ca\42\00\00\da\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\be\42\00\00\da\42\00\00\c2\42\00\00\f0\42\00\00\d2\42\00\00\da\42\00\00\ea\42\00\00\da\42\00\00\be\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\d2\42\00\00\f4\42\00\00\ca\42\00\00\e0\42\00\00\de\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\de\42\00\00\ec\42\00\00\ca\42\00\00\e4\42\00\00\e0\42\00\00\de\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\de\42\00\00\ea\42\00\00\e8\42\00\00\e0\42\00\00\de\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\da\42\00\00\de\42\00\00\ec\42\00\00\ca\42\00\00\ec\42\00\00\d2\42\00\00\e6\42\00\00\d2\42\00\00\c4\42\00\00\d2\42\00\00\d8\42\00\00\d2\42\00\00\e8\42\00\00\f2\42\00\00\c6\42\00\00\d0\42\00\00\c2\42\00\00\dc\42\00\00\ce\42\00\00\ca\42\00\00\ec\42\00\00\d2\42\00\00\e6\42\00\00\d2\42\00\00\c4\42\00\00\d2\42\00\00\d8\42\00\00\d2\42\00\00\e8\42\00\00\f2\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\e0\42\00\00\e4\42\00\00\ca\42\00\00\34\42\00\00\e4\42\00\00\ca\42\00\00\dc\42\00\00\c8\42\00\00\ca\42\00\00\e4\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\cc\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\e6\42\00\00\c4\42\00\00\d8\42\00\00\ea\42\00\00\e4\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\cc\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\e6\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\c4\42\00\00\d8\42\00\00\ea\42\00\00\e4\42\00\00\e4\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\cc\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\e6\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\cc\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\e6\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\cc\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\e6\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\e0\42\00\00\e4\42\00\00\ca\42\00\00\34\42\00\00\c2\42\00\00\c6\42\00\00\e8\42\00\00\d2\42\00\00\ec\42\00\00\ca\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\d0\42\00\00\de\42\00\00\ee\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\d0\42\00\00\d2\42\00\00\c8\42\00\00\ca\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e6\42\00\00\ee\42\00\00\c2\42\00\00\e0\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e4\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\c2\42\00\00\d8\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\d0\42\00\00\c2\42\00\00\e6\42\00\00\00\42\00\00\e6\42\00\00\d0\42\00\00\de\42\00\00\ee\42\00\00\dc\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\d0\42\00\00\c2\42\00\00\e6\42\00\00\00\42\00\00\d0\42\00\00\d2\42\00\00\c8\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\d0\42\00\00\d2\42\00\00\c8\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\ee\42\00\00\d2\42\00\00\e8\42\00\00\d0\42\00\00\00\42\00\00\e6\42\00\00\ee\42\00\00\c2\42\00\00\e0\42\00\00\e0\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\00\42\00\00\e6\42\00\00\d0\42\00\00\de\42\00\00\ee\42\00\00\dc\42\00\00\00\42\00\00\ee\42\00\00\d2\42\00\00\e8\42\00\00\d0\42\00\00\00\42\00\00\e4\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\c2\42\00\00\d8\42\00\00\c4\42\00\00\ca\42\00\00\cc\42\00\00\de\42\00\00\e4\42\00\00\ca\42\00\00\ea\42\00\00\dc\42\00\00\d8\42\00\00\de\42\00\00\c2\42\00\00\c8\42\00\00\ea\42\00\00\dc\42\00\00\d8\42\00\00\de\42\00\00\c2\42\00\00\c8\42\00\00\ea\42\00\00\dc\42\00\00\d8\42\00\00\de\42\00\00\c2\42\00\00\c8\42\00\00\00\42\00\00\e6\42\00\00\e8\42\00\00\c2\42\00\00\e8\42\00\00\ca\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\ee\42\00\00\c2\42\00\00\d2\42\00\00\e8\42\00\00\d2\42\00\00\dc\42\00\00\ce\42\00\00\ea\42\00\00\dc\42\00\00\d8\42\00\00\de\42\00\00\c2\42\00\00\c8\42\00\00\00\42\00\00\e6\42\00\00\e8\42\00\00\c2\42\00\00\e8\42\00\00\ca\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\c4\42\00\00\ca\42\00\00\cc\42\00\00\de\42\00\00\e4\42\00\00\ca\42\00\00\00\42\00\00\ea\42\00\00\dc\42\00\00\d8\42\00\00\de\42\00\00\c2\42\00\00\c8\42\00\00\ea\42\00\00\dc\42\00\00\d8\42\00\00\de\42\00\00\c2\42\00\00\c8\42\00\00\00\42\00\00\e6\42\00\00\e8\42\00\00\c2\42\00\00\e8\42\00\00\ca\42\00\00\00\42\00\00\d2\42\00\00\e6\42\00\00\00\42\00\00\c6\42\00\00\d8\42\00\00\de\42\00\00\e6\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\c6\42\00\00\f2\42\00\00\c6\42\00\00\d8\42\00\00\ca\42\00\00\00\42\00\00\e6\42\00\00\ee\42\00\00\d2\42\00\00\e8\42\00\00\c6\42\00\00\d0\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\e8\42\00\00\de\42\00\00\00\42\00\00\dc\42\00\00\ca\42\00\00\f0\42\00\00\e8\42\00\00\00\42\00\00\e8\42\00\00\d2\42\00\00\c6\42\00\00\d6\42\00\00\e4\42\00\00\ca\42\00\00\dc\42\00\00\c8\42\00\00\ca\42\00\00\e4\42\00\00\ca\42\00\00\c8\42\00\00\00\42\00\00\cc\42\00\00\e4\42\00\00\c2\42\00\00\da\42\00\00\ca\42\00\00\e6\42\00\00\68\42\00\00\c6\42\00\00\c2\42\00\00\d8\42\00\00\d8\42\00\00\c4\42\00\00\c2\42\00\00\c6\42\00\00\d6\42\00\00\00\42\00\00\c6\42\00\00\f2\42\00\00\c6\42\00\00\d8\42\00\00\ca\42\00\00\e6\42\00\00\68\42\00\00\e8\42\00\00\de\42\00\00\e8\42\00\00\c2\42\00\00\d8\42\00\00\00\42\00\00\c6\42\00\00\f2\42\00\00\c6\42\00\00\d8\42\00\00\ca\42\00\00\00\42\00\00\c6\42\00\00\de\42\00\00\ea\42\00\00\dc\42\00\00\e8\42\00\00\68\42\00\00\c6\42\00\00\f2\42\00\00\c6\42\00\00\d8\42\00\00\ca\42\00\00\e6\42\00\00\00\42\00\00\e0\42\00\00\ca\42\00\00\e4\42\00\00\00\42\00\00\e6\42\00\00\ca\42\00\00\c6\42\00\00\de\42\00\00\dc\42\00\00\c8\42\00\00\68\42\00\00\de\42\00\00\dc\42\00\00\00\42\00\00\ec\42\00\00\d2\42\00\00\e6\42\00\00\d2\42\00\00\c4\42\00\00\d8\42\00\00\ca\42\00\00\00\42\00\00\cc\42\00\00\e4\42\00\00\de\42\00\00\da\42\00\00\00\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\00\42\00\00\da\42\00\00\c2\42\00\00\dc\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e4\42\00\00\38\42\00\00\00\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\00\42\00\00\de\42\00\00\cc\42\00\00\cc\42\00\00\e6\42\00\00\ca\42\00\00\e8\42\00\00\68\42\00\00\de\42\00\00\dc\42\00\00\00\42\00\00\d0\42\00\00\d2\42\00\00\c8\42\00\00\c8\42\00\00\ca\42\00\00\dc\42\00\00\00\42\00\00\cc\42\00\00\e4\42\00\00\de\42\00\00\da\42\00\00\00\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\00\42\00\00\da\42\00\00\c2\42\00\00\dc\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e4\42\00\00\38\42\00\00\00\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\00\42\00\00\de\42\00\00\cc\42\00\00\cc\42\00\00\e6\42\00\00\ca\42\00\00\e8\42\00\00\68\42\00\00\de\42\00\00\dc\42\00\00\00\42\00\00\e0\42\00\00\de\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\ca\42\00\00\e4\42\00\00\00\42\00\00\da\42\00\00\de\42\00\00\ec\42\00\00\ca\42\00\00\00\42\00\00\cc\42\00\00\e4\42\00\00\de\42\00\00\da\42\00\00\00\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\00\42\00\00\da\42\00\00\c2\42\00\00\dc\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e4\42\00\00\38\42\00\00\00\42\00\00\ca\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\00\42\00\00\de\42\00\00\cc\42\00\00\cc\42\00\00\e6\42\00\00\ca\42\00\00\e8\42\00\00\68\42\00\00\dc\42\00\00\c2\42\00\00\ec\42\00\00\d2\42\00\00\ce\42\00\00\c2\42\00\00\e8\42\00\00\de\42\00\00\e4\42\00\00\c8\42\00\00\ca\42\00\00\ec\42\00\00\d2\42\00\00\c6\42\00\00\ca\42\00\00\9a\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\ee\42\00\00\d2\42\00\00\dc\42\00\00\c8\42\00\00\de\42\00\00\ee\42\00\00\c8\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\da\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\ee\42\00\00\c2\42\00\00\d6\42\00\00\ca\42\00\00\98\42\00\00\de\42\00\00\c6\42\00\00\d6\42\00\00\ea\42\00\00\e6\42\00\00\ca\42\00\00\e4\42\00\00\82\42\00\00\c6\42\00\00\e8\42\00\00\d2\42\00\00\ec\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\ae\42\00\00\c2\42\00\00\d6\42\00\00\ca\42\00\00\98\42\00\00\de\42\00\00\c6\42\00\00\d6\42\00\00\ae\42\00\00\c2\42\00\00\d6\42\00\00\ca\42\00\00\98\42\00\00\de\42\00\00\c6\42\00\00\d6\42\00\00\a6\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\d2\42\00\00\dc\42\00\00\ca\42\00\00\d8\42\00\00\aa\42\00\00\e6\42\00\00\ca\42\00\00\e4\42\00\00\82\42\00\00\c6\42\00\00\e8\42\00\00\d2\42\00\00\ec\42\00\00\c2\42\00\00\e8\42\00\00\d2\42\00\00\de\42\00\00\dc\42\00\00\9a\42\00\00\ca\42\00\00\e6\42\00\00\e6\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\e0\42\00\00\e4\42\00\00\de\42\00\00\e8\42\00\00\de\42\00\00\e8\42\00\00\f2\42\00\00\e0\42\00\00\ca\42\00\00\c8\42\00\00\c2\42\00\00\e8\42\00\00\c2\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\9e\42\00\00\c4\42\00\00\d4\42\00\00\ca\42\00\00\c6\42\00\00\e8\42\00\00\ae\42\00\00\ca\42\00\00\c4\42\00\00\82\42\00\00\e6\42\00\00\e6\42\00\00\ca\42\00\00\da\42\00\00\c4\42\00\00\d8\42\00\00\f2\42\00\00\9a\42\00\00\ca\42\00\00\da\42\00\00\de\42\00\00\e4\42\00\00\f2\42\00\00\aa\42\00\00\d2\42\00\00\dc\42\00\00\e8\42\00\00\60\42\00\00\82\42\00\00\e4\42\00\00\e4\42\00\00\c2\42\00\00\f2\42\00\00\ce\42\00\00\e4\42\00\00\de\42\00\00\ee\42\00\00\82\42\00\00\e4\42\00\00\e4\42\00\00\c2\42\00\00\f2\42\00\00\e0\42\00\00\ea\42\00\00\e6\42\00\00\d0\42\00\00\e6\42\00\00\d8\42\00\00\d2\42\00\00\c6\42\00\00\ca\42\00\00\be\42\00\00\be\42\00\00\e0\42\00\00\e4\42\00\00\de\42\00\00\e8\42\00\00\de\42\00\00\be\42\00\00\be\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\a8\42\00\00\c2\42\00\00\e4\42\00\00\ce\42\00\00\ca\42\00\00\e8\42\00\00\c2\42\00\00\c8\42\00\00\c8\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\98\42\00\00\d2\42\00\00\e6\42\00\00\e8\42\00\00\ca\42\00\00\dc\42\00\00\ca\42\00\00\e4\42\00\00\e0\42\00\00\ca\42\00\00\e4\42\00\00\cc\42\00\00\de\42\00\00\e4\42\00\00\da\42\00\00\c2\42\00\00\dc\42\00\00\c6\42\00\00\ca\42\00\00\dc\42\00\00\de\42\00\00\ee\42\00\00\9a\42\00\00\de\42\00\00\ea\42\00\00\e6\42\00\00\ca\42\00\00\8a\42\00\00\ec\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\c6\42\00\00\d8\42\00\00\d2\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\b0\42\00\00\c6\42\00\00\d8\42\00\00\d2\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\b2\42\00\00\88\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\da\42\00\00\ca\42\00\00\dc\42\00\00\e8\42\00\00\ec\42\00\00\d2\42\00\00\e6\42\00\00\d2\42\00\00\c4\42\00\00\d2\42\00\00\d8\42\00\00\d2\42\00\00\e8\42\00\00\f2\42\00\00\a6\42\00\00\e8\42\00\00\c2\42\00\00\e8\42\00\00\ca\42\00\00\a6\42\00\00\e8\42\00\00\e4\42\00\00\d2\42\00\00\dc\42\00\00\ce\42\00\00\c6\42\00\00\d0\42\00\00\c2\42\00\00\e4\42\00\00\86\42\00\00\de\42\00\00\c8\42\00\00\ca\42\00\00\82\42\00\00\e8\42\00\00\d0\42\00\00\c2\42\00\00\e6\42\00\00\8c\42\00\00\de\42\00\00\c6\42\00\00\ea\42\00\00\e6\42\00\00\d0\42\00\00\d2\42\00\00\c8\42\00\00\c8\42\00\00\ca\42\00\00\dc\42")
 )

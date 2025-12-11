@@ -1,20 +1,34 @@
 
-    (global $OFFSET_EVENT_MANAGER       mut i32)
-    (global $LENGTH_EVENT_MANAGER       i32 i32(16))
-
-    (global $OFFSET_EVENT_LISTENERS     mut i32)
-    (global $BYTES_PER_EVENT_LISTENER   i32 i32(32))
-    (global $MAX_EVENT_LISTENER_COUNT   i32 i32(256))
-
-    (global $OFFSET_EVENT_EMITS_QUEUE   mut i32)
-    (global $BYTES_PER_EMITTED_EVENTS   i32 i32(8))
-    (global $MAX_EVENT_EMIT_PER_CYLCE   i32 i32(256))
-
     (table $event_manager.listener_handlers<fun> 1 65535 funcref)
+
+    (global $OFFSET_EVENT_MANAGER               mut i32)
+    (global $LENGTH_EVENT_MANAGER               i32 i32(64))
+
+    (global $OFFSET_EVENT_LISTENERS             mut i32)
+    (global $BYTES_PER_EVENT_LISTENER           i32 i32(32))
+    (global $MAX_EVENT_LISTENER_COUNT           i32 i32(256))
+
+    (global $OFFSET_EVENT_EMITS_QUEUE           mut i32)
+    (global $BYTES_PER_EMITTED_EVENTS           i32 i32(8))
+    (global $MAX_EVENT_EMIT_PER_CYLCE           i32 i32(256))
+
+    (global $OFFSET_EVENT_SLOTS                 mut i32)
+    (global $LENGTH_EVENT_SLOTS                 i32 i32(64000))  ;; 64 * 1000
+    (global $BYTES_PER_EVENT_SLOT               i32 i32(64))
+    (global $MAX_EVENT_SLOTS_COUNT              i32 i32(1000))
 
     (global $EVENT_TYPE.ON_EVERY_SECOND         i32 i32(2))
     (global $EVENT_TYPE.ON_VISIBILTY_VISIBLE    i32 i32(3))
     (global $EVENT_TYPE.ON_VISIBILTY_HIDDEN     i32 i32(4))
+    (global $EVENT_TYPE.ON_POINTER_MOVE         i32 i32(5))
+
+    (global $OFFSET_EVENT_HEADER_POINTER_EPOCH    i32 i32(4))
+    (global $OFFSET_EVENT_HEADER_POINTER_CLIENT_X i32 i32(8))
+    (global $OFFSET_EVENT_HEADER_POINTER_CLIENT_Y i32 i32(12))
+
+    (global $OFFSET_EVENT_HEADER_VISIBILTY_EPOCH i32 i32(4))
+    (global $OFFSET_EVENT_HEADER_VISIBILTY_OTHER i32 i32(8))
+
 
     (func $new_event_manager
         (result $this* i32)
@@ -43,11 +57,36 @@
             )
         )
 
+        (global.set $OFFSET_EVENT_SLOTS
+            (call $memory_manager.malloc_internal<i32>i32 
+                (global.get $LENGTH_EVENT_SLOTS)
+            )
+        )
+
+        (call $event_manager.reset_event_slots<>)
+        (call $event_manager.reset_listener_slots<>)
+
+        (global.get $OFFSET_EVENT_MANAGER)
+    )
+
+    (func $event_manager.reset_event_slots<>
+        (call $event_manager.set_event_slot_length<i32>
+            (global.get $OFFSET_EVENT_SLOTS)
+        )
+
+        (call $event_manager.set_event_slot_count<i32>
+            (i32.const 0)
+        )
+    )
+
+    (func $event_manager.reset_listener_slots<>
         (call $event_manager.set_listener_length<i32>
             (global.get $OFFSET_EVENT_LISTENERS)
         )
 
-        (global.get $OFFSET_EVENT_MANAGER)
+        (call $event_manager.set_listener_count<i32>
+            (i32.const 0)
+        )
     )
 
     (func $event_manager.event_loop<>
@@ -107,8 +146,7 @@
         )
     )
 
-    (func $event_manager.emit<i32.i32>
-        (param $event_type i32)
+    (func $event_manager.emit<i32>
         (param $event_ptr i32)
 
         (local $queue_offset i32)
@@ -126,7 +164,7 @@
                 (then
                     (call $event_queue.set_event_type<i32.i32> 
                         (local.get $queue_offset) 
-                        (local.get $event_type)
+                        (call $event.get_type<i32>i32 (local.get $event_ptr))
                     )
                     (return)
                 ) 
@@ -161,6 +199,18 @@
         (local.set $handler_index   (table.grow $event_manager.listener_handlers<fun> (local.get $event_handler) (i32.const 1)))
         (local.set $listener_index  (call $event_manager.new_listener_index<>i32))
         (local.set $listener_offset (call $event_manager.new_listener_offset<>i32))
+
+        (if (i32.eq (local.get $listener_index) (global.get $MAX_EVENT_LISTENER_COUNT))
+            (then
+                (call $event_manager.reset_listener_slots<>)
+                (return 
+                    (call $event_manager.listen<i32.fun>i32 
+                        (local.get $event_type) 
+                        (local.get $event_handler)
+                    )
+                )
+            )
+        )
 
         (call $event_listener.set_listener_index<i32.i32>   (local.get $listener_offset) (local.get $listener_index))
         (call $event_listener.set_event_type<i32.i32>       (local.get $listener_offset) (local.get $event_type))
@@ -245,6 +295,36 @@
         )
     )
 
+    (func $event_manager.alloc_event_slot<i32>i32
+        (param $event_type i32)
+        (result i32)
+        (local $slot_offset i32)
+        
+        (if (i32.eq 
+                (call $event_manager.new_event_slot_index<>i32)
+                (global.get $MAX_EVENT_SLOTS_COUNT)
+            )
+            (then
+                (call $event_manager.reset_event_slots<>)
+                (return 
+                    (call $event_manager.alloc_event_slot<i32>i32 
+                        (local.get $event_type)
+                    )
+                )
+            )
+        )
+
+        (local.set $slot_offset 
+            (call $event_manager.new_event_slot_offset<>i32)
+        )
+        
+        (call $event.set_type<i32.i32> 
+            (local.get $slot_offset) (local.get $event_type)
+        )
+
+        (local.get $slot_offset)
+    )
+
     (func $event_manager.handle_for_each_tick<>
     )
 
@@ -268,7 +348,34 @@
     (func $event_manager.add_queued_event_emits<>i32    (result i32) (i32.atomic.rmw.add offset=16 (global.get $OFFSET_EVENT_MANAGER) (i32.const 1)))
     (func $event_manager.get_queued_event_emits<>i32    (result i32) (i32.load offset=16 (global.get $OFFSET_EVENT_MANAGER)))
     (func $event_manager.set_queued_event_emits<i32>    (param i32) (i32.store offset=16 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
-    (func $event_manager.sub_queued_event_emits<>i32    (result i32) (i32.atomic.rmw.sub offset=16 (global.get $OFFSET_EVENT_MANAGER) (i32.const 1)))
+
+    (func $event_manager.new_event_slot_offset<>i32     (result i32) (i32.atomic.rmw.add offset=20 (global.get $OFFSET_EVENT_MANAGER) (global.get $BYTES_PER_EVENT_SLOT)))
+    (func $event_manager.get_event_slot_length<>i32     (result i32) (i32.load offset=20 (global.get $OFFSET_EVENT_MANAGER)))
+    (func $event_manager.set_event_slot_length<i32>     (param i32) (i32.store offset=20 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
+
+    (func $event_manager.new_event_slot_index<>i32      (result i32) (i32.atomic.rmw.add offset=24 (global.get $OFFSET_EVENT_MANAGER) (i32.const 1)))
+    (func $event_manager.get_event_slot_count<>i32      (result i32) (i32.load offset=24 (global.get $OFFSET_EVENT_MANAGER)))
+    (func $event_manager.set_event_slot_count<i32>      (param i32) (i32.store offset=24 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
+
+    (func $event.get_type<i32>i32                       (param i32) (result i32) (i32.load offset=0 (local.get 0)))
+    (func $event.set_type<i32.i32>                      (param i32 i32) (i32.store offset=0 (local.get 0) (local.get 1)))
+
+    (func $event.get_header<i32>i32                     (param i32) (result i32) (i32.load offset=0 (local.get 0)))
+    (func $event.set_header<i32.i32>                    (param i32 i32) (i32.store offset=0 (local.get 0) (local.get 1)))
+    (func $event.get_header<i32>f32                     (param i32) (result f32) (f32.load offset=0 (local.get 0)))
+    (func $event.set_header<i32.f32>                    (param i32 f32) (f32.store offset=0 (local.get 0) (local.get 1)))
+
+    (func $visibility_event.get_epoch<i32>f32           (param i32) (result f32) (call $event.get_header<i32>f32 (i32.add (global.get $OFFSET_EVENT_HEADER_VISIBILTY_EPOCH) (local.get 0))))
+    (func $visibility_event.set_epoch<i32.f32>          (param i32 f32) (call $event.set_header<i32.f32> (i32.add (global.get $OFFSET_EVENT_HEADER_VISIBILTY_EPOCH) (local.get 0)) (local.get 1)))
+
+    (func $pointer_event.get_epoch<i32>f32              (param i32) (result f32) (call $event.get_header<i32>f32 (i32.add (global.get $OFFSET_EVENT_HEADER_POINTER_EPOCH) (local.get 0))))
+    (func $pointer_event.set_epoch<i32.f32>             (param i32 f32) (call $event.set_header<i32.f32> (i32.add (global.get $OFFSET_EVENT_HEADER_POINTER_EPOCH) (local.get 0)) (local.get 1)))
+
+    (func $pointer_event.get_client_x<i32>f32           (param i32) (result f32) (call $event.get_header<i32>f32 (i32.add (global.get $OFFSET_EVENT_HEADER_POINTER_CLIENT_X) (local.get 0))))
+    (func $pointer_event.set_client_x<i32.f32>          (param i32 f32) (call $event.set_header<i32.f32> (i32.add (global.get $OFFSET_EVENT_HEADER_POINTER_CLIENT_X) (local.get 0)) (local.get 1)))
+
+    (func $pointer_event.get_client_y<i32>f32           (param i32) (result f32) (call $event.get_header<i32>f32 (i32.add (global.get $OFFSET_EVENT_HEADER_POINTER_CLIENT_Y) (local.get 0))))
+    (func $pointer_event.set_client_y<i32.f32>          (param i32 f32) (call $event.set_header<i32.f32> (i32.add (global.get $OFFSET_EVENT_HEADER_POINTER_CLIENT_Y) (local.get 0)) (local.get 1)))
 
     (func $event_queue.get_event_type<i32>i32           (param i32) (result i32) (i32.load offset=0 (local.get 0)))
     (func $event_queue.set_event_type<i32.i32>          (param i32 i32) (i32.store offset=0 (local.get 0) (local.get 1)))

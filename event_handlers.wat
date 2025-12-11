@@ -24,6 +24,13 @@
             )
         )
 
+        (call $event_handlers.set_on_pointer_move_ptr<i32>
+            (call $event_manager.listen<i32.fun>i32
+                (global.get $EVENT_TYPE.ON_POINTER_MOVE) 
+                (ref.func $event_handlers.on_pointer_move<i32>)
+            )
+        )
+
         (call $event_handlers.set_event_loop_listener_ptr<i32>
             (call $window_listener.add_listener_for_each_cycle<fun>i32
                 (ref.func $event_manager.event_loop<>)
@@ -43,11 +50,20 @@
         (warn<ref.i32> text('on hidden from event manager. event offset:') local($event*))
     )
 
+    (func $event_handlers.on_pointer_move<i32>
+        (param $event* i32)
+        (warn<ref.i32> text('on pointer move from event manager. event offset:') local($event*))
+    )
+
+    (func $event_handlers.get_event_loop_listener_ptr<>i32      (result i32) (i32.load offset=0 (global.get $OFFSET_EVENT_MANAGER)))
+    (func $event_handlers.set_event_loop_listener_ptr<i32>      (param i32) (i32.store offset=0 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
+
     (func $event_handlers.get_on_visibility_visibile_ptr<>i32   (result i32) (i32.load offset=4 (global.get $OFFSET_EVENT_MANAGER)))
     (func $event_handlers.set_on_visibility_visibile_ptr<i32>   (param i32) (i32.store offset=4 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
 
     (func $event_handlers.get_on_visibility_hidden_ptr<>i32     (result i32) (i32.load offset=8 (global.get $OFFSET_EVENT_MANAGER)))
     (func $event_handlers.set_on_visibility_hidden_ptr<i32>     (param i32) (i32.store offset=8 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
 
-    (func $event_handlers.get_event_loop_listener_ptr<>i32      (result i32) (i32.load offset=12 (global.get $OFFSET_EVENT_MANAGER)))
-    (func $event_handlers.set_event_loop_listener_ptr<i32>      (param i32) (i32.store offset=12 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
+    (func $event_handlers.get_on_pointer_move_ptr<>i32          (result i32) (i32.load offset=12 (global.get $OFFSET_EVENT_MANAGER)))
+    (func $event_handlers.set_on_pointer_move_ptr<i32>          (param i32) (i32.store offset=12 (global.get $OFFSET_EVENT_MANAGER) (local.get 0)))
+
