@@ -1,33 +1,35 @@
 
     (table $event_manager.listener_handlers<fun> 1 65535 funcref)
 
-    (global $OFFSET_EVENT_MANAGER               mut i32)
-    (global $LENGTH_EVENT_MANAGER               i32 i32(64))
+    (global $OFFSET_EVENT_MANAGER                   mut i32)
+    (global $LENGTH_EVENT_MANAGER                   i32 i32(64))
+    
+    (global $OFFSET_EVENT_LISTENERS                 mut i32)
+    (global $BYTES_PER_EVENT_LISTENER               i32 i32(32))
+    (global $MAX_EVENT_LISTENER_COUNT               i32 i32(256))
+    
+    (global $OFFSET_EVENT_EMITS_QUEUE               mut i32)
+    (global $BYTES_PER_EMITTED_EVENTS               i32 i32(8))
+    (global $MAX_EVENT_EMIT_PER_CYLCE               i32 i32(256))
 
-    (global $OFFSET_EVENT_LISTENERS             mut i32)
-    (global $BYTES_PER_EVENT_LISTENER           i32 i32(32))
-    (global $MAX_EVENT_LISTENER_COUNT           i32 i32(256))
+    (global $OFFSET_EVENT_SLOTS                     mut i32)
+    (global $LENGTH_EVENT_SLOTS                     i32 i32(64000))  ;; 64 * 1000
+    (global $BYTES_PER_EVENT_SLOT                   i32 i32(64))
+    (global $MAX_EVENT_SLOTS_COUNT                  i32 i32(1000))
 
-    (global $OFFSET_EVENT_EMITS_QUEUE           mut i32)
-    (global $BYTES_PER_EMITTED_EVENTS           i32 i32(8))
-    (global $MAX_EVENT_EMIT_PER_CYLCE           i32 i32(256))
+    (global $EVENT_TYPE.ON_EVERY_SECOND             i32 i32(2))
+    (global $EVENT_TYPE.ON_VISIBILTY_VISIBLE        i32 i32(3))
+    (global $EVENT_TYPE.ON_VISIBILTY_HIDDEN         i32 i32(4))
+    (global $EVENT_TYPE.ON_POINTER_MOVE             i32 i32(5))
+    (global $EVENT_TYPE.ON_POINTER_OVER             i32 i32(6))
+    (global $EVENT_TYPE.ON_POINTER_OUT              i32 i32(7))
 
-    (global $OFFSET_EVENT_SLOTS                 mut i32)
-    (global $LENGTH_EVENT_SLOTS                 i32 i32(64000))  ;; 64 * 1000
-    (global $BYTES_PER_EVENT_SLOT               i32 i32(64))
-    (global $MAX_EVENT_SLOTS_COUNT              i32 i32(1000))
+    (global $OFFSET_EVENT_HEADER_POINTER_EPOCH      i32 i32(4))
+    (global $OFFSET_EVENT_HEADER_POINTER_CLIENT_X   i32 i32(8))
+    (global $OFFSET_EVENT_HEADER_POINTER_CLIENT_Y   i32 i32(12))
 
-    (global $EVENT_TYPE.ON_EVERY_SECOND         i32 i32(2))
-    (global $EVENT_TYPE.ON_VISIBILTY_VISIBLE    i32 i32(3))
-    (global $EVENT_TYPE.ON_VISIBILTY_HIDDEN     i32 i32(4))
-    (global $EVENT_TYPE.ON_POINTER_MOVE         i32 i32(5))
-
-    (global $OFFSET_EVENT_HEADER_POINTER_EPOCH    i32 i32(4))
-    (global $OFFSET_EVENT_HEADER_POINTER_CLIENT_X i32 i32(8))
-    (global $OFFSET_EVENT_HEADER_POINTER_CLIENT_Y i32 i32(12))
-
-    (global $OFFSET_EVENT_HEADER_VISIBILTY_EPOCH i32 i32(4))
-    (global $OFFSET_EVENT_HEADER_VISIBILTY_OTHER i32 i32(8))
+    (global $OFFSET_EVENT_HEADER_VISIBILTY_EPOCH    i32 i32(4))
+    (global $OFFSET_EVENT_HEADER_VISIBILTY_OTHER    i32 i32(8))
 
 
     (func $new_event_manager

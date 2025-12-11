@@ -572,11 +572,42 @@
         )
     )
 
-    (func $window_listener.handle_pointer_out<>)
-    (func $window_listener.handle_pointer_over<>)
+    (func $window_listener.handle_pointer_out<>
+        (param $event externref)
+        (local $event_ptr i32)
+
+        (local.set $event_ptr
+            (call $event_manager.alloc_event_slot<i32>i32
+                (global.get $EVENT_TYPE.ON_POINTER_OUT)
+            )
+        )
+
+        (call $window_listener.set_shared_pointer_events<ref.i32>
+            (local.get $event) (local.get $event_ptr)
+        )
+
+        (call $event_manager.emit<i32> (local.get $event_ptr))
+    )
+    
+    (func $window_listener.handle_pointer_over<>
+        (param $event externref)
+        (local $event_ptr i32)
+
+        (local.set $event_ptr
+            (call $event_manager.alloc_event_slot<i32>i32
+                (global.get $EVENT_TYPE.ON_POINTER_OVER)
+            )
+        )
+
+        (call $window_listener.set_shared_pointer_events<ref.i32>
+            (local.get $event) (local.get $event_ptr)
+        )
+
+        (call $event_manager.emit<i32> (local.get $event_ptr))
+    )
 
     (func $window_listener.handle_pointer_move<ref>
-        (param $event externref )
+        (param $event externref)
         (local $event_ptr i32)
 
         (local.set $event_ptr
@@ -584,6 +615,17 @@
                 (global.get $EVENT_TYPE.ON_POINTER_MOVE)
             )
         )
+
+        (call $window_listener.set_shared_pointer_events<ref.i32>
+            (local.get $event) (local.get $event_ptr)
+        )
+
+        (call $event_manager.emit<i32> (local.get $event_ptr))
+    )
+
+    (func $window_listener.set_shared_pointer_events<ref.i32>
+        (param $event externref)
+        (param $event_ptr i32)
 
         (call $pointer_event.set_epoch<i32.f32>
             (local.get $event_ptr) 
@@ -602,13 +644,7 @@
             (call $self.Reflect.apply<refx3>f32 
             (global.get $self.MouseEvent:clientY/get) (local.get $event) (call $self.Array.of<>ref))
         )
-
-        (call $event_manager.emit<i32> 
-            (local.get $event_ptr)
-        )
     )
-
-
 
     (; works like a charm, dispatches at keystones ;)
     (func $window_listener.listen_visibility_change<>
@@ -1242,33 +1278,35 @@
 	(; externref  ;)
 	(table $event_manager.listener_handlers<fun> 1 65535 funcref)
 
-    (global $OFFSET_EVENT_MANAGER               (mut i32) (i32.const 0))
-    (global $LENGTH_EVENT_MANAGER               i32 (i32.const 64))
+    (global $OFFSET_EVENT_MANAGER                   (mut i32) (i32.const 0))
+    (global $LENGTH_EVENT_MANAGER                   i32 (i32.const 64))
+    
+    (global $OFFSET_EVENT_LISTENERS                 (mut i32) (i32.const 0))
+    (global $BYTES_PER_EVENT_LISTENER               i32 (i32.const 32))
+    (global $MAX_EVENT_LISTENER_COUNT               i32 (i32.const 256))
+    
+    (global $OFFSET_EVENT_EMITS_QUEUE               (mut i32) (i32.const 0))
+    (global $BYTES_PER_EMITTED_EVENTS               i32 (i32.const 8))
+    (global $MAX_EVENT_EMIT_PER_CYLCE               i32 (i32.const 256))
 
-    (global $OFFSET_EVENT_LISTENERS             (mut i32) (i32.const 0))
-    (global $BYTES_PER_EVENT_LISTENER           i32 (i32.const 32))
-    (global $MAX_EVENT_LISTENER_COUNT           i32 (i32.const 256))
+    (global $OFFSET_EVENT_SLOTS                     (mut i32) (i32.const 0))
+    (global $LENGTH_EVENT_SLOTS                     i32 (i32.const 64000))  ;; 64 * 1000
+    (global $BYTES_PER_EVENT_SLOT                   i32 (i32.const 64))
+    (global $MAX_EVENT_SLOTS_COUNT                  i32 (i32.const 1000))
 
-    (global $OFFSET_EVENT_EMITS_QUEUE           (mut i32) (i32.const 0))
-    (global $BYTES_PER_EMITTED_EVENTS           i32 (i32.const 8))
-    (global $MAX_EVENT_EMIT_PER_CYLCE           i32 (i32.const 256))
+    (global $EVENT_TYPE.ON_EVERY_SECOND             i32 (i32.const 2))
+    (global $EVENT_TYPE.ON_VISIBILTY_VISIBLE        i32 (i32.const 3))
+    (global $EVENT_TYPE.ON_VISIBILTY_HIDDEN         i32 (i32.const 4))
+    (global $EVENT_TYPE.ON_POINTER_MOVE             i32 (i32.const 5))
+    (global $EVENT_TYPE.ON_POINTER_OVER             i32 (i32.const 6))
+    (global $EVENT_TYPE.ON_POINTER_OUT              i32 (i32.const 7))
 
-    (global $OFFSET_EVENT_SLOTS                 (mut i32) (i32.const 0))
-    (global $LENGTH_EVENT_SLOTS                 i32 (i32.const 64000))  ;; 64 * 1000
-    (global $BYTES_PER_EVENT_SLOT               i32 (i32.const 64))
-    (global $MAX_EVENT_SLOTS_COUNT              i32 (i32.const 1000))
+    (global $OFFSET_EVENT_HEADER_POINTER_EPOCH      i32 (i32.const 4))
+    (global $OFFSET_EVENT_HEADER_POINTER_CLIENT_X   i32 (i32.const 8))
+    (global $OFFSET_EVENT_HEADER_POINTER_CLIENT_Y   i32 (i32.const 12))
 
-    (global $EVENT_TYPE.ON_EVERY_SECOND         i32 (i32.const 2))
-    (global $EVENT_TYPE.ON_VISIBILTY_VISIBLE    i32 (i32.const 3))
-    (global $EVENT_TYPE.ON_VISIBILTY_HIDDEN     i32 (i32.const 4))
-    (global $EVENT_TYPE.ON_POINTER_MOVE         i32 (i32.const 5))
-
-    (global $OFFSET_EVENT_HEADER_POINTER_EPOCH    i32 (i32.const 4))
-    (global $OFFSET_EVENT_HEADER_POINTER_CLIENT_X i32 (i32.const 8))
-    (global $OFFSET_EVENT_HEADER_POINTER_CLIENT_Y i32 (i32.const 12))
-
-    (global $OFFSET_EVENT_HEADER_VISIBILTY_EPOCH i32 (i32.const 4))
-    (global $OFFSET_EVENT_HEADER_VISIBILTY_OTHER i32 (i32.const 8))
+    (global $OFFSET_EVENT_HEADER_VISIBILTY_EPOCH    i32 (i32.const 4))
+    (global $OFFSET_EVENT_HEADER_VISIBILTY_OTHER    i32 (i32.const 8))
 
 
     (func $new_event_manager

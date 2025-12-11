@@ -136,11 +136,42 @@
         )
     )
 
-    (func $window_listener.handle_pointer_out<>)
-    (func $window_listener.handle_pointer_over<>)
+    (func $window_listener.handle_pointer_out<>
+        (param $event externref)
+        (local $event_ptr i32)
+
+        (local.set $event_ptr
+            (call $event_manager.alloc_event_slot<i32>i32
+                (global.get $EVENT_TYPE.ON_POINTER_OUT)
+            )
+        )
+
+        (call $window_listener.set_shared_pointer_events<ref.i32>
+            (local.get $event) (local.get $event_ptr)
+        )
+
+        (call $event_manager.emit<i32> (local.get $event_ptr))
+    )
+    
+    (func $window_listener.handle_pointer_over<>
+        (param $event externref)
+        (local $event_ptr i32)
+
+        (local.set $event_ptr
+            (call $event_manager.alloc_event_slot<i32>i32
+                (global.get $EVENT_TYPE.ON_POINTER_OVER)
+            )
+        )
+
+        (call $window_listener.set_shared_pointer_events<ref.i32>
+            (local.get $event) (local.get $event_ptr)
+        )
+
+        (call $event_manager.emit<i32> (local.get $event_ptr))
+    )
 
     (func $window_listener.handle_pointer_move<ref>
-        (param $event <Event>)
+        (param $event externref)
         (local $event_ptr i32)
 
         (local.set $event_ptr
@@ -148,6 +179,17 @@
                 (global.get $EVENT_TYPE.ON_POINTER_MOVE)
             )
         )
+
+        (call $window_listener.set_shared_pointer_events<ref.i32>
+            (local.get $event) (local.get $event_ptr)
+        )
+
+        (call $event_manager.emit<i32> (local.get $event_ptr))
+    )
+
+    (func $window_listener.set_shared_pointer_events<ref.i32>
+        (param $event externref)
+        (param $event_ptr i32)
 
         (call $pointer_event.set_epoch<i32.f32>
             (local.get $event_ptr) 
@@ -163,13 +205,7 @@
             (local.get $event_ptr) 
             (apply $self.MouseEvent:clientY/get<>f32 (local.get $event) (param))
         )
-
-        (call $event_manager.emit<i32> 
-            (local.get $event_ptr)
-        )
     )
-
-
 
     (; works like a charm, dispatches at keystones ;)
     (func $window_listener.listen_visibility_change<>
