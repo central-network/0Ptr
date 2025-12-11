@@ -1449,13 +1449,13 @@
         )
     )
 
-    (func $event_manager.hanlde_for_each_tick<>
+    (func $event_manager.handle_for_each_tick<>
     )
 
-    (func $event_manager.hanlde_for_each_frame<>
+    (func $event_manager.handle_for_each_frame<>
     )
 
-    (func $event_manager.hanlde_for_each_second<>
+    (func $event_manager.handle_for_each_second<>
     )
 
     (func $event_manager.new_listener_index<>i32        (result i32) (i32.atomic.rmw.add offset=4 (global.get $OFFSET_EVENT_MANAGER) (i32.const 1)))
