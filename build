@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+wat4wasm --input=core.wat --output=core.html --untouched-window --wasm-from-numbers-array --log-instance --wat2wasm=wat2wasm --enable-threads --debug-names --enable-multi-memory 

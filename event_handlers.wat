@@ -42,17 +42,29 @@
 
     (func $event_handlers.on_visibility_visible<i32>
         (param $event* i32)
-        (warn<ref.i32> text('on visible from event manager. event offset:') local($event*))
+        
+        (call $self.console.warn<ref.i32>
+            (text 'on visible from event manager. event offset:') 
+            (local.get $event*)
+        )
     )
 
     (func $event_handlers.on_visibility_hidden<i32>
         (param $event* i32)
-        (warn<ref.i32> text('on hidden from event manager. event offset:') local($event*))
+        
+        (call $self.console.warn<ref.i32> 
+            text('on hidden from event manager. event offset:') 
+            local($event*)
+        )
     )
 
     (func $event_handlers.on_pointer_move<i32>
         (param $event* i32)
-        (warn<ref.i32> text('on pointer move from event manager. event offset:') local($event*))
+
+        (call $self.console.warn<ref.i32> 
+            text('on pointer move from event manager. event offset:') 
+            local($event*)
+        )
     )
 
     (func $event_handlers.get_event_loop_listener_ptr<>i32      (result i32) (i32.load offset=0 (global.get $OFFSET_EVENT_MANAGER)))
